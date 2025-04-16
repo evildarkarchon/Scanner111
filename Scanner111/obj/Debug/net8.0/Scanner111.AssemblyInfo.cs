@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Scanner111")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8e622734cedc0d349169cf2b5a2f622900bf919b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+902c7a2941e733ecac77479887cea24d231b386c")]
 [assembly: System.Reflection.AssemblyProductAttribute("Scanner111")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Scanner111")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
