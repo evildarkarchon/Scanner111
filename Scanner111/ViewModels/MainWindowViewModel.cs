@@ -1,6 +1,7 @@
-﻿namespace Scanner111.ViewModels;
-
-public class MainWindowViewModel : ViewModelBase
+﻿namespace Scanner111.ViewModels
 {
-    public string Greeting { get; } = "Welcome to Avalonia!";
+    public class MainWindowViewModel : ViewModelBase
+    {
+        public string Greeting { get; } = "Welcome to Avalonia!";
+    }
 }
