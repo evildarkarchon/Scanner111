@@ -73,6 +73,10 @@
             "Avalonia.Themes.Fluent": {
               "target": "Package",
               "version": "[11.2.7, )"
+            },
+            "Mutagen.Bethesda": {
+              "target": "Package",
+              "version": "[0.49.0, )"
             }
           },
           "imports": [
