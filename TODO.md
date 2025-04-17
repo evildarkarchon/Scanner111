@@ -1,5 +1,3 @@
-I'll help you create a comprehensive task list for building an Avalonia-based GUI application inspired by the Python CLASSIC application you shared. The goal is to create an improved, more extensible version rather than doing a direct port.
-
 # Task List for Avalonia-based CLASSIC Replacement
 
 ## Analysis of the Original Application
