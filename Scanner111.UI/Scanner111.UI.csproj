@@ -16,6 +16,7 @@
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.2.7" />
     <PackageReference Include="Avalonia.Desktop" Version="11.2.7" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.2.7" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.7" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.7" />
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
@@ -23,7 +24,19 @@
       <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Avalonia.ReactiveUI" Version="11.2.7" />
-    <PackageReference Include="Mutagen.Bethesda" Version="0.49.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Scanner111.Core\Scanner111.Core.csproj" />
+    <ProjectReference Include="..\Scanner111.Application\Scanner111.Application.csproj" />
+    <ProjectReference Include="..\Scanner111.Infrastructure\Scanner111.Infrastructure.csproj" />
+    <ProjectReference Include="..\Scanner111.Plugins.Interface\Scanner111.Plugins.Interface.csproj" />
+    <ProjectReference Include="..\Scanner111.Plugins.Fallout4\Scanner111.Plugins.Fallout4.csproj" />
   </ItemGroup>
 </Project>
