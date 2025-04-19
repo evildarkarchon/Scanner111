@@ -1,7 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Scanner111.Infrastructure\Scanner111.Infrastructure.csproj" />
     <ProjectReference Include="..\Scanner111.Plugins.Interface\Scanner111.Plugins.Interface.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
 
   <PropertyGroup>

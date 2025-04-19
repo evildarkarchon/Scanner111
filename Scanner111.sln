@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Scanner111.Plugins.Fallout4
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Scanner111.UI", "Scanner111.UI\Scanner111.UI.csproj", "{E2919AC3-AFC2-4D12-BDF7-1F62E9B4E9AD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Scanner111.Infrastructure", "Scanner111.Infrastructure\Scanner111.Infrastructure.csproj", "{B02F5021-571D-4742-A109-5BD364BDE1DF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,18 @@ Global
 		{E2919AC3-AFC2-4D12-BDF7-1F62E9B4E9AD}.Release|x64.Build.0 = Release|Any CPU
 		{E2919AC3-AFC2-4D12-BDF7-1F62E9B4E9AD}.Release|x86.ActiveCfg = Release|Any CPU
 		{E2919AC3-AFC2-4D12-BDF7-1F62E9B4E9AD}.Release|x86.Build.0 = Release|Any CPU
+		{B02F5021-571D-4742-A109-5BD364BDE1DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B02F5021-571D-4742-A109-5BD364BDE1DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B02F5021-571D-4742-A109-5BD364BDE1DF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B02F5021-571D-4742-A109-5BD364BDE1DF}.Debug|x64.Build.0 = Debug|Any CPU
+		{B02F5021-571D-4742-A109-5BD364BDE1DF}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B02F5021-571D-4742-A109-5BD364BDE1DF}.Debug|x86.Build.0 = Debug|Any CPU
+		{B02F5021-571D-4742-A109-5BD364BDE1DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B02F5021-571D-4742-A109-5BD364BDE1DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B02F5021-571D-4742-A109-5BD364BDE1DF}.Release|x64.ActiveCfg = Release|Any CPU
+		{B02F5021-571D-4742-A109-5BD364BDE1DF}.Release|x64.Build.0 = Release|Any CPU
+		{B02F5021-571D-4742-A109-5BD364BDE1DF}.Release|x86.ActiveCfg = Release|Any CPU
+		{B02F5021-571D-4742-A109-5BD364BDE1DF}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
