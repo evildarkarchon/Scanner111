@@ -4,6 +4,7 @@
     <option name="projectPerEditor">
       <map>
         <entry key="Scanner111.UI/Views/CrashLogDetailView.axaml" value="Scanner111.UI/Scanner111.UI.csproj" />
+        <entry key="Scanner111.UI/Views/DashboardView.axaml" value="Scanner111.UI/Scanner111.UI.csproj" />
         <entry key="Scanner111.UI/Views/MainWindow.axaml" value="Scanner111.UI/Scanner111.UI.csproj" />
         <entry key="Scanner111/App.axaml" value="Scanner111/Scanner111.csproj" />
         <entry key="Scanner111/Views/MainWindow.axaml" value="Scanner111/Scanner111.csproj" />

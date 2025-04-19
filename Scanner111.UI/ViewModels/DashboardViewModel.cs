@@ -15,6 +15,7 @@ public class DashboardViewModel : ViewModelBase
     private readonly GameService _gameService;
     private readonly CrashLogService _crashLogService;
     private readonly PluginAnalysisService _pluginAnalysisService;
+    private GameDto? _selectedGame;
     
     private ObservableCollection<GameDto> _installedGames = new();
     private ObservableCollection<CrashLogDto> _recentCrashLogs = new();
@@ -37,6 +38,12 @@ public class DashboardViewModel : ViewModelBase
         AnalyzePluginsCommand = ReactiveCommand.CreateFromTask<string>(AnalyzePluginsAsync);
     }
     
+    public GameDto? SelectedGame
+    {
+        get => _selectedGame;
+        set => this.RaiseAndSetIfChanged(ref _selectedGame, value);
+    }
+
     public ObservableCollection<GameDto> InstalledGames
     {
         get => _installedGames;
