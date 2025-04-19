@@ -10,9 +10,12 @@ public class CrashLog
     public string GameVersion { get; set; } = string.Empty;
     public string CrashGenVersion { get; set; } = string.Empty;
     public string MainError { get; set; } = string.Empty;
-    public Dictionary<string, string> LoadedPlugins { get; set; } = new();
-    public List<string> CallStack { get; set; } = new();
-    public List<string> DetectedIssues { get; set; } = new();
+    
+    // Navigation properties
+    public ICollection<CrashLogPlugin> Plugins { get; set; } = new List<CrashLogPlugin>();
+    public ICollection<CrashLogCallStack> CallStackEntries { get; set; } = new List<CrashLogCallStack>();
+    public ICollection<CrashLogIssue> DetectedIssues { get; set; } = new List<CrashLogIssue>();
+    
     public bool IsAnalyzed { get; set; }
     public bool IsSolved { get; set; }
 }

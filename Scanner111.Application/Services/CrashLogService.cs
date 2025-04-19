@@ -1,4 +1,5 @@
-﻿using Scanner111.Core.Interfaces.Repositories;
+﻿// Scanner111.Application/Services/CrashLogService.cs
+using Scanner111.Core.Interfaces.Repositories;
 using Scanner111.Core.Interfaces.Services;
 using Scanner111.Core.Models;
 using Scanner111.Application.DTOs;
@@ -57,22 +58,22 @@ public class CrashLogService
             IsAnalyzed = crashLog.IsAnalyzed,
             IsSolved = crashLog.IsSolved,
             IssueCount = crashLog.DetectedIssues.Count,
-            PluginCount = crashLog.LoadedPlugins.Count,
-            CallStack = crashLog.CallStack,
+            PluginCount = crashLog.Plugins.Count,
+            CallStack = crashLog.CallStackEntries.OrderBy(e => e.Order).Select(e => e.Entry).ToList(),
             RawContent = await _fileSystemService.ReadAllTextAsync(crashLog.FilePath)
         };
         
         // Map plugins
-        foreach (var plugin in crashLog.LoadedPlugins)
+        foreach (var plugin in crashLog.Plugins)
         {
             result.LoadedPlugins.Add(new PluginDto
             {
-                Name = plugin.Key,
-                LoadOrderId = plugin.Value,
-                FileName = plugin.Key,
-                Type = DeterminePluginType(plugin.Key),
+                Name = plugin.PluginName,
+                LoadOrderId = plugin.LoadOrderId,
+                FileName = plugin.PluginName,
+                Type = DeterminePluginType(plugin.PluginName),
                 IsEnabled = true,
-                IsOfficial = IsOfficialPlugin(plugin.Key)
+                IsOfficial = IsOfficialPlugin(plugin.PluginName)
             });
         }
         
@@ -83,10 +84,10 @@ public class CrashLogService
             result.DetectedIssues.Add(new ModIssueDto
             {
                 Id = Guid.NewGuid().ToString(),
-                Description = issue,
+                Description = issue.Description,
                 Severity = 3,
                 IssueType = "Crash",
-                PluginName = DetermineAffectedPlugin(issue, crashLog.LoadedPlugins.Keys.ToList())
+                PluginName = DetermineAffectedPlugin(issue.Description, crashLog.Plugins.Select(p => p.PluginName).ToList())
             });
         }
         
@@ -134,7 +135,7 @@ public class CrashLogService
                 IsAnalyzed = crashLog.IsAnalyzed,
                 IsSolved = crashLog.IsSolved,
                 IssueCount = crashLog.DetectedIssues.Count,
-                PluginCount = crashLog.LoadedPlugins.Count
+                PluginCount = crashLog.Plugins.Count
             });
         }
         

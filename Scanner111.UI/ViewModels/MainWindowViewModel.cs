@@ -1,5 +1,6 @@
-﻿using ReactiveUI;
-using Scanner111.UI.Services;
+﻿// Scanner111.UI/ViewModels/MainWindowViewModel.cs - Updated with Initialize method
+using ReactiveUI;
+using System.Threading.Tasks;
 using System.Reactive;
 
 namespace Scanner111.UI.ViewModels;
@@ -46,6 +47,24 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> NavigateToCrashLogsCommand { get; }
     public ReactiveCommand<Unit, Unit> NavigateToPluginAnalysisCommand { get; }
     public ReactiveCommand<Unit, Unit> NavigateToSettingsCommand { get; }
+    
+    /// <summary>
+    /// Initialize the view model and its child view models.
+    /// </summary>
+    public void Initialize()
+    {
+        // Start with dashboard view
+        NavigateToDashboard();
+        
+        // Initialize each view model
+        Task.Run(async () => 
+        {
+            await _dashboardViewModel.InitializeAsync();
+            await _gameListViewModel.InitializeAsync();
+            await _crashLogListViewModel.InitializeAsync();
+            await _pluginAnalysisViewModel.InitializeAsync();
+        });
+    }
     
     private void NavigateToDashboard()
     {

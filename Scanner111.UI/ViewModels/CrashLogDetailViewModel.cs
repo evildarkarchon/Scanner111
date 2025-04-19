@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Scanner111.UI/ViewModels/CrashLogDetailViewModel.cs
+using System;
 using ReactiveUI;
 using Scanner111.Application.Services;
 using Scanner111.Application.DTOs;
@@ -31,7 +32,16 @@ public class CrashLogDetailViewModel : ViewModelBase
     public CrashLogDetailDto? CrashLog
     {
         get => _crashLog;
-        set => this.RaiseAndSetIfChanged(ref _crashLog, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _crashLog, value);
+            if (value != null)
+            {
+                LoadedPlugins = new ObservableCollection<PluginDto>(value.LoadedPlugins);
+                DetectedIssues = new ObservableCollection<ModIssueDto>(value.DetectedIssues);
+                CallStack = new ObservableCollection<string>(value.CallStack);
+            }
+        }
     }
     
     public ObservableCollection<PluginDto> LoadedPlugins
@@ -79,10 +89,6 @@ public class CrashLogDetailViewModel : ViewModelBase
             if (crashLog != null)
             {
                 CrashLog = crashLog;
-                LoadedPlugins = new ObservableCollection<PluginDto>(crashLog.LoadedPlugins);
-                DetectedIssues = new ObservableCollection<ModIssueDto>(crashLog.DetectedIssues);
-                CallStack = new ObservableCollection<string>(crashLog.CallStack);
-                
                 StatusMessage = "Crash log details loaded successfully.";
             }
             else
@@ -112,6 +118,8 @@ public class CrashLogDetailViewModel : ViewModelBase
         {
             // In a real application, this would update the crash log in the database
             CrashLog.IsSolved = true;
+            
+            // TODO: Update this to call a service method to update the database
             
             StatusMessage = "Crash log marked as solved.";
         }

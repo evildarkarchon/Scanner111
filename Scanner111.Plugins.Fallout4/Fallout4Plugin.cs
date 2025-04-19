@@ -1,4 +1,4 @@
-﻿// Update the Fallout4Plugin.cs file with this implementation
+﻿// Scanner111.Plugins.Fallout4/Fallout4Plugin.cs - Fixed for new CrashLog entity model
 using System.Diagnostics;
 using Scanner111.Core.Models;
 using Scanner111.Plugins.Interface.Attributes;
@@ -110,20 +110,59 @@ public class Fallout4Plugin : CorePlugin, PluginInterface
             await LoadYamlDataAsync();
         }
         
+        var crashLogId = Guid.NewGuid().ToString();
         var crashLog = new CrashLog
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = crashLogId,
             GameId = game.Id,
             GameVersion = ExtractGameVersion(logContent),
             CrashGenVersion = ExtractCrashGenVersion(logContent),
             MainError = ExtractMainError(logContent),
             CrashTime = ExtractCrashTime(logContent),
-            LoadedPlugins = await ExtractPluginsAsync(logContent),
-            CallStack = await ExtractCallStackAsync(logContent),
-            DetectedIssues = await DetectIssuesAsync(logContent),
             IsAnalyzed = true,
             IsSolved = false
         };
+        
+        // Extract plugins and add them to the crash log
+        var plugins = await ExtractPluginsFromContentAsync(logContent);
+        foreach (var plugin in plugins)
+        {
+            crashLog.Plugins.Add(new CrashLogPlugin
+            {
+                Id = Guid.NewGuid().ToString(),
+                CrashLogId = crashLogId,
+                PluginName = plugin.Key,
+                LoadOrderId = plugin.Value,
+                CrashLog = crashLog
+            });
+        }
+        
+        // Extract call stack and add it to the crash log
+        var callStack = await ExtractCallStackAsync(logContent);
+        for (int i = 0; i < callStack.Count; i++)
+        {
+            crashLog.CallStackEntries.Add(new CrashLogCallStack
+            {
+                Id = Guid.NewGuid().ToString(),
+                CrashLogId = crashLogId,
+                Order = i,
+                Entry = callStack[i],
+                CrashLog = crashLog
+            });
+        }
+        
+        // Detect issues and add them to the crash log
+        var issues = await DetectIssuesAsync(logContent);
+        foreach (var issue in issues)
+        {
+            crashLog.DetectedIssues.Add(new CrashLogIssue
+            {
+                Id = Guid.NewGuid().ToString(),
+                CrashLogId = crashLogId,
+                Description = issue,
+                CrashLog = crashLog
+            });
+        }
         
         return crashLog;
     }
@@ -420,11 +459,13 @@ public class Fallout4Plugin : CorePlugin, PluginInterface
         return result;
     }
 
+    // Interface implementation for IGamePlugin
     Task<List<string>> IGamePlugin.ExtractCallStackAsync(string logContent)
     {
         return ExtractCallStackAsync(logContent);
     }
 
+    // Interface implementation for IGamePlugin
     Task<List<string>> IGamePlugin.DetectIssuesAsync(string logContent)
     {
         return DetectIssuesAsync(logContent);
@@ -500,7 +541,8 @@ Game_Info:
         return match.Success ? match.Groups[1].Value.Trim() : "Unknown error";
     }
     
-    private async Task<Dictionary<string, string>> ExtractPluginsAsync(string logContent)
+    // This method directly calls ExtractLoadedPluginsAsync for consistency
+    private async Task<Dictionary<string, string>> ExtractPluginsFromContentAsync(string logContent)
     {
         // This method is used for the Core plugin interface
         return await ExtractLoadedPluginsAsync(logContent);

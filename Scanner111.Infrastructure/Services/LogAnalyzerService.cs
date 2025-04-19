@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿// Scanner111.Infrastructure/Services/LogAnalyzerService.cs
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using Scanner111.Core.Interfaces.Services;
@@ -27,7 +28,7 @@ public class LogAnalyzerService : ILogAnalyzerService
         var content = await _fileSystemService.ReadAllTextAsync(filePath);
         var fileName = Path.GetFileName(filePath);
         
-        // Basic crash log parsing - in a real application, this would be much more sophisticated
+        // Extract basic crash log information
         var crashLog = new CrashLog
         {
             Id = Guid.NewGuid().ToString(),
@@ -38,12 +39,50 @@ public class LogAnalyzerService : ILogAnalyzerService
             GameVersion = ExtractGameVersion(content),
             CrashGenVersion = ExtractCrashGenVersion(content),
             MainError = ExtractMainError(content),
-            LoadedPlugins = await ExtractPluginsFromContentAsync(content),
-            CallStack = await ExtractCallStackFromContentAsync(content),
-            DetectedIssues = DetectIssues(content),
             IsAnalyzed = true,
             IsSolved = false
         };
+        
+        // Extract plugins
+        var plugins = await ExtractPluginsFromContentAsync(content);
+        foreach (var plugin in plugins)
+        {
+            crashLog.Plugins.Add(new CrashLogPlugin
+            {
+                Id = Guid.NewGuid().ToString(),
+                CrashLogId = crashLog.Id,
+                PluginName = plugin.Key,
+                LoadOrderId = plugin.Value,
+                CrashLog = crashLog
+            });
+        }
+        
+        // Extract call stack
+        var callStack = await ExtractCallStackFromContentAsync(content);
+        for (int i = 0; i < callStack.Count; i++)
+        {
+            crashLog.CallStackEntries.Add(new CrashLogCallStack
+            {
+                Id = Guid.NewGuid().ToString(),
+                CrashLogId = crashLog.Id,
+                Order = i,
+                Entry = callStack[i],
+                CrashLog = crashLog
+            });
+        }
+        
+        // Extract issues
+        var issues = DetectIssues(content);
+        foreach (var issue in issues)
+        {
+            crashLog.DetectedIssues.Add(new CrashLogIssue
+            {
+                Id = Guid.NewGuid().ToString(),
+                CrashLogId = crashLog.Id,
+                Description = issue,
+                CrashLog = crashLog
+            });
+        }
         
         return crashLog;
     }
@@ -85,23 +124,23 @@ public class LogAnalyzerService : ILogAnalyzerService
         
         foreach (var issue in crashLog.DetectedIssues)
         {
-            report.AppendLine($"- {issue}");
+            report.AppendLine($"- {issue.Description}");
         }
         
         report.AppendLine();
         report.AppendLine("## Loaded Plugins");
         
-        foreach (var plugin in crashLog.LoadedPlugins)
+        foreach (var plugin in crashLog.Plugins)
         {
-            report.AppendLine($"- [{plugin.Value}] {plugin.Key}");
+            report.AppendLine($"- [{plugin.LoadOrderId}] {plugin.PluginName}");
         }
         
         report.AppendLine();
         report.AppendLine("## Call Stack");
         
-        foreach (var line in crashLog.CallStack)
+        foreach (var entry in crashLog.CallStackEntries.OrderBy(e => e.Order))
         {
-            report.AppendLine(line);
+            report.AppendLine(entry.Entry);
         }
         
         await _fileSystemService.WriteAllTextAsync(outputPath, report.ToString());
@@ -261,8 +300,6 @@ public class LogAnalyzerService : ILogAnalyzerService
             
         if (content.Contains("AnimationFileData") || content.Contains("AnimData"))
             issues.Add("Animation Corruption Crash");
-            
-        // Add more patterns as needed
         
         return issues;
     }

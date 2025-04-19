@@ -1,0 +1,111 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Scanner111.UI.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="Scanner111.UI.Views.CrashLogDetailView"
+             x:DataType="vm:CrashLogDetailViewModel">
+
+    <Grid RowDefinitions="Auto,*" Margin="20">
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="10">
+            <TextBlock Text="{Binding CrashLog.FileName}" FontSize="24" FontWeight="Bold" />
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Mark as Solved" Command="{Binding MarkAsSolvedCommand}" 
+                        Background="#4CAF50" Foreground="White" Margin="0,0,10,0" />
+                <Button Content="Export Report" Command="{Binding ExportReportCommand}"
+                        Background="#2196F3" Foreground="White" />
+            </StackPanel>
+            
+            <!-- Status Message -->
+            <TextBlock Text="{Binding StatusMessage}" Foreground="#1976D2" />
+            
+            <!-- Crash Summary -->
+            <Border Background="#F5F5F5" CornerRadius="4" Padding="10">
+                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Game:" FontWeight="Bold" Margin="0,0,10,5"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding CrashLog.GameName}" Margin="0,0,0,5"/>
+                    
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Version:" FontWeight="Bold" Margin="0,0,10,5"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CrashLog.GameVersion}" Margin="0,0,0,5"/>
+                    
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Crash Gen:" FontWeight="Bold" Margin="0,0,10,5"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding CrashLog.CrashGenVersion}" Margin="0,0,0,5"/>
+                    
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Crash Time:" FontWeight="Bold" Margin="0,0,10,5"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding CrashLog.CrashTime, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" Margin="0,0,0,5"/>
+                    
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Solved:" FontWeight="Bold" Margin="0,0,10,5"/>
+                    <CheckBox Grid.Row="4" Grid.Column="1" IsChecked="{Binding CrashLog.IsSolved}" IsEnabled="False"/>
+                </Grid>
+            </Border>
+        </StackPanel>
+        
+        <!-- Main Content -->
+        <TabControl Grid.Row="1" Margin="0,20,0,0">
+            <!-- Main Error Tab -->
+            <TabItem Header="Main Error">
+                <Border Background="#F5F5F5" CornerRadius="4" Padding="10">
+                    <TextBlock Text="{Binding CrashLog.MainError}" TextWrapping="Wrap" />
+                </Border>
+            </TabItem>
+            
+            <!-- Plugins Tab -->
+            <TabItem Header="Plugins">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding LoadedPlugins.Count, StringFormat=Loaded Plugins: {0}}" 
+                               Margin="0,0,0,10" FontWeight="Bold" />
+                    <DataGrid ItemsSource="{Binding LoadedPlugins}" AutoGenerateColumns="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Load Order" Binding="{Binding LoadOrderId}" Width="100" />
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" />
+                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="80" />
+                            <DataGridCheckBoxColumn Header="Official" Binding="{Binding IsOfficial}" Width="80" />
+                            <DataGridCheckBoxColumn Header="Has Issues" Binding="{Binding HasIssues}" Width="100" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+            
+            <!-- Call Stack Tab -->
+            <TabItem Header="Call Stack">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Probable Call Stack" 
+                               Margin="0,0,0,10" FontWeight="Bold" />
+                    <ScrollViewer>
+                        <ItemsControl ItemsSource="{Binding CallStack}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" FontFamily="Consolas" Margin="0,0,0,5" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </TabItem>
+            
+            <!-- Issues Tab -->
+            <TabItem Header="Issues">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding DetectedIssues.Count, StringFormat=Detected Issues: {0}}" 
+                               Margin="0,0,0,10" FontWeight="Bold" />
+                    <DataGrid ItemsSource="{Binding DetectedIssues}" AutoGenerateColumns="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Plugin" Binding="{Binding PluginName}" Width="150" />
+                            <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" />
+                            <DataGridTextColumn Header="Severity" Binding="{Binding Severity}" Width="80" />
+                            <DataGridTextColumn Header="Type" Binding="{Binding IssueType}" Width="100" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+            
+            <!-- Raw Log Tab -->
+            <TabItem Header="Raw Log">
+                <TextBox Text="{Binding CrashLog.RawContent}" IsReadOnly="True" 
+                         FontFamily="Consolas" AcceptsReturn="True" />
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>
