@@ -13,4 +13,6 @@ public interface IGamePlugin : IGamePluginBase
     Task<List<string>> ExtractCallStackAsync(string logContent);
     Task<List<string>> DetectIssuesAsync(string logContent);
 
+    Task<bool> CanHandleGameAsync(GameInfo game);
+    Task<GameInfo?> DetectGameAsync(string possibleInstallPath);
 }
