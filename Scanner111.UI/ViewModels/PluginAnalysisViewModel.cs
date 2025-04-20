@@ -14,9 +14,9 @@ public class PluginAnalysisViewModel : ViewModelBase
     private readonly PluginAnalysisService _pluginAnalysisService;
     private readonly GameService _gameService;
     
-    private ObservableCollection<PluginDto> _plugins = new();
-    private ObservableCollection<ModIssueDto> _issues = new();
-    private ObservableCollection<GameDto> _games = new();
+    private ObservableCollection<PluginDto> _plugins = [];
+    private ObservableCollection<ModIssueDto> _issues = [];
+    private ObservableCollection<GameDto> _games = [];
     private GameDto? _selectedGame;
     private PluginDto? _selectedPlugin;
     private bool _isBusy;

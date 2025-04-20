@@ -17,8 +17,8 @@ public class DashboardViewModel : ViewModelBase
     private readonly PluginAnalysisService _pluginAnalysisService;
     private GameDto? _selectedGame;
     
-    private ObservableCollection<GameDto> _installedGames = new();
-    private ObservableCollection<CrashLogDto> _recentCrashLogs = new();
+    private ObservableCollection<GameDto> _installedGames = [];
+    private ObservableCollection<CrashLogDto> _recentCrashLogs = [];
     private int _totalCrashLogs;
     private int _unsolvedCrashLogs;
     private bool _isBusy;

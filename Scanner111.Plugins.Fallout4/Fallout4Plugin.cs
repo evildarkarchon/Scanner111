@@ -21,7 +21,7 @@ namespace Scanner111.Plugins.Fallout4;
     "Fallout4", "Fallout4VR")]
 [GameSupport("Fallout4", "Fallout 4", "Fallout4.exe")]
 [GameSupport("Fallout4VR", "Fallout 4 VR", "Fallout4VR.exe")]
-public class Fallout4Plugin : CorePlugin, PluginInterface
+public class Fallout4Plugin(IYamlCompatibilityService yamlService) : CorePlugin, PluginInterface
 {
     private IPluginHost? _host;
     private string _pluginsDirectory = string.Empty;
@@ -33,21 +33,15 @@ public class Fallout4Plugin : CorePlugin, PluginInterface
     public string Name => "Fallout 4 Plugin";
     public string Description => "Provides support for Fallout 4 crash log analysis";
     public string Version => "1.0.0";
-    public string[] SupportedGameIds => new[] { "Fallout4", "Fallout4VR" };
+    public string[] SupportedGameIds => ["Fallout4", "Fallout4VR"];
     public string GameExecutable => "Fallout4.exe"; // Implementation for CorePlugin
-    
-    private IYamlCompatibilityService _yamlService;
+
     private Dictionary<string, string>? _crashSuspects;
     private Dictionary<string, List<string>>? _crashStackCheck;
     private Dictionary<string, string>? _modsFrequent;
     private Dictionary<string, string>? _modsConflict;
     private Dictionary<string, string>? _modsSolutions;
-    
-    public Fallout4Plugin(IYamlCompatibilityService yamlService)
-    {
-        _yamlService = yamlService;
-    }
-    
+
     // CorePlugin implementation methods
     public async Task<bool> CanHandleGameAsync(Game game)
     {
@@ -86,7 +80,7 @@ public class Fallout4Plugin : CorePlugin, PluginInterface
         
         // Check for Fallout 4 VR
         var fallout4VrExePath = Path.Combine(possibleInstallPath, "Fallout4VR.exe");
-        if (File.Exists(fallout4VrExePath))
+        if (!File.Exists(fallout4VrExePath)) return null;
         {
             var versionInfo = FileVersionInfo.GetVersionInfo(fallout4VrExePath);
             return new Game
@@ -98,8 +92,7 @@ public class Fallout4Plugin : CorePlugin, PluginInterface
                 InstallPath = possibleInstallPath
             };
         }
-        
-        return null;
+
     }
     
     public async Task<CrashLog> AnalyzeCrashLogAsync(string logContent, Game game)
@@ -139,7 +132,7 @@ public class Fallout4Plugin : CorePlugin, PluginInterface
         
         // Extract call stack and add it to the crash log
         var callStack = await ExtractCallStackAsync(logContent);
-        for (int i = 0; i < callStack.Count; i++)
+        for (var i = 0; i < callStack.Count; i++)
         {
             crashLog.CallStackEntries.Add(new CrashLogCallStack
             {
@@ -199,13 +192,14 @@ public class Fallout4Plugin : CorePlugin, PluginInterface
             
         await _host.LogInformationAsync("Getting game configuration...");
         
-        var config = new Dictionary<string, string>();
-        
-        // This is a simplified implementation that would normally read from INI files
-        config["GamePath"] = game.InstallPath;
-        config["GameVersion"] = game.Version;
-        config["ModsPath"] = Path.Combine(game.InstallPath, "Data");
-        
+        var config = new Dictionary<string, string>
+        {
+            // This is a simplified implementation that would normally read from INI files
+            ["GamePath"] = game.InstallPath,
+            ["GameVersion"] = game.Version,
+            ["ModsPath"] = Path.Combine(game.InstallPath, "Data")
+        };
+
         return config;
     }
     
@@ -217,22 +211,12 @@ public class Fallout4Plugin : CorePlugin, PluginInterface
         await _host.LogInformationAsync("Validating game files...");
         
         var requiredFiles = await GetRequiredFilesAsync();
-        var missingFiles = new List<string>();
-        
-        foreach (var file in requiredFiles)
-        {
-            var filePath = Path.Combine(game.InstallPath, file);
-            if (!File.Exists(filePath))
-                missingFiles.Add(file);
-        }
-        
-        if (missingFiles.Any())
-        {
-            await _host.LogWarningAsync($"Missing files: {string.Join(", ", missingFiles)}");
-            return false;
-        }
-        
-        return true;
+        var missingFiles = (from file in requiredFiles let filePath = Path.Combine(game.InstallPath, file) where !File.Exists(filePath) select file).ToList();
+
+        if (missingFiles.Count == 0) return true;
+        await _host.LogWarningAsync($"Missing files: {string.Join(", ", missingFiles)}");
+        return false;
+
     }
     
     // PluginInterface implementation methods
@@ -265,7 +249,7 @@ public class Fallout4Plugin : CorePlugin, PluginInterface
         
         // Check for Fallout 4 VR
         var fallout4VrExePath = Path.Combine(possibleInstallPath, "Fallout4VR.exe");
-        if (File.Exists(fallout4VrExePath))
+        if (!File.Exists(fallout4VrExePath)) return null;
         {
             var versionInfo = FileVersionInfo.GetVersionInfo(fallout4VrExePath);
             return new GameInfo
@@ -279,8 +263,7 @@ public class Fallout4Plugin : CorePlugin, PluginInterface
                 IsSupported = true
             };
         }
-        
-        return null;
+
     }
     
     async Task<CrashLogInfo> PluginInterface.AnalyzeCrashLogAsync(string logContent, GameInfo game)
@@ -379,13 +362,14 @@ public class Fallout4Plugin : CorePlugin, PluginInterface
             
         await _host.LogInformationAsync("Getting game configuration...");
         
-        var config = new Dictionary<string, string>();
-        
-        // This is a simplified implementation that would normally read from INI files
-        config["GamePath"] = game.InstallPath;
-        config["GameVersion"] = game.Version;
-        config["ModsPath"] = Path.Combine(game.InstallPath, "Data");
-        
+        var config = new Dictionary<string, string>
+        {
+            // This is a simplified implementation that would normally read from INI files
+            ["GamePath"] = game.InstallPath,
+            ["GameVersion"] = game.Version,
+            ["ModsPath"] = Path.Combine(game.InstallPath, "Data")
+        };
+
         return config;
     }
     
@@ -397,22 +381,12 @@ public class Fallout4Plugin : CorePlugin, PluginInterface
         await _host.LogInformationAsync("Validating game files...");
         
         var requiredFiles = await GetRequiredFilesAsync();
-        var missingFiles = new List<string>();
-        
-        foreach (var file in requiredFiles)
-        {
-            var filePath = Path.Combine(game.InstallPath, file);
-            if (!File.Exists(filePath))
-                missingFiles.Add(file);
-        }
-        
-        if (missingFiles.Any())
-        {
-            await _host.LogWarningAsync($"Missing files: {string.Join(", ", missingFiles)}");
-            return false;
-        }
-        
-        return true;
+        var missingFiles = (from file in requiredFiles let filePath = Path.Combine(game.InstallPath, file) where !File.Exists(filePath) select file).ToList();
+
+        if (missingFiles.Count == 0) return true;
+        await _host.LogWarningAsync($"Missing files: {string.Join(", ", missingFiles)}");
+        return false;
+
     }
     
     public async Task<string> GetCrashGeneratorNameAsync()
@@ -426,9 +400,8 @@ public class Fallout4Plugin : CorePlugin, PluginInterface
         var pluginSection = false;
         
         using var reader = new StringReader(logContent);
-        string? line;
-        
-        while ((line = await Task.Run(() => reader.ReadLine())) != null)
+
+        while (await Task.Run(() => reader.ReadLine()) is { } line)
         {
             if (line.Trim() == "PLUGINS:")
             {
@@ -438,21 +411,19 @@ public class Fallout4Plugin : CorePlugin, PluginInterface
             
             if (pluginSection && string.IsNullOrWhiteSpace(line))
                 break;
-                
-            if (pluginSection)
+
+            if (!pluginSection) continue;
+            var match = Regex.Match(line, @"\s*\[(FE:?[0-9A-F]+|[0-9A-F]+)\]\s*(.+?\.es[pml])");
+            if (match.Success)
             {
-                var match = Regex.Match(line, @"\s*\[(FE:?[0-9A-F]+|[0-9A-F]+)\]\s*(.+?\.es[pml])");
-                if (match.Success)
-                {
-                    var loadOrderId = match.Groups[1].Value;
-                    var pluginName = match.Groups[2].Value;
-                    result[pluginName] = loadOrderId;
-                }
-                else if (line.Contains(".dll"))
-                {
-                    var dllName = line.Trim();
-                    result[dllName] = "DLL";
-                }
+                var loadOrderId = match.Groups[1].Value;
+                var pluginName = match.Groups[2].Value;
+                result[pluginName] = loadOrderId;
+            }
+            else if (line.Contains(".dll"))
+            {
+                var dllName = line.Trim();
+                result[dllName] = "DLL";
             }
         }
         
@@ -498,29 +469,25 @@ Game_Info:
     private async Task LoadYamlDataAsync()
     {
         // Load crash suspects
-        _crashSuspects = await _yamlService.LoadCrashSuspectsAsync(_classicYamlPath, "Crashlog_Error_Check");
+        _crashSuspects = await yamlService.LoadCrashSuspectsAsync(_classicYamlPath, "Crashlog_Error_Check");
         
         // Load crash stack check
-        _crashStackCheck = await _yamlService.LoadCrashStackCheckAsync(_classicYamlPath);
+        _crashStackCheck = await yamlService.LoadCrashStackCheckAsync(_classicYamlPath);
         
         // Load mods data
-        _modsFrequent = await _yamlService.LoadModsListAsync(_classicYamlPath, "Mods_FREQ");
-        _modsConflict = await _yamlService.LoadModsListAsync(_classicYamlPath, "Mods_CONF");
-        _modsSolutions = await _yamlService.LoadModsListAsync(_classicYamlPath, "Mods_SOLU");
+        _modsFrequent = await yamlService.LoadModsListAsync(_classicYamlPath, "Mods_FREQ");
+        _modsConflict = await yamlService.LoadModsListAsync(_classicYamlPath, "Mods_CONF");
+        _modsSolutions = await yamlService.LoadModsListAsync(_classicYamlPath, "Mods_SOLU");
     }
     
     private DateTime ExtractCrashTime(string logContent)
     {
         // Try to extract the crash time from the log content
         var match = Regex.Match(logContent, @"Time: (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})");
-        if (match.Success)
-        {
-            if (DateTime.TryParse(match.Groups[1].Value, out var dateTime))
-                return dateTime;
-        }
-        
-        // Default to current time if not found
-        return DateTime.Now;
+        if (!match.Success) return DateTime.Now;
+        return DateTime.TryParse(match.Groups[1].Value, out var dateTime) ? dateTime :
+            // Default to current time if not found
+            DateTime.Now;
     }
     
     private string ExtractGameVersion(string logContent)
@@ -554,9 +521,8 @@ Game_Info:
         var callStackSection = false;
         
         using var reader = new StringReader(logContent);
-        string? line;
-        
-        while ((line = await Task.Run(() => reader.ReadLine())) != null)
+
+        while (await Task.Run(() => reader.ReadLine()) is { } line)
         {
             if (line.Trim() == "PROBABLE CALL STACK:")
             {
@@ -642,7 +608,7 @@ Game_Info:
                 Severity = 5,
                 IssueType = Core.Models.ModIssueType.Conflict,
                 Solution = "Use a compatibility patch or disable one of the conflicting mods",
-                PatchLinks = new List<string> { "https://www.nexusmods.com/fallout4/articles/2496" }
+                PatchLinks = ["https://www.nexusmods.com/fallout4/articles/2496"]
             },
             new ModIssue
             {
@@ -652,7 +618,7 @@ Game_Info:
                 Severity = 4,
                 IssueType = Core.Models.ModIssueType.Conflict,
                 Solution = "Use a compatibility patch or disable one of the conflicting mods",
-                PatchLinks = new List<string> { "https://www.nexusmods.com/fallout4/articles/3769" }
+                PatchLinks = ["https://www.nexusmods.com/fallout4/articles/3769"]
             }
         };
         
@@ -735,7 +701,7 @@ Game_Info:
         var prpPlugin = plugins.FirstOrDefault(p => p.Name.Equals("prp.esp", StringComparison.OrdinalIgnoreCase));
         var previsPlugins = plugins.Where(p => p.Name.Contains("_PREVIS", StringComparison.OrdinalIgnoreCase)).ToList();
         
-        if (prpPlugin != null && previsPlugins.Any())
+        if (prpPlugin != null && previsPlugins.Count != 0)
         {
             issues.Add(new ModIssueInfo
             {
@@ -759,7 +725,7 @@ Game_Info:
         var prpPlugin = plugins.FirstOrDefault(p => p.Name.Equals("prp.esp", StringComparison.OrdinalIgnoreCase));
         var previsPlugins = plugins.Where(p => p.Name.Contains("_PREVIS", StringComparison.OrdinalIgnoreCase)).ToList();
         
-        if (prpPlugin != null && previsPlugins.Any())
+        if (prpPlugin != null && previsPlugins.Count != 0)
         {
             issues.Add(new ModIssue
             {

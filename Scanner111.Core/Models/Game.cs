@@ -8,5 +8,5 @@ public class Game
     public string DocumentsPath { get; set; } = string.Empty;
     public string InstallPath { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
-    public List<string> SupportedScriptExtenders { get; set; } = new();
+    public List<string> SupportedScriptExtenders { get; set; } = [];
 }

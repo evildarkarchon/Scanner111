@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Scanner111.UI.ViewModels;
@@ -20,7 +21,7 @@ public class SettingsViewModel : ViewModelBase
     private bool _isLoading = true;
     private string _statusMessage = string.Empty;
     private bool _isBusy;
-    private ObservableCollection<PluginInfoViewModel> _plugins = new();
+    private ObservableCollection<PluginInfoViewModel> _plugins = [];
     
     // Application Settings
     private string _crashLogsPath = string.Empty;
@@ -31,7 +32,7 @@ public class SettingsViewModel : ViewModelBase
     private bool _useDarkTheme = true;
     private bool _checkForUpdatesOnStartup = true;
     private string _currentLanguage = "English";
-    private ObservableCollection<string> _availableLanguages = new();
+    private ObservableCollection<string> _availableLanguages = [];
     
     public SettingsViewModel(
         IConfigurationService configurationService,
@@ -196,10 +197,7 @@ public class SettingsViewModel : ViewModelBase
         {
             var plugins = await _pluginSystemService.DiscoverPluginsAsync();
             
-            var pluginViewModels = new List<PluginInfoViewModel>();
-            foreach (var plugin in plugins)
-            {
-                pluginViewModels.Add(new PluginInfoViewModel
+            var pluginViewModels = plugins.Select(plugin => new PluginInfoViewModel
                 {
                     Id = plugin.Id,
                     Name = plugin.Name,
@@ -207,9 +205,9 @@ public class SettingsViewModel : ViewModelBase
                     Version = plugin.Version,
                     IsEnabled = true,
                     SupportedGames = string.Join(", ", plugin.SupportedGameIds)
-                });
-            }
-            
+                })
+                .ToList();
+
             Plugins = new ObservableCollection<PluginInfoViewModel>(pluginViewModels);
         }
         catch (Exception ex)
@@ -315,7 +313,7 @@ public class SettingsViewModel : ViewModelBase
     private IEnumerable<string> GetAvailableLanguages()
     {
         // In a real application, this would scan for available language files
-        return new[] { "English", "German", "French", "Spanish", "Russian" };
+        return ["English", "German", "French", "Spanish", "Russian"];
     }
 }
 

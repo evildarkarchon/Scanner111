@@ -26,7 +26,7 @@ public class PluginService : IPluginService
     {
         var gamePlugin = await _pluginSystemService.GetPluginForGameAsync(gameId);
         if (gamePlugin == null)
-            return Enumerable.Empty<Plugin>();
+            return [];
             
         // This would normally scan the game's load order and mod directory
         // For simplicity, we'll just return some sample plugins

@@ -4,7 +4,7 @@ public class GameInfo
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public string[] ExecutableNames { get; set; } = Array.Empty<string>();
+    public string[] ExecutableNames { get; set; } = [];
     public string Version { get; set; } = string.Empty;
     public string InstallPath { get; set; } = string.Empty;
     public string DocumentsPath { get; set; } = string.Empty;

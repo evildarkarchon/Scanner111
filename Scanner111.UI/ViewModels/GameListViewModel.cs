@@ -12,7 +12,7 @@ public class GameListViewModel : ViewModelBase
 {
     private readonly GameService _gameService;
     
-    private ObservableCollection<GameDto> _games = new();
+    private ObservableCollection<GameDto> _games = [];
     private GameDto? _selectedGame;
     private bool _isBusy;
     private string _statusMessage = string.Empty;
@@ -120,15 +120,8 @@ public class GameListViewModel : ViewModelBase
         try
         {
             var valid = await _gameService.ValidateGameFilesAsync(gameId);
-            
-            if (valid)
-            {
-                StatusMessage = "Game files validation passed.";
-            }
-            else
-            {
-                StatusMessage = "Game files validation failed. Some required files are missing.";
-            }
+
+            StatusMessage = valid ? "Game files validation passed." : "Game files validation failed. Some required files are missing.";
         }
         catch (Exception ex)
         {

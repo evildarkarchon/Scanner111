@@ -10,22 +10,18 @@ namespace Scanner111.UI;
 
 public class ViewLocator : IDataTemplate
 {
-    private readonly Dictionary<Type, Type> _viewModelToViewMapping;
-
-    public ViewLocator()
+    private readonly Dictionary<Type, Type> _viewModelToViewMapping = new()
     {
-        // Initialize view model to view mapping
-        _viewModelToViewMapping = new Dictionary<Type, Type>
-        {
-            { typeof(DashboardViewModel), typeof(DashboardView) },
-            { typeof(GameListViewModel), typeof(GameListView) },
-            { typeof(GameDetailViewModel), typeof(GameDetailView) },
-            { typeof(CrashLogListViewModel), typeof(CrashLogListView) },
-            { typeof(CrashLogDetailViewModel), typeof(CrashLogDetailView) },
-            { typeof(PluginAnalysisViewModel), typeof(PluginAnalysisView) },
-            { typeof(SettingsViewModel), typeof(SettingsView) }
-        };
-    }
+        { typeof(DashboardViewModel), typeof(DashboardView) },
+        { typeof(GameListViewModel), typeof(GameListView) },
+        { typeof(GameDetailViewModel), typeof(GameDetailView) },
+        { typeof(CrashLogListViewModel), typeof(CrashLogListView) },
+        { typeof(CrashLogDetailViewModel), typeof(CrashLogDetailView) },
+        { typeof(PluginAnalysisViewModel), typeof(PluginAnalysisView) },
+        { typeof(SettingsViewModel), typeof(SettingsView) }
+    };
+
+    // Initialize view model to view mapping
 
     public Control? Build(object? param)
     {

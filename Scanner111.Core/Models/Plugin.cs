@@ -11,5 +11,5 @@ public class Plugin
     public bool IsOfficial { get; set; }
     public bool IsMaster { get; set; }
     public bool HasIssues { get; set; }
-    public List<string> RequiredPlugins { get; set; } = new();
+    public List<string> RequiredPlugins { get; set; } = [];
 }

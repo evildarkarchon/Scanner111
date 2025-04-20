@@ -8,18 +8,13 @@ public class BoolToStringConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (value is bool boolValue && parameter is string texts)
-        {
-            var textParts = texts.Split(',');
-            if (textParts.Length == 2)
-            {
-                var trueText = textParts[0];
-                var falseText = textParts[1];
+        if (value is not bool boolValue || parameter is not string texts) return value?.ToString() ?? string.Empty;
+        var textParts = texts.Split(',');
+        if (textParts.Length != 2) return value?.ToString() ?? string.Empty;
+        var trueText = textParts[0];
+        var falseText = textParts[1];
                 
-                return boolValue ? trueText : falseText;
-            }
-        }
-        return value?.ToString() ?? string.Empty;
+        return boolValue ? trueText : falseText;
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

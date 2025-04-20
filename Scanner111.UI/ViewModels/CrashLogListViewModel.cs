@@ -16,9 +16,9 @@ public class CrashLogListViewModel : ViewModelBase
     private readonly CrashLogService _crashLogService;
     private readonly GameService _gameService;
     
-    private ObservableCollection<CrashLogDto> _crashLogs = new();
+    private ObservableCollection<CrashLogDto> _crashLogs = [];
     private CrashLogDto? _selectedCrashLog;
-    private ObservableCollection<GameDto> _games = new();
+    private ObservableCollection<GameDto> _games = [];
     private GameDto? _selectedGame;
     private bool _isBusy;
     private string _statusMessage = string.Empty;

@@ -8,5 +8,5 @@ public class ModIssueDto
     public int Severity { get; set; }
     public string IssueType { get; set; } = string.Empty;
     public string Solution { get; set; } = string.Empty;
-    public List<string> PatchLinks { get; set; } = new();
+    public List<string> PatchLinks { get; set; } = [];
 }

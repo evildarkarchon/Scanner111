@@ -11,8 +11,8 @@ public class CrashLogInfo
     public string CrashGenVersion { get; set; } = string.Empty;
     public string MainError { get; set; } = string.Empty;
     public Dictionary<string, string> LoadedPlugins { get; set; } = new();
-    public List<string> CallStack { get; set; } = new();
-    public List<string> DetectedIssues { get; set; } = new();
+    public List<string> CallStack { get; set; } = [];
+    public List<string> DetectedIssues { get; set; } = [];
     public bool IsAnalyzed { get; set; }
     public bool IsSolved { get; set; }
 }
