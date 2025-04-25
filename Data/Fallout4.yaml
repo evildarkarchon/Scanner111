@@ -18,7 +18,7 @@ game_variants:
     crash_generator: "Buffout4"
     crash_generator_version_minimum: "1.26.2"
     documents_path_suffix: "My Games/Fallout4"
-    crash_log_path: "F4SE/Crash Logs"
+    crash_log_path: "F4SE"
     required_files:
       - path: "Fallout4.exe"
         description: "Main game executable"
@@ -54,7 +54,7 @@ game_variants:
     crash_generator: "Buffout4VR"
     crash_generator_version_minimum: "1.26.2"
     documents_path_suffix: "My Games/Fallout4VR"
-    crash_log_path: "F4SEVR/Crash Logs"
+    crash_log_path: "F4SE"
     required_files:
       - path: "Fallout4VR.exe"
         description: "Main VR game executable"
@@ -88,7 +88,7 @@ game_variants:
     crash_generator: "Buffout4"
     crash_generator_version_minimum: "1.28.0" # Hypothetically newer version
     documents_path_suffix: "My Games/Fallout4"
-    crash_log_path: "F4SE/Crash Logs"
+    crash_log_path: "F4SE"
     required_files:
       - path: "Fallout4.exe"
         description: "Main game executable (Next-Gen)"
