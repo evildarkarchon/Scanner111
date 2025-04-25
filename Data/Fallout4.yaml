@@ -109,35 +109,70 @@ game_variants:
       - "Unofficial Fallout 4 Patch.esp" # Until updated
       - "F4SE Plugin Preloader.dll" # Example of hypothetically incompatible mod
 
-# Patterns that disqualify a crash detection for specific categories
-disqualifying_patterns:
-  # If these lines appear, don't report as a texture crash
-  texture_crash:
-    - text: "LooseFileAsyncStream"
-      location: "call_stack"
-    - text: "BSMeshLODTriShape"
-      location: "anywhere"
+# ===================================
+# Crash Log Filtering
+# ===================================
+crash_log_filtering:
+  # Lines to exclude from the crash log analysis
+  excluded_lines:
+    - '""'
+    - "..."
+    - "FE:"
+    - ".esl"
+    - ".esm"
+    - ".esp"
+    - ".exe"
+    - "Buffout4.dll+"
+    - "KERNEL"
+    - "USER32"
+    - "Unhandled"
+    - "cudart64_75.dll+"
+    - "d3d11.dll+"
+    - "f4se"
+    - "ntdll"
+    - "nvcuda64.dll+"
+    - "nvwgf2umx.dll+"
+  
+  # Plugins to exclude from specific checks
+  excluded_plugins:
+    - "Fallout4.esm"
+    - "Fallout4VR.esm"
+    - "DLCCoast.esm"
+    - "DLCNukaWorld.esm"
+    - "DLCRobot.esm"
+    - "DLCworkshop01.esm"
+    - "DLCworkshop02.esm"
+    - "DLCworkshop03.esm"
+    - "Unofficial Fallout 4 Patch.esp"
+    - "Buffout4.dll"
+  
+  # Patterns that disqualify a crash detection for specific categories
+  disqualifying_patterns:
+    # If these lines appear, don't report as a texture crash
+    texture_crash:
+      - text: "BSMeshLODTriShape"
+        location: "anywhere"
     
-  # If these lines appear, don't report as a mesh crash
-  mesh_crash:
-    - text: "LooseFileStream"
-      location: "call_stack"
-    - text: "BSTextureStreamerLocalHeap"
-      location: "anywhere"
+    # If these lines appear, don't report as a mesh crash
+    mesh_crash:
+      - text: "LooseFileStream"
+        location: "call_stack"
+      - text: "BSTextureStreamerLocalHeap"
+        location: "anywhere"
     
-  # If these lines appear, don't report as an animation crash
-  animation_crash:
-    - text: "BGSEncounterManager"
-      location: "call_stack"
-    - text: "TESObjectCELL"
-      location: "call_stack"
+    # If these lines appear, don't report as an animation crash
+    animation_crash:
+      - text: "BGSEncounterManager"
+        location: "call_stack"
+      - text: "TESObjectCELL"
+        location: "call_stack"
     
-  # If these lines appear, don't report as a script crash
-  script_crash:
-    - text: "HHS.dll"
-      location: "call_stack"
-    - text: "AcceptanceHandler"
-      location: "call_stack"
+    # If these lines appear, don't report as a script crash
+    script_crash:
+      - text: "HHS.dll"
+        location: "call_stack"
+      - text: "AcceptanceHandler"
+        location: "call_stack"
 
 # ===================================
 # Crash Analysis Patterns (Common across variants)
