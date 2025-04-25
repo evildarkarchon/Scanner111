@@ -109,6 +109,36 @@ game_variants:
       - "Unofficial Fallout 4 Patch.esp" # Until updated
       - "F4SE Plugin Preloader.dll" # Example of hypothetically incompatible mod
 
+# Patterns that disqualify a crash detection for specific categories
+disqualifying_patterns:
+  # If these lines appear, don't report as a texture crash
+  texture_crash:
+    - text: "LooseFileAsyncStream"
+      location: "call_stack"
+    - text: "BSMeshLODTriShape"
+      location: "anywhere"
+    
+  # If these lines appear, don't report as a mesh crash
+  mesh_crash:
+    - text: "LooseFileStream"
+      location: "call_stack"
+    - text: "BSTextureStreamerLocalHeap"
+      location: "anywhere"
+    
+  # If these lines appear, don't report as an animation crash
+  animation_crash:
+    - text: "BGSEncounterManager"
+      location: "call_stack"
+    - text: "TESObjectCELL"
+      location: "call_stack"
+    
+  # If these lines appear, don't report as a script crash
+  script_crash:
+    - text: "HHS.dll"
+      location: "call_stack"
+    - text: "AcceptanceHandler"
+      location: "call_stack"
+
 # ===================================
 # Crash Analysis Patterns (Common across variants)
 # ===================================
@@ -130,18 +160,18 @@ crash_patterns:
       severity: 4
       description: "Memory Access Violation: Attempt to access invalid memory address"
       mod_categories: ["memory_mods", "animation_mods"]
-    
-    plugin_limit:
-      signatures:
-        - text: "Plugin Limit"
-          location: "anywhere"
-      severity: 3
-      description: "Plugin limit exceeded: Too many plugins loaded"
-      mod_categories: ["plugin_management"]
   
   # Stack trace patterns
   stack_traces:
     texture_crash:
+      ba2_limit:
+        signatures:
+          - text: "LooseFileAsyncStream"
+            location: "call_stack"
+        severity: 3
+        description: "Plugin limit exceeded: Too many general archives loaded"
+        mod_categories: [ "archive_management" ]
+      
       signatures:
         - text: "BSTextureStreamerLocalHeap"
           location: "call_stack"
