@@ -1,10 +1,11 @@
-Tasks for Porting CLASSIC to C# with Avalonia
+**Tasks for Porting CLASSIC to C# with Avalonia**
+
 This document outlines the tasks required to port the CLASSIC application from Python/Qt to C# using Avalonia for the UI framework. The goal is to maintain the functionality of the original application while leveraging C# and Avalonia's capabilities.
 1.  **Project Setup & Core Architecture:**
-    *   Create a new Avalonia MVVM project in C#.
-    *   Define the project structure (e.g., `ViewModels`, `Views`, `Models`, `Services`, `Converters`).
-    *   Implement a C# equivalent for the settings management currently handled by YAML files (e.g., `CLASSIC Settings.yaml`). Consider using a library like `YamlDotNet` for YAML parsing and a dedicated settings service.
-    *   Re-architect the `GlobalRegistry` concept. Consider using Dependency Injection (DI) for services or a static service locator pattern if appropriate for C#.
+    *   ~~Create a new Avalonia MVVM project in C#.~~
+    *   ~~Define the project structure (e.g., `ViewModels`, `Views`, `Models`, `Services`, `Converters`).~~
+    *   ~~Implement a C# equivalent for the settings management currently handled by YAML files (e.g., `CLASSIC Settings.yaml`). Consider using a library like `YamlDotNet` for YAML parsing and a dedicated settings service.~~
+    *   ~~Re-architect the `GlobalRegistry` concept. Consider using Dependency Injection (DI) for services or a static service locator pattern if appropriate for C#.~~
 
 2.  **Porting Core Logic (Services & Models):**
     *   Translate the core scanning logic from CLASSIC_ScanLogs.py into a C# service. This includes parsing crash logs and identifying issues.
@@ -22,7 +23,8 @@ This document outlines the tasks required to port the CLASSIC application from P
     *   If the FormID database management from formid_db_manager.py is to be integrated, port the SQLite database interaction logic.
 
 3.  **UI Implementation (Views & ViewModels):**
-    *   Design the main window View (`MainWindow.axaml`) based on the structure in CLASSIC_Interface.py, including tabs for main functions and backups.
+    *   Design the main window View (`MainWindow.axaml`) based on the structure in CLASSIC_Interface.py, including tabs for main functions and backups. This new UI will be based on modern UI principles and Avalonia's capabilities.
+    *   Implement the main window layout using Avalonia's XAML syntax, ensuring it is responsive and user-friendly.
     *   Create a `MainWindowViewModel.cs` to handle the logic and data for the main window.
     *   **Main Tab:**
         *   Implement ViewModels and View components for folder selection sections (INI, Mods, Custom Scan Path) with "Browse" functionality.
