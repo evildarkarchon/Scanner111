@@ -23,6 +23,7 @@
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.5" />
     <PackageReference Include="Mutagen.Bethesda" Version="0.50.2" />
     <PackageReference Include="NLog" Version="5.4.0" />
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
