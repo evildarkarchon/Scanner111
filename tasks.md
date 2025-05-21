@@ -8,7 +8,7 @@ This document outlines the tasks required to port the CLASSIC application from P
     *   ~~Re-architect the `GlobalRegistry` concept. Consider using Dependency Injection (DI) for services or a static service locator pattern if appropriate for C#.~~
 
 2.  **Porting Core Logic (Services & Models):**
-    *   Translate the core scanning logic from CLASSIC_ScanLogs.py into a C# service. This includes parsing crash logs and identifying issues.
+    *   ~~Translate the core scanning logic from CLASSIC_ScanLogs.py into a C# service. This includes parsing crash logs and identifying issues.~~
     *   Port the game and mod scanning functionalities from CLASSIC_ScanGame.py.
         *   Implement logic for scanning unpacked mod files (similar to `scan_mods_unpacked`).
         *   Implement logic for scanning archived mod files (`.ba2`), including interaction with `BSArch.exe` using `System.Diagnostics.Process` (similar to `scan_mods_archived`).
@@ -20,7 +20,7 @@ This document outlines the tasks required to port the CLASSIC application from P
     *   Implement the file management features (Backup, Restore, Remove) from CLASSIC_ScanGame.py (function `game_files_manage`) as a C# service.
     *   Port the update checking mechanism from Update.py to a C# service using `HttpClient` for fetching data from GitHub and Nexus.
     *   Implement the Papyrus log monitoring functionality, including parsing stats and handling errors, as seen in CLASSIC_Interface.py and Papyrus.py. This will likely involve asynchronous file watching and parsing.
-    *   If the FormID database management from formid_db_manager.py is to be integrated, port the SQLite database interaction logic.
+    *   ~~IIf the FormID database management from formid_db_manager.py is to be integrated, port the SQLite database interaction logic.~~
 
 3.  **UI Implementation (Views & ViewModels):**
     *   Design the main window View (`MainWindow.axaml`) based on the structure in CLASSIC_Interface.py, including tabs for main functions and backups. This new UI will be based on modern UI principles and Avalonia's capabilities.

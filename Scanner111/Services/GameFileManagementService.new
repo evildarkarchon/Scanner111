@@ -1,0 +1,308 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Scanner111.Models;
+
+namespace Scanner111.Services
+{
+    /// <summary>
+    /// Service for managing game files (backup, restore, remove)
+    /// </summary>
+    public class GameFileManagementService : IGameFileManagementService
+    {
+        private readonly YamlSettingsCacheService _yamlSettingsCache;
+        private readonly ILogErrorCheckService _logErrorCheckService;
+        private readonly IModScanningService _modScanningService;
+        
+        // Additional services that would be needed to fully implement the functionality
+        // In the Python code, these were imported from other modules
+        // private readonly ICheckCrashgenSettingsService _checkCrashgenSettingsService;
+        // private readonly ICheckXsePluginsService _checkXsePluginsService;
+        // private readonly IScanModInisService _scanModInisService;
+        // private readonly IScanWryeCheckService _scanWryeCheckService;
+
+        public GameFileManagementService(
+            YamlSettingsCacheService yamlSettingsCache,
+            ILogErrorCheckService logErrorCheckService,
+            IModScanningService modScanningService
+            // Other required services would be injected here
+            )
+        {
+            _yamlSettingsCache = yamlSettingsCache ?? throw new ArgumentNullException(nameof(yamlSettingsCache));
+            _logErrorCheckService = logErrorCheckService ?? throw new ArgumentNullException(nameof(logErrorCheckService));
+            _modScanningService = modScanningService ?? throw new ArgumentNullException(nameof(modScanningService));
+        }
+
+        /// <summary>
+        /// Manages game files by performing backup, restore, or removal operations.
+        /// </summary>
+        /// <param name="classicList">The name of the list specifying which files need to be managed.</param>
+        /// <param name="mode">The operation mode to be performed on the files (BACKUP, RESTORE, REMOVE).</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public async Task GameFilesManageAsync(string classicList, string mode = "BACKUP")
+        {
+            // Constants
+            const string BACKUP_DIR = "CLASSIC Backup/Game Files";
+            const string SUCCESS_PREFIX = "✔️ SUCCESSFULLY"; // Kept for clarity/future use
+            const string ERROR_PREFIX = "❌ ERROR :"; // Kept for clarity/future use
+            const string ADMIN_SUGGESTION = "    TRY RUNNING THE APP IN ADMIN MODE TO RESOLVE THIS PROBLEM.\n"; // Kept for clarity/future use
+
+            // Get paths and settings
+            var vrMode = GetGlobalRegistryVR();
+            var gamePath = _yamlSettingsCache.GetSetting<DirectoryInfo>(YamlStoreType.GameLocal, $"Game{vrMode}_Info.Root_Folder_Game");
+            var manageListSetting = _yamlSettingsCache.GetSetting<List<string>>(YamlStoreType.Game, classicList);
+            var manageList = manageListSetting ?? new List<string>();
+
+            // Validate game path
+            if (gamePath == null || !gamePath.Exists)
+            {
+                throw new DirectoryNotFoundException("Game folder not found or is not a valid directory");
+            }
+
+            // Set up backup path
+            var backupPath = new DirectoryInfo(Path.Combine(BACKUP_DIR, classicList));
+            if (!backupPath.Exists)
+            {
+                backupPath.Create(); // Creates directory if it doesn't exist
+            }
+
+            // Extract list name for display purposes
+            var listName = classicList.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries).Last();
+
+            try
+            {
+                if (mode == "BACKUP")
+                {
+                    await BackupFilesAsync(gamePath, backupPath, manageList, listName);
+                }
+                else if (mode == "RESTORE")
+                {
+                    await RestoreFilesAsync(gamePath, backupPath, manageList, listName);
+                }
+                else if (mode == "REMOVE")
+                {
+                    await RemoveFilesAsync(gamePath, manageList, listName);
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                HandlePermissionError(mode);
+            }
+        }
+
+        /// <summary>
+        /// Generates a combined result summarizing game-related checks and scans.
+        /// </summary>
+        /// <returns>A string summarizing the results of all performed checks and scans.</returns>
+        public async Task<string> GetGameCombinedResultAsync()
+        {
+            var vrMode = GetGlobalRegistryVR();
+            var docsPath = _yamlSettingsCache.GetSetting<DirectoryInfo>(YamlStoreType.GameLocal, $"Game{vrMode}_Info.Root_Folder_Docs");
+            var gamePath = _yamlSettingsCache.GetSetting<DirectoryInfo>(YamlStoreType.GameLocal, $"Game{vrMode}_Info.Root_Folder_Game");
+
+            if (docsPath == null || gamePath == null)
+            {
+                return string.Empty;
+            }
+
+            // Collect results from various checks
+            var results = new List<string>();
+
+            // Note: These functions would need to be implemented in the corresponding services
+            // results.Add(await _checkXsePluginsService.CheckXsePluginsAsync());
+            // results.Add(await _checkCrashgenSettingsService.CheckCrashgenSettingsAsync());
+            results.Add(await _logErrorCheckService.CheckLogErrorsAsync(docsPath));
+            results.Add(await _logErrorCheckService.CheckLogErrorsAsync(gamePath));
+            // results.Add(await _scanWryeCheckService.ScanWryeCheckAsync());
+            // results.Add(await _scanModInisService.ScanModInisAsync());
+
+            return string.Join("", results);
+        }
+
+        /// <summary>
+        /// Writes combined results of game and mods into a markdown report file.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        public async Task WriteCombinedResultsAsync()
+        {
+            var gameResult = await GetGameCombinedResultAsync();
+            var modsResult = await _modScanningService.GetModsCombinedResultAsync();
+            var gfsReport = new FileInfo("CLASSIC GFS Report.md");
+
+            using var writer = new StreamWriter(gfsReport.FullName, false, new UTF8Encoding(false));
+            await writer.WriteAsync(gameResult + modsResult);
+        }
+
+        #region Helper Methods
+
+        private async Task BackupFilesAsync(DirectoryInfo gamePath, DirectoryInfo backupPath, List<string> manageList, string listName)
+        {
+            var filesCopied = 0;
+
+            // Copy files from game folder to backup folder
+            foreach (var file in gamePath.GetFileSystemInfos("*", SearchOption.AllDirectories))
+            {
+                if (file.Name.IndexOf("CLASSIC", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    continue; // Skip CLASSIC files
+                }
+
+                if (MatchesManagedFile(file.Name, manageList))
+                {
+                    var relativePath = file.FullName.Substring(gamePath.FullName.Length).TrimStart('\\', '/');
+                    var targetPath = Path.Combine(backupPath.FullName, relativePath);
+
+                    if (file is FileInfo fileInfo)
+                    {
+                        // Create target directory
+                        var targetDir = Path.GetDirectoryName(targetPath);
+                        if (!string.IsNullOrEmpty(targetDir))
+                        {
+                            Directory.CreateDirectory(targetDir);
+                        }
+                        
+                        // Copy file
+                        fileInfo.CopyTo(targetPath, true);
+                        filesCopied++;
+                    }
+                    else if (file is DirectoryInfo dirInfo)
+                    {
+                        // Create target directory
+                        Directory.CreateDirectory(targetPath);
+                        
+                        // Copy all files in directory
+                        foreach (var childFile in dirInfo.GetFiles())
+                        {
+                            var childTargetPath = Path.Combine(targetPath, childFile.Name);
+                            childFile.CopyTo(childTargetPath, true);
+                            filesCopied++;
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine($"✔️ SUCCESSFULLY BACKED UP {filesCopied} {listName} FILES!");
+            await Task.CompletedTask;
+        }
+
+        private async Task RestoreFilesAsync(DirectoryInfo gamePath, DirectoryInfo backupPath, List<string> manageList, string listName)
+        {
+            var filesRestored = 0;
+
+            if (!backupPath.Exists || !backupPath.GetFileSystemInfos().Any())
+            {
+                Console.WriteLine($"❌ ERROR : NO BACKUP FILES FOUND FOR {listName}!");
+                return;
+            }
+
+            // Copy files from backup folder to game folder
+            foreach (var file in backupPath.GetFileSystemInfos("*", SearchOption.AllDirectories))
+            {
+                var relativePath = file.FullName.Substring(backupPath.FullName.Length).TrimStart('\\', '/');
+                var targetPath = Path.Combine(gamePath.FullName, relativePath);
+
+                if (file is FileInfo fileInfo)
+                {
+                    // Create target directory
+                    var targetDir = Path.GetDirectoryName(targetPath);
+                    if (!string.IsNullOrEmpty(targetDir))
+                    {
+                        Directory.CreateDirectory(targetDir);
+                    }
+                    
+                    // Copy file
+                    fileInfo.CopyTo(targetPath, true);
+                    filesRestored++;
+                }
+                else if (file is DirectoryInfo dirInfo)
+                {
+                    // Create target directory
+                    Directory.CreateDirectory(targetPath);
+                    
+                    // Copy all files in directory
+                    foreach (var childFile in dirInfo.GetFiles())
+                    {
+                        var childTargetPath = Path.Combine(targetPath, childFile.Name);
+                        childFile.CopyTo(childTargetPath, true);
+                        filesRestored++;
+                    }
+                }
+            }
+
+            Console.WriteLine($"✔️ SUCCESSFULLY RESTORED {filesRestored} {listName} FILES!");
+            await Task.CompletedTask;
+        }
+
+        private async Task RemoveFilesAsync(DirectoryInfo gamePath, List<string> manageList, string listName)
+        {
+            var filesRemoved = 0;
+
+            // Delete files from game folder that match the manage list
+            foreach (var file in gamePath.GetFileSystemInfos("*", SearchOption.AllDirectories))
+            {
+                if (file.Name.IndexOf("CLASSIC", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    continue; // Skip CLASSIC files
+                }
+
+                if (MatchesManagedFile(file.Name, manageList))
+                {
+                    try
+                    {
+                        if (file is FileInfo fileInfo)
+                        {
+                            fileInfo.Delete();
+                            filesRemoved++;
+                        }
+                        else if (file is DirectoryInfo dirInfo)
+                        {
+                            dirInfo.Delete(true); // true to remove all contents
+                            filesRemoved++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to remove {file.FullName}: {ex.Message}");
+                    }
+                }
+            }
+
+            Console.WriteLine($"✔️ SUCCESSFULLY REMOVED {filesRemoved} {listName} FILES!");
+            await Task.CompletedTask;
+        }
+
+        private bool MatchesManagedFile(string fileName, List<string> manageList)
+        {
+            return manageList.Any(item => fileName.IndexOf(item, StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
+        private void HandlePermissionError(string operation)
+        {
+            Console.WriteLine($"❌ ERROR : UNABLE TO {operation} FILES DUE TO FILE PERMISSIONS!");
+            Console.WriteLine("    TRY RUNNING THE APP IN ADMIN MODE TO RESOLVE THIS PROBLEM.\n");
+        }
+        
+        private string GetGlobalRegistryVR()
+        {
+            // This would typically come from a GlobalRegistry or similar service
+            // For now, we'll just return a default value
+            return ""; // Empty string for non-VR, or could be "VR" for VR mode
+        }
+        
+        private YamlStoreType YamlTypeToStoreType(YAML yamlType)
+        {
+            return yamlType switch
+            {
+                YAML.Main => YamlStoreType.Main,
+                YAML.Game => YamlStoreType.Game, 
+                YAML.Game_Local => YamlStoreType.GameLocal,
+                _ => YamlStoreType.Main // Default case
+            };
+        }
+
+        #endregion
+    }
+}

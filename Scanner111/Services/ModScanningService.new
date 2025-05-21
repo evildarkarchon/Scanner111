@@ -1,0 +1,511 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Scanner111.Models;
+
+namespace Scanner111.Services
+{
+    /// <summary>
+    /// Service for scanning mod files (both unpacked and archived)
+    /// </summary>
+    public class ModScanningService : IModScanningService
+    {
+        private readonly YamlSettingsCacheService _yamlSettingsCache;
+        private readonly bool _testMode;
+        private readonly string _backupPath = "CLASSIC Backup/Cleaned Files";
+        
+        public ModScanningService(YamlSettingsCacheService yamlSettingsCache, bool testMode = false)
+        {
+            _yamlSettingsCache = yamlSettingsCache ?? throw new ArgumentNullException(nameof(yamlSettingsCache));
+            _testMode = testMode;
+            
+            if (!_testMode)
+            {
+                Directory.CreateDirectory(_backupPath);
+            }
+        }
+
+        /// <summary>
+        /// Scans loose mod files for issues and moves redundant files to backup location.
+        /// </summary>
+        /// <returns>Detailed report of scan results.</returns>
+        public async Task<string> ScanModsUnpackedAsync()
+        {
+            // Initialize lists for reporting
+            var messageList = new List<string>
+            {
+                "=================== MOD FILES SCAN ====================\n",
+                "========= RESULTS FROM UNPACKED / LOOSE FILES =========\n"
+            };
+
+            // Initialize dictionaries for collecting different issue types
+            var issueLists = new Dictionary<string, HashSet<string>>
+            {
+                ["cleanup"] = new HashSet<string>(),
+                ["animdata"] = new HashSet<string>(),
+                ["tex_dims"] = new HashSet<string>(),
+                ["tex_frmt"] = new HashSet<string>(),
+                ["snd_frmt"] = new HashSet<string>(),
+                ["xse_file"] = new HashSet<string>(),
+                ["previs"] = new HashSet<string>(),
+            };
+
+            // Get settings
+            var vrMode = GetGlobalRegistryVR();
+            var xseAcronym = _yamlSettingsCache.GetSetting<string>(YamlStoreType.Game, $"Game{vrMode}_Info.XSE_Acronym") ?? "XSE";
+            var xseScriptfiles = _yamlSettingsCache.GetSetting<Dictionary<string, string>>(YamlStoreType.Game, $"Game{vrMode}_Info.XSE_HashedScripts") 
+                               ?? new Dictionary<string, string>();
+
+            // Setup paths
+            var backupPath = new DirectoryInfo(Path.Combine(Directory.GetCurrentDirectory(), _backupPath));
+            if (!_testMode)
+            {
+                backupPath.Create();
+            }
+
+            var modPathSetting = _yamlSettingsCache.GetSetting<DirectoryInfo>(YamlStoreType.Settings, "MODS Folder Path");
+            if (modPathSetting == null)
+            {
+                return _yamlSettingsCache.GetSetting<string>(YamlStoreType.Main, "Mods_Warn.Mods_Path_Missing") ?? 
+                       "❌ MODS FOLDER PATH NOT PROVIDED!";
+            }
+
+            var modPath = modPathSetting;
+            if (!modPath.Exists)
+            {
+                return _yamlSettingsCache.GetSetting<string>(YamlStoreType.Main, "Mods_Warn.Mods_Path_Invalid") ?? 
+                       "❌ MODS FOLDER PATH NOT VALID!";
+            }
+
+            Console.WriteLine("✔️ MODS FOLDER PATH FOUND! PERFORMING INITIAL MOD FILES CLEANUP...");
+
+            // First pass: cleanup and detect animation data
+            var filterNames = new[] { "readme", "changes", "changelog", "change log" };
+            
+            // Process directories recursively
+            await ProcessDirectoriesRecursively(modPath, backupPath, issueLists, filterNames);
+
+            Console.WriteLine("✔️ CLEANUP COMPLETE! NOW ANALYZING ALL UNPACKED/LOOSE MOD FILES...");
+
+            // Second pass: analyze files for issues
+            await AnalyzeModFiles(modPath, issueLists, xseScriptfiles, xseAcronym);
+
+            // Build the report by adding issue messages
+            await AppendIssueMessages(messageList, issueLists, xseAcronym);
+
+            return string.Join("", messageList);
+        }
+
+        /// <summary>
+        /// Analyzes archived BA2 mod files to identify potential issues.
+        /// </summary>
+        /// <returns>A report detailing the findings, including errors and warnings.</returns>
+        public async Task<string> ScanModsArchivedAsync()
+        {
+            var messageList = new List<string> 
+            {
+                "\n========== RESULTS FROM ARCHIVED / BA2 FILES ==========\n"
+            };
+
+            // Initialize dictionaries for collecting different issue types
+            var issueLists = new Dictionary<string, HashSet<string>>
+            {
+                ["ba2_frmt"] = new HashSet<string>(),
+                ["animdata"] = new HashSet<string>(),
+                ["tex_dims"] = new HashSet<string>(),
+                ["tex_frmt"] = new HashSet<string>(),
+                ["snd_frmt"] = new HashSet<string>(),
+                ["xse_file"] = new HashSet<string>(),
+                ["previs"] = new HashSet<string>(),
+            };
+
+            // Get settings
+            var vrMode = GetGlobalRegistryVR();
+            var xseAcronym = _yamlSettingsCache.GetSetting<string>(YamlStoreType.Game, $"Game{vrMode}_Info.XSE_Acronym") ?? "XSE";
+            var xseScriptfiles = _yamlSettingsCache.GetSetting<Dictionary<string, string>>(YamlStoreType.Game, $"Game{vrMode}_Info.XSE_HashedScripts") 
+                               ?? new Dictionary<string, string>();
+
+            // Setup paths
+            var bsarchPath = Path.Combine(Directory.GetCurrentDirectory(), "CLASSIC Data", "BSArch.exe");
+            var modPathSetting = _yamlSettingsCache.GetSetting<DirectoryInfo>(YamlStoreType.Settings, "MODS Folder Path");
+            
+            // Validate paths
+            if (modPathSetting == null)
+            {
+                return _yamlSettingsCache.GetSetting<string>(YamlStoreType.Main, "Mods_Warn.Mods_Path_Missing") ?? 
+                       "❌ MODS FOLDER PATH NOT PROVIDED!";
+            }
+
+            var modPath = modPathSetting;
+            if (!modPath.Exists)
+            {
+                return _yamlSettingsCache.GetSetting<string>(YamlStoreType.Main, "Mods_Warn.Mods_Path_Invalid") ?? 
+                       "❌ MODS FOLDER PATH NOT VALID!";
+            }
+
+            if (!File.Exists(bsarchPath))
+            {
+                return _yamlSettingsCache.GetSetting<string>(YamlStoreType.Main, "Mods_Warn.Mods_BSArch_Missing") ?? 
+                       "❌ BSARCH.EXE NOT FOUND! CANNOT SCAN BA2 FILES!";
+            }
+
+            Console.WriteLine("✔️ ALL REQUIREMENTS SATISFIED! NOW ANALYZING ALL BA2 MOD ARCHIVES...");
+
+            // Process BA2 files
+            await ProcessBA2Files(modPath, bsarchPath, issueLists, xseScriptfiles);
+
+            // Build the report
+            await AppendIssueMessages(messageList, issueLists, xseAcronym, true);
+
+            return string.Join("", messageList);
+        }
+
+        /// <summary>
+        /// Combines the results of scanning unpacked and archived mods.
+        /// </summary>
+        /// <returns>The combined results of the unpacked and archived mods scans.</returns>
+        public async Task<string> GetModsCombinedResultAsync()
+        {
+            var unpacked = await ScanModsUnpackedAsync();
+            if (unpacked.StartsWith("❌ MODS FOLDER PATH NOT PROVIDED"))
+            {
+                return unpacked;
+            }
+            
+            var archived = await ScanModsArchivedAsync();
+            return unpacked + archived;
+        }
+
+        #region Helper Methods
+        
+        private async Task ProcessDirectoriesRecursively(DirectoryInfo rootDir, DirectoryInfo backupPath, Dictionary<string, HashSet<string>> issueLists, string[] filterNames)
+        {
+            try
+            {
+                foreach (var dir in rootDir.GetDirectories("*", SearchOption.AllDirectories))
+                {
+                    var rootMain = GetRelativePath(dir, rootDir);
+                    var hasAnimData = false;
+
+                    // Check for animation data folders
+                    if (dir.Name.ToLower().Contains("animationdata") || dir.Name.ToLower().Contains("animationsdatasinglefile"))
+                    {
+                        hasAnimData = true;
+                        issueLists["animdata"].Add($"• {rootMain.TrimEnd('/')}");
+                    }
+
+                    // Check if directory has mesh data
+                    if (hasAnimData && dir.GetFiles("*.hkx").Any())
+                    {
+                        // Add animation data info to the issues list
+                        // (Implementation details for additional checks would go here)
+                    }
+
+                    // Process files in the directory
+                    foreach (var file in dir.GetFiles())
+                    {
+                        // Handle cleanup for readme/documentation files
+                        if (filterNames.Any(filter => file.Name.ToLower().Contains(filter)) && 
+                            file.Extension.ToLower() is ".txt" or ".rtf" or ".pdf" or ".doc" or ".docx")
+                        {
+                            if (!_testMode)
+                            {
+                                // Create target directory in backup location
+                                var targetDir = Path.Combine(backupPath.FullName, rootMain);
+                                Directory.CreateDirectory(targetDir);
+                                
+                                // Copy file to backup location
+                                var targetPath = Path.Combine(targetDir, file.Name);
+                                if (!File.Exists(targetPath))
+                                {
+                                    file.CopyTo(targetPath);
+                                }
+                            }
+                            issueLists["cleanup"].Add($"• {rootMain}/{file.Name}");
+                        }
+
+                        // Check for XSE files (script files)
+                        // (Implementation for additional file checks)
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing directories: {ex.Message}");
+            }
+
+            await Task.CompletedTask;
+        }
+
+        private async Task AnalyzeModFiles(DirectoryInfo modPath, Dictionary<string, HashSet<string>> issueLists, Dictionary<string, string> xseScriptfiles, string xseAcronym)
+        {
+            try
+            {
+                foreach (var dir in modPath.GetDirectories("*", SearchOption.AllDirectories))
+                {
+                    var rootMain = GetRelativePath(dir, modPath);
+                    var hasPrevisFiles = false;
+                    var hasXseFiles = false;
+
+                    foreach (var file in dir.GetFiles())
+                    {
+                        var fileName = file.Name.ToLower();
+                        var filePath = file.FullName.ToLower();
+
+                        // Check for previs/precombine files
+                        if (fileName.Contains("precombined") || fileName.Contains("previs"))
+                        {
+                            hasPrevisFiles = true;
+                        }
+
+                        // Check for XSE script files
+                        if (xseScriptfiles.Any(kvp => filePath.EndsWith(kvp.Key.ToLower())))
+                        {
+                            hasXseFiles = true;
+                        }
+
+                        // Check texture dimensions and formats
+                        if (file.Extension.ToLower() == ".dds")
+                        {
+                            // Implementation for checking DDS dimensions and format
+                            // This would require reading the DDS header
+                        }
+
+                        // Check sound file formats
+                        if (file.Extension.ToLower() is ".mp3" or ".ogg" or ".flac")
+                        {
+                            issueLists["snd_frmt"].Add($"• {rootMain}/{fileName}");
+                        }
+                    }
+
+                    // Add detected issues to appropriate lists
+                    if (hasPrevisFiles)
+                    {
+                        issueLists["previs"].Add($"• {rootMain}");
+                    }
+
+                    if (hasXseFiles)
+                    {
+                        issueLists["xse_file"].Add($"• {rootMain} (Contains {xseAcronym} files)");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error analyzing mod files: {ex.Message}");
+            }
+
+            await Task.CompletedTask;
+        }
+
+        private async Task ProcessBA2Files(DirectoryInfo modPath, string bsarchPath, Dictionary<string, HashSet<string>> issueLists, Dictionary<string, string> xseScriptfiles)
+        {
+            try
+            {
+                foreach (var file in modPath.GetFiles("*.ba2", SearchOption.AllDirectories))
+                {
+                    var fileName = file.Name;
+                    var filePath = file.FullName;
+                    var rootMain = GetRelativePath(file.Directory ?? new DirectoryInfo("."), modPath);
+
+                    // Use BSArch to list contents of BA2 file
+                    using var process = new Process();
+                    process.StartInfo.FileName = bsarchPath;
+                    process.StartInfo.Arguments = $"list \"{filePath}\"";
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.CreateNoWindow = true;
+                    
+                    process.Start();
+                    var output = await process.StandardOutput.ReadToEndAsync();
+                    await process.WaitForExitAsync();
+
+                    // Process the output to check for issues
+                    var outputLines = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                    
+                    var hasPrevisFiles = false;
+                    var hasXseFiles = false;
+                    var hasAnimData = false;
+
+                    foreach (var line in outputLines)
+                    {
+                        var lineLower = line.ToLower();
+                        
+                        // Check for previs/precombine files
+                        if (lineLower.Contains("precombined") || lineLower.Contains("previs"))
+                        {
+                            hasPrevisFiles = true;
+                        }
+
+                        // Check for XSE script files
+                        if (xseScriptfiles.Any(kvp => lineLower.EndsWith(kvp.Key.ToLower())))
+                        {
+                            hasXseFiles = true;
+                        }
+                        
+                        // Check for animation data
+                        if (lineLower.Contains("animationdata") || lineLower.Contains("animationsdatasinglefile"))
+                        {
+                            hasAnimData = true;
+                        }
+                        
+                        // Check file formats
+                        if (lineLower.EndsWith(".mp3") || lineLower.EndsWith(".ogg") || lineLower.EndsWith(".flac"))
+                        {
+                            issueLists["snd_frmt"].Add($"• {rootMain}/{fileName} (Contains: {Path.GetFileName(line)})");
+                        }
+                        
+                        if (lineLower.EndsWith(".png") || lineLower.EndsWith(".jpg") || lineLower.EndsWith(".jpeg") || lineLower.EndsWith(".bmp"))
+                        {
+                            issueLists["tex_frmt"].Add($"• {rootMain}/{fileName} (Contains: {Path.GetFileName(line)})");
+                        }
+                    }
+                    
+                    // Add detected issues to appropriate lists
+                    if (hasPrevisFiles)
+                    {
+                        issueLists["previs"].Add($"• {rootMain}/{fileName}");
+                    }
+
+                    if (hasXseFiles)
+                    {
+                        issueLists["xse_file"].Add($"• {rootMain}/{fileName}");
+                    }
+                    
+                    if (hasAnimData)
+                    {
+                        issueLists["animdata"].Add($"• {rootMain}/{fileName}");
+                    }
+
+                    // Check BA2 format
+                    if (process.ExitCode != 0 || !output.Contains("BTDX"))
+                    {
+                        issueLists["ba2_frmt"].Add($"• {rootMain}/{fileName}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing BA2 files: {ex.Message}");
+            }
+            
+            await Task.CompletedTask;
+        }
+
+        private async Task AppendIssueMessages(List<string> messageList, Dictionary<string, HashSet<string>> issueLists, string xseAcronym, bool isBA2 = false)
+        {
+            // Define issue messages based on type
+            var issueMessages = new Dictionary<string, List<string>>
+            {
+                ["xse_file"] = new List<string>
+                {
+                    $"\n# ⚠️ {(isBA2 ? "BA2 ARCHIVES" : "FOLDERS")} CONTAIN COPIES OF *{xseAcronym}* SCRIPT FILES ⚠️\n",
+                    "▶️ Any mods with copies of original Script Extender files\n",
+                    "  may cause script related problems or crashes.\n\n"
+                },
+                ["previs"] = new List<string>
+                {
+                    $"\n# ⚠️ {(isBA2 ? "BA2 ARCHIVES" : "FOLDERS")} CONTAIN {(isBA2 ? "CUSTOM " : "LOOSE ")}PRECOMBINE / PREVIS FILES ⚠️\n",
+                    "▶️ Any mods that contain custom precombine/previs files\n",
+                    "  should load after the PRP.esp plugin from Previs Repair Pack (PRP).\n",
+                    "  Otherwise, see if there is a PRP patch available for these mods.\n\n"
+                },
+                ["tex_dims"] = new List<string>
+                {
+                    "\n# ⚠️ DDS DIMENSIONS ARE NOT DIVISIBLE BY 2 ⚠️\n",
+                    "▶️ Any mods that have texture files with incorrect dimensions\n",
+                    "  are very likely to cause a *Texture (DDS) Crash*. For further details,\n",
+                    "  read the *How To Read Crash Logs.pdf* included with the CLASSIC exe.\n\n"
+                },
+                ["tex_frmt"] = new List<string>
+                {
+                    "\n# ❓ TEXTURE FILES HAVE INCORRECT FORMAT, SHOULD BE DDS ❓\n",
+                    "▶️ Any files with an incorrect file format will not work.\n",
+                    "  Mod authors should convert these files to their proper game format.\n",
+                    "  If possible, notify the original mod authors about these problems.\n\n"
+                },
+                ["snd_frmt"] = new List<string>
+                {
+                    "\n# ❓ SOUND FILES HAVE INCORRECT FORMAT, SHOULD BE XWM OR WAV ❓\n",
+                    "▶️ Any files with an incorrect file format will not work.\n",
+                    "  Mod authors should convert these files to their proper game format.\n",
+                    "  If possible, notify the original mod authors about these problems.\n\n"
+                },
+                ["animdata"] = new List<string>
+                {
+                    $"\n# ❓ {(isBA2 ? "BA2 ARCHIVES" : "FOLDERS")} CONTAIN CUSTOM ANIMATION FILE DATA ❓\n",
+                    "▶️ Any mods that have their own custom Animation File Data\n",
+                    "  may rarely cause an *Animation Corruption Crash*. For further details,\n",
+                    "  read the *How To Read Crash Logs.pdf* included with the CLASSIC exe.\n\n"
+                },
+                ["cleanup"] = new List<string>
+                {
+                    "\n# 📄 DOCUMENTATION FILES MOVED TO 'CLASSIC Backup\\Cleaned Files' 📄\n"
+                }
+            };
+
+            // Add BA2-specific message if needed
+            if (isBA2)
+            {
+                issueMessages["ba2_frmt"] = new List<string>
+                {
+                    "\n# ❓ BA2 ARCHIVES HAVE INCORRECT FORMAT, SHOULD BE BTDX-GNRL OR BTDX-DX10 ❓\n",
+                    "▶️ Any files with an incorrect file format will not work.\n",
+                    "  Mod authors should convert these files to their proper game format.\n",
+                    "  If possible, notify the original mod authors about these problems.\n\n"
+                };
+            }
+
+            // Add found issues to message list
+            foreach (var issueType in issueLists.Keys)
+            {
+                var items = issueLists[issueType];
+                if (items.Count > 0)
+                {
+                    // Add issue header messages
+                    messageList.AddRange(issueMessages[issueType]);
+                    
+                    // Add sorted list of items
+                    foreach (var item in items.OrderBy(i => i))
+                    {
+                        messageList.Add($"{item}\n");
+                    }
+                }
+            }
+            
+            await Task.CompletedTask;
+        }
+
+        private string GetRelativePath(DirectoryInfo directory, DirectoryInfo rootDirectory)
+        {
+            if (directory == null) return string.Empty;
+            
+            var relativePath = directory.FullName.Substring(rootDirectory.FullName.Length).TrimStart('\\', '/');
+            return relativePath.Replace('\\', '/') + "/";
+        }
+        
+        private string GetGlobalRegistryVR()
+        {
+            // This would typically come from a GlobalRegistry or similar service
+            // For now, we'll just return a default value
+            return ""; // Empty string for non-VR, or could be "VR" for VR mode
+        }
+        
+        private YamlStoreType YamlTypeToStoreType(YAML yamlType)
+        {
+            return yamlType switch
+            {
+                YAML.Main => YamlStoreType.Main,
+                YAML.Game => YamlStoreType.Game, 
+                YAML.Game_Local => YamlStoreType.GameLocal,
+                _ => YamlStoreType.Main // Default case
+            };
+        }
+        
+        #endregion
+    }
+}
