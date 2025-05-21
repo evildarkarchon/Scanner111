@@ -27,11 +27,16 @@ namespace Scanner111.Models
         public bool ShowFormIdValues { get; set; } = false;
         public bool FormIdDbExists { get; set; } = false;
         public string? FormIdDatabasePath { get; set; }
-        public List<string> FormIdDbPaths { get; set; } = new List<string>();
-
-        // FCX Mode settings (optional)
+        public List<string> FormIdDbPaths { get; set; } = new List<string>();        // FCX Mode settings (optional)
         public bool FcxMode { get; set; } = false;
         public bool MoveUnsolvedLogs { get; set; } = false;
+
+        // Crash log formatting settings
+        public bool SimplifyLogs { get; set; } = true;
+        public List<string> SimplifyRemoveStrings { get; set; } = new List<string> { "Steam.dll", "nvwgf2umx.dll", "KERNELBASE.dll", "ntdll.dll" };
+        public List<string> LastProcessingErrors { get; set; } = new List<string>();
+        public bool PreserveOriginalFiles { get; set; } = true; // Create backup of original files
+        public bool AutoDetectCrashLogs { get; set; } = true; // Attempt to validate if files are crash logs
 
         // Other settings from "CLASSIC Settings.yaml" would go here or in a separate class
         // public string YamlCachePath { get; set; } // Example

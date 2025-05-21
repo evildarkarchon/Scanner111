@@ -21,6 +21,7 @@ namespace Scanner111.Services
         private readonly CrashAnalysisService _crashAnalysis;
         private readonly YamlSettingsCacheService _yamlSettingsCache;
         private readonly CrashStackAnalysis _crashStackAnalysis;
+        private readonly CrashLogFormattingService _formattingService;
 
         public ScanLogService(
             AppSettings appSettings,
@@ -29,7 +30,8 @@ namespace Scanner111.Services
             PluginDetectionService pluginDetection,
             CrashAnalysisService crashAnalysis,
             YamlSettingsCacheService yamlSettingsCache,
-            CrashStackAnalysis crashStackAnalysis)
+            CrashStackAnalysis crashStackAnalysis,
+            CrashLogFormattingService formattingService)
         {
             _appSettings = appSettings;
             _warningDatabase = warningDatabase;
@@ -38,6 +40,21 @@ namespace Scanner111.Services
             _crashAnalysis = crashAnalysis;
             _yamlSettingsCache = yamlSettingsCache;
             _crashStackAnalysis = crashStackAnalysis;
+            _formattingService = formattingService;
+        }
+
+        /// <summary>
+        /// Preprocesses and formats crash log files before scanning them
+        /// </summary>
+        /// <param name="logFilePaths">File paths to preprocess</param>
+        /// <returns>Number of successfully preprocessed files</returns>
+        public async Task<int> PreprocessCrashLogsAsync(IEnumerable<string> logFilePaths)
+        {
+            // Apply formatting to crash logs (normalize plugin load order, optionally remove noise)
+            return await _formattingService.ReformatCrashLogsAsync(
+                logFilePaths,
+                _appSettings.SimplifyRemoveStrings
+            );
         }
 
         /// <summary>
@@ -57,6 +74,9 @@ namespace Scanner111.Services
                 });
                 return issues;
             }
+
+            // Format the crash log before parsing if needed
+            await PreprocessCrashLogsAsync(new[] { logFilePath });
 
             // 1. Parse the crash log content
             var parsedLog = await _parserService.ParseCrashLogContentAsync(logFilePath);
@@ -127,6 +147,10 @@ namespace Scanner111.Services
         /// <returns>A list of identified issues from all files.</returns>
         public async Task<List<LogIssue>> ScanMultipleLogFilesAsync(IEnumerable<string> logFilePaths)
         {
+            // First preprocess all crash logs
+            await PreprocessCrashLogsAsync(logFilePaths);
+
+            // Then scan them
             var allIssues = new List<LogIssue>();
             foreach (var filePath in logFilePaths)
             {

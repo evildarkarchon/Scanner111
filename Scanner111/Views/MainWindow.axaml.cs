@@ -10,8 +10,19 @@ namespace Scanner111.Views
         public MainWindow()
         {
             InitializeComponent();
+
+            // Initialize after the UI is ready to ensure we have a DataContext
+            this.AttachedToVisualTree += MainWindow_AttachedToVisualTree;
         }
 
+        private void MainWindow_AttachedToVisualTree(object? sender, Avalonia.VisualTreeAttachmentEventArgs e)
+        {
+            // Set the main window reference in the ViewModel if it's a MainWindowViewModel
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                viewModel.SetMainWindow(this);
+            }
+        }
         private void OpenFormIdDatabaseManager_Click(object sender, RoutedEventArgs e)
         {
             // Get the service provider from the application

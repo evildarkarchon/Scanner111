@@ -3,7 +3,7 @@
         xmlns:vm="using:Scanner111.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
         x:Class="Scanner111.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
@@ -15,17 +15,110 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid>
+    <Grid Margin="20">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        
-        <TextBlock Grid.Row="0" Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-        
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10">
-            <Button Content="FormID Database Manager" Click="OpenFormIdDatabaseManager_Click" Padding="10,5"/>
-        </StackPanel>
-    </Grid>
 
+        <!-- Header -->
+        <TextBlock Grid.Row="0" 
+                   Text="Crash Log Scanner and Formatter" 
+                   HorizontalAlignment="Center" 
+                   FontSize="24" 
+                   FontWeight="Bold" 
+                   Margin="0,0,0,20"/>
+
+        <!-- Log Issues Display -->
+        <Border Grid.Row="1" 
+                BorderBrush="Gray" 
+                BorderThickness="1" 
+                CornerRadius="4" 
+                Padding="5">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" 
+                           Text="Scan Results" 
+                           FontWeight="SemiBold" 
+                           Margin="0,0,0,5"/>                <DataGrid Grid.Row="1" 
+                          ItemsSource="{Binding ScanResults}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          CanUserReorderColumns="True"
+                          CanUserResizeColumns="True"
+                          GridLinesVisibility="All">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="File Name" 
+                                            Binding="{Binding FileName}"/>
+                        <DataGridTextColumn Header="Severity" 
+                                            Binding="{Binding Severity}"/>
+                        <DataGridTextColumn Header="Title" 
+                                            Binding="{Binding Title}"
+                                            Width="*"/>
+                        <DataGridTextColumn Header="Source" 
+                                            Binding="{Binding Source}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <!-- Controls -->
+        <StackPanel Grid.Row="2" Orientation="Vertical" Margin="0,10,0,0">
+            <Expander Header="Crash Log Processing Options" IsExpanded="True" Margin="0,0,0,10">
+                <StackPanel Margin="10,5">
+                    <CheckBox Content="SimplifyLogs - Remove common DLL strings" 
+                              IsChecked="{Binding SimplifyLogs}"
+                              Margin="0,5,0,5"/>
+                              
+                    <CheckBox Content="Preserve original files (create backup)" 
+                              IsChecked="{Binding PreserveOriginalFiles}"
+                              Margin="0,5,0,5"/>
+                                <CheckBox Content="Auto-detect crash logs (verify content)" 
+                              IsChecked="{Binding AutoDetectCrashLogs}"
+                              Margin="0,5,0,5"/>
+                    
+                    <TextBlock Text="Log Simplification:" Margin="0,10,0,5" 
+                              ToolTip.Tip="When enabled, common DLL references like Steam.dll, KERNELBASE.dll, and others will be automatically removed" />
+                    
+                    <TextBlock Text="The following DLLs will be automatically filtered when SimplifyLogs is enabled:" 
+                              Margin="10,5,0,0" FontStyle="Italic" FontSize="12" Opacity="0.7" />
+                    
+                    <TextBlock Text="Steam.dll, nvwgf2umx.dll, KERNELBASE.dll, ntdll.dll" 
+                              Margin="10,0,0,5" FontStyle="Italic" FontSize="12" Opacity="0.7" />
+                </StackPanel>
+            </Expander>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,10,0,10">
+                <Button Content="Scan Crash Logs" 
+                        Command="{Binding ScanCrashLogsCommand}" 
+                        Padding="15,5" 
+                        Margin="0,0,10,0"/>
+                <Button Content="Reformat Crash Logs Only" 
+                        Command="{Binding ReformatCrashLogsCommand}" 
+                        Padding="15,5" 
+                        Margin="10,0,10,0"/>
+                <Button Content="FormID Database Manager" 
+                        Click="OpenFormIdDatabaseManager_Click" 
+                        Padding="15,5" 
+                        Margin="10,0,0,0"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="3" 
+                BorderBrush="LightGray" 
+                BorderThickness="0,1,0,0" 
+                Margin="0,10,0,0" 
+                Padding="0,5,0,0">
+            <TextBlock Text="{Binding StatusMessage}" 
+                       TextWrapping="NoWrap" 
+                       TextTrimming="CharacterEllipsis"/>
+        </Border>
+    </Grid>
 </Window>
