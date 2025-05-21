@@ -70,11 +70,9 @@ namespace Scanner111.Services
                     }
 
                     // Read all lines from the file
-                    string[] originalLines = await File.ReadAllLinesAsync(filePath);
-
-                    // Process the content
+                    string[] originalLines = await File.ReadAllLinesAsync(filePath);                    // Process the content
                     var processedContent = FormatCrashLogContent(
-                        string.Join(Environment.NewLine, originalLines),
+                        String.Join(Environment.NewLine, originalLines),
                         removeStrings,
                         simplifyLogs);
 
@@ -130,27 +128,41 @@ namespace Scanner111.Services
                                                    line.Contains(s, StringComparison.OrdinalIgnoreCase)))
                 {
                     continue;  // Skip this line
-                }
-
-                // Reformat plugin load order lines using regex for better accuracy
+                }                // Reformat plugin load order lines
                 if (inPluginsSection && line.Contains("["))
                 {
                     try
                     {
-                        // Use regex to find and replace plugin entries
-                        string modifiedLine = PluginEntryRegex.Replace(line, match =>
+                        string resultLine = line;
+
+                        // First check if it's a standard plugin index like [ 1], [10], etc.
+                        var standardMatch = Regex.Match(line, @"\[\s*(\d+)\]");
+                        if (standardMatch.Success)
                         {
-                            var prefix = match.Groups[1].Value; // "["
-                            var content = match.Groups[2].Value; // "FE:  0"
-                            var suffix = match.Groups[3].Value; // "]"
+                            // Extract the number and format it with leading zero if needed
+                            int index = int.Parse(standardMatch.Groups[1].Value);
+                            string formattedIndex = $"[{index:D2}]"; // Format as [01], [02], etc.
+                            resultLine = line.Replace(standardMatch.Value, formattedIndex);
+                            processedLinesReversed.Add(resultLine);
+                            continue;
+                        }
+                        else
+                        {
+                            // Handle FE format entries
+                            resultLine = PluginEntryRegex.Replace(line, match =>
+                            {
+                                var prefix = match.Groups[1].Value; // "["
+                                var content = match.Groups[2].Value; // "FE:  0"
+                                var suffix = match.Groups[3].Value; // "]"
 
-                            // Replace spaces with zeros
-                            var modifiedContent = content.Replace(" ", "0");
+                                // Replace spaces with zeros
+                                var modifiedContent = content.Replace(" ", "0");
 
-                            return $"{prefix}{modifiedContent}{suffix}";
-                        });
+                                return $"{prefix}{modifiedContent}{suffix}";
+                            });
+                        }
 
-                        processedLinesReversed.Add(modifiedLine);
+                        processedLinesReversed.Add(resultLine);
                     }
                     catch
                     {

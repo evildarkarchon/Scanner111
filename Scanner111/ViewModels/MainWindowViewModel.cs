@@ -1,5 +1,6 @@
 using Scanner111.Models;
 using Scanner111.Services;
+using Scanner111.Views;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -10,6 +11,7 @@ using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using Microsoft.Extensions.DependencyInjection;
 using ReactiveUI;
 
 namespace Scanner111.ViewModels
@@ -76,12 +78,11 @@ namespace Scanner111.ViewModels
                     this.RaisePropertyChanged(nameof(AutoDetectCrashLogs));
                 }
             }
-        }
-
-        // Commands
+        }        // Commands
         public ICommand ScanCrashLogsCommand { get; }
         public ICommand ReformatCrashLogsCommand { get; }
         public ICommand OpenSettingsCommand { get; }
+        public ICommand OpenPapyrusMonitoringCommand { get; }
 
         // Constructor for design-time, if needed, or for DI to inject services
         public MainWindowViewModel()
@@ -89,12 +90,11 @@ namespace Scanner111.ViewModels
             // This parameterless constructor can be used by the designer.
             // If AppSettings is critical even for design, you might initialize a default/mock instance here.
             // For runtime, the DI container will use the constructor that takes AppSettings.
-            _appSettings = new AppSettings(); // Example: Provide a default for the designer or if DI fails
-
-            // Set up no-op commands for design-time
+            _appSettings = new AppSettings(); // Example: Provide a default for the designer or if DI fails            // Set up no-op commands for design-time
             ScanCrashLogsCommand = ReactiveCommand.Create(() => { });
             ReformatCrashLogsCommand = ReactiveCommand.Create(() => { });
             OpenSettingsCommand = ReactiveCommand.Create(() => { });
+            OpenPapyrusMonitoringCommand = ReactiveCommand.Create(() => { });
         }
 
         public MainWindowViewModel(
@@ -104,12 +104,11 @@ namespace Scanner111.ViewModels
         {
             _appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
             _scanLogService = scanLogService ?? throw new ArgumentNullException(nameof(scanLogService));
-            _formattingService = formattingService ?? throw new ArgumentNullException(nameof(formattingService));
-
-            // Initialize commands
+            _formattingService = formattingService ?? throw new ArgumentNullException(nameof(formattingService));            // Initialize commands
             ScanCrashLogsCommand = ReactiveCommand.CreateFromTask(ScanCrashLogsAsync);
             ReformatCrashLogsCommand = ReactiveCommand.CreateFromTask(ReformatCrashLogsAsync);
             OpenSettingsCommand = ReactiveCommand.Create(OpenSettings);
+            OpenPapyrusMonitoringCommand = ReactiveCommand.Create(OpenPapyrusMonitoring);
         }
 
         // Example property using a setting
@@ -348,8 +347,34 @@ namespace Scanner111.ViewModels
         /// </summary>
         private void OpenSettings()
         {
-            // Implement opening settings dialog
-            StatusMessage = "Opening settings...";
+            // Not yet implemented
+            StatusMessage = "Settings dialog not yet implemented";
+        }
+
+        /// <summary>
+        /// Opens the Papyrus log monitoring window
+        /// </summary>
+        private void OpenPapyrusMonitoring()
+        {
+            // Get the service provider from the application
+            var app = Avalonia.Application.Current as App;
+            if (app?._serviceProvider == null || _mainWindow == null)
+            {
+                StatusMessage = "Could not open Papyrus monitoring window";
+                return;
+            }
+
+            // Create a new PapyrusMonitoringView with its ViewModel from DI
+            var papyrusMonitoringViewModel = app._serviceProvider.GetRequiredService<PapyrusMonitoringViewModel>();
+            var papyrusMonitoringView = new PapyrusMonitoringView
+            {
+                DataContext = papyrusMonitoringViewModel
+            };
+
+            // Show the dialog
+            papyrusMonitoringView.ShowDialog(_mainWindow);
+
+            StatusMessage = "Opened Papyrus monitoring window";
         }
     }
 }

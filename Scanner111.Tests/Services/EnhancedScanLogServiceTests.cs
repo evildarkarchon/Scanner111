@@ -14,8 +14,7 @@ namespace Scanner111.Tests.Services
         private readonly Mock<WarningDatabase> _mockWarningDatabase;
         private readonly Mock<CrashLogParserService> _mockParserService;
         private readonly Mock<PluginDetectionService> _mockPluginDetectionService;
-        private readonly Mock<CrashAnalysisService> _mockCrashAnalysisService;
-        private readonly Mock<YamlSettingsCacheService> _mockYamlSettingsCache;
+        private readonly Mock<CrashAnalysisService> _mockCrashAnalysisService; private readonly Mock<IYamlSettingsCacheService> _mockYamlSettingsCache;
         private readonly Mock<CrashStackAnalysis> _mockCrashStackAnalysis;
         private readonly Mock<CrashLogFormattingService> _mockFormattingService;
         private readonly Mock<ModDetectionService> _mockModDetection;
@@ -30,7 +29,7 @@ namespace Scanner111.Tests.Services
             _mockParserService = new Mock<CrashLogParserService>();
             _mockPluginDetectionService = new Mock<PluginDetectionService>();
             _mockCrashAnalysisService = new Mock<CrashAnalysisService>();
-            _mockYamlSettingsCache = new Mock<YamlSettingsCacheService>();
+            _mockYamlSettingsCache = new Mock<IYamlSettingsCacheService>();
             _mockCrashStackAnalysis = new Mock<CrashStackAnalysis>();
             _mockFormattingService = new Mock<CrashLogFormattingService>();
             _mockModDetection = new Mock<ModDetectionService>();

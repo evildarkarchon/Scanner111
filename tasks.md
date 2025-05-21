@@ -25,7 +25,7 @@ This document outlines the tasks required to port the CLASSIC application from P
 3.  **UI Implementation (Views & ViewModels):**
     *   Design the main window View (`MainWindow.axaml`) based on the structure in CLASSIC_Interface.py, including tabs for main functions and backups. This new UI will be based on modern UI principles and Avalonia's capabilities.
     *   Implement the main window layout using Avalonia's XAML syntax, ensuring it is responsive and user-friendly.
-    *   Create a `MainWindowViewModel.cs` to handle the logic and data for the main window.
+    *   --Create a `MainWindowViewModel.cs` to handle the logic and data for the main window.--
     *   **Main Tab:**
         *   Implement ViewModels and View components for folder selection sections (INI, Mods, Custom Scan Path) with "Browse" functionality.
         *   Implement ViewModels and View components for the main action buttons ("SCAN CRASH LOGS", "SCAN GAME FILES").
@@ -64,3 +64,13 @@ This document outlines the tasks required to port the CLASSIC application from P
 7.  **Testing:**
     *   Write unit tests for ViewModels and services.
     *   Perform manual UI testing to ensure all features work as expected.
+
+8. **Suggestions for Future Enhancements:**
+    *   Consider implementing a plugin system for future extensibility.
+    *   Explore Avalonia's theming capabilities for a more modern look and feel.
+    *   Investigate the possibility of integrating with other modding tools or communities.
+    *   Fix the unit tests to match the xUnit testing framework.
+    *   Add more advanced parsing options for the Papyrus log.
+    *   Add filtering capabilities for the Papyrus log entries.
+    *   Add the ability to export Papyrus log analysis to a file.
+    *   Enhance the UI with more detailed information for the Papyrus Log Analysis feature.

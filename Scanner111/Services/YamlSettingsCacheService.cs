@@ -21,7 +21,7 @@ namespace Scanner111.Services
         Test
     }
 
-    public sealed class YamlSettingsCacheService
+    public sealed class YamlSettingsCacheService : IYamlSettingsCacheService
     {
         private static readonly Lazy<YamlSettingsCacheService> _instance =
             new(() => new YamlSettingsCacheService());

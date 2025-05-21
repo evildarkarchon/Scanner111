@@ -9,10 +9,10 @@
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
-    
-    <Application.Resources>
+      <Application.Resources>
         <converters:BoolToFormattedStringConverter x:Key="BoolToFormattedStringConverter"/>
         <converters:BoolToBrushConverter x:Key="BoolToBrushConverter"/>
+        <converters:BoolToTextConverter x:Key="BoolToTextConverter"/>
     </Application.Resources>
   
     <Application.Styles>

@@ -6,6 +6,32 @@ using System.Globalization;
 namespace Scanner111.Converters
 {
     /// <summary>
+    /// Converts boolean values to text strings.
+    /// Format parameter should be "TrueText|FalseText"
+    /// </summary>
+    public class BoolToTextConverter : IValueConverter
+    {
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        {
+            if (value is bool boolValue && parameter is string format)
+            {
+                var parts = format.Split('|');
+                if (parts.Length >= 2)
+                {
+                    return boolValue ? parts[0] : parts[1];
+                }
+            }
+
+            return value?.ToString();
+        }
+
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
     /// Converts boolean values to formatted strings.
     /// </summary>
     public class BoolToFormattedStringConverter : IValueConverter

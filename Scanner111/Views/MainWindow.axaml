@@ -92,9 +92,7 @@
                     <TextBlock Text="Steam.dll, nvwgf2umx.dll, KERNELBASE.dll, ntdll.dll" 
                               Margin="10,0,0,5" FontStyle="Italic" FontSize="12" Opacity="0.7" />
                 </StackPanel>
-            </Expander>
-
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,10,0,10">
+            </Expander>            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,10,0,10">
                 <Button Content="Scan Crash Logs" 
                         Command="{Binding ScanCrashLogsCommand}" 
                         Padding="15,5" 
@@ -105,6 +103,10 @@
                         Margin="10,0,10,0"/>
                 <Button Content="FormID Database Manager" 
                         Click="OpenFormIdDatabaseManager_Click" 
+                        Padding="15,5" 
+                        Margin="10,0,10,0"/>
+                <Button Content="Papyrus Log Monitor" 
+                        Command="{Binding OpenPapyrusMonitoringCommand}" 
                         Padding="15,5" 
                         Margin="10,0,0,0"/>
             </StackPanel>

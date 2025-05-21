@@ -123,9 +123,16 @@ namespace Scanner111.Models
             // Update any dependent settings
 
             // Set reasonable paths for game files based on typical installations
-            DocsPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                GameRootName?.Replace(" ", ""));
+            if (GameRootName != null)
+            {
+                DocsPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                    GameRootName.Replace(" ", ""));
+            }
+            else
+            {
+                DocsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            }
 
             // Add default ignored plugins for this game
             GameIgnorePlugins = new List<string>

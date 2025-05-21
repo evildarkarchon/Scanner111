@@ -7,18 +7,17 @@ using System.Text.RegularExpressions;
 
 namespace Scanner111.Services
 {
-    /// <summary>
-    /// Service responsible for detecting mods from crash logs and identifying potential issues
+    /// <summary>    /// Service responsible for detecting mods from crash logs and identifying potential issues
     /// Ported from the Python detect_mods_* functions in CLASSIC_ScanLogs.py
     /// </summary>
     public class ModDetectionService
     {
-        private readonly YamlSettingsCacheService _yamlSettingsCache;
+        private readonly IYamlSettingsCacheService _yamlSettingsCache;
         private readonly WarningDatabase _warningDatabase;
         private readonly AppSettings _appSettings;
 
         public ModDetectionService(
-            YamlSettingsCacheService yamlSettingsCache,
+            IYamlSettingsCacheService yamlSettingsCache,
             WarningDatabase warningDatabase,
             AppSettings appSettings)
         {

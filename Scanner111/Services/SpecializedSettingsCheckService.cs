@@ -14,11 +14,11 @@ namespace Scanner111.Services
     public class SpecializedSettingsCheckService
     {
         private readonly AppSettings _appSettings;
-        private readonly YamlSettingsCacheService _yamlSettingsCache;
+        private readonly IYamlSettingsCacheService _yamlSettingsCache;
 
         public SpecializedSettingsCheckService(
             AppSettings appSettings,
-            YamlSettingsCacheService yamlSettingsCache)
+            IYamlSettingsCacheService yamlSettingsCache)
         {
             _appSettings = appSettings;
             _yamlSettingsCache = yamlSettingsCache;
@@ -357,7 +357,6 @@ namespace Scanner111.Services
                     }
                 }
             }
-
             return null;
         }
 
@@ -369,15 +368,8 @@ namespace Scanner111.Services
         {
             try
             {
-                var gameYamlNode = _yamlSettingsCache.GetYamlNode(YAML.Game);
-                if (gameYamlNode == null)
-                    return null;
-
-                var warningNode = _yamlSettingsCache.GetNodeByPath(gameYamlNode, $"{section}.{key}");
-                if (warningNode != null)
-                {
-                    return warningNode.ToString();
-                }
+                // Use the GetSetting method from the interface
+                return _yamlSettingsCache.GetSetting<string>(YAML.Game, $"{section}.{key}");
             }
             catch (Exception)
             {

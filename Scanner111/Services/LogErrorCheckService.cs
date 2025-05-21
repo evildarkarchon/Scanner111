@@ -144,7 +144,7 @@ namespace Scanner111.Services
         /// <summary>
         /// Gets a setting from the YAML settings cache
         /// </summary>
-        private T GetSetting<T>(YAML yamlType, string key) where T : class
+        private T? GetSetting<T>(YAML yamlType, string key) where T : class
         {
             try
             {
@@ -153,7 +153,7 @@ namespace Scanner111.Services
             }
             catch
             {
-                return null;
+                return null; // CS8603
             }
         }
 

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Scanner111.Models;
+using YamlDotNet.RepresentationModel; // Required for YAML parsing
 
 namespace Scanner111.Services
 {
@@ -55,7 +56,7 @@ namespace Scanner111.Services
         private Dictionary<string, string> GetYamlSectionAsDictionary(string sectionPath)
         {
             var result = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
-
+            
             try
             {
                 // Get all key-value pairs for this section
@@ -66,12 +67,7 @@ namespace Scanner111.Services
                     {
                         if (entry.Key != null && entry.Value != null)
                         {
-                            string key = entry.Key.ToString() ?? string.Empty;
-                            string value = entry.Value.ToString() ?? string.Empty;
-                            if (!string.IsNullOrEmpty(key))
-                            {
-                                result[key] = value;
-                            }
+                            result[entry.Key.ToString()] = entry.Value.ToString();
                         }
                     }
                 }
@@ -80,14 +76,14 @@ namespace Scanner111.Services
             {
                 // Fail gracefully if section doesn't exist or has wrong format
             }
-
+            
             return result;
         }
 
         private void LoadSingleWarningsFromSection(string sectionPath)
         {
             var sectionDict = GetYamlSectionAsDictionary(sectionPath);
-
+            
             foreach (var entry in sectionDict)
             {
                 string pluginName = entry.Key;
@@ -105,7 +101,7 @@ namespace Scanner111.Services
         private void LoadGenericPluginNotes(string sectionPath, Dictionary<string, WarningDetails> targetDictionary, string titlePrefix, SeverityLevel defaultSeverity)
         {
             var sectionDict = GetYamlSectionAsDictionary(sectionPath);
-
+            
             foreach (var entry in sectionDict)
             {
                 string pluginName = entry.Key;
@@ -123,7 +119,7 @@ namespace Scanner111.Services
         private void LoadCrashErrorChecks(string sectionPath)
         {
             var sectionDict = GetYamlSectionAsDictionary(sectionPath);
-
+            
             foreach (var entry in sectionDict)
             {
                 // Parse the key which has format "5 | Stack Overflow Crash"
@@ -153,7 +149,7 @@ namespace Scanner111.Services
         private void LoadCrashStackChecks(string sectionPath)
         {
             var sectionDict = GetYamlSectionAsDictionary(sectionPath);
-
+            
             foreach (var entry in sectionDict)
             {
                 // Parse the key which has format "5 | Scaleform Gfx Crash:"
@@ -164,14 +160,26 @@ namespace Scanner111.Services
                     if (parts.Length == 2)
                     {
                         string severityStr = parts[0].Trim();
-                        string crashTitle = parts[1].Trim();                        // Get the patterns from the value
+                        string crashTitle = parts[1].Trim();
+
+                        // Get the patterns from the value
                         List<string> patterns = new List<string>();
 
-                        // Since we're getting plain string data directly from GetYamlSectionAsDictionary,
-                        // we'll just add it directly as a pattern
-                        if (!string.IsNullOrEmpty(entry.Value))
+                        // If it's a sequence node (list)
+                        if (entry.Value is YamlSequenceNode sequenceNode)
                         {
-                            patterns.Add(entry.Value);
+                            foreach (var patternNode in sequenceNode)
+                            {
+                                if (patternNode is YamlScalarNode scalarPatternNode && scalarPatternNode.Value != null)
+                                {
+                                    patterns.Add(scalarPatternNode.Value);
+                                }
+                            }
+                        }
+                        // If it's a scalar node (single value)
+                        else if (entry.Value is YamlScalarNode scalarNode && scalarNode.Value != null)
+                        {
+                            patterns.Add(scalarNode.Value);
                         }
 
                         // Store this crash type and its patterns
@@ -184,7 +192,7 @@ namespace Scanner111.Services
         private void LoadConflictRules(string sectionPath)
         {
             var sectionDict = GetYamlSectionAsDictionary(sectionPath);
-
+            
             foreach (var entry in sectionDict)
             {
                 string[] plugins = entry.Key.Split(new[] { " | " }, System.StringSplitOptions.RemoveEmptyEntries);

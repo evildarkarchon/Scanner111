@@ -18,8 +18,7 @@ namespace Scanner111.Services
         private readonly WarningDatabase _warningDatabase;
         private readonly CrashLogParserService _parserService;
         private readonly PluginDetectionService _pluginDetection;
-        private readonly CrashAnalysisService _crashAnalysis;
-        private readonly YamlSettingsCacheService _yamlSettingsCache;
+        private readonly CrashAnalysisService _crashAnalysis; private readonly IYamlSettingsCacheService _yamlSettingsCache;
         private readonly CrashStackAnalysis _crashStackAnalysis;
         private readonly CrashLogFormattingService _formattingService;
         private readonly ModDetectionService _modDetection;
@@ -32,7 +31,7 @@ namespace Scanner111.Services
             CrashLogParserService parserService,
             PluginDetectionService pluginDetection,
             CrashAnalysisService crashAnalysis,
-            YamlSettingsCacheService yamlSettingsCache,
+            IYamlSettingsCacheService yamlSettingsCache,
             CrashStackAnalysis crashStackAnalysis,
             CrashLogFormattingService formattingService,
             ModDetectionService modDetection,

@@ -9,14 +9,14 @@ namespace Scanner111.Tests.Services
 {
     public class ModDetectionServiceTests
     {
-        private readonly Mock<YamlSettingsCacheService> _mockYamlSettingsCache;
+        private readonly Mock<IYamlSettingsCacheService> _mockYamlSettingsCache;
         private readonly Mock<WarningDatabase> _mockWarningDatabase;
         private readonly Mock<AppSettings> _mockAppSettings;
         private readonly ModDetectionService _service;
 
         public ModDetectionServiceTests()
         {
-            _mockYamlSettingsCache = new Mock<YamlSettingsCacheService>();
+            _mockYamlSettingsCache = new Mock<IYamlSettingsCacheService>();
             _mockWarningDatabase = new Mock<WarningDatabase>();
             _mockAppSettings = new Mock<AppSettings>();
 
