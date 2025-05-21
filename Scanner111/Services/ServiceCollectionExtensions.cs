@@ -8,22 +8,24 @@ namespace Scanner111.Services
     public static class ServiceCollectionExtensions
     {
         public static IServiceCollection AddCustomServices(this IServiceCollection services)
-        {
-            // Example: Register a hypothetical FileService
-            // services.AddSingleton<IFileService, FileService>();
-
-            // Example: Register another service
-            // services.AddTransient<IMyOtherService, MyOtherService>();
-
-            // You can add more service registrations here
+        {            // Register the warning database and settings first
+            services.AddSingleton<WarningDatabase>();
+            services.AddSingleton<AppSettings>();
+            services.AddSingleton<YamlSettingsCacheService>();            // Register our scanner services
+            services.AddSingleton<CrashLogParserService>();
+            services.AddSingleton<PluginDetectionService>();
+            services.AddSingleton<CrashStackAnalysis>();
+            services.AddSingleton<FormIdDatabaseService>();
+            services.AddSingleton<FormIdDatabaseImporter>();
+            services.AddSingleton<CrashAnalysisService>();
+            services.AddSingleton<ScanLogService>();
 
             return services;
-        }
-
-        //You could add other extension methods for different groups of services
+        }        //You could add other extension methods for different groups of services
         public static IServiceCollection AddViewModelServices(this IServiceCollection services)
         {
             services.AddTransient<MainWindowViewModel>();
+            services.AddTransient<FormIdDatabaseViewModel>();
             return services;
         }
     }

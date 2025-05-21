@@ -2,12 +2,18 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Scanner111.App"
              xmlns:local="using:Scanner111"
+             xmlns:converters="using:Scanner111.Converters"
              RequestedThemeVariant="Default">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
+    
+    <Application.Resources>
+        <converters:BoolToFormattedStringConverter x:Key="BoolToFormattedStringConverter"/>
+        <converters:BoolToBrushConverter x:Key="BoolToBrushConverter"/>
+    </Application.Resources>
   
     <Application.Styles>
         <FluentTheme />

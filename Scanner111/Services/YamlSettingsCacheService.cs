@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using YamlDotNet.RepresentationModel;
+using Scanner111.Models; // For YAML enum
 
 namespace Scanner111.Services
 {
@@ -43,6 +45,9 @@ namespace Scanner111.Services
         private string _classicDataPath = Path.Combine("CLASSIC Data");
         private string _testsPath = "tests";
 
+        private readonly Dictionary<YAML, YamlNode> _yamlCache = new Dictionary<YAML, YamlNode>();
+        private readonly Dictionary<YAML, string> _yamlFilePaths = new Dictionary<YAML, string>(); // Maps enum to actual file paths
+
         private YamlSettingsCacheService()
         {
             _yamlDeserializer = new DeserializerBuilder()
@@ -57,6 +62,21 @@ namespace Scanner111.Services
             _applicationRootPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? AppDomain.CurrentDomain.BaseDirectory;
 
             InitializeStaticCaches();
+
+            // Initialize _yamlFilePaths based on AppSettings or a configuration mechanism
+            // This is crucial for mapping the YAML enum to actual file locations.
+            // Example (you'll need to adapt this to your actual settings structure):
+            // _yamlFilePaths[YAML.Main] = appSettings.MainYamlPath;
+            // _yamlFilePaths[YAML.Game] = appSettings.GameSpecificYamlPath; 
+            // ... and so on for all YAML types you intend to use.
+
+            // For now, using placeholder paths for demonstration. Replace with actual paths.
+            // Ensure these paths are correct and the files exist.
+            string baseDataPath = Path.Combine(Directory.GetCurrentDirectory(), "CLASSIC Data", "databases"); // Example base path
+            _yamlFilePaths[YAML.Game] = Path.Combine(baseDataPath, "CLASSIC Fallout4.yaml"); // Placeholder
+            // Add other mappings here, e.g., for YAML.Main, YAML.Settings etc.
+
+            // Preload YAML files if desired, or load them on demand.
         }
 
         private void InitializeStaticCaches()
@@ -241,6 +261,97 @@ namespace Scanner111.Services
             {
                 Console.WriteLine($"Error writing YAML file '{filePath}': {ex.Message}");
             }
+        }
+
+        public YamlNode? GetYamlNode(YAML yamlStore)
+        {
+            if (_yamlCache.TryGetValue(yamlStore, out var cachedNode))
+            {
+                return cachedNode;
+            }
+
+            if (_yamlFilePaths.TryGetValue(yamlStore, out var filePath) && File.Exists(filePath))
+            {
+                try
+                {
+                    using var reader = new StreamReader(filePath);
+                    var yamlStream = new YamlStream();
+                    yamlStream.Load(reader);
+
+                    if (yamlStream.Documents.Count > 0)
+                    {
+                        var rootNode = yamlStream.Documents[0].RootNode;
+                        _yamlCache[yamlStore] = rootNode; // Cache it
+                        return rootNode;
+                    }
+                }
+                catch (Exception ex) // Catch specific YAML parsing or IO exceptions
+                {
+                    // Log the error (implement a logging mechanism)
+                    Console.WriteLine($"Error loading YAML file {filePath}: {ex.Message}");
+                    return null;
+                }
+            }
+            else
+            {
+                // Log error: File path not configured or file doesn't exist
+                Console.WriteLine($"YAML file path not configured or file not found for: {yamlStore}");
+            }
+            return null;
+        }
+
+        public YamlNode? GetNodeByPath(YamlNode? startNode, string path)
+        {
+            if (startNode == null) return null;
+
+            var pathSegments = path.Split('.');
+            YamlNode? currentNode = startNode;
+
+            foreach (var segment in pathSegments)
+            {
+                if (currentNode is YamlMappingNode mappingNode)
+                {
+                    // Try to get the child node by scalar key
+                    if (mappingNode.Children.TryGetValue(new YamlScalarNode(segment), out var nextNode))
+                    {
+                        currentNode = nextNode;
+                    }
+                    else
+                    {
+                        return null; // Path segment not found
+                    }
+                }
+                else
+                {
+                    return null; // Current node is not a mapping node, so cannot traverse further
+                }
+            }
+            return currentNode;
+        }
+
+        // Generic method to get a setting value, similar to Python's yaml_settings
+        public T? GetSetting<T>(YAML yamlStore, string keyPath, T? defaultValue = default)
+        {
+            var rootNode = GetYamlNode(yamlStore);
+            if (rootNode == null) return defaultValue;
+
+            var targetNode = GetNodeByPath(rootNode, keyPath);
+            if (targetNode is YamlScalarNode scalarNode && scalarNode.Value != null)
+            {
+                try
+                {
+                    // Attempt to deserialize/convert the scalar value to type T
+                    // This might need more sophisticated conversion based on T
+                    var deserializer = new DeserializerBuilder().Build();
+                    return deserializer.Deserialize<T>(scalarNode.Value);
+                }
+                catch
+                {
+                    // Handle or log deserialization errors
+                    return defaultValue;
+                }
+            }
+            return defaultValue;
         }
     }
 }

@@ -90,10 +90,9 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
-    }
-
-    // Field to store the service provider when the DI constructor is called.
-    private IServiceProvider? _serviceProvider;
+    }    // Field to store the service provider when the DI constructor is called.
+    // Internal to allow access from MainWindow for creating dialogs
+    internal IServiceProvider? _serviceProvider;
 
     // Constructor to be called from Program.cs with the ServiceProvider
     public App(IServiceProvider serviceProvider) : this() // Calls the parameterless constructor first
