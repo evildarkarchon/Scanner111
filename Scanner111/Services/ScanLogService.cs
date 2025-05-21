@@ -22,6 +22,9 @@ namespace Scanner111.Services
         private readonly YamlSettingsCacheService _yamlSettingsCache;
         private readonly CrashStackAnalysis _crashStackAnalysis;
         private readonly CrashLogFormattingService _formattingService;
+        private readonly ModDetectionService _modDetection;
+        private readonly SpecializedSettingsCheckService _specializedSettingsCheck;
+        private readonly CrashReportGenerator _reportGenerator;
 
         public ScanLogService(
             AppSettings appSettings,
@@ -31,7 +34,10 @@ namespace Scanner111.Services
             CrashAnalysisService crashAnalysis,
             YamlSettingsCacheService yamlSettingsCache,
             CrashStackAnalysis crashStackAnalysis,
-            CrashLogFormattingService formattingService)
+            CrashLogFormattingService formattingService,
+            ModDetectionService modDetection,
+            SpecializedSettingsCheckService specializedSettingsCheck,
+            CrashReportGenerator reportGenerator)
         {
             _appSettings = appSettings;
             _warningDatabase = warningDatabase;
@@ -41,6 +47,9 @@ namespace Scanner111.Services
             _yamlSettingsCache = yamlSettingsCache;
             _crashStackAnalysis = crashStackAnalysis;
             _formattingService = formattingService;
+            _modDetection = modDetection;
+            _specializedSettingsCheck = specializedSettingsCheck;
+            _reportGenerator = reportGenerator;
         }
 
         /// <summary>
@@ -90,11 +99,18 @@ namespace Scanner111.Services
                     Severity = SeverityLevel.Error
                 });
                 return issues;
-            }
-
-            // 2. Perform various checks based on parsedLog and settings/warningDatabase
+            }            // 2. Perform various checks based on parsedLog and settings/warningDatabase
             _pluginDetection.DetectModIssues(parsedLog, issues);
             _crashAnalysis.AnalyzeCrashLog(parsedLog, issues);
+
+            // 3. Perform enhanced mod detection checks
+            _modDetection.DetectSingleMods(parsedLog, issues);
+            _modDetection.DetectModConflicts(parsedLog, issues);
+            _modDetection.DetectImportantMods(parsedLog, issues);
+            _modDetection.CheckPluginLimits(parsedLog, issues);
+
+            // 4. Check specialized settings
+            _specializedSettingsCheck.CheckAllSettings(parsedLog, issues);
 
             // Fallback for unhandled exceptions during development of this service
             if (!issues.Any() && parsedLog.Lines.Any()) // If no specific issues found yet, but log was parsed
@@ -158,6 +174,78 @@ namespace Scanner111.Services
                 allIssues.AddRange(fileIssues);
             }
             return allIssues;
+        }
+
+        /// <summary>
+        /// Scans a crash log file and generates a formatted report
+        /// </summary>
+        /// <param name="logFilePath">Path to the crash log file</param>
+        /// <param name="reportsDirectory">Directory where reports should be saved, null to use default</param>
+        /// <returns>The report content as a string</returns>
+        public async Task<string> ScanAndGenerateReportAsync(string logFilePath, string? reportsDirectory = null)
+        {
+            // Scan the log file
+            var issues = await ScanLogFileAsync(logFilePath);
+
+            // Generate the report
+            string report = _reportGenerator.GenerateReport(logFilePath, issues);
+
+            // Save the report if a directory is specified
+            if (!string.IsNullOrEmpty(reportsDirectory))
+            {
+                _reportGenerator.SaveReportToFile(report, logFilePath, reportsDirectory);
+            }
+
+            return report;
+        }
+
+        /// <summary>
+        /// Processes a batch of crash logs, determines if any are unsolved, and moves them if needed
+        /// </summary>
+        /// <param name="logFilePaths">List of log file paths to process</param>
+        /// <param name="reportsDirectory">Directory where reports should be saved</param>
+        /// <param name="unsolvedDirectory">Directory where unsolved logs should be moved</param>
+        /// <param name="moveUnsolved">Whether to move unsolved logs</param>
+        /// <returns>Number of logs processed</returns>
+        public async Task<int> ProcessCrashLogsWithReportingAsync(
+            IEnumerable<string> logFilePaths,
+            string reportsDirectory,
+            string unsolvedDirectory,
+            bool moveUnsolved = false)
+        {
+            int processedCount = 0;
+
+            foreach (var logFilePath in logFilePaths)
+            {
+                try
+                {
+                    // Scan the log file
+                    var issues = await ScanLogFileAsync(logFilePath);
+
+                    // Generate and save the report
+                    string report = _reportGenerator.GenerateReport(logFilePath, issues);
+                    _reportGenerator.SaveReportToFile(report, logFilePath, reportsDirectory);
+
+                    // Check if this is an "unsolved" log
+                    bool isUnsolved = !issues.Any(i => i.Severity == SeverityLevel.Critical || i.Severity == SeverityLevel.Error);
+
+                    // Move the log if it's unsolved and moveUnsolved is true
+                    if (isUnsolved && moveUnsolved)
+                    {
+                        _reportGenerator.MoveUnsolvedLog(logFilePath, unsolvedDirectory);
+                    }
+
+                    processedCount++;
+                }
+                catch (Exception ex)
+                {
+                    // Log the exception but continue processing other logs
+                    // In a real app, you would want to log this properly
+                    Console.WriteLine($"Error processing {logFilePath}: {ex.Message}");
+                }
+            }
+
+            return processedCount;
         }
     }
 }

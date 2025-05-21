@@ -353,5 +353,44 @@ namespace Scanner111.Services
             }
             return defaultValue;
         }
+
+        /// <summary>
+        /// Extracts a list of string values from a YAML node.
+        /// Can handle sequence nodes (list) or mapping nodes (dictionary).
+        /// </summary>
+        /// <param name="node">The YAML node to extract values from</param>
+        /// <returns>A list of string values or null if the node is not a valid collection</returns>
+        public List<string>? GetChildrenAsList(YamlNode? node)
+        {
+            if (node == null)
+                return null;
+
+            var resultList = new List<string>();
+
+            if (node is YamlSequenceNode sequenceNode)
+            {
+                // Handle sequence nodes (arrays)
+                foreach (var childNode in sequenceNode.Children)
+                {
+                    if (childNode is YamlScalarNode scalarNode && scalarNode.Value != null)
+                    {
+                        resultList.Add(scalarNode.Value);
+                    }
+                }
+            }
+            else if (node is YamlMappingNode mappingNode)
+            {
+                // Handle mapping nodes (dictionaries)
+                foreach (var pair in mappingNode.Children)
+                {
+                    if (pair.Value is YamlScalarNode valueNode && valueNode.Value != null)
+                    {
+                        resultList.Add(valueNode.Value);
+                    }
+                }
+            }
+
+            return resultList.Any() ? resultList : null;
+        }
     }
 }

@@ -12,12 +12,15 @@ namespace Scanner111.Services
             services.AddSingleton<WarningDatabase>();
             services.AddSingleton<AppSettings>();
             services.AddSingleton<YamlSettingsCacheService>();            // Register our scanner services
-            services.AddSingleton<CrashLogParserService>();
-            services.AddSingleton<PluginDetectionService>();
-            services.AddSingleton<CrashStackAnalysis>(); services.AddSingleton<FormIdDatabaseService>();
+            services.AddSingleton<CrashLogParserService>(); services.AddSingleton<PluginDetectionService>();
+            services.AddSingleton<CrashStackAnalysis>();
+            services.AddSingleton<FormIdDatabaseService>();
             services.AddSingleton<FormIdDatabaseImporter>();
             services.AddSingleton<CrashAnalysisService>();
             services.AddSingleton<CrashLogFormattingService>();
+            services.AddSingleton<ModDetectionService>();
+            services.AddSingleton<SpecializedSettingsCheckService>();
+            services.AddSingleton<CrashReportGenerator>();
             services.AddSingleton<ScanLogService>();
 
             return services;

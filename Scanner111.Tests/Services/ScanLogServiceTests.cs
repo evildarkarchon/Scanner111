@@ -16,22 +16,27 @@ namespace Scanner111.Tests.Services
         private readonly Mock<YamlSettingsCacheService> _mockYamlSettingsCache;
         private readonly Mock<CrashStackAnalysis> _mockCrashStackAnalysis;
         private readonly Mock<CrashLogFormattingService> _mockFormattingService;
+        private readonly Mock<ModDetectionService> _mockModDetectionService;
+        private readonly Mock<SpecializedSettingsCheckService> _mockSpecializedSettingsCheckService;
+        private readonly Mock<CrashReportGenerator> _mockCrashReportGenerator;
         private readonly AppSettings _appSettings;
         private readonly WarningDatabase _warningDatabase;
-        private readonly ScanLogService _service;
-
-        public ScanLogServiceTests()
+        private readonly ScanLogService _service; public ScanLogServiceTests()
         {
             _appSettings = new AppSettings
             {
                 SimplifyLogs = true,
                 SimplifyRemoveStrings = new List<string> { "ntdll.dll", "Steam.dll" }
-            }; _mockParserService = new Mock<CrashLogParserService>();
+            };
+            _mockParserService = new Mock<CrashLogParserService>();
             _mockPluginDetectionService = new Mock<PluginDetectionService>();
             _mockCrashAnalysisService = new Mock<CrashAnalysisService>();
             _mockYamlSettingsCache = new Mock<YamlSettingsCacheService>();
             _mockCrashStackAnalysis = new Mock<CrashStackAnalysis>();
             _mockFormattingService = new Mock<CrashLogFormattingService>();
+            _mockModDetectionService = new Mock<ModDetectionService>();
+            _mockSpecializedSettingsCheckService = new Mock<SpecializedSettingsCheckService>();
+            _mockCrashReportGenerator = new Mock<CrashReportGenerator>();
             _warningDatabase = new WarningDatabase(_mockYamlSettingsCache.Object);
 
             _service = new ScanLogService(
@@ -42,7 +47,10 @@ namespace Scanner111.Tests.Services
                 _mockCrashAnalysisService.Object,
                 _mockYamlSettingsCache.Object,
                 _mockCrashStackAnalysis.Object,
-                _mockFormattingService.Object
+                _mockFormattingService.Object,
+                _mockModDetectionService.Object,
+                _mockSpecializedSettingsCheckService.Object,
+                _mockCrashReportGenerator.Object
             );
         }
 
