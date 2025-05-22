@@ -1,19 +1,19 @@
 using System;
 using System.Collections.Generic;
+using System.Data.SQLite;
 using System.IO;
 using System.Threading.Tasks;
-using System.Data.SQLite;
 using Microsoft.Extensions.Logging;
 
-namespace Scanner111.ClassicLib.ScanLog.Services;
+namespace Scanner111.ClassicLib.ScanLog.Services.Interfaces;
 
 /// <summary>
-/// Service for database operations related to crash log scanning.
+///     Service for database operations related to crash log scanning.
 /// </summary>
 public interface IDatabaseService
 {
     /// <summary>
-    /// Gets an entry from the database based on FormID and plugin.
+    ///     Gets an entry from the database based on FormID and plugin.
     /// </summary>
     /// <param name="formId">The FormID to look up.</param>
     /// <param name="plugin">The plugin name.</param>
@@ -21,25 +21,25 @@ public interface IDatabaseService
     Task<string?> GetEntryAsync(string formId, string plugin);
 
     /// <summary>
-    /// Checks if any database exists.
+    ///     Checks if any database exists.
     /// </summary>
     /// <returns>True if at least one database exists.</returns>
     bool DatabaseExists();
 
     /// <summary>
-    /// Clears the query cache.
+    ///     Clears the query cache.
     /// </summary>
     void ClearCache();
 }
 
 /// <summary>
-/// Implementation of database service for FormID lookups.
+///     Implementation of database service for FormID lookups.
 /// </summary>
 public class DatabaseService : IDatabaseService
 {
+    private readonly List<string> _dbPaths;
     private readonly ILogger<DatabaseService> _logger;
     private readonly Dictionary<(string formId, string plugin), string> _queryCache = new();
-    private readonly List<string> _dbPaths;
 
     public DatabaseService(ILogger<DatabaseService> logger)
     {
@@ -48,23 +48,20 @@ public class DatabaseService : IDatabaseService
         // Initialize database paths (equivalent to DB_PATHS in Python)
         _dbPaths =
         [
-          Path.Combine("CLASSIC Data", "databases", "Fallout4 FormIDs Main.db"),
-          Path.Combine("CLASSIC Data", "databases", "Fallout4 FormIDs Local.db")
+            Path.Combine("CLASSIC Data", "databases", "Fallout4 FormIDs Main.db"),
+            Path.Combine("CLASSIC Data", "databases", "Fallout4 FormIDs Local.db")
         ];
     }
 
     /// <summary>
-    /// Gets an entry from the cache or database.
+    ///     Gets an entry from the cache or database.
     /// </summary>
     public async Task<string?> GetEntryAsync(string formId, string plugin)
     {
         var key = (formId, plugin);
 
         // Check cache first
-        if (_queryCache.TryGetValue(key, out var cachedEntry))
-        {
-            return cachedEntry;
-        }
+        if (_queryCache.TryGetValue(key, out var cachedEntry)) return cachedEntry;
 
         // Search in databases
         foreach (var dbPath in _dbPaths)
@@ -90,7 +87,7 @@ public class DatabaseService : IDatabaseService
     }
 
     /// <summary>
-    /// Checks if any database exists.
+    ///     Checks if any database exists.
     /// </summary>
     public bool DatabaseExists()
     {
@@ -98,7 +95,7 @@ public class DatabaseService : IDatabaseService
     }
 
     /// <summary>
-    /// Clears the query cache.
+    ///     Clears the query cache.
     /// </summary>
     public void ClearCache()
     {
@@ -106,7 +103,7 @@ public class DatabaseService : IDatabaseService
     }
 
     /// <summary>
-    /// Queries a specific database file.
+    ///     Queries a specific database file.
     /// </summary>
     private async Task<string?> QueryDatabaseAsync(string dbPath, string formId, string plugin)
     {

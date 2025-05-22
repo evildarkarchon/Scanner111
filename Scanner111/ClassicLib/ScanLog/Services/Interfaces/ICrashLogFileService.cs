@@ -3,22 +3,24 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Scanner111.Services;
 
-namespace Scanner111.ClassicLib.ScanLog.Services;
+namespace Scanner111.ClassicLib.ScanLog.Services.Interfaces;
 
 /// <summary>
-/// Utility service for crash log file operations.
+///     Utility service for crash log file operations.
 /// </summary>
 public interface ICrashLogFileService
 {
     /// <summary>
-    /// Gets all crash log files from the appropriate directories.
+    ///     Gets all crash log files from the appropriate directories.
     /// </summary>
     /// <returns>A list of crash log file paths.</returns>
     Task<List<string>> GetCrashLogFilesAsync();
 
     /// <summary>
-    /// Reformats crash log files according to settings.
+    ///     Reformats crash log files according to settings.
     /// </summary>
     /// <param name="crashLogFiles">List of crash log files to reformat.</param>
     /// <param name="removePatterns">Patterns of lines to remove.</param>
@@ -26,7 +28,7 @@ public interface ICrashLogFileService
     Task ReformatCrashLogsAsync(IEnumerable<string> crashLogFiles, IEnumerable<string> removePatterns);
 
     /// <summary>
-    /// Moves files from source to target directory if they don't exist in target.
+    ///     Moves files from source to target directory if they don't exist in target.
     /// </summary>
     /// <param name="sourceDir">Source directory.</param>
     /// <param name="targetDir">Target directory.</param>
@@ -35,7 +37,7 @@ public interface ICrashLogFileService
     Task MoveFilesAsync(string sourceDir, string targetDir, string pattern);
 
     /// <summary>
-    /// Copies files from source to target directory if they don't exist in target.
+    ///     Copies files from source to target directory if they don't exist in target.
     /// </summary>
     /// <param name="sourceDir">Source directory.</param>
     /// <param name="targetDir">Target directory.</param>
@@ -45,15 +47,29 @@ public interface ICrashLogFileService
 }
 
 /// <summary>
-/// Implementation of crash log file service.
+///     Implementation of crash log file service.
 /// </summary>
 public class CrashLogFileService : ICrashLogFileService
 {
     private const string CrashLogPattern = "crash-*.log";
     private const string CrashAutoscanPattern = "crash-*-AUTOSCAN.md";
+    
+    private readonly IYamlSettingsCache _yamlSettingsCache;
+    private readonly ILogger<CrashLogFileService>? _logger;
 
     /// <summary>
-    /// Gets all crash log files from various directories.
+    ///     Creates a new instance of the CrashLogFileService class.
+    /// </summary>
+    /// <param name="yamlSettingsCache">The YAML settings cache service.</param>
+    /// <param name="logger">Optional logger for logging messages.</param>
+    public CrashLogFileService(IYamlSettingsCache yamlSettingsCache, ILogger<CrashLogFileService>? logger = null)
+    {
+        _yamlSettingsCache = yamlSettingsCache;
+        _logger = logger;
+    }
+
+    /// <summary>
+    ///     Gets all crash log files from various directories.
     /// </summary>
     public async Task<List<string>> GetCrashLogFilesAsync()
     {
@@ -69,31 +85,42 @@ public class CrashLogFileService : ICrashLogFileService
         await MoveFilesAsync(baseFolder, crashLogsDir, CrashLogPattern);
         await MoveFilesAsync(baseFolder, crashLogsDir, CrashAutoscanPattern);
 
-        // TODO: Add support for custom folders and XSE folders from settings
-        // This would require injecting the settings service
+        // Get custom scan folder path from settings
+        var customScanPath = _yamlSettingsCache.GetSetting<string>(YamlStore.Settings, "SCAN Custom Path");
+        if (!string.IsNullOrEmpty(customScanPath) && Directory.Exists(customScanPath))
+        {
+            _logger?.LogInformation("Checking custom scan folder: {CustomScanPath}", customScanPath);
+            await CopyFilesAsync(customScanPath, crashLogsDir, CrashLogPattern);
+        }
+
+        // Get XSE folder path from settings
+        var xseFolderPath = _yamlSettingsCache.GetSetting<string>(YamlStore.GameLocal, "Game_Info.Docs_Folder_XSE");
+        if (!string.IsNullOrEmpty(xseFolderPath) && Directory.Exists(xseFolderPath))
+        {
+            _logger?.LogInformation("Checking XSE folder: {XseFolderPath}", xseFolderPath);
+            await CopyFilesAsync(xseFolderPath, crashLogsDir, CrashLogPattern);
+        }
 
         // Collect crash log files
         var crashFiles = new List<string>();
         crashFiles.AddRange(Directory.GetFiles(crashLogsDir, CrashLogPattern, SearchOption.AllDirectories));
 
+        _logger?.LogInformation("Found {CrashFileCount} crash log files", crashFiles.Count);
         return crashFiles;
     }
 
     /// <summary>
-    /// Reformats crash log files based on settings.
+    ///     Reformats crash log files based on settings.
     /// </summary>
     public async Task ReformatCrashLogsAsync(IEnumerable<string> crashLogFiles, IEnumerable<string> removePatterns)
     {
         var removePatternsList = new List<string>(removePatterns);
 
-        foreach (var file in crashLogFiles)
-        {
-            await ReformatSingleLogFileAsync(file, removePatternsList);
-        }
+        foreach (var file in crashLogFiles) await ReformatSingleLogFileAsync(file, removePatternsList);
     }
 
     /// <summary>
-    /// Moves files matching pattern from source to target directory.
+    ///     Moves files matching pattern from source to target directory.
     /// </summary>
     public async Task MoveFilesAsync(string sourceDir, string targetDir, string pattern)
     {
@@ -108,7 +135,6 @@ public class CrashLogFileService : ICrashLogFileService
                 var destinationFile = Path.Combine(targetDir, fileName);
 
                 if (!File.Exists(destinationFile))
-                {
                     try
                     {
                         File.Move(file, destinationFile);
@@ -117,13 +143,12 @@ public class CrashLogFileService : ICrashLogFileService
                     {
                         Console.WriteLine($"Error moving {file}: {ex.Message}");
                     }
-                }
             }
         });
     }
 
     /// <summary>
-    /// Copies files matching pattern from source to target directory.
+    ///     Copies files matching pattern from source to target directory.
     /// </summary>
     public async Task CopyFilesAsync(string sourceDir, string targetDir, string pattern)
     {
@@ -138,7 +163,6 @@ public class CrashLogFileService : ICrashLogFileService
                 var destinationFile = Path.Combine(targetDir, fileName);
 
                 if (!File.Exists(destinationFile))
-                {
                     try
                     {
                         File.Copy(file, destinationFile, false);
@@ -147,13 +171,12 @@ public class CrashLogFileService : ICrashLogFileService
                     {
                         Console.WriteLine($"Error copying {file}: {ex.Message}");
                     }
-                }
             }
         });
     }
 
     /// <summary>
-    /// Reformats a single log file.
+    ///     Reformats a single log file.
     /// </summary>
     private async Task ReformatSingleLogFileAsync(string filePath, List<string> removePatterns)
     {
@@ -164,26 +187,17 @@ public class CrashLogFileService : ICrashLogFileService
             var inPluginsSection = true;
 
             // Process lines from bottom to top (reverse order)
-            for (int i = lines.Length - 1; i >= 0; i--)
+            for (var i = lines.Length - 1; i >= 0; i--)
             {
                 var line = lines[i];
 
-                if (inPluginsSection && line.StartsWith("PLUGINS:"))
-                {
-                    inPluginsSection = false;
-                }
+                if (inPluginsSection && line.StartsWith("PLUGINS:")) inPluginsSection = false;
 
                 // Skip lines that match remove patterns
-                if (removePatterns.Any(pattern => line.Contains(pattern, StringComparison.OrdinalIgnoreCase)))
-                {
-                    continue;
-                }
+                if (removePatterns.Any(pattern => line.Contains(pattern, StringComparison.OrdinalIgnoreCase))) continue;
 
                 // Reformat plugin lines
-                if (inPluginsSection && line.Contains('['))
-                {
-                    line = ReformatPluginLine(line);
-                }
+                if (inPluginsSection && line.Contains('[')) line = ReformatPluginLine(line);
 
                 processedLines.Add(line);
             }
@@ -200,7 +214,7 @@ public class CrashLogFileService : ICrashLogFileService
     }
 
     /// <summary>
-    /// Reformats a plugin line by replacing spaces in brackets with zeros.
+    ///     Reformats a plugin line by replacing spaces in brackets with zeros.
     /// </summary>
     private static string ReformatPluginLine(string line)
     {

@@ -1,14 +1,15 @@
 using Microsoft.Extensions.DependencyInjection;
+using Scanner111.ClassicLib.ScanLog.Services.Interfaces;
 
 namespace Scanner111.ClassicLib.ScanLog.Services;
 
 /// <summary>
-/// Extension methods for registering CrashLog scan services with the DI container.
+///     Extension methods for registering CrashLog scan services with the DI container.
 /// </summary>
 public static class CrashLogServiceExtensions
 {
     /// <summary>
-    /// Adds all crash log scanning services to the service collection.
+    ///     Adds all crash log scanning services to the service collection.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The modified service collection.</returns>

@@ -2,15 +2,15 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Scanner111.ClassicLib.ScanLog.Models;
 
-namespace Scanner111.ClassicLib.ScanLog.Services;
+namespace Scanner111.ClassicLib.ScanLog.Services.Interfaces;
 
 /// <summary>
-/// Service for writing scan results to files.
+///     Service for writing scan results to files.
 /// </summary>
 public interface IReportWriterService
 {
     /// <summary>
-    /// Writes a crash log scan report to file.
+    ///     Writes a crash log scan report to file.
     /// </summary>
     /// <param name="logFileName">Name of the crash log file.</param>
     /// <param name="report">The scan report lines.</param>
@@ -19,7 +19,7 @@ public interface IReportWriterService
     Task WriteReportToFileAsync(string logFileName, List<string> report, bool scanFailed);
 
     /// <summary>
-    /// Writes a combined results report.
+    ///     Writes a combined results report.
     /// </summary>
     /// <param name="results">All scan results.</param>
     /// <param name="statistics">Scan statistics.</param>

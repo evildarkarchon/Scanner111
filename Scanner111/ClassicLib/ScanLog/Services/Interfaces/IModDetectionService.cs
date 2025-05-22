@@ -2,16 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Scanner111.ClassicLib.ScanLog.Services;
+namespace Scanner111.ClassicLib.ScanLog.Services.Interfaces;
 
 /// <summary>
-/// Service for detecting mods in crash logs.
-/// Equivalent to Python's DetectMods module.
+///     Service for detecting mods in crash logs.
+///     Equivalent to Python's DetectMods module.
 /// </summary>
 public interface IModDetectionService
 {
     /// <summary>
-    /// Detects single mods based on YAML dictionary and crash log plugins.
+    ///     Detects single mods based on YAML dictionary and crash log plugins.
     /// </summary>
     /// <param name="yamlDict">Dictionary of mod names to warnings.</param>
     /// <param name="crashlogPlugins">Plugins found in crash log.</param>
@@ -21,7 +21,7 @@ public interface IModDetectionService
         List<string> autoscanReport);
 
     /// <summary>
-    /// Detects conflicting mod combinations.
+    ///     Detects conflicting mod combinations.
     /// </summary>
     /// <param name="yamlDict">Dictionary of mod pairs to warnings.</param>
     /// <param name="crashlogPlugins">Plugins found in crash log.</param>
@@ -31,7 +31,7 @@ public interface IModDetectionService
         List<string> autoscanReport);
 
     /// <summary>
-    /// Detects important mods and evaluates their compatibility.
+    ///     Detects important mods and evaluates their compatibility.
     /// </summary>
     /// <param name="yamlDict">Dictionary of important mods to check.</param>
     /// <param name="crashlogPlugins">Plugins found in crash log.</param>
@@ -42,12 +42,12 @@ public interface IModDetectionService
 }
 
 /// <summary>
-/// Implementation of mod detection service.
+///     Implementation of mod detection service.
 /// </summary>
 public class ModDetectionService : IModDetectionService
 {
     /// <summary>
-    /// Detects single mods based on YAML dictionary.
+    ///     Detects single mods based on YAML dictionary.
     /// </summary>
     public bool DetectModsSingle(Dictionary<string, string> yamlDict, Dictionary<string, string> crashlogPlugins,
         List<string> autoscanReport)
@@ -57,7 +57,6 @@ public class ModDetectionService : IModDetectionService
         var crashlogPluginsLower = ConvertToLowercase(crashlogPlugins);
 
         foreach (var (modName, modWarning) in yamlDictLower)
-        {
             if (crashlogPluginsLower.TryGetValue(modName, out var pluginId))
             {
                 ValidateWarning(modName, modWarning);
@@ -65,13 +64,12 @@ public class ModDetectionService : IModDetectionService
                 autoscanReport.Add($"🚨 [{pluginId}] {modWarning}\n");
                 modsFound = true;
             }
-        }
 
         return modsFound;
     }
 
     /// <summary>
-    /// Detects conflicting mod combinations.
+    ///     Detects conflicting mod combinations.
     /// </summary>
     public bool DetectModsDouble(Dictionary<string, string> yamlDict, Dictionary<string, string> crashlogPlugins,
         List<string> autoscanReport)
@@ -100,7 +98,7 @@ public class ModDetectionService : IModDetectionService
     }
 
     /// <summary>
-    /// Detects important mods and evaluates compatibility.
+    ///     Detects important mods and evaluates compatibility.
     /// </summary>
     public void DetectModsImportant(Dictionary<string, string> yamlDict, Dictionary<string, string> crashlogPlugins,
         List<string> autoscanReport, string? gpuRival)
@@ -118,16 +116,12 @@ public class ModDetectionService : IModDetectionService
             {
                 if (warningText.Contains("nvidia", StringComparison.OrdinalIgnoreCase) &&
                     gpuRival.Equals("amd", StringComparison.OrdinalIgnoreCase))
-                {
                     warningText = warningText.Replace("recommended", "incompatible with AMD",
                         StringComparison.OrdinalIgnoreCase);
-                }
                 else if (warningText.Contains("amd", StringComparison.OrdinalIgnoreCase) &&
                          gpuRival.Equals("nvidia", StringComparison.OrdinalIgnoreCase))
-                {
                     warningText = warningText.Replace("recommended", "incompatible with NVIDIA",
                         StringComparison.OrdinalIgnoreCase);
-                }
             }
 
             var statusIcon = isInstalled ? "✅" : "❌";
@@ -138,7 +132,7 @@ public class ModDetectionService : IModDetectionService
     }
 
     /// <summary>
-    /// Converts dictionary keys to lowercase for case-insensitive comparisons.
+    ///     Converts dictionary keys to lowercase for case-insensitive comparisons.
     /// </summary>
     private static Dictionary<string, string> ConvertToLowercase(Dictionary<string, string> data)
     {
@@ -149,14 +143,12 @@ public class ModDetectionService : IModDetectionService
     }
 
     /// <summary>
-    /// Validates that a mod has an associated warning message.
+    ///     Validates that a mod has an associated warning message.
     /// </summary>
     private static void ValidateWarning(string modName, string warning)
     {
         if (string.IsNullOrEmpty(warning))
-        {
             throw new InvalidOperationException(
                 $"Mod '{modName}' has no warning defined but was found in crashlog plugins.");
-        }
     }
 }

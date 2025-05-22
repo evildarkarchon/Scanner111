@@ -10,62 +10,62 @@
         Width="800" Height="600">
 
     <Design.DataContext>
-        <vm:CrashLogScanViewModel/>
+        <vm:CrashLogScanViewModel />
     </Design.DataContext>
 
     <Grid RowDefinitions="Auto,*,Auto">
         <!-- Header -->
         <StackPanel Grid.Row="0" Margin="20">
-            <TextBlock Text="Crash Log Scanner" FontSize="24" FontWeight="Bold" Margin="0,0,0,10"/>
-            <TextBlock Text="Scan crash logs to identify and resolve issues." TextWrapping="Wrap"/>
+            <TextBlock Text="Crash Log Scanner" FontSize="24" FontWeight="Bold" Margin="0,0,0,10" />
+            <TextBlock Text="Scan crash logs to identify and resolve issues." TextWrapping="Wrap" />
         </StackPanel>
 
         <!-- Content -->
         <Grid Grid.Row="1" Margin="20,0" ColumnDefinitions="*,Auto,2*">
             <!-- Left: Controls -->
             <StackPanel Grid.Column="0" Spacing="10">
-                <Button Content="Scan Crash Logs" 
-                        Command="{Binding ScanCommand}" 
+                <Button Content="Scan Crash Logs"
+                        Command="{Binding ScanCommand}"
                         IsEnabled="{Binding !IsScanning}"
                         HorizontalAlignment="Stretch"
-                        Height="40"/>
-                
-                <TextBlock Text="Statistics:" FontWeight="Bold" Margin="0,10,0,0"/>
+                        Height="40" />
+
+                <TextBlock Text="Statistics:" FontWeight="Bold" Margin="0,10,0,0" />
                 <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Scanned:"/>
-                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ScannedCount}" Margin="10,0,0,0"/>
-                    
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Failed:"/>
-                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FailedCount}" Margin="10,0,0,0"/>
-                    
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Incomplete:"/>
-                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding IncompleteCount}" Margin="10,0,0,0"/>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Scanned:" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ScannedCount}" Margin="10,0,0,0" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Failed:" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FailedCount}" Margin="10,0,0,0" />
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Incomplete:" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding IncompleteCount}" Margin="10,0,0,0" />
                 </Grid>
             </StackPanel>
 
             <!-- Separator -->
-            <GridSplitter Grid.Column="1" Width="5" Margin="10,0" Background="#DDDDDD" 
-                          VerticalAlignment="Stretch" HorizontalAlignment="Center"/>
+            <GridSplitter Grid.Column="1" Width="5" Margin="10,0" Background="#DDDDDD"
+                          VerticalAlignment="Stretch" HorizontalAlignment="Center" />
 
             <!-- Right: Results -->
             <DockPanel Grid.Column="2">
-                <TextBlock DockPanel.Dock="Top" Text="Scan Results:" FontWeight="Bold" Margin="0,0,0,10"/>
-                <ListBox ItemsSource="{Binding ScanResults}" 
+                <TextBlock DockPanel.Dock="Top" Text="Scan Results:" FontWeight="Bold" Margin="0,0,0,10" />
+                <ListBox ItemsSource="{Binding ScanResults}"
                          Background="#F5F5F5"
                          BorderBrush="#DDDDDD"
                          BorderThickness="1"
-                         CornerRadius="4"/>
+                         CornerRadius="4" />
             </DockPanel>
         </Grid>
 
         <!-- Footer -->
         <Border Grid.Row="2" Background="#F0F0F0" Padding="20,10">
             <Grid ColumnDefinitions="Auto,*,Auto">
-                <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center"/>
-                <ProgressBar Grid.Column="1" IsIndeterminate="True" IsVisible="{Binding IsScanning}" 
-                             Margin="20,0" Height="4"/>
-                <TextBlock Grid.Column="2" Text="Results are saved to 'Crash Logs' folder" 
-                           FontStyle="Italic" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" />
+                <ProgressBar Grid.Column="1" IsIndeterminate="True" IsVisible="{Binding IsScanning}"
+                             Margin="20,0" Height="4" />
+                <TextBlock Grid.Column="2" Text="Results are saved to 'Crash Logs' folder"
+                           FontStyle="Italic" VerticalAlignment="Center" />
             </Grid>
         </Border>
     </Grid>

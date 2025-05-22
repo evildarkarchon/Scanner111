@@ -8,11 +8,11 @@ This document outlines the tasks required to port the CLASSIC application from P
     *   ~~Re-architect the `GlobalRegistry` concept. Consider using Dependency Injection (DI) for services or a static service locator pattern if appropriate for C#.~~
 
 2.  **Porting Core Logic (Services & Models):**
-    *   Translate the core scanning logic from CLASSIC_ScanLogs.py into a C# service. This includes parsing crash logs and identifying issues.
-        *   Implement the `ScanCrashLogs` service to handle crash log analysis.
-        *   Implement the `ScanGameFiles` service to handle game file scanning.
-        *   Implement the `ScanMods` service to handle mod file scanning.
-        *   Implement the `ScanPapyrusLog` service to handle Papyrus log analysis.
+    ~~*   Translate the core scanning logic from CLASSIC_ScanLogs.py into a C# service. This includes parsing crash logs and identifying issues.~~
+        ~~*   Implement the `ScanCrashLogs` service to handle crash log analysis.~~
+        ~~*   Implement the `ScanGameFiles` service to handle game file scanning.~~
+        ~~*   Implement the `ScanMods` service to handle mod file scanning.~~
+        ~~*   Implement the `ScanPapyrusLog` service to handle Papyrus log analysis.~~
     *   Port the game and mod scanning functionalities from CLASSIC_ScanGame.py.
         *   Implement logic for scanning unpacked mod files (similar to `scan_mods_unpacked`).
         *   Implement logic for scanning archived mod files (`.ba2`), including interaction with `BSArch.exe` using `System.Diagnostics.Process` (similar to `scan_mods_archived`).
@@ -23,15 +23,15 @@ This document outlines the tasks required to port the CLASSIC application from P
         *   WryeCheck.py for Wrye Bash report analysis.
     *   Implement the file management features (Backup, Restore, Remove) from CLASSIC_ScanGame.py (function `game_files_manage`) as a C# service.
     *   Port the update checking mechanism from Update.py to a C# service using `HttpClient` for fetching data from GitHub and Nexus.
-    *   Implement the Papyrus log monitoring functionality, including parsing stats and handling errors, as seen in CLASSIC_Interface.py and Papyrus.py. This will likely involve asynchronous file watching and parsing.
-    *   If the FormID database management from formid_db_manager.py is to be integrated, port the SQLite database interaction logic.
+    ~~*   Implement the Papyrus log monitoring functionality, including parsing stats and handling errors, as seen in CLASSIC_Interface.py and Papyrus.py. This will likely involve asynchronous file watching and parsing.~~
+    ~~*   If the FormID database management from formid_db_manager.py is to be integrated, port the SQLite database interaction logic.~~
 
 3.  **UI Implementation (Views & ViewModels):**
     *   Design the main window View (`MainWindow.axaml`) based on the structure in CLASSIC_Interface.py, including tabs for main functions and backups. This new UI will be based on modern UI principles and Avalonia's capabilities.
     *   Implement the main window layout using Avalonia's XAML syntax, ensuring it is responsive and user-friendly.
     *   ~~Create a `MainWindowViewModel.cs` to handle the logic and data for the main window.~~
     *   **Main Tab:**
-        *   Implement ViewModels and View components for the main action buttons ("SCAN CRASH LOGS", "SCAN GAME FILES").
+        *   Implement ViewModels and View components for the main action buttons ("Scan Crash Logs", "Scan Game Files").
         *   Implement the output text box for displaying logs and scan results.
         **Settings Tab:**
         *   Implement ViewModels and View components for folder selection sections (INI, Mods, Custom Scan Path) with "Browse" functionality.
@@ -40,7 +40,7 @@ This document outlines the tasks required to port the CLASSIC application from P
         *   Implement ViewModels and View components for the articles section, including buttons linking to URLs.
     *   **Backups Tab:**
         *   Implement ViewModels and View components for backup/restore/remove sections (XSE, Reshade, Vulkan, ENB).
-        *   Implement the "OPEN CLASSIC BACKUPS" button.
+        *   Implement the "OPEN CLASSIC BACKUPS" button (Change name to "Open Vault Backups").
     *   **Bottom Buttons/Status Bar:**
         *   Implement ViewModels and View components for utility buttons (Check Updates, Papyrus Monitoring).
         *   The Papyrus monitoring button will need to be checkable and update its style based on state.

@@ -5,8 +5,8 @@ using Scanner111.Services;
 namespace Scanner111.ClassicLib.ScanLog.Models;
 
 /// <summary>
-/// Contains configuration and data needed for crash log scanning operations.
-/// Equivalent to Python's ClassicScanLogsInfo class.
+///     Contains configuration and data needed for crash log scanning operations.
+///     Equivalent to Python's ClassicScanLogsInfo class.
 /// </summary>
 public class ScanLogInfo
 {
@@ -38,7 +38,7 @@ public class ScanLogInfo
     public Version GameVersionVr { get; init; } = new(0, 0, 0, 0);
 
     /// <summary>
-    /// Loads scan log information from YAML settings.
+    ///     Loads scan log information from YAML settings.
     /// </summary>
     /// <param name="yamlSettings">The YAML settings cache to load from.</param>
     /// <param name="gameContext">The game context service for game-specific settings.</param>
@@ -63,9 +63,8 @@ public class ScanLogInfo
                                string.Empty,
             CrashgenIgnore =
             [
-
-              ..yamlSettings.GetSetting<List<string>>(YamlStore.Game, $"Game{vrSuffix}_Info.CRASHGEN_Ignore") ??
-                []
+                ..yamlSettings.GetSetting<List<string>>(YamlStore.Game, $"Game{vrSuffix}_Info.CRASHGEN_Ignore") ??
+                  []
             ],
             WarnNoPlugins = yamlSettings.GetSetting<string>(YamlStore.Game, "Warnings_CRASHGEN.Warn_NOPlugins") ??
                             string.Empty,
@@ -98,9 +97,7 @@ public class ScanLogInfo
     private static Version ParseVersion(string? versionString)
     {
         if (string.IsNullOrEmpty(versionString) || !Version.TryParse(versionString, out var version))
-        {
             return new Version(0, 0, 0, 0);
-        }
 
         return version;
     }

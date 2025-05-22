@@ -5,11 +5,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Scanner111.ClassicLib.ScanLog.Models;
+using Scanner111.ClassicLib.ScanLog.Services.Interfaces;
 
 namespace Scanner111.ClassicLib.ScanLog.Services;
 
 /// <summary>
-/// Implementation of report writer service.
+///     Implementation of report writer service.
 /// </summary>
 public class ReportWriterService : IReportWriterService
 {
@@ -21,7 +22,7 @@ public class ReportWriterService : IReportWriterService
     }
 
     /// <summary>
-    /// Writes a crash log scan report to file.
+    ///     Writes a crash log scan report to file.
     /// </summary>
     public async Task WriteReportToFileAsync(string logFileName, List<string> report, bool scanFailed)
     {
@@ -31,20 +32,14 @@ public class ReportWriterService : IReportWriterService
             var reportDir = Path.Combine(Directory.GetCurrentDirectory(), "Crash Logs");
 
             // Create directory if it doesn't exist
-            if (!Directory.Exists(reportDir))
-            {
-                Directory.CreateDirectory(reportDir);
-            }
+            if (!Directory.Exists(reportDir)) Directory.CreateDirectory(reportDir);
 
             var reportPath = Path.Combine(reportDir, reportFileName);
 
             await File.WriteAllLinesAsync(reportPath, report);
 
             // Move failed scans to separate folder if enabled
-            if (scanFailed)
-            {
-                await MoveFailedLogAsync(logFileName);
-            }
+            if (scanFailed) await MoveFailedLogAsync(logFileName);
         }
         catch (Exception ex)
         {
@@ -53,17 +48,14 @@ public class ReportWriterService : IReportWriterService
     }
 
     /// <summary>
-    /// Writes combined results from all scans.
+    ///     Writes combined results from all scans.
     /// </summary>
     public async Task WriteCombinedResultsAsync(List<CrashLogProcessResult> results, ScanStatistics statistics)
     {
         var reportDir = Path.Combine(Directory.GetCurrentDirectory(), "Crash Logs");
 
         // Create directory if it doesn't exist
-        if (!Directory.Exists(reportDir))
-        {
-            Directory.CreateDirectory(reportDir);
-        }
+        if (!Directory.Exists(reportDir)) Directory.CreateDirectory(reportDir);
 
         var combinedReport = new List<string>
         {
@@ -101,7 +93,7 @@ public class ReportWriterService : IReportWriterService
     }
 
     /// <summary>
-    /// Moves failed log to appropriate folder.
+    ///     Moves failed log to appropriate folder.
     /// </summary>
     private async Task MoveFailedLogAsync(string logFileName)
     {
@@ -115,9 +107,7 @@ public class ReportWriterService : IReportWriterService
             var targetFile = Path.Combine(targetDir, Path.GetFileName(logFileName));
 
             if (File.Exists(sourceFile) && !File.Exists(targetFile))
-            {
                 await Task.Run(() => File.Copy(sourceFile, targetFile));
-            }
         }
         catch (Exception ex)
         {
@@ -126,7 +116,7 @@ public class ReportWriterService : IReportWriterService
     }
 
     /// <summary>
-    /// Analyzes common issues across all scan results.
+    ///     Analyzes common issues across all scan results.
     /// </summary>
     private List<string> AnalyzeCommonIssues(List<CrashLogProcessResult> results)
     {
@@ -134,15 +124,9 @@ public class ReportWriterService : IReportWriterService
         var incompleteCount = results.Count(r => r.Statistics.GetValueOrDefault("incomplete", 0) > 0);
         var noPluginsCount = results.Count(r => r.Report.Any(line => line.Contains("NO PLUGINS FOUND")));
 
-        if (incompleteCount > 0)
-        {
-            issues.Add($"  - {incompleteCount} logs appear to be incomplete");
-        }
+        if (incompleteCount > 0) issues.Add($"  - {incompleteCount} logs appear to be incomplete");
 
-        if (noPluginsCount > 0)
-        {
-            issues.Add($"  - {noPluginsCount} logs have no plugins detected");
-        }
+        if (noPluginsCount > 0) issues.Add($"  - {noPluginsCount} logs have no plugins detected");
 
         // Add more analysis as needed
 

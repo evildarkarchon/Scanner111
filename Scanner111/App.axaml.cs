@@ -9,13 +9,13 @@ using Scanner111.Views;
 
 namespace Scanner111;
 
-public partial class App : Application
+public class App : Application
 {
     /// <summary>
-    /// Gets or sets the application's service provider.
+    ///     Gets or sets the application's service provider.
     /// </summary>
     public static IServiceProvider? ServiceProvider { get; set; }
-    
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -27,7 +27,7 @@ public partial class App : Application
         {
             // The YamlSettingsCache singleton is already initialized when fetched from the DI container
             var yamlSettingsCache = ServiceProvider.GetRequiredService<IYamlSettingsCache>();
-            
+
             // Still initialize YamlSettings for backward compatibility
             YamlSettings.Initialize(yamlSettingsCache);
         }
@@ -38,7 +38,7 @@ public partial class App : Application
             {
                 // Create MainViewModel with DI
                 var mainViewModel = ActivatorUtilities.CreateInstance<MainViewModel>(ServiceProvider);
-                
+
                 desktop.MainWindow = new MainWindow
                 {
                     DataContext = mainViewModel
@@ -59,7 +59,7 @@ public partial class App : Application
             {
                 // Create MainViewModel with DI
                 var mainViewModel = ActivatorUtilities.CreateInstance<MainViewModel>(ServiceProvider);
-                
+
                 singleViewPlatform.MainView = new MainView
                 {
                     DataContext = mainViewModel

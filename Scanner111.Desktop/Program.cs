@@ -1,12 +1,12 @@
 ﻿using System;
-using Microsoft.Extensions.DependencyInjection;
 using Avalonia;
 using Avalonia.ReactiveUI;
+using Microsoft.Extensions.DependencyInjection;
 using Scanner111.Services;
 
 namespace Scanner111.Desktop;
 
-class Program
+internal class Program
 {
     // Initialization code. Don't use any Avalonia, third-party APIs or any
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
@@ -18,19 +18,21 @@ class Program
         var serviceProvider = new ServiceCollection()
             .AddApplicationServices()
             .BuildServiceProvider();
-        
+
         // Store the service provider for use in App.axaml.cs
         App.ServiceProvider = serviceProvider;
-        
+
         BuildAvaloniaApp()
             .StartWithClassicDesktopLifetime(args);
     }
 
     // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
+    {
+        return AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
             .LogToTrace()
             .UseReactiveUI();
+    }
 }

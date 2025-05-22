@@ -6,29 +6,29 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Scanner111.ClassicLib.ScanLog.Services;
+namespace Scanner111.ClassicLib.ScanLog.Services.Interfaces;
 
 /// <summary>
-/// Thread-safe in-memory cache for crash log files.
-/// Equivalent to Python's ThreadSafeLogCache class.
+///     Thread-safe in-memory cache for crash log files.
+///     Equivalent to Python's ThreadSafeLogCache class.
 /// </summary>
 public interface ILogCache : IDisposable
 {
     /// <summary>
-    /// Reads log data from the cache for the given log name.
+    ///     Reads log data from the cache for the given log name.
     /// </summary>
     /// <param name="logName">The name of the log file.</param>
     /// <returns>A list of log lines.</returns>
     Task<List<string>> ReadLogAsync(string logName);
 
     /// <summary>
-    /// Gets all log names in the cache.
+    ///     Gets all log names in the cache.
     /// </summary>
     /// <returns>A list of log names.</returns>
     List<string> GetLogNames();
 
     /// <summary>
-    /// Adds a new log to the cache.
+    ///     Adds a new log to the cache.
     /// </summary>
     /// <param name="path">Path to the log file.</param>
     /// <returns>True if added successfully, false otherwise.</returns>
@@ -36,7 +36,7 @@ public interface ILogCache : IDisposable
 }
 
 /// <summary>
-/// Thread-safe implementation of log cache using concurrent collections.
+///     Thread-safe implementation of log cache using concurrent collections.
 /// </summary>
 public class ThreadSafeLogCache : ILogCache
 {
@@ -45,13 +45,12 @@ public class ThreadSafeLogCache : ILogCache
     private bool _disposed;
 
     /// <summary>
-    /// Initializes the cache with the provided log files.
+    ///     Initializes the cache with the provided log files.
     /// </summary>
     /// <param name="logFiles">List of log file paths.</param>
     public ThreadSafeLogCache(IEnumerable<string> logFiles)
     {
         foreach (var file in logFiles)
-        {
             try
             {
                 var fileName = Path.GetFileName(file);
@@ -63,11 +62,10 @@ public class ThreadSafeLogCache : ILogCache
                 // Log the error but continue processing other files
                 Console.WriteLine($"Error reading {file}: {ex.Message}");
             }
-        }
     }
 
     /// <summary>
-    /// Thread-safely reads log data from the cache.
+    ///     Thread-safely reads log data from the cache.
     /// </summary>
     /// <param name="logName">The name of the log file.</param>
     /// <returns>A list of log lines.</returns>
@@ -77,22 +75,15 @@ public class ThreadSafeLogCache : ILogCache
         {
             lock (_lock)
             {
-                if (!_cache.TryGetValue(logName, out var logData))
-                {
-                    return new List<string>();
-                }
+                if (!_cache.TryGetValue(logName, out var logData)) return new List<string>();
 
                 var content = Encoding.UTF8.GetString(logData);
                 var lines = content.Split('\n', '\r');
                 var result = new List<string>();
 
                 foreach (var line in lines)
-                {
                     if (!string.IsNullOrEmpty(line.Trim()))
-                    {
                         result.Add(line);
-                    }
-                }
 
                 return result;
             }
@@ -100,7 +91,7 @@ public class ThreadSafeLogCache : ILogCache
     }
 
     /// <summary>
-    /// Gets all log names in the cache.
+    ///     Gets all log names in the cache.
     /// </summary>
     /// <returns>A list of log names.</returns>
     public List<string> GetLogNames()
@@ -112,7 +103,7 @@ public class ThreadSafeLogCache : ILogCache
     }
 
     /// <summary>
-    /// Adds a new log to the cache.
+    ///     Adds a new log to the cache.
     /// </summary>
     /// <param name="path">Path to the log file.</param>
     /// <returns>True if added successfully, false otherwise.</returns>
@@ -135,7 +126,7 @@ public class ThreadSafeLogCache : ILogCache
     }
 
     /// <summary>
-    /// Clears the cache.
+    ///     Clears the cache.
     /// </summary>
     public void Dispose()
     {

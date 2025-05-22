@@ -1,17 +1,16 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
 namespace Scanner111.Views;
 
-public partial class CrashLogScanView : Window
+/// <summary>
+///     Interaction logic for PapyrusLogView.xaml
+/// </summary>
+public partial class PapyrusLogView : UserControl
 {
-    public CrashLogScanView()
+    public PapyrusLogView()
     {
         InitializeComponent();
-#if DEBUG
-        this.AttachDevTools();
-#endif
     }
 
     private void InitializeComponent()

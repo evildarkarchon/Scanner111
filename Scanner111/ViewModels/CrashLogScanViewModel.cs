@@ -4,26 +4,26 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
-using Scanner111.ClassicLib.ScanLog.Services;
+using Scanner111.ClassicLib.ScanLog.Services.Interfaces;
 
 namespace Scanner111.ViewModels;
 
 /// <summary>
-/// ViewModel for crash log scanning functionality.
+///     ViewModel for crash log scanning functionality.
 /// </summary>
 public class CrashLogScanViewModel : ViewModelBase
 {
     private readonly ILogger<CrashLogScanViewModel> _logger;
     private readonly ICrashLogScanService _scanService;
-    private bool _isScanning;
-    private int _scannedCount;
     private int _failedCount;
     private int _incompleteCount;
-    private string _statusMessage = "Ready to scan";
+    private bool _isScanning;
+    private int _scannedCount;
     private ObservableCollection<string> _scanResults = new();
+    private string _statusMessage = "Ready to scan";
 
     /// <summary>
-    /// Initializes a new instance of the crash log scan view model.
+    ///     Initializes a new instance of the crash log scan view model.
     /// </summary>
     /// <param name="logger">Logger for the view model.</param>
     /// <param name="scanService">Crash log scan service.</param>
@@ -37,12 +37,12 @@ public class CrashLogScanViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Command to initiate crash log scanning.
+    ///     Command to initiate crash log scanning.
     /// </summary>
     public ICommand ScanCommand { get; }
 
     /// <summary>
-    /// Whether a scan is currently in progress.
+    ///     Whether a scan is currently in progress.
     /// </summary>
     public bool IsScanning
     {
@@ -51,7 +51,7 @@ public class CrashLogScanViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Number of logs successfully scanned.
+    ///     Number of logs successfully scanned.
     /// </summary>
     public int ScannedCount
     {
@@ -60,7 +60,7 @@ public class CrashLogScanViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Number of logs that failed to scan.
+    ///     Number of logs that failed to scan.
     /// </summary>
     public int FailedCount
     {
@@ -69,7 +69,7 @@ public class CrashLogScanViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Number of incomplete logs.
+    ///     Number of incomplete logs.
     /// </summary>
     public int IncompleteCount
     {
@@ -78,7 +78,7 @@ public class CrashLogScanViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Current status message.
+    ///     Current status message.
     /// </summary>
     public string StatusMessage
     {
@@ -87,7 +87,7 @@ public class CrashLogScanViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Collection of scan results.
+    ///     Collection of scan results.
     /// </summary>
     public ObservableCollection<string> ScanResults
     {
@@ -96,7 +96,7 @@ public class CrashLogScanViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Scans all crash logs asynchronously.
+    ///     Scans all crash logs asynchronously.
     /// </summary>
     private async Task ScanCrashLogsAsync()
     {
