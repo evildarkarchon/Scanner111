@@ -25,8 +25,10 @@ public partial class App : Application
     {
         if (ServiceProvider != null)
         {
-            // Initialize static services
+            // The YamlSettingsCache singleton is already initialized when fetched from the DI container
             var yamlSettingsCache = ServiceProvider.GetRequiredService<IYamlSettingsCache>();
+            
+            // Still initialize YamlSettings for backward compatibility
             YamlSettings.Initialize(yamlSettingsCache);
         }
 

@@ -23,7 +23,53 @@ public class YamlSettingsCache : IYamlSettingsCache
     private readonly IDeserializer _deserializer;
     private readonly ISerializer _serializer;
     
-    public YamlSettingsCache(ILogger<YamlSettingsCache> logger, IGameContextService gameContextService)
+    // Singleton instance
+    private static YamlSettingsCache? _instance;
+    private static readonly object _lockObject = new object();
+    
+    /// <summary>
+    /// Gets the singleton instance of YamlSettingsCache.
+    /// </summary>
+    public static YamlSettingsCache Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                lock (_lockObject)
+                {
+                    if (_instance == null)
+                    {
+                        throw new InvalidOperationException("YamlSettingsCache not initialized. Call Initialize() first.");
+                    }
+                }
+            }
+            return _instance;
+        }
+    }
+    
+    /// <summary>
+    /// Initializes the singleton instance with required dependencies.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="gameContextService">The game context service.</param>
+    /// <returns>The singleton instance.</returns>
+    public static YamlSettingsCache Initialize(ILogger<YamlSettingsCache> logger, IGameContextService gameContextService)
+    {
+        lock (_lockObject)
+        {
+            if (_instance == null)
+            {
+                _instance = new YamlSettingsCache(logger, gameContextService);
+            }
+            return _instance;
+        }
+    }
+    
+    /// <summary>
+    /// Constructor made private to enforce singleton pattern.
+    /// </summary>
+    private YamlSettingsCache(ILogger<YamlSettingsCache> logger, IGameContextService gameContextService)
     {
         _logger = logger;
         _gameContextService = gameContextService;

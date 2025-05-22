@@ -32,14 +32,23 @@ public static class YamlSettings
     {
         if (_yamlSettingsCache == null)
         {
-            if (App.ServiceProvider != null)
+            try
             {
-                _yamlSettingsCache = App.ServiceProvider.GetService(typeof(IYamlSettingsCache)) as IYamlSettingsCache;
+                // Try to use the singleton YamlSettingsCache
+                _yamlSettingsCache = YamlSettingsCache.Instance;
             }
-            
-            if (_yamlSettingsCache == null)
+            catch
             {
-                throw new InvalidOperationException("YAML cache service not registered. Ensure it's properly configured in DI and YamlSettings.Initialize has been called.");
+                // Fall back to service provider if the singleton isn't initialized
+                if (App.ServiceProvider != null)
+                {
+                    _yamlSettingsCache = App.ServiceProvider.GetService(typeof(IYamlSettingsCache)) as IYamlSettingsCache;
+                }
+                
+                if (_yamlSettingsCache == null)
+                {
+                    throw new InvalidOperationException("YAML cache service not registered. Ensure it's properly configured in DI and YamlSettings.Initialize has been called.");
+                }
             }
         }
         

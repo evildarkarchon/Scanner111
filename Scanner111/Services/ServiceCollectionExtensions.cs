@@ -27,7 +27,15 @@ public static class ServiceCollectionExtensions
     /// <returns>The modified service collection.</returns>
     public static IServiceCollection AddYamlSettingsCache(this IServiceCollection services)
     {
-        services.AddSingleton<IYamlSettingsCache, YamlSettingsCache>();
+        // Register the singleton instance factory
+        services.AddSingleton<IYamlSettingsCache>(provider => {
+            var logger = provider.GetRequiredService<ILogger<YamlSettingsCache>>();
+            var gameContextService = provider.GetRequiredService<IGameContextService>();
+            
+            // Initialize the singleton and return it
+            return YamlSettingsCache.Initialize(logger, gameContextService);
+        });
+        
         return services;
     }
     
