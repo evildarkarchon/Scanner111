@@ -17,8 +17,6 @@ class Program
         // Setup dependency injection
         var serviceProvider = new ServiceCollection()
             .AddApplicationServices()
-            // Add backward compatibility for legacy code still using GlobalRegistry
-            .AddGlobalRegistryCompatibility() 
             .BuildServiceProvider();
         
         // Store the service provider for use in App.axaml.cs

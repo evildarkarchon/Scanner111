@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Scanner111.Services;
 
@@ -7,7 +8,7 @@ namespace Scanner111.ViewModels;
 public class MainViewModel : ViewModelBase
 {
     private readonly IYamlSettingsCache _yamlSettingsCache;
-    private readonly ILogger<MainViewModel> _logger;
+    private readonly ILogger<MainViewModel>? _logger;
     
     public string Greeting => "Welcome to Avalonia!";
     
@@ -24,12 +25,8 @@ public class MainViewModel : ViewModelBase
         }
         else
         {
-            // Fallback to GlobalRegistry for backward compatibility
-            _yamlSettingsCache = GlobalRegistry.Get<IYamlSettingsCache>(GlobalRegistry.Keys.YamlCache) ?? 
-                               throw new InvalidOperationException("YAML cache service not registered");
-            
-            // Log using console when logger is not available
-            _logger = null!;
+            // If ServiceProvider is not available, this is likely design-time
+            throw new InvalidOperationException("Service provider is not available");
         }
     }
     

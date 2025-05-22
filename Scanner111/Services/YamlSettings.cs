@@ -8,6 +8,18 @@ namespace Scanner111.Services;
 /// </summary>
 public static class YamlSettings
 {
+    private static IYamlSettingsCache? _yamlSettingsCache;
+
+    /// <summary>
+    /// Initializes the YamlSettings class with the YAML settings cache service.
+    /// This should be called at application startup.
+    /// </summary>
+    /// <param name="yamlSettingsCache">The YAML settings cache service.</param>
+    public static void Initialize(IYamlSettingsCache yamlSettingsCache)
+    {
+        _yamlSettingsCache = yamlSettingsCache;
+    }
+
     /// <summary>
     /// Gets or sets a setting in a YAML store.
     /// </summary>
@@ -18,13 +30,20 @@ public static class YamlSettings
     /// <returns>The setting value, or default(T) if not found.</returns>
     public static T? Get<T>(YamlStore yamlStore, string keyPath, T? newValue = default)
     {
-        var yamlCache = GlobalRegistry.Get<IYamlSettingsCache>(GlobalRegistry.Keys.YamlCache);
-        if (yamlCache == null)
+        if (_yamlSettingsCache == null)
         {
-            throw new InvalidOperationException("YAML cache service not registered. Ensure it's properly configured in DI.");
+            if (App.ServiceProvider != null)
+            {
+                _yamlSettingsCache = App.ServiceProvider.GetService(typeof(IYamlSettingsCache)) as IYamlSettingsCache;
+            }
+            
+            if (_yamlSettingsCache == null)
+            {
+                throw new InvalidOperationException("YAML cache service not registered. Ensure it's properly configured in DI and YamlSettings.Initialize has been called.");
+            }
         }
         
-        var setting = yamlCache.GetSetting<T>(yamlStore, keyPath, newValue);
+        var setting = _yamlSettingsCache.GetSetting<T>(yamlStore, keyPath, newValue);
         
         // Special handling for Path type
         if (typeof(T) == typeof(string) && setting is string stringValue && !string.IsNullOrEmpty(stringValue))

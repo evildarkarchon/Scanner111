@@ -23,6 +23,13 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        if (ServiceProvider != null)
+        {
+            // Initialize static services
+            var yamlSettingsCache = ServiceProvider.GetRequiredService<IYamlSettingsCache>();
+            YamlSettings.Initialize(yamlSettingsCache);
+        }
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             if (ServiceProvider != null)
