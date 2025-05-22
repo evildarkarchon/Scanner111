@@ -25,7 +25,7 @@ public class YamlSettingsCache : IYamlSettingsCache
     
     // Singleton instance
     private static YamlSettingsCache? _instance;
-    private static readonly object _lockObject = new object();
+    private static readonly object LockObject = new object();
     
     /// <summary>
     /// Gets the singleton instance of YamlSettingsCache.
@@ -36,7 +36,7 @@ public class YamlSettingsCache : IYamlSettingsCache
         {
             if (_instance == null)
             {
-                lock (_lockObject)
+                lock (LockObject)
                 {
                     if (_instance == null)
                     {
@@ -56,7 +56,7 @@ public class YamlSettingsCache : IYamlSettingsCache
     /// <returns>The singleton instance.</returns>
     public static YamlSettingsCache Initialize(ILogger<YamlSettingsCache> logger, IGameContextService gameContextService)
     {
-        lock (_lockObject)
+        lock (LockObject)
         {
             if (_instance == null)
             {
@@ -109,7 +109,7 @@ public class YamlSettingsCache : IYamlSettingsCache
             case YamlStore.Game:
                 yamlPath = Path.Combine(dataPath, $"databases/CLASSIC {_gameContextService.GetCurrentGame()}.yaml");
                 break;
-            case YamlStore.Game_Local:
+            case YamlStore.GameLocal:
                 yamlPath = Path.Combine(dataPath, $"CLASSIC {_gameContextService.GetCurrentGame()} Local.yaml");
                 break;
             case YamlStore.Test:
@@ -169,7 +169,7 @@ public class YamlSettingsCache : IYamlSettingsCache
             // Load and cache the YAML file
             _logger.LogDebug($"Loading {(isStatic ? "static" : "dynamic")} YAML file: {yamlPath}");
             
-            string yamlContent = File.ReadAllText(yamlPath);
+            var yamlContent = File.ReadAllText(yamlPath);
             var data = _deserializer.Deserialize<Dictionary<string, object>>(yamlContent) ?? 
                       new Dictionary<string, object>();
             
@@ -195,10 +195,10 @@ public class YamlSettingsCache : IYamlSettingsCache
             return (T?)cachedValue;
         }
         
-        string yamlPath = GetPathForStore(yamlStore);
+        var yamlPath = GetPathForStore(yamlStore);
         var data = LoadYaml(yamlPath);
         
-        string[] keys = keyPath.Split('.');
+        var keys = keyPath.Split('.');
         
         // Navigate to the container that should hold our setting
         Dictionary<string, object> current = data;
@@ -238,7 +238,7 @@ public class YamlSettingsCache : IYamlSettingsCache
             current = nextDict;
         }
         
-        string lastKey = keys[^1];
+        var lastKey = keys[^1];
         
         // If new_value is provided, update the value
         if (!EqualityComparer<T>.Default.Equals(newValue, default))
@@ -255,13 +255,13 @@ public class YamlSettingsCache : IYamlSettingsCache
             try
             {
                 // Ensure directory exists
-                string? directory = Path.GetDirectoryName(yamlPath);
+                var directory = Path.GetDirectoryName(yamlPath);
                 if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
                 }
                 
-                string yaml = _serializer.Serialize(data);
+                var yaml = _serializer.Serialize(data);
                 File.WriteAllText(yamlPath, yaml);
                 
                 // Update the cache

@@ -12,7 +12,7 @@ public enum YamlStore
     Settings,
     Ignore,
     Game,
-    Game_Local,
+    GameLocal,
     Test
 }
 
@@ -24,14 +24,14 @@ public static class YamlConstants
     /// <summary>
     /// Settings keys that can safely return null without triggering warnings.
     /// </summary>
-    public static readonly HashSet<string> SettingsIgnoreNone = new();
+    public static readonly HashSet<string> SettingsIgnoreNone = [];
     
     /// <summary>
     /// Static YAML stores that won't change during program execution.
     /// </summary>
-    public static readonly HashSet<YamlStore> StaticYamlStores = new()
-    {
+    public static readonly HashSet<YamlStore> StaticYamlStores =
+    [
         YamlStore.Main,
         YamlStore.Game
-    };
+    ];
 }
