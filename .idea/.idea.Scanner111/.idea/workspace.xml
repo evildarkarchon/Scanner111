@@ -8,8 +8,90 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ec454e13-0554-4829-95ad-c1ef7d536c2a" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Scanner111/Models/WarningDatabase.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scanner111/Models/ConflictRule.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scanner111/Models/ScanProgress.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scanner111/Models/WarningDetails.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Scanner111/Services/WarningDatabase.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.Scanner111/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Scanner111/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111.Tests/Scanner111.Tests.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111.Tests/Scanner111.Tests.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111.Tests/Services/CrashLogFormattingServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111.Tests/Services/CrashLogFormattingServiceTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111.Tests/Services/EnhancedScanLogServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111.Tests/Services/EnhancedScanLogServiceTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111.Tests/Services/FormIdDatabaseImporterTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111.Tests/Services/FormIdDatabaseImporterTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111.Tests/Services/FormIdDatabaseServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111.Tests/Services/FormIdDatabaseServiceTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111.Tests/Services/ModDetectionServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111.Tests/Services/ModDetectionServiceTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111.Tests/Services/PapyrusLogMonitoringServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111.Tests/Services/PapyrusLogMonitoringServiceTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111.Tests/Services/ScanGameServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111.Tests/Services/ScanGameServiceTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111.Tests/Services/ScanLogServiceTests.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111.Tests/Services/ScanLogServiceTests.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111.Tests/Services/TestYamlSettingsCacheService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111.Tests/Services/TestYamlSettingsCacheService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111.Tests/UnitTest1.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111.Tests/UnitTest1.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111.sln" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111.sln" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/App.axaml" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/App.axaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/App.axaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/App.axaml.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Converters/BoolConverters.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Converters/BoolConverters.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Documentation/CrashLogFormattingDocumentation.md" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Documentation/CrashLogFormattingDocumentation.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Documentation/FormIdDatabaseDocumentation.md" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Documentation/FormIdDatabaseDocumentation.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Examples/FormIdDatabaseExample.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Examples/FormIdDatabaseExample.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Models/AppSettings.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Models/AppSettings.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Models/LogModels.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Models/LogModels.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Models/PapyrusLogAnalysis.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Models/PapyrusLogAnalysis.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Models/WarningDatabase.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Models/WarningDatabase.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Models/WarningDatabase.cs.bak" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Models/WarningModels.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Models/YAML.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Models/YAML.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Program.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Scanner111/Scanner111.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Scanner111.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/CheckCrashgenSettingsService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/CheckCrashgenSettingsService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/CheckXsePluginsService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/CheckXsePluginsService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/CrashAnalysisService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/CrashAnalysisService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/CrashLogAnalysisService.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/CrashLogFormattingService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/CrashLogFormattingService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/CrashLogParserService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/CrashLogParserService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/CrashReportGenerator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/CrashReportGenerator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/CrashStackAnalysis.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/CrashStackAnalysis.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/FormIdDatabaseImporter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/FormIdDatabaseImporter.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/FormIdDatabaseService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/FormIdDatabaseService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/GameDirectoryService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/GameDirectoryService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/GameFileManagementService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/GameFileManagementService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/ICheckCrashgenSettingsService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/ICheckCrashgenSettingsService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/ICheckXsePluginsService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/ICheckXsePluginsService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/IGameDirectoryService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/IGameDirectoryService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/IGameFileManagementService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/IGameFileManagementService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/ILogErrorCheckService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/ILogErrorCheckService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/IModScanningService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/IModScanningService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/IPapyrusLogMonitoringService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/IPapyrusLogMonitoringService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/IScanGameService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/IScanGameService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/IScanModInisService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/IScanModInisService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/IScanWryeCheckService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/IScanWryeCheckService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/IUpdateCheckService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/IUpdateCheckService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/IYamlSettingsCacheService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/IYamlSettingsCacheService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/LogErrorCheckService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/LogErrorCheckService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/ModDetectionService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/ModDetectionService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/ModScanningService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/ModScanningService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/PapyrusLogMonitoringService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/PapyrusLogMonitoringService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/PluginDetectionService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/PluginDetectionService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/ScanGameService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/ScanGameService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/ScanLogService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/ScanLogService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/ScanModInisService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/ScanModInisService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/ScanWryeCheckService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/ScanWryeCheckService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/ServiceCollectionExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/ServiceCollectionExtensions.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/SpecializedSettingsCheckService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/SpecializedSettingsCheckService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/UpdateCheckService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/UpdateCheckService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/YamlSettingsCacheService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/YamlSettingsCacheService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Services/YamlSettingsCacheServiceAdapter.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Services/YamlSettingsCacheServiceAdapter.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/ViewLocator.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/ViewLocator.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/ViewModels/FormIdDatabaseViewModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/ViewModels/FormIdDatabaseViewModel.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/ViewModels/MainWindowViewModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/ViewModels/MainWindowViewModel.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/ViewModels/PapyrusMonitoringViewModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/ViewModels/PapyrusMonitoringViewModel.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/ViewModels/ViewModelBase.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/ViewModels/ViewModelBase.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Views/FormIdDatabaseView.axaml" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Views/FormIdDatabaseView.axaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Views/FormIdDatabaseView.axaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Views/FormIdDatabaseView.axaml.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Views/MainWindow.axaml" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Views/MainWindow.axaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Views/MainWindow.axaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Views/MainWindow.axaml.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Views/PapyrusMonitoringView.axaml" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Views/PapyrusMonitoringView.axaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/Views/PapyrusMonitoringView.axaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/Views/PapyrusMonitoringView.axaml.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Scanner111/app.manifest" beforeDir="false" afterPath="$PROJECT_DIR$/Scanner111/app.manifest" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tasks.md" beforeDir="false" afterPath="$PROJECT_DIR$/tasks.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -19,21 +101,26 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "evildarkarchon"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;evildarkarchon&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/evildarkarchon/Scanner111.git",
-    "accountId": "dfa9d8f7-df0d-4e05-87ff-220b60a36d1b"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/evildarkarchon/Scanner111.git&quot;,
+    &quot;accountId&quot;: &quot;dfa9d8f7-df0d-4e05-87ff-220b60a36d1b&quot;
   }
-}]]></component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 8
-}]]></component>
+}</component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///AIAssistantSnippet.." root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Scanner111/Services/WarningDatabase.cs" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 8
+}</component>
   <component name="ProjectId" id="2wziS6LXhiWraYgfxa4n32H9bCz" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -43,14 +130,17 @@
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "C:/Users/evild/RiderProjects/Scanner111/Scanner111.sln",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -87,12 +177,16 @@
       <option name="presentableId" value="Default" />
       <updated>1747050799858</updated>
       <workItem from="1747050800966" duration="894000" />
+      <workItem from="1747878086566" duration="154000" />
+      <workItem from="1747878259096" duration="390000" />
+      <workItem from="1747884019154" duration="7810000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="UnityCheckinConfiguration" checkUnsavedScenes="true" />
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />

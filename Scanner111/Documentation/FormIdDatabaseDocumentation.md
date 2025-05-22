@@ -2,7 +2,9 @@
 
 ## Overview
 
-The FormID database system is a SQLite-based solution for storing and retrieving information about game FormIDs. It replaces the previous CSV-based implementation to provide better performance and enhanced functionality when dealing with large databases (hundreds of MB in size).
+The FormID database system is a SQLite-based solution for storing and retrieving information about game FormIDs. It
+replaces the previous CSV-based implementation to provide better performance and enhanced functionality when dealing
+with large databases (hundreds of MB in size).
 
 ## Key Components
 
@@ -11,6 +13,7 @@ The FormID database system is a SQLite-based solution for storing and retrieving
 The core service responsible for managing SQLite database connections and performing FormID lookups.
 
 **Key Features:**
+
 - Efficient SQLite database queries with caching
 - Thread-safe database operations
 - Automatic database initialization and disposal
@@ -21,6 +24,7 @@ The core service responsible for managing SQLite database connections and perfor
 Service for batch importing FormID data from CSV files into SQLite format.
 
 **Key Features:**
+
 - Import multiple CSV files in a single operation
 - Progress reporting during import
 - Validation of CSV files
@@ -30,6 +34,7 @@ Service for batch importing FormID data from CSV files into SQLite format.
 ViewModel to support UI operations for database management.
 
 **Key Features:**
+
 - Import database command
 - Display database information
 - Control FormID lookup functionality
@@ -39,6 +44,7 @@ ViewModel to support UI operations for database management.
 UI view for managing FormID databases.
 
 **Key Features:**
+
 - CSV import interface
 - Database status display
 - Enable/disable FormID lookup in crash reports

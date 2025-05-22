@@ -1,42 +1,37 @@
+using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Scanner111.ViewModels;
-using System;
-using System.Threading.Tasks;
 
-namespace Scanner111.Views
+namespace Scanner111.Views;
+
+public partial class FormIdDatabaseView : Window
 {
-    public partial class FormIdDatabaseView : Window
+    public FormIdDatabaseView()
     {
-        public FormIdDatabaseView()
-        {
-            InitializeComponent();
+        InitializeComponent();
 #if DEBUG
-            this.AttachDevTools();
+        this.AttachDevTools();
 #endif
-        }
+    }
 
-        private void InitializeComponent()
-        {
-            AvaloniaXamlLoader.Load(this);
-        }
+    private void InitializeComponent()
+    {
+        AvaloniaXamlLoader.Load(this);
+    }
 
-        private void CloseButton_Click(object sender, RoutedEventArgs e)
-        {
-            this.Close();
-        }
+    private void CloseButton_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+    }
 
-        protected override void OnOpened(EventArgs e)
-        {
-            base.OnOpened(e);
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
 
-            // Display initial status message when the window is opened
-            if (DataContext is FormIdDatabaseViewModel viewModel)
-            {
-                viewModel.ShowDatabaseDetailsCommand.Execute(null);
-            }
-        }
+        // Display initial status message when the window is opened
+        if (DataContext is FormIdDatabaseViewModel viewModel) viewModel.ShowDatabaseDetailsCommand.Execute(null);
     }
 }

@@ -7,6 +7,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Scanner111", "Scanner111\Sc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Scanner111.Tests", "Scanner111.Tests\Scanner111.Tests.csproj", "{1EABF0BE-5611-4690-953D-38352AC7D31A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Python Reference", "Python Reference", "{D8F5A6C0-AE76-4E44-B1A0-3B7E98D1C1F5}"
+	ProjectSection(SolutionItems) = preProject
+		Python = Python
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

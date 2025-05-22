@@ -1,12 +1,14 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Markup.Xaml;
-using Microsoft.Extensions.DependencyInjection; // Added for DI
+using Microsoft.Extensions.DependencyInjection;
 using Scanner111.Models;
+using Scanner111.Services;
 using Scanner111.ViewModels;
-using Scanner111.Views;
-using Scanner111.Services; // Added for ServiceCollectionExtensions
+
+// Added for DI
+
+// Added for ServiceCollectionExtensions
 
 namespace Scanner111;
 
@@ -59,7 +61,7 @@ internal class Program
         }
     }
 
-    private static async System.Threading.Tasks.Task InitializeApplicationPathsAsync(IServiceProvider serviceProvider)
+    private static async Task InitializeApplicationPathsAsync(IServiceProvider serviceProvider)
     {
         var directoryService = serviceProvider.GetRequiredService<IGameDirectoryService>();
         await directoryService.InitializePathsAsync();

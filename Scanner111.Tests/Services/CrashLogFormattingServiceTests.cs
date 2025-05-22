@@ -1,77 +1,67 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
 using Scanner111.Models;
 using Scanner111.Services;
-using Xunit;
-using Moq;
-using System;
-using System.Text;
-using System.Linq;
 
-namespace Scanner111.Tests.Services
+namespace Scanner111.Tests.Services;
+
+public class CrashLogFormattingServiceTests
 {
-    public class CrashLogFormattingServiceTests
+    private readonly AppSettings _appSettings;
+    private readonly CrashLogFormattingService _service;
+    private readonly string _tempPath;
+
+    public CrashLogFormattingServiceTests()
     {
-        private readonly AppSettings _appSettings;
-        private readonly CrashLogFormattingService _service;
-        private readonly string _tempPath;
-
-        public CrashLogFormattingServiceTests()
+        _appSettings = new AppSettings
         {
-            _appSettings = new AppSettings
-            {
-                SimplifyLogs = true,
-                SimplifyRemoveStrings = new List<string> { "ntdll.dll", "Steam.dll" }
-            };
+            SimplifyLogs = true,
+            SimplifyRemoveStrings = new List<string> { "ntdll.dll", "Steam.dll" }
+        };
 
-            _service = new CrashLogFormattingService(_appSettings);
-            _tempPath = Path.GetTempPath();
-        }
+        _service = new CrashLogFormattingService(_appSettings);
+        _tempPath = Path.GetTempPath();
+    }
 
-        [Fact]
-        public async Task ReformatCrashLogsAsync_ShouldReformatPluginLoadOrder()
-        {
-            // Arrange
-            var crashLogPath = Path.Combine(_tempPath, $"test-crash-{Guid.NewGuid()}.log");
-            var content = @"PLUGINS:
+    [Fact]
+    public async Task ReformatCrashLogsAsync_ShouldReformatPluginLoadOrder()
+    {
+        // Arrange
+        var crashLogPath = Path.Combine(_tempPath, $"test-crash-{Guid.NewGuid()}.log");
+        var content = @"PLUGINS:
 [ 1] DLCRobot.esm
 [FE:  0] RedRocketsGlareII.esl
 [FE: 1] Some Plugin.esp
 [23] Another Plugin.esp
 MODULES:
 ntdll.dll";
-            await File.WriteAllTextAsync(crashLogPath, content);
+        await File.WriteAllTextAsync(crashLogPath, content);
 
-            try
-            {
-                // Act
-                var result = await _service.ReformatCrashLogsAsync(new[] { crashLogPath }, _appSettings.SimplifyRemoveStrings);
-                var reformattedContent = await File.ReadAllTextAsync(crashLogPath);
-
-                // Assert
-                Assert.Equal(1, result); // One file processed
-                Assert.Contains("[01]", reformattedContent); // Space replaced with zero
-                Assert.Contains("[FE:000]", reformattedContent); // Spaces replaced with zeros
-                Assert.Contains("[FE:001]", reformattedContent); // Spaces replaced with zeros
-                Assert.Contains("[23]", reformattedContent); // No spaces, left unchanged
-                Assert.DoesNotContain("ntdll.dll", reformattedContent); // Line with ntdll.dll was removed
-            }
-            finally
-            {
-                // Cleanup
-                if (File.Exists(crashLogPath))
-                {
-                    File.Delete(crashLogPath);
-                }
-            }
-        }
-
-        [Fact]
-        public void FormatCrashLogContent_ShouldReformatContent()
+        try
         {
-            // Arrange
-            var originalContent = @"PLUGINS:
+            // Act
+            var result =
+                await _service.ReformatCrashLogsAsync(new[] { crashLogPath }, _appSettings.SimplifyRemoveStrings);
+            var reformattedContent = await File.ReadAllTextAsync(crashLogPath);
+
+            // Assert
+            Assert.Equal(1, result); // One file processed
+            Assert.Contains("[01]", reformattedContent); // Space replaced with zero
+            Assert.Contains("[FE:000]", reformattedContent); // Spaces replaced with zeros
+            Assert.Contains("[FE:001]", reformattedContent); // Spaces replaced with zeros
+            Assert.Contains("[23]", reformattedContent); // No spaces, left unchanged
+            Assert.DoesNotContain("ntdll.dll", reformattedContent); // Line with ntdll.dll was removed
+        }
+        finally
+        {
+            // Cleanup
+            if (File.Exists(crashLogPath)) File.Delete(crashLogPath);
+        }
+    }
+
+    [Fact]
+    public void FormatCrashLogContent_ShouldReformatContent()
+    {
+        // Arrange
+        var originalContent = @"PLUGINS:
 [ 1] DLCRobot.esm
 [FE:  0] RedRocketsGlareII.esl
 [FE: 1] Some Plugin.esp
@@ -81,242 +71,235 @@ PROBABLE CALL STACK:
 Steam.dll+0x12345
 Other Line";
 
-            // Act
-            var result = _service.FormatCrashLogContent(
-                originalContent,
-                _appSettings.SimplifyRemoveStrings,
-                _appSettings.SimplifyLogs
-            );
+        // Act
+        var result = _service.FormatCrashLogContent(
+            originalContent,
+            _appSettings.SimplifyRemoveStrings,
+            _appSettings.SimplifyLogs
+        );
 
-            // Assert
-            Assert.Contains("[01] DLCRobot.esm", result);
-            Assert.Contains("[FE:000] RedRocketsGlareII.esl", result);
-            Assert.Contains("[FE:001] Some Plugin.esp", result);
-            Assert.DoesNotContain("ntdll.dll", result);
-            Assert.DoesNotContain("Steam.dll", result);
-            Assert.Contains("Other Line", result);
-        }
+        // Assert
+        Assert.Contains("[01] DLCRobot.esm", result);
+        Assert.Contains("[FE:000] RedRocketsGlareII.esl", result);
+        Assert.Contains("[FE:001] Some Plugin.esp", result);
+        Assert.DoesNotContain("ntdll.dll", result);
+        Assert.DoesNotContain("Steam.dll", result);
+        Assert.Contains("Other Line", result);
+    }
 
-        [Fact]
-        public void FormatCrashLogContent_WithSimplifyLogsFalse_ShouldNotRemoveLines()
-        {
-            // Arrange
-            var originalContent = @"PLUGINS:
+    [Fact]
+    public void FormatCrashLogContent_WithSimplifyLogsFalse_ShouldNotRemoveLines()
+    {
+        // Arrange
+        var originalContent = @"PLUGINS:
 [ 1] DLCRobot.esm
 MODULES:
 ntdll.dll";
 
-            // Act
-            var result = _service.FormatCrashLogContent(
-                originalContent,
-                _appSettings.SimplifyRemoveStrings,
-                false // Disable simplify logs
-            );
+        // Act
+        var result = _service.FormatCrashLogContent(
+            originalContent,
+            _appSettings.SimplifyRemoveStrings,
+            false // Disable simplify logs
+        );
 
-            // Assert
-            Assert.Contains("[01] DLCRobot.esm", result); // Still reformats plugin lines
-            Assert.Contains("ntdll.dll", result); // But doesn't remove the excluded DLLs
-        }
+        // Assert
+        Assert.Contains("[01] DLCRobot.esm", result); // Still reformats plugin lines
+        Assert.Contains("ntdll.dll", result); // But doesn't remove the excluded DLLs
+    }
 
-        [Fact]
-        public void FormatCrashLogContent_WithMalformedPluginLines_ShouldHandleGracefully()
-        {
-            // Arrange
-            var originalContent = @"PLUGINS:
+    [Fact]
+    public void FormatCrashLogContent_WithMalformedPluginLines_ShouldHandleGracefully()
+    {
+        // Arrange
+        var originalContent = @"PLUGINS:
 [ 1] DLCRobot.esm
 [Bad Line With No Closing Bracket
 [FE: 1 Also Bad
 [ ] Empty
 Normal Line";
 
-            // Act
-            var result = _service.FormatCrashLogContent(
-                originalContent,
-                _appSettings.SimplifyRemoveStrings,
-                _appSettings.SimplifyLogs
-            );
+        // Act
+        var result = _service.FormatCrashLogContent(
+            originalContent,
+            _appSettings.SimplifyRemoveStrings,
+            _appSettings.SimplifyLogs
+        );
 
-            // Assert
-            Assert.Contains("[01] DLCRobot.esm", result); // Correctly formatted
-            Assert.Contains("[Bad Line With No Closing Bracket", result); // Preserved as-is
-            Assert.Contains("[FE: 1 Also Bad", result); // Preserved as-is
-            Assert.Contains("[ ] Empty", result); // Preserved as-is
-            Assert.Contains("Normal Line", result); // Preserved as-is
-        }
-        [Fact]
-        public void FormatCrashLogContent_WithNullContent_ReturnsNull()
-        {
-            // Note: Since C# is now making strings non-nullable by default,
-            // we'll test with empty string instead
+        // Assert
+        Assert.Contains("[01] DLCRobot.esm", result); // Correctly formatted
+        Assert.Contains("[Bad Line With No Closing Bracket", result); // Preserved as-is
+        Assert.Contains("[FE: 1 Also Bad", result); // Preserved as-is
+        Assert.Contains("[ ] Empty", result); // Preserved as-is
+        Assert.Contains("Normal Line", result); // Preserved as-is
+    }
 
-            // Arrange
-            string originalContent = string.Empty;
+    [Fact]
+    public void FormatCrashLogContent_WithNullContent_ReturnsNull()
+    {
+        // Note: Since C# is now making strings non-nullable by default,
+        // we'll test with empty string instead
 
-            // Act
-            var result = _service.FormatCrashLogContent(
-                originalContent,
-                _appSettings.SimplifyRemoveStrings,
-                _appSettings.SimplifyLogs
-            );
+        // Arrange
+        var originalContent = string.Empty;
 
-            // Assert
-            Assert.Equal(originalContent, result);
-        }
+        // Act
+        var result = _service.FormatCrashLogContent(
+            originalContent,
+            _appSettings.SimplifyRemoveStrings,
+            _appSettings.SimplifyLogs
+        );
 
-        [Fact]
-        public void FormatCrashLogContent_WithEmptyContent_ReturnsEmpty()
-        {
-            // Arrange
-            string originalContent = string.Empty;
+        // Assert
+        Assert.Equal(originalContent, result);
+    }
 
-            // Act
-            var result = _service.FormatCrashLogContent(
-                originalContent,
-                _appSettings.SimplifyRemoveStrings,
-                _appSettings.SimplifyLogs
-            );
+    [Fact]
+    public void FormatCrashLogContent_WithEmptyContent_ReturnsEmpty()
+    {
+        // Arrange
+        var originalContent = string.Empty;
 
-            // Assert
-            Assert.Equal(originalContent, result);
-        }
-        [Fact]
-        public void FormatCrashLogContent_WithEmptyRemoveStrings_ProcessesContentNormally()
-        {
-            // Arrange
-            string originalContent = @"PLUGINS:
+        // Act
+        var result = _service.FormatCrashLogContent(
+            originalContent,
+            _appSettings.SimplifyRemoveStrings,
+            _appSettings.SimplifyLogs
+        );
+
+        // Assert
+        Assert.Equal(originalContent, result);
+    }
+
+    [Fact]
+    public void FormatCrashLogContent_WithEmptyRemoveStrings_ProcessesContentNormally()
+    {
+        // Arrange
+        var originalContent = @"PLUGINS:
 [FE:  2] SomePlugin.esp";
-            List<string> removeStrings = new List<string>();
+        var removeStrings = new List<string>();
 
-            // Act
-            var result = _service.FormatCrashLogContent(
-                originalContent,
-                removeStrings,
-                true
-            );
+        // Act
+        var result = _service.FormatCrashLogContent(
+            originalContent,
+            removeStrings,
+            true
+        );
 
-            // Assert
-            Assert.Contains("[FE:002]", result);
-        }
+        // Assert
+        Assert.Contains("[FE:002]", result);
+    }
 
-        [Fact]
-        public async Task ReformatCrashLogsAsync_WithNoFiles_ReturnsZero()
+    [Fact]
+    public async Task ReformatCrashLogsAsync_WithNoFiles_ReturnsZero()
+    {
+        // Act
+        var result = await _service.ReformatCrashLogsAsync(
+            new List<string>(),
+            _appSettings.SimplifyRemoveStrings
+        );
+
+        // Assert
+        Assert.Equal(0, result);
+    }
+
+    [Fact]
+    public async Task ReformatCrashLogsAsync_WithNonexistentFile_ShouldSkipAndContinue()
+    {
+        // Arrange
+        var validCrashLogPath = Path.Combine(_tempPath, $"test-crash-valid-{Guid.NewGuid()}.log");
+        var nonExistingPath = Path.Combine(_tempPath, $"does-not-exist-{Guid.NewGuid()}.log");
+
+        var content = @"PLUGINS:
+[ 1] DLCRobot.esm";
+        await File.WriteAllTextAsync(validCrashLogPath, content);
+
+        try
         {
             // Act
             var result = await _service.ReformatCrashLogsAsync(
-                new List<string>(),
+                new[] { validCrashLogPath, nonExistingPath },
                 _appSettings.SimplifyRemoveStrings
             );
 
             // Assert
-            Assert.Equal(0, result);
+            Assert.Equal(1, result); // Only the valid file was processed
         }
-
-        [Fact]
-        public async Task ReformatCrashLogsAsync_WithNonexistentFile_ShouldSkipAndContinue()
+        finally
         {
-            // Arrange
-            var validCrashLogPath = Path.Combine(_tempPath, $"test-crash-valid-{Guid.NewGuid()}.log");
-            var nonExistingPath = Path.Combine(_tempPath, $"does-not-exist-{Guid.NewGuid()}.log");
-
-            var content = @"PLUGINS:
-[ 1] DLCRobot.esm";
-            await File.WriteAllTextAsync(validCrashLogPath, content);
-
-            try
-            {
-                // Act
-                var result = await _service.ReformatCrashLogsAsync(
-                    new[] { validCrashLogPath, nonExistingPath },
-                    _appSettings.SimplifyRemoveStrings
-                );
-
-                // Assert
-                Assert.Equal(1, result); // Only the valid file was processed
-            }
-            finally
-            {
-                // Cleanup
-                if (File.Exists(validCrashLogPath))
-                {
-                    File.Delete(validCrashLogPath);
-                }
-            }
+            // Cleanup
+            if (File.Exists(validCrashLogPath)) File.Delete(validCrashLogPath);
         }
+    }
 
-        [Fact]
-        public async Task IsCrashLogAsync_WithValidCrashLog_ReturnsTrue()
-        {
-            // Arrange
-            var crashLogPath = Path.Combine(_tempPath, $"valid-crash-{Guid.NewGuid()}.log");
-            var content = @"Unhandled exception occurred
+    [Fact]
+    public async Task IsCrashLogAsync_WithValidCrashLog_ReturnsTrue()
+    {
+        // Arrange
+        var crashLogPath = Path.Combine(_tempPath, $"valid-crash-{Guid.NewGuid()}.log");
+        var content = @"Unhandled exception occurred
 PLUGINS:
 [00] Fallout4.esm";
-            await File.WriteAllTextAsync(crashLogPath, content);
+        await File.WriteAllTextAsync(crashLogPath, content);
 
-            try
-            {
-                // Act
-                var result = await _service.IsCrashLogAsync(crashLogPath);
-
-                // Assert
-                Assert.True(result);
-            }
-            finally
-            {
-                // Cleanup
-                if (File.Exists(crashLogPath))
-                {
-                    File.Delete(crashLogPath);
-                }
-            }
-        }
-
-        [Fact]
-        public async Task IsCrashLogAsync_WithNonCrashLog_ReturnsFalse()
+        try
         {
-            // Arrange
-            var logPath = Path.Combine(_tempPath, $"not-crash-{Guid.NewGuid()}.log");
-            var content = @"Regular log file
+            // Act
+            var result = await _service.IsCrashLogAsync(crashLogPath);
+
+            // Assert
+            Assert.True(result);
+        }
+        finally
+        {
+            // Cleanup
+            if (File.Exists(crashLogPath)) File.Delete(crashLogPath);
+        }
+    }
+
+    [Fact]
+    public async Task IsCrashLogAsync_WithNonCrashLog_ReturnsFalse()
+    {
+        // Arrange
+        var logPath = Path.Combine(_tempPath, $"not-crash-{Guid.NewGuid()}.log");
+        var content = @"Regular log file
 Just some random text
 No crash indicators here";
-            await File.WriteAllTextAsync(logPath, content);
+        await File.WriteAllTextAsync(logPath, content);
 
-            try
-            {
-                // Act
-                var result = await _service.IsCrashLogAsync(logPath);
-
-                // Assert
-                Assert.False(result);
-            }
-            finally
-            {
-                // Cleanup
-                if (File.Exists(logPath))
-                {
-                    File.Delete(logPath);
-                }
-            }
-        }
-
-        [Fact]
-        public async Task IsCrashLogAsync_WithNonexistentFile_ReturnsFalse()
+        try
         {
-            // Arrange
-            var nonExistingPath = Path.Combine(_tempPath, $"does-not-exist-{Guid.NewGuid()}.log");
-
             // Act
-            var result = await _service.IsCrashLogAsync(nonExistingPath);
+            var result = await _service.IsCrashLogAsync(logPath);
 
             // Assert
             Assert.False(result);
         }
-
-        [Fact]
-        public void FormatCrashLogContent_WithComplexRealWorldLog_FormatsCorrectly()
+        finally
         {
-            // Arrange - Complex realistic crash log with mixed plugin formats and DLLs to remove
-            var originalContent = @"Fallout 4 v1.10.163
+            // Cleanup
+            if (File.Exists(logPath)) File.Delete(logPath);
+        }
+    }
+
+    [Fact]
+    public async Task IsCrashLogAsync_WithNonexistentFile_ReturnsFalse()
+    {
+        // Arrange
+        var nonExistingPath = Path.Combine(_tempPath, $"does-not-exist-{Guid.NewGuid()}.log");
+
+        // Act
+        var result = await _service.IsCrashLogAsync(nonExistingPath);
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void FormatCrashLogContent_WithComplexRealWorldLog_FormatsCorrectly()
+    {
+        // Arrange - Complex realistic crash log with mixed plugin formats and DLLs to remove
+        var originalContent = @"Fallout 4 v1.10.163
 Buffout 4 v1.26.2
 
 Unhandled exception ""EXCEPTION_ACCESS_VIOLATION"" at 0x7FF7C3F48000
@@ -359,33 +342,32 @@ MODULES:
 	KERNELBASE.dll
 	ntdll.dll";
 
-            // Act
-            var result = _service.FormatCrashLogContent(
-                originalContent,
-                _appSettings.SimplifyRemoveStrings, // Includes ntdll.dll and Steam.dll
-                _appSettings.SimplifyLogs
-            );
+        // Act
+        var result = _service.FormatCrashLogContent(
+            originalContent,
+            _appSettings.SimplifyRemoveStrings, // Includes ntdll.dll and Steam.dll
+            _appSettings.SimplifyLogs
+        );
 
-            // Assert
-            // Check that plugin entries are properly formatted
-            Assert.Contains("[00:000] Fallout4.esm", result);
-            Assert.Contains("[01:001] DLCRobot.esm", result);
-            Assert.Contains("[FE:000] ccBGSFO4001-PipBoy(Black).esl", result);
-            Assert.Contains("[FE:025] WeaponMod.esp", result);
-            Assert.Contains("[FE:102] GameplayOverhaul.esp", result);
+        // Assert
+        // Check that plugin entries are properly formatted
+        Assert.Contains("[00:000] Fallout4.esm", result);
+        Assert.Contains("[01:001] DLCRobot.esm", result);
+        Assert.Contains("[FE:000] ccBGSFO4001-PipBoy(Black).esl", result);
+        Assert.Contains("[FE:025] WeaponMod.esp", result);
+        Assert.Contains("[FE:102] GameplayOverhaul.esp", result);
 
-            // Check that specified DLLs are removed
-            Assert.DoesNotContain("Steam.dll", result);
-            Assert.DoesNotContain("ntdll.dll", result);
+        // Check that specified DLLs are removed
+        Assert.DoesNotContain("Steam.dll", result);
+        Assert.DoesNotContain("ntdll.dll", result);
 
-            // But other DLLs are still present because they're not in the removal list
-            Assert.Contains("nvwgf2umx.dll", result);
-            Assert.Contains("KERNELBASE.dll", result);
+        // But other DLLs are still present because they're not in the removal list
+        Assert.Contains("nvwgf2umx.dll", result);
+        Assert.Contains("KERNELBASE.dll", result);
 
-            // Check that other crash log content is preserved
-            Assert.Contains("Unhandled exception", result);
-            Assert.Contains("STACK:", result);
-            Assert.Contains("SYSTEM SPECS:", result);
-        }
+        // Check that other crash log content is preserved
+        Assert.Contains("Unhandled exception", result);
+        Assert.Contains("STACK:", result);
+        Assert.Contains("SYSTEM SPECS:", result);
     }
 }

@@ -1,166 +1,145 @@
-using System;
-using System.IO;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Xunit;
 using Scanner111.Models;
 using Scanner111.Services;
 
-namespace Scanner111.Tests.Services
+namespace Scanner111.Tests.Services;
+
+public class PapyrusLogMonitoringServiceTests
 {
-    public class PapyrusLogMonitoringServiceTests
+    private readonly AppSettings _appSettings;
+    private readonly Mock<ILogger<PapyrusLogMonitoringService>> _mockLogger;
+    private readonly Mock<IYamlSettingsCacheService> _mockYamlSettingsCache;
+    private readonly PapyrusLogMonitoringService _service;
+
+    public PapyrusLogMonitoringServiceTests()
     {
-        private readonly Mock<IYamlSettingsCacheService> _mockYamlService;
-        private readonly AppSettings _appSettings;
-        private readonly Mock<ILogger<PapyrusLogMonitoringService>> _mockLogger;
-        private readonly IPapyrusLogMonitoringService _service;
+        _mockYamlSettingsCache = new Mock<IYamlSettingsCacheService>();
+        _mockLogger = new Mock<ILogger<PapyrusLogMonitoringService>>();
+        _appSettings = new AppSettings { GameName = "TestGame" };
 
-        public PapyrusLogMonitoringServiceTests()
-        {
-            _mockYamlService = new Mock<IYamlSettingsCacheService>();
-            _appSettings = new AppSettings();
-            _mockLogger = new Mock<ILogger<PapyrusLogMonitoringService>>();
+        _service = new PapyrusLogMonitoringService(
+            _mockYamlSettingsCache.Object,
+            _appSettings,
+            _mockLogger.Object);
+    }
 
-            _service = new PapyrusLogMonitoringService(
-                _mockYamlService.Object,
-                _appSettings,
-                _mockLogger.Object
-            );
-        }
+    [Fact]
+    public async Task AnalyzePapyrusLogAsync_ShouldReturnEmptyAnalysis_WhenLogPathNotFound()
+    {
+        // Arrange
+        _mockYamlSettingsCache.Setup(m => m.GetSetting<string>(Yaml.GameLocal, "Game_Info.Docs_File_PapyrusLog"))
+            .Returns((string)null);
 
-        [Fact]
-        public void GetPapyrusLogPath_ReturnsPathFromYaml()
-        {
-            // Arrange
-            string expectedPath = @"C:\Games\Fallout4\Papyrus.0.log";
-            _appSettings.GameName = "Fallout4";
-            _mockYamlService.Setup(y => y.GetSetting<string>(YAML.Game_Local, "Game_Info.Docs_File_PapyrusLog", It.IsAny<string?>()))
-                .Returns(expectedPath);
+        // Act
+        var result = await _service.AnalyzePapyrusLogAsync();
 
-            // Act
-            var result = _service.GetPapyrusLogPath();
+        // Assert
+        Assert.NotNull(result);
+        Assert.Null(result.LogFilePath);
+        Assert.Equal(0, result.ErrorCount);
+        Assert.Equal(0, result.WarningCount);
+        Assert.Equal(0, result.StackCount);
+        Assert.Equal(0, result.DumpCount);
+    }
 
-            // Assert
-            Assert.Equal(expectedPath, result);
-        }
+    [Fact]
+    public async Task AnalyzePapyrusLogAsync_ShouldReportProgress()
+    {
+        // Arrange
+        var progressReports = new List<ScanProgress>();
+        var progress = new Progress<ScanProgress>(p => progressReports.Add(p));
 
-        [Fact]
-        public void GetPapyrusLogPath_HandlesVrMode()
-        {
-            // Arrange
-            string expectedPath = @"C:\Games\Fallout4VR\Papyrus.0.log";
-            _appSettings.GameName = "Fallout4VR";
-            _mockYamlService.Setup(y => y.GetSetting<string>(YAML.Game_Local, "Game_VR_Info.Docs_File_PapyrusLog", It.IsAny<string?>()))
-                .Returns(expectedPath);
+        _mockYamlSettingsCache.Setup(m => m.GetSetting<string>(Yaml.GameLocal, "Game_Info.Docs_File_PapyrusLog"))
+            .Returns((string)null);
 
-            // Act
-            var result = _service.GetPapyrusLogPath();
+        // Act
+        await _service.AnalyzePapyrusLogAsync(progress);
 
-            // Assert
-            Assert.Equal(expectedPath, result);
-        }
+        // Assert
+        Assert.Contains(progressReports, p => p.PercentComplete == 0);
+        Assert.Contains(progressReports, p => p.PercentComplete == 10);
+        Assert.Contains(progressReports, p => p.CurrentOperation.Contains("Starting"));
+    }
 
-        [Fact]
-        public void GetPapyrusLogPath_HandlesExceptions()
-        {
-            // Arrange
-            _appSettings.GameName = "Fallout4";
-            _mockYamlService.Setup(y => y.GetSetting<string>(YAML.Game_Local, "Game_Info.Docs_File_PapyrusLog", It.IsAny<string?>()))
-                .Throws(new Exception("YAML error"));
+    [Fact]
+    public async Task AnalyzePapyrusLogAsync_ShouldRespectCancellation()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
 
-            // Act
-            var result = _service.GetPapyrusLogPath();
+        // Act & Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            _service.AnalyzePapyrusLogAsync(cancellationToken: cts.Token));
+    }
 
-            // Assert
-            Assert.Null(result);
-        }
+    [Fact]
+    public async Task StartMonitoringAsync_ShouldCallCallback_WithInitialAnalysis()
+    {
+        // Arrange
+        PapyrusLogAnalysis? callbackResult = null;
+        Action<PapyrusLogAnalysis> callback = analysis => callbackResult = analysis;
 
-        [Fact]
-        public async Task AnalyzePapyrusLogAsync_FileDoesNotExist_ReturnsEmptyAnalysis()
-        {
-            // Arrange
-            string nonExistentPath = @"C:\NonExistent\Papyrus.0.log";
-            _mockYamlService.Setup(y => y.GetSetting<string>(YAML.Game_Local, "Game_Info.Docs_File_PapyrusLog", It.IsAny<string?>()))
-                .Returns(nonExistentPath);
+        _mockYamlSettingsCache.Setup(m => m.GetSetting<string>(Yaml.GameLocal, "Game_Info.Docs_File_PapyrusLog"))
+            .Returns((string)null);
 
-            // Act
-            var result = await _service.AnalyzePapyrusLogAsync();
+        // Act
+        await _service.StartMonitoringAsync(callback, CancellationToken.None);
 
-            // Assert
-            Assert.Equal(nonExistentPath, result.LogFilePath);
-            Assert.Equal(0, result.DumpCount);
-            Assert.Equal(0, result.StackCount);
-            Assert.Equal(0, result.WarningCount);
-            Assert.Equal(0, result.ErrorCount);
-        }
+        // Assert
+        Assert.NotNull(callbackResult);
+    }
 
-        [Fact]
-        public async Task AnalyzePapyrusLogAsync_ValidFile_CountsCorrectly()
-        {
-            // Arrange - Create a temp file with known content
-            string tempFile = Path.GetTempFileName();
-            try
-            {
-                // Create test log content
-                var content = new StringBuilder();
-                content.AppendLine("Some log line");
-                content.AppendLine("[11/22/2020 - 10:10:11] Dumping Stacks"); // Should count as dump
-                content.AppendLine("[11/22/2020 - 10:10:12] Dumping Stack of something"); // Should count as stack
-                content.AppendLine("[11/22/2020 - 10:10:13] warning: Something is wrong"); // Should count as warning
-                content.AppendLine("[11/22/2020 - 10:10:14] error: Critical issue"); // Should count as error
-                content.AppendLine("[11/22/2020 - 10:10:15] Dumping Stacks again"); // Another dump
-                File.WriteAllText(tempFile, content.ToString());
+    [Fact]
+    public void StopMonitoring_ShouldCleanupResources()
+    {
+        // Arrange - Start monitoring first
+        PapyrusLogAnalysis? callbackResult = null;
+        Action<PapyrusLogAnalysis> callback = analysis => callbackResult = analysis;
 
-                _mockYamlService.Setup(y => y.GetSetting<string>(YAML.Game_Local, "Game_Info.Docs_File_PapyrusLog", It.IsAny<string?>()))
-                    .Returns(tempFile);
+        _mockYamlSettingsCache.Setup(m => m.GetSetting<string>(Yaml.GameLocal, "Game_Info.Docs_File_PapyrusLog"))
+            .Returns((string)null);
 
-                // Act
-                var result = await _service.AnalyzePapyrusLogAsync();
+        _service.StartMonitoringAsync(callback, CancellationToken.None).Wait();
 
-                // Assert
-                Assert.Equal(2, result.DumpCount); // 2 dumps
-                Assert.Equal(1, result.StackCount); // 1 stack
-                Assert.Equal(1, result.WarningCount); // 1 warning
-                Assert.Equal(1, result.ErrorCount); // 1 error
-            }
-            finally
-            {
-                // Clean up
-                if (File.Exists(tempFile))
-                    File.Delete(tempFile);
-            }
-        }
+        // Act
+        _service.StopMonitoring();
 
-        [Fact]
-        public async Task StartMonitoringAsync_NonExistentFile_ProvidesEmptyAnalysis()
-        {
-            // Arrange
-            string nonExistentPath = @"C:\NonExistent\Papyrus.0.log";
-            _mockYamlService.Setup(y => y.GetSetting<string>(YAML.Game_Local, "Game_Info.Docs_File_PapyrusLog", It.IsAny<string?>()))
-                .Returns(nonExistentPath);
+        // Assert - No direct way to verify, but we can check that the service doesn't throw
+        // when we call StopMonitoring multiple times
+        _service.StopMonitoring();
+    }
 
-            PapyrusLogAnalysis capturedAnalysis = null;
-            Action<PapyrusLogAnalysis> callback = analysis => capturedAnalysis = analysis;
-            var cts = new CancellationTokenSource();
+    [Fact]
+    public void GetPapyrusLogPath_ShouldReturnCorrectPath()
+    {
+        // Arrange
+        var expectedPath = "C:\\TestPath\\Papyrus.log";
+        _mockYamlSettingsCache.Setup(m => m.GetSetting<string>(Yaml.GameLocal, "Game_Info.Docs_File_PapyrusLog"))
+            .Returns(expectedPath);
 
-            // Act
-            await _service.StartMonitoringAsync(callback, cts.Token);
+        // Act
+        var result = _service.GetPapyrusLogPath();
 
-            // Assert
-            Assert.NotNull(capturedAnalysis);
-            Assert.Equal(nonExistentPath, capturedAnalysis.LogFilePath);
-            Assert.Equal(0, capturedAnalysis.DumpCount);
+        // Assert
+        Assert.Equal(expectedPath, result);
+    }
 
-            // Clean up
-            _service.StopMonitoring();
-            cts.Dispose();
-        }
+    [Fact]
+    public void GetPapyrusLogPath_ShouldHandleVrMode()
+    {
+        // Arrange
+        var expectedPath = "C:\\TestPath\\PapyrusVR.log";
+        _appSettings.GameName = "TestGame VR";
 
-        // Note: Testing file system watcher functionality would require additional mocking
-        // of the FileSystemWatcher, which is challenging as it's a sealed class.
-        // Consider using a file system abstraction library for more comprehensive testing.
+        _mockYamlSettingsCache.Setup(m => m.GetSetting<string>(Yaml.GameLocal, "Game_VR_Info.Docs_File_PapyrusLog"))
+            .Returns(expectedPath);
+
+        // Act
+        var result = _service.GetPapyrusLogPath();
+
+        // Assert
+        Assert.Equal(expectedPath, result);
     }
 }

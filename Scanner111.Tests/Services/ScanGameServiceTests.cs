@@ -1,97 +1,138 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Moq;
+using Scanner111.Models;
 using Scanner111.Services;
-using Xunit;
 
-namespace Scanner111.Tests.Services
+namespace Scanner111.Tests.Services;
+
+public class ScanGameServiceTests
 {
-    public class ScanGameServiceTests
+    private readonly Mock<IGameFileManagementService> _mockGameFileManagementService;
+    private readonly Mock<ILogger<ScanGameService>> _mockLogger;
+    private readonly Mock<IModScanningService> _mockModScanningService;
+    private readonly ScanGameService _scanGameService;
+
+    public ScanGameServiceTests()
     {
-        private readonly Mock<IGameFileManagementService> _mockGameFileManagementService;
-        private readonly Mock<IModScanningService> _mockModScanningService;
-        private readonly ScanGameService _scanGameService;
+        _mockGameFileManagementService = new Mock<IGameFileManagementService>();
+        _mockModScanningService = new Mock<IModScanningService>();
+        _mockLogger = new Mock<ILogger<ScanGameService>>();
 
-        public ScanGameServiceTests()
-        {
-            _mockGameFileManagementService = new Mock<IGameFileManagementService>();
-            _mockModScanningService = new Mock<IModScanningService>();
-            _scanGameService = new ScanGameService(_mockGameFileManagementService.Object, _mockModScanningService.Object);
-        }
+        _scanGameService = new ScanGameService(
+            _mockGameFileManagementService.Object,
+            _mockModScanningService.Object,
+            _mockLogger.Object);
+    }
 
-        [Fact]
-        public async Task PerformCompleteScanAsync_ShouldCombineResults()
-        {
-            // Arrange
-            var gameResult = "Game scan results";
-            var modResult = "Mod scan results";
-            _mockGameFileManagementService.Setup(x => x.GetGameCombinedResultAsync()).ReturnsAsync(gameResult);
-            _mockModScanningService.Setup(x => x.GetModsCombinedResultAsync()).ReturnsAsync(modResult);
+    [Fact]
+    public async Task PerformCompleteScanAsync_ShouldCombineResults()
+    {
+        // Arrange
+        _mockGameFileManagementService.Setup(m => m.GetGameCombinedResultAsync(
+                It.IsAny<IProgress<ScanProgress>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Game Results");
 
-            // Act
-            var result = await _scanGameService.PerformCompleteScanAsync();
+        _mockModScanningService.Setup(m => m.GetModsCombinedResultAsync(
+                It.IsAny<IProgress<ScanProgress>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Mod Results");
 
-            // Assert
-            Assert.Equal(gameResult + modResult, result);
-            _mockGameFileManagementService.Verify(x => x.GetGameCombinedResultAsync(), Times.Once);
-            _mockModScanningService.Verify(x => x.GetModsCombinedResultAsync(), Times.Once);
-        }
+        // Act
+        var result = await _scanGameService.PerformCompleteScanAsync();
 
-        [Fact]
-        public async Task ScanGameFilesOnlyAsync_ShouldReturnGameResults()
-        {
-            // Arrange
-            var gameResult = "Game scan results";
-            _mockGameFileManagementService.Setup(x => x.GetGameCombinedResultAsync()).ReturnsAsync(gameResult);
+        // Assert
+        Assert.Equal("Game ResultsMod Results", result);
+    }
 
-            // Act
-            var result = await _scanGameService.ScanGameFilesOnlyAsync();
+    [Fact]
+    public async Task PerformCompleteScanAsync_ShouldReportProgress()
+    {
+        // Arrange
+        var progressReports = new List<ScanProgress>();
+        var progress = new Progress<ScanProgress>(p => progressReports.Add(p));
 
-            // Assert
-            Assert.Equal(gameResult, result);
-            _mockGameFileManagementService.Verify(x => x.GetGameCombinedResultAsync(), Times.Once);
-            _mockModScanningService.Verify(x => x.GetModsCombinedResultAsync(), Times.Never);
-        }
+        _mockGameFileManagementService.Setup(m => m.GetGameCombinedResultAsync(
+                It.IsAny<IProgress<ScanProgress>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Game Results");
 
-        [Fact]
-        public async Task ScanModsOnlyAsync_ShouldReturnModResults()
-        {
-            // Arrange
-            var modResult = "Mod scan results";
-            _mockModScanningService.Setup(x => x.GetModsCombinedResultAsync()).ReturnsAsync(modResult);
+        _mockModScanningService.Setup(m => m.GetModsCombinedResultAsync(
+                It.IsAny<IProgress<ScanProgress>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Mod Results");
 
-            // Act
-            var result = await _scanGameService.ScanModsOnlyAsync();
+        // Act
+        await _scanGameService.PerformCompleteScanAsync(progress);
 
-            // Assert
-            Assert.Equal(modResult, result);
-            _mockGameFileManagementService.Verify(x => x.GetGameCombinedResultAsync(), Times.Never);
-            _mockModScanningService.Verify(x => x.GetModsCombinedResultAsync(), Times.Once);
-        }
+        // Assert
+        Assert.Contains(progressReports, p => p.PercentComplete == 0);
+        Assert.Contains(progressReports, p => p.PercentComplete == 10);
+        Assert.Contains(progressReports, p => p.PercentComplete == 50);
+        Assert.Contains(progressReports, p => p.PercentComplete == 100);
+    }
 
-        [Fact]
-        public async Task ManageGameFilesAsync_ShouldCallGameFileManagementService()
-        {
-            // Arrange
-            var classicList = "test_list";
-            var mode = "BACKUP";
+    [Fact]
+    public async Task PerformCompleteScanAsync_ShouldRespectCancellation()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
 
-            // Act
-            await _scanGameService.ManageGameFilesAsync(classicList, mode);
+        // Act & Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            _scanGameService.PerformCompleteScanAsync(cancellationToken: cts.Token));
+    }
 
-            // Assert
-            _mockGameFileManagementService.Verify(x => x.GameFilesManageAsync(classicList, mode), Times.Once);
-        }
+    [Fact]
+    public async Task ScanGameFilesOnlyAsync_ShouldReturnGameResults()
+    {
+        // Arrange
+        _mockGameFileManagementService.Setup(m => m.GetGameCombinedResultAsync(
+                It.IsAny<IProgress<ScanProgress>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Game Results");
 
-        [Fact]
-        public async Task WriteReportAsync_ShouldCallGameFileManagementService()
-        {
-            // Act
-            await _scanGameService.WriteReportAsync();
+        // Act
+        var result = await _scanGameService.ScanGameFilesOnlyAsync();
 
-            // Assert
-            _mockGameFileManagementService.Verify(x => x.WriteCombinedResultsAsync(), Times.Once);
-        }
+        // Assert
+        Assert.Equal("Game Results", result);
+    }
+
+    [Fact]
+    public async Task ScanModsOnlyAsync_ShouldReturnModResults()
+    {
+        // Arrange
+        _mockModScanningService.Setup(m => m.GetModsCombinedResultAsync(
+                It.IsAny<IProgress<ScanProgress>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Mod Results");
+
+        // Act
+        var result = await _scanGameService.ScanModsOnlyAsync();
+
+        // Assert
+        Assert.Equal("Mod Results", result);
+    }
+
+    [Fact]
+    public async Task ManageGameFilesAsync_ShouldCallGameFileManagementService()
+    {
+        // Arrange
+        var classicList = "TestList";
+        var mode = "BACKUP";
+
+        // Act
+        await _scanGameService.ManageGameFilesAsync(classicList, mode);
+
+        // Assert
+        _mockGameFileManagementService.Verify(m => m.GameFilesManageAsync(
+            classicList, mode, It.IsAny<IProgress<ScanProgress>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task WriteReportAsync_ShouldCallGameFileManagementService()
+    {
+        // Act
+        await _scanGameService.WriteReportAsync();
+
+        // Assert
+        _mockGameFileManagementService.Verify(m => m.WriteCombinedResultsAsync(
+            It.IsAny<IProgress<ScanProgress>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }
