@@ -18,12 +18,12 @@ namespace Scanner111.Services
         T? GetSetting<T>(YAML yamlType, string path, T? defaultValue = default);
 
         /// <summary>
-        /// Gets a setting from the YAML cache using YamlStoreType
+        /// Sets a setting in the YAML cache
         /// </summary>
-        /// <typeparam name="T">Type of the setting to retrieve</typeparam>
-        /// <param name="storeType">The YAML store type</param>
+        /// <typeparam name="T">Type of the setting to set</typeparam>
+        /// <param name="yamlType">The YAML file type</param>
         /// <param name="path">Path to the setting in the YAML file</param>
-        /// <returns>The setting value, or default for the type if not found</returns>
-        T? GetSetting<T>(YamlStoreType storeType, string path);
+        /// <param name="value">The value to set</param>
+        void SetSetting<T>(YAML yamlType, string path, T value);
     }
 }

@@ -1,3 +1,5 @@
+// filepath: c:\Users\evild\RiderProjects\Scanner111\Scanner111\App.axaml.cs
+
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -5,98 +7,105 @@ using Microsoft.Extensions.DependencyInjection;
 using Scanner111.ViewModels;
 using Scanner111.Views;
 using System;
-// For Design.IsDesignMode, Avalonia typically uses a property on Application or Control.
-// Let's ensure we are using the correct way to check for design mode.
 
 namespace Scanner111;
 
 public partial class App : Application
 {
-    // Parameterless constructor for XAML and potentially the designer
+    // Field to store the service provider when the DI constructor is called.
+    internal IServiceProvider? _serviceProvider;
+
+    // Parameterless constructor for XAML
     public App()
     {
-        // InitializeComponent(); // This is called by AvaloniaXamlLoader.Load(this)
+        // Empty constructor - initialization done in Initialize()
+    }
+
+    // Constructor to be called from Program.cs with the ServiceProvider
+    public App(IServiceProvider serviceProvider) : this()
+    {
+        _serviceProvider = serviceProvider;
+        Console.WriteLine("App constructor with service provider called");
     }
 
     public override void Initialize()
     {
-        AvaloniaXamlLoader.Load(this); // Loads XAML and calls InitializeComponent for the App class itself
+        AvaloniaXamlLoader.Load(this);
         base.Initialize();
+        Console.WriteLine("App initialized");
     }
 
     public override void OnFrameworkInitializationCompleted()
     {
-        // Access the ServiceProvider from a static property or a DI container specific to Avalonia if available.
-        // For Microsoft.Extensions.DependencyInjection, it's usually passed in or built here.
-        // We configured it in Program.cs, so it should be passed to the App constructor.
-        // However, the App class itself might be instantiated by Avalonia without the DI constructor for the designer.
-
-        IServiceProvider? serviceProvider = null;
-        if (this.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktopLifetime)
+        try
         {
-            // Attempt to get the service provider if it was stored, e.g. in a static field or passed differently.
-            // This example assumes Program.cs correctly passes it to a constructor that sets a field.
-            // If `Current` is an `App` instance that had its DI constructor called:
-            if (Application.Current is App appWithServices && appWithServices._serviceProvider != null)
+            Console.WriteLine("Framework initialization completed");
+
+            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                serviceProvider = appWithServices._serviceProvider;
+                if (_serviceProvider != null)
+                {
+                    try
+                    {
+                        var viewModel = _serviceProvider.GetRequiredService<MainWindowViewModel>();
+                        desktop.MainWindow = new MainWindow
+                        {
+                            DataContext = viewModel
+                        };
+                        Console.WriteLine("MainWindow created with ViewModel from DI");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error creating MainWindow: {ex.Message}");
+                        throw;
+                    }
+                }
+                else if (Avalonia.Controls.Design.IsDesignMode)
+                {
+                    desktop.MainWindow = new MainWindow
+                    {
+                        DataContext = new MainWindowViewModel()
+                    };
+                    Console.WriteLine("MainWindow created for design mode");
+                }
+                else
+                {
+                    Console.WriteLine("Error: No service provider available");
+                    throw new InvalidOperationException("No service provider available");
+                }
+            }
+            else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
+            {
+                if (_serviceProvider != null)
+                {
+                    singleView.MainView = new MainWindow
+                    {
+                        DataContext = _serviceProvider.GetRequiredService<MainWindowViewModel>()
+                    };
+                    Console.WriteLine("MainView set for SingleViewApplicationLifetime");
+                }
+                else if (Avalonia.Controls.Design.IsDesignMode)
+                {
+                    singleView.MainView = new MainWindow
+                    {
+                        DataContext = new MainWindowViewModel()
+                    };
+                    Console.WriteLine("MainView set for design mode");
+                }
+                else
+                {
+                    Console.WriteLine("Error: No service provider available for SingleView");
+                    throw new InvalidOperationException("No service provider available for SingleView");
+                }
             }
 
-            if (serviceProvider != null)
-            {
-                desktopLifetime.MainWindow = new MainWindow
-                {
-                    DataContext = serviceProvider.GetRequiredService<MainWindowViewModel>()
-                };
-            }
-            else if (Avalonia.Controls.Design.IsDesignMode) // Correct way to check for design mode
-            {
-                // Design mode: Create a ViewModel instance directly (requires parameterless constructor)
-                desktopLifetime.MainWindow = new MainWindow
-                {
-                    DataContext = new MainWindowViewModel() // Ensure MainWindowViewModel has a parameterless constructor for the designer
-                };
-            }
-            else
-            {
-                throw new InvalidOperationException("ServiceProvider is not available and not in Design Mode.");
-            }
+            base.OnFrameworkInitializationCompleted();
         }
-        else if (this.ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
+        catch (Exception ex)
         {
-            if (Application.Current is App appWithServices && appWithServices._serviceProvider != null)
-            {
-                serviceProvider = appWithServices._serviceProvider;
-            }
-
-            if (serviceProvider != null)
-            {
-                singleViewPlatform.MainView = new MainWindow
-                {
-                    DataContext = serviceProvider.GetRequiredService<MainWindowViewModel>()
-                };
-            }
-            else if (Avalonia.Controls.Design.IsDesignMode)
-            {
-                singleViewPlatform.MainView = new MainWindow
-                {
-                    DataContext = new MainWindowViewModel() // Ensure MainWindowViewModel has a parameterless constructor
-                };
-            }
-            else
-            {
-                throw new InvalidOperationException("ServiceProvider is not available for SingleView and not in Design Mode.");
-            }
+            Console.WriteLine($"Critical error in OnFrameworkInitializationCompleted: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            throw;
         }
-
-        base.OnFrameworkInitializationCompleted();
-    }    // Field to store the service provider when the DI constructor is called.
-    // Internal to allow access from MainWindow for creating dialogs
-    internal IServiceProvider? _serviceProvider;
-
-    // Constructor to be called from Program.cs with the ServiceProvider
-    public App(IServiceProvider serviceProvider) : this() // Calls the parameterless constructor first
-    {
-        _serviceProvider = serviceProvider;
     }
 }

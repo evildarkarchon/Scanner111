@@ -11,16 +11,6 @@ using Scanner111.Models; // For YAML enum
 
 namespace Scanner111.Services
 {
-    public enum YamlStoreType
-    {
-        Main,
-        Settings,
-        Ignore,
-        Game,
-        GameLocal,
-        Test
-    }
-
     public sealed class YamlSettingsCacheService : IYamlSettingsCacheService
     {
         private static readonly Lazy<YamlSettingsCacheService> _instance =
@@ -29,13 +19,12 @@ namespace Scanner111.Services
         public static YamlSettingsCacheService Instance => _instance.Value;
 
         private readonly ConcurrentDictionary<string, IDictionary<object, object?>> _yamlDataCache = new();
-
         private readonly IDeserializer _yamlDeserializer;
         private readonly ISerializer _yamlSerializer;
 
-        private static readonly HashSet<YamlStoreType> StaticYamlStores =
+        private static readonly HashSet<YAML> StaticYamlStores =
         [
-            YamlStoreType.Main, YamlStoreType.Game
+            YAML.Main, YAML.Game
         ];
 
         // Configuration for paths, can be updated via ConfigurePaths
@@ -46,20 +35,66 @@ namespace Scanner111.Services
         private string _testsPath = "tests";
 
         private readonly Dictionary<YAML, YamlNode> _yamlCache = new Dictionary<YAML, YamlNode>();
-        private readonly Dictionary<YAML, string> _yamlFilePaths = new Dictionary<YAML, string>(); // Maps enum to actual file paths
+
+        private readonly Dictionary<YAML, string>
+            _yamlFilePaths = new Dictionary<YAML, string>(); // Maps enum to actual file paths
 
         private YamlSettingsCacheService()
         {
-            _yamlDeserializer = new DeserializerBuilder()
-                .WithNamingConvention(NullNamingConvention.Instance) // Keeps keys as defined in YAML
-                .Build();
-            _yamlSerializer = new SerializerBuilder()
-                .WithNamingConvention(NullNamingConvention.Instance)
-                .ConfigureDefaultValuesHandling(DefaultValuesHandling.Preserve) // Preserve default values during serialization
-                .Build();
+            try
+            {
+                Console.WriteLine("Initializing YamlSettingsCacheService...");
 
-            // Attempt to set a sensible default for the application root path.
-            _applicationRootPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? AppDomain.CurrentDomain.BaseDirectory;
+                _yamlDeserializer = new DeserializerBuilder()
+                    .WithNamingConvention(NullNamingConvention.Instance) // Keeps keys as defined in YAML
+                    .Build();
+                _yamlSerializer = new SerializerBuilder()
+                    .WithNamingConvention(NullNamingConvention.Instance)
+                    .ConfigureDefaultValuesHandling(DefaultValuesHandling
+                        .Preserve) // Preserve default values during serialization
+                    .Build();
+
+                // Attempt to set a sensible default for the application root path.
+                _applicationRootPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ??
+                                       AppDomain.CurrentDomain.BaseDirectory;
+                Console.WriteLine($"Application root path: {_applicationRootPath}");
+
+                // Make sure CLASSIC Data directory exists
+                string classicDataDirectory = Path.Combine(_applicationRootPath, _classicDataPath);
+                if (!Directory.Exists(classicDataDirectory))
+                {
+                    Console.WriteLine($"Creating CLASSIC Data directory: {classicDataDirectory}");
+                    Directory.CreateDirectory(classicDataDirectory);
+                }
+
+                // For demo purposes, create an empty YAML file if it doesn't exist
+                string gameYamlPath = Path.Combine(_applicationRootPath, _classicDataPath, "databases",
+                    "CLASSIC Fallout4.yaml");
+                string databasesDir = Path.Combine(_applicationRootPath, _classicDataPath, "databases");
+
+                if (!Directory.Exists(databasesDir))
+                {
+                    Console.WriteLine($"Creating databases directory: {databasesDir}");
+                    Directory.CreateDirectory(databasesDir);
+                }
+
+                if (!File.Exists(gameYamlPath))
+                {
+                    Console.WriteLine($"Creating empty YAML file: {gameYamlPath}");
+                    File.WriteAllText(gameYamlPath, "# CLASSIC Fallout4 settings\n");
+                }
+
+                // Initialize YAML file paths
+                _yamlFilePaths[YAML.Game] = gameYamlPath;
+
+                Console.WriteLine("YamlSettingsCacheService initialization completed successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing YamlSettingsCacheService: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                throw; // Rethrow to ensure the application knows there was a problem
+            }
 
             InitializeStaticCaches();
 
@@ -72,7 +107,8 @@ namespace Scanner111.Services
 
             // For now, using placeholder paths for demonstration. Replace with actual paths.
             // Ensure these paths are correct and the files exist.
-            string baseDataPath = Path.Combine(Directory.GetCurrentDirectory(), "CLASSIC Data", "databases"); // Example base path
+            string baseDataPath =
+                Path.Combine(Directory.GetCurrentDirectory(), "CLASSIC Data", "databases"); // Example base path
             _yamlFilePaths[YAML.Game] = Path.Combine(baseDataPath, "CLASSIC Fallout4.yaml"); // Placeholder
             // Add other mappings here, e.g., for YAML.Main, YAML.Settings etc.
 
@@ -81,18 +117,32 @@ namespace Scanner111.Services
 
         private void InitializeStaticCaches()
         {
-            foreach (YamlStoreType storeType in StaticYamlStores)
+            try
             {
-                try
+                Console.WriteLine("Initializing static YAML caches...");
+                foreach (YAML yamlType in StaticYamlStores)
                 {
-                    string filePath = GetPathForStore(storeType);
-                    LoadAndCacheYaml(filePath);
+                    try
+                    {
+                        string filePath = GetPathForStore(yamlType);
+                        Console.WriteLine($"Loading YAML store {yamlType} from {filePath}");
+                        LoadAndCacheYaml(filePath);
+                        Console.WriteLine($"Successfully loaded YAML store {yamlType}");
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log this error appropriately in a real application
+                        Console.WriteLine($"Error pre-loading static YAML store {yamlType}: {ex.Message}");
+                        Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                    }
                 }
-                catch (Exception ex)
-                {
-                    // Log this error appropriately in a real application
-                    Console.WriteLine($"Error pre-loading static YAML store {storeType}: {ex.Message}");
-                }
+
+                Console.WriteLine("Static YAML cache initialization completed.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in InitializeStaticCaches: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
             }
         }
 
@@ -100,7 +150,8 @@ namespace Scanner111.Services
         /// Configures the base paths used for resolving YAML file locations.
         /// Should be called early in application startup if defaults are not suitable.
         /// </summary>
-        public void ConfigurePaths(string applicationRootPath, string? gameName = null, string? classicDataBasePath = null, string? classicDataPath = null, string? testsPath = null)
+        public void ConfigurePaths(string applicationRootPath, string? gameName = null,
+            string? classicDataBasePath = null, string? classicDataPath = null, string? testsPath = null)
         {
             _applicationRootPath = applicationRootPath ?? throw new ArgumentNullException(nameof(applicationRootPath));
             if (!string.IsNullOrEmpty(gameName)) _gameName = gameName;
@@ -113,17 +164,20 @@ namespace Scanner111.Services
             InitializeStaticCaches();
         }
 
-        public string GetPathForStore(YamlStoreType store)
+        public string GetPathForStore(YAML yamlType)
         {
-            return store switch
+            return yamlType switch
             {
-                YamlStoreType.Main => Path.Combine(_applicationRootPath, _classicDataBasePath, "CLASSIC Main.yaml"),
-                YamlStoreType.Settings => Path.Combine(_applicationRootPath, "CLASSIC Settings.yaml"),
-                YamlStoreType.Ignore => Path.Combine(_applicationRootPath, "CLASSIC Ignore.yaml"),
-                YamlStoreType.Game => Path.Combine(_applicationRootPath, _classicDataBasePath, $"CLASSIC {_gameName}.yaml"),
-                YamlStoreType.GameLocal => Path.Combine(_applicationRootPath, _classicDataPath, $"CLASSIC {_gameName} Local.yaml"),
-                YamlStoreType.Test => Path.Combine(_applicationRootPath, _testsPath, "test_settings.yaml"),
-                _ => throw new ArgumentOutOfRangeException(nameof(store), $"Unsupported YAML store type: {store}"),
+                YAML.Main => Path.Combine(_applicationRootPath, _classicDataBasePath, "CLASSIC Main.yaml"),
+                YAML.Settings => Path.Combine(_applicationRootPath, "CLASSIC Settings.yaml"),
+                YAML.Ignore => Path.Combine(_applicationRootPath, "CLASSIC Ignore.yaml"),
+                YAML.Game => Path.Combine(_applicationRootPath, _classicDataBasePath,
+                    $"CLASSIC {_gameName}.yaml"),
+                YAML.Game_Local => Path.Combine(_applicationRootPath, _classicDataPath,
+                    $"CLASSIC {_gameName} Local.yaml"),
+                YAML.Test => Path.Combine(_applicationRootPath, _testsPath, "test_settings.yaml"),
+                _ => throw new ArgumentOutOfRangeException(nameof(yamlType),
+                    $"Unsupported YAML store type: {yamlType}"),
             };
         }
 
@@ -134,6 +188,7 @@ namespace Scanner111.Services
                 Console.WriteLine($"Warning: YAML file not found at '{filePath}'. Returning empty settings.");
                 return new Dictionary<object, object?>();
             }
+
             try
             {
                 using var reader = new StreamReader(filePath);
@@ -152,9 +207,9 @@ namespace Scanner111.Services
             _yamlDataCache.GetOrAdd(filePath, LoadYamlFromFile);
         }
 
-        private IDictionary<object, object?> GetOrLoadYamlData(YamlStoreType store)
+        private IDictionary<object, object?> GetOrLoadYamlData(YAML yamlType)
         {
-            string filePath = GetPathForStore(store);
+            string filePath = GetPathForStore(yamlType);
             return _yamlDataCache.GetOrAdd(filePath, LoadYamlFromFile);
         }
 
@@ -164,7 +219,7 @@ namespace Scanner111.Services
             foreach (var keyString in keys)
             {
                 object key = keyString; // In YamlDotNet, keys are often strings, but can be other types.
-                                        // We assume string keys from keyPath.Split.
+                // We assume string keys from keyPath.Split.
                 if (current is IDictionary<object, object?> dict && dict.TryGetValue(key, out var val))
                 {
                     current = val;
@@ -174,18 +229,19 @@ namespace Scanner111.Services
                     return null; // Path not found
                 }
             }
+
             return current;
         }
 
-        public T? GetSetting<T>(YamlStoreType store, string keyPath)
+        public T? GetSetting<T>(YAML yamlType, string keyPath, T? defaultValue = default)
         {
-            var yamlData = GetOrLoadYamlData(store);
+            var yamlData = GetOrLoadYamlData(yamlType);
             var keys = keyPath.Split(['.'], StringSplitOptions.RemoveEmptyEntries);
-            if (!keys.Any()) return default;
+            if (!keys.Any()) return defaultValue;
 
             object? value = GetValueFromPath(yamlData, keys);
 
-            if (value == null) return default;
+            if (value == null) return defaultValue;
 
             try
             {
@@ -197,20 +253,29 @@ namespace Scanner111.Services
                     if (value is string sVal && bool.TryParse(sVal, out var parsedBool)) return (T)(object)parsedBool;
                     if (int.TryParse(Convert.ToString(value), out int intVal)) return (T)(object)(intVal != 0);
                 }
+
                 if (typeof(T) == typeof(double)) return (T)(object)Convert.ToDouble(value);
                 if (typeof(T) == typeof(long)) return (T)(object)Convert.ToInt64(value);
                 if (typeof(T).IsEnum && value is string enumStr)
                 {
-                    try { return (T)Enum.Parse(typeof(T), enumStr, true); }
-                    catch { /* Fallback or log */ }
+                    try
+                    {
+                        return (T)Enum.Parse(typeof(T), enumStr, true);
+                    }
+                    catch
+                    {
+                        /* Fallback or log */
+                    }
                 }
 
                 return (T)Convert.ChangeType(value, typeof(T));
             }
-            catch (Exception ex) when (ex is InvalidCastException || ex is FormatException || ex is ArgumentNullException || ex is OverflowException)
+            catch (Exception ex) when (ex is InvalidCastException || ex is FormatException ||
+                                       ex is ArgumentNullException || ex is OverflowException)
             {
-                Console.WriteLine($"Error converting setting '{keyPath}' (value: '{value}') to type {typeof(T).Name}: {ex.Message}");
-                return default;
+                Console.WriteLine(
+                    $"Error converting setting '{keyPath}' (value: '{value}') to type {typeof(T).Name}: {ex.Message}");
+                return defaultValue;
             }
         }
 
@@ -222,20 +287,23 @@ namespace Scanner111.Services
             for (int i = 0; i < keyList.Count - 1; i++)
             {
                 object key = keyList[i];
-                if (!currentDict.TryGetValue(key, out var nextObj) || nextObj is not IDictionary<object, object?> nextDict)
+                if (!currentDict.TryGetValue(key, out var nextObj) ||
+                    nextObj is not IDictionary<object, object?> nextDict)
                 {
                     nextDict = new Dictionary<object, object?>();
                     currentDict[key] = nextDict;
                 }
+
                 currentDict = nextDict;
             }
+
             currentDict[keyList.Last()] = newValue;
         }
 
-        public void SetSetting<T>(YamlStoreType store, string keyPath, T newValue)
+        public void SetSetting<T>(YAML yamlType, string keyPath, T newValue)
         {
-            string filePath = GetPathForStore(store);
-            IDictionary<object, object?> yamlData = GetOrLoadYamlData(store);
+            string filePath = GetPathForStore(yamlType);
+            IDictionary<object, object?> yamlData = GetOrLoadYamlData(yamlType);
 
             var keys = keyPath.Split(['.'], StringSplitOptions.RemoveEmptyEntries);
             if (!keys.Any())
@@ -297,6 +365,7 @@ namespace Scanner111.Services
                 // Log error: File path not configured or file doesn't exist
                 Console.WriteLine($"YAML file path not configured or file not found for: {yamlStore}");
             }
+
             return null;
         }
 
@@ -326,32 +395,8 @@ namespace Scanner111.Services
                     return null; // Current node is not a mapping node, so cannot traverse further
                 }
             }
+
             return currentNode;
-        }
-
-        // Generic method to get a setting value, similar to Python's yaml_settings
-        public T? GetSetting<T>(YAML yamlStore, string keyPath, T? defaultValue = default)
-        {
-            var rootNode = GetYamlNode(yamlStore);
-            if (rootNode == null) return defaultValue;
-
-            var targetNode = GetNodeByPath(rootNode, keyPath);
-            if (targetNode is YamlScalarNode scalarNode && scalarNode.Value != null)
-            {
-                try
-                {
-                    // Attempt to deserialize/convert the scalar value to type T
-                    // This might need more sophisticated conversion based on T
-                    var deserializer = new DeserializerBuilder().Build();
-                    return deserializer.Deserialize<T>(scalarNode.Value);
-                }
-                catch
-                {
-                    // Handle or log deserialization errors
-                    return defaultValue;
-                }
-            }
-            return defaultValue;
         }
 
         /// <summary>

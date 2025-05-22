@@ -14,7 +14,7 @@
              to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel/>
     </Design.DataContext>
-
+    
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -28,48 +28,131 @@
                    Text="Crash Log Scanner and Formatter" 
                    HorizontalAlignment="Center" 
                    FontSize="24" 
-                   FontWeight="Bold" 
+                   FontWeight="Bold"
                    Margin="0,0,0,20"/>
 
-        <!-- Log Issues Display -->
-        <Border Grid.Row="1" 
-                BorderBrush="Gray" 
-                BorderThickness="1" 
-                CornerRadius="4" 
-                Padding="5">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
+        <!-- Tab Control -->
+        <TabControl Grid.Row="1">
+            <!-- Main Tab -->
+            <TabItem Header="Scan Results">
+                <!-- Log Issues Display -->
+                <Border BorderBrush="Gray" 
+                        BorderThickness="1" 
+                        CornerRadius="4" 
+                        Padding="5">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" 
-                           Text="Scan Results" 
-                           FontWeight="SemiBold" 
-                           Margin="0,0,0,5"/>                <DataGrid Grid.Row="1" 
-                          ItemsSource="{Binding ScanResults}"
-                          AutoGenerateColumns="False"
-                          IsReadOnly="True"
-                          CanUserReorderColumns="True"
-                          CanUserResizeColumns="True"
-                          GridLinesVisibility="All">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="File Name" 
-                                            Binding="{Binding FileName}"/>
-                        <DataGridTextColumn Header="Severity" 
-                                            Binding="{Binding Severity}"/>
-                        <DataGridTextColumn Header="Title" 
-                                            Binding="{Binding Title}"
-                                            Width="*"/>
-                        <DataGridTextColumn Header="Source" 
-                                            Binding="{Binding Source}"/>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </Grid>
-        </Border>
+                        <TextBlock Grid.Row="0" 
+                                   Text="Scan Results" 
+                                   FontWeight="SemiBold" 
+                                   Margin="0,0,0,5"/>
+                                   
+                        <DataGrid Grid.Row="1" 
+                                  ItemsSource="{Binding ScanResults}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  CanUserReorderColumns="True"
+                                  CanUserResizeColumns="True"
+                                  GridLinesVisibility="All">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="File Name" 
+                                                    Binding="{Binding FileName}"/>
+                                <DataGridTextColumn Header="Severity" 
+                                                    Binding="{Binding Severity}"/>
+                                <DataGridTextColumn Header="Title" 
+                                                    Binding="{Binding Title}"
+                                                    Width="*"/>
+                                <DataGridTextColumn Header="Source" 
+                                                    Binding="{Binding Source}"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Border>
+            </TabItem>
+            
+            <!-- Settings Tab -->
+            <TabItem Header="Settings">
+                <StackPanel>
+                    <!-- Game Directory Settings -->
+                    <Border BorderBrush="Gray" 
+                            BorderThickness="1" 
+                            CornerRadius="4" 
+                            Padding="10"
+                            Margin="0,10,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Game Directory Settings" 
+                                      FontWeight="Bold" 
+                                      Margin="0,0,0,10"/>
+                            
+                            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" Margin="0,5">
+                                <TextBlock Grid.Row="0" Grid.Column="0" 
+                                          Text="Game Directory:" 
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,10,0"/>
+                                          
+                                <TextBox Grid.Row="0" Grid.Column="1" 
+                                        Text="{Binding GameDirectory}"
+                                        Watermark="Path to game installation folder"
+                                        Margin="0,0,10,0"/>
+                                        
+                                <Button Grid.Row="0" Grid.Column="2" 
+                                       Content="Browse..." 
+                                       Command="{Binding BrowseGameDirectoryCommand}"/>
+                                       
+                                <TextBlock Grid.Row="1" Grid.Column="0" 
+                                          Text="Docs Directory:" 
+                                          VerticalAlignment="Center"
+                                          Margin="0,10,10,0"/>
+                                          
+                                <TextBox Grid.Row="1" Grid.Column="1" 
+                                        Text="{Binding DocsDirectory}"
+                                        Watermark="Path to configuration and logs folder"
+                                        Margin="0,10,10,0"/>
+                                        
+                                <Button Grid.Row="1" Grid.Column="2"
+                                       Content="Browse..." 
+                                       Command="{Binding BrowseDocsDirectoryCommand}"
+                                       Margin="0,10,0,0"/>
+                                       
+                                <TextBlock Grid.Row="2" Grid.Column="1"
+                                          Text="{Binding DirectoryStatusMessage}"
+                                          Foreground="{Binding DirectoryStatusColor}"
+                                          Margin="0,5,0,0"/>
+                            </Grid>
+                            
+                            <Button Content="Detect Directories Automatically" 
+                                    Command="{Binding DetectDirectoriesCommand}" 
+                                    HorizontalAlignment="Left"
+                                    Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
 
-        <!-- Controls -->
-        <StackPanel Grid.Row="2" Orientation="Vertical" Margin="0,10,0,0">
+        <!-- Button Panel -->
+        <StackPanel Grid.Row="2" Margin="0,10,0,0">
+            <Expander Header="Help" Margin="0,0,0,10">
+                <StackPanel Margin="10">
+                    <TextBlock Text="How to use:" FontWeight="Bold" Margin="0,0,0,5"/>
+                    <TextBlock Text="1. Click 'Scan Crash Logs' to select and analyze crash log files" TextWrapping="Wrap" Margin="10,0,0,5"/>
+                    <TextBlock Text="2. Click 'Reformat Crash Logs Only' to improve readability without analysis" TextWrapping="Wrap" Margin="10,0,0,5"/>
+                    <TextBlock Text="3. Use 'FormID Database Manager' to help identify mod objects in crashes" TextWrapping="Wrap" Margin="10,0,0,5"/>
+                    <TextBlock Text="4. Use 'Papyrus Log Monitor' to watch for script errors in real-time" TextWrapping="Wrap" Margin="10,0,0,5"/>
+                    
+                    <TextBlock Text="Common crash symptoms:" FontWeight="Bold" Margin="0,10,0,5"/>
+                    <TextBlock Text="Stack overflow, access violation, or null pointer" 
+                              Margin="10,5,0,0" FontStyle="Italic" FontSize="12" Opacity="0.7" />
+                    
+                    <TextBlock Text="Steam.dll, nvwgf2umx.dll, KERNELBASE.dll, ntdll.dll" 
+                              Margin="10,0,0,5" FontStyle="Italic" FontSize="12" Opacity="0.7" />
+                </StackPanel>
+            </Expander>
+            
             <Expander Header="Crash Log Processing Options" IsExpanded="True" Margin="0,0,0,10">
                 <StackPanel Margin="10,5">
                     <CheckBox Content="SimplifyLogs - Remove common DLL strings" 
@@ -79,7 +162,8 @@
                     <CheckBox Content="Preserve original files (create backup)" 
                               IsChecked="{Binding PreserveOriginalFiles}"
                               Margin="0,5,0,5"/>
-                                <CheckBox Content="Auto-detect crash logs (verify content)" 
+                              
+                    <CheckBox Content="Auto-detect crash logs (verify content)" 
                               IsChecked="{Binding AutoDetectCrashLogs}"
                               Margin="0,5,0,5"/>
                     
@@ -92,7 +176,9 @@
                     <TextBlock Text="Steam.dll, nvwgf2umx.dll, KERNELBASE.dll, ntdll.dll" 
                               Margin="10,0,0,5" FontStyle="Italic" FontSize="12" Opacity="0.7" />
                 </StackPanel>
-            </Expander>            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,10,0,10">
+            </Expander>
+            
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,10,0,10">
                 <Button Content="Scan Crash Logs" 
                         Command="{Binding ScanCrashLogsCommand}" 
                         Padding="15,5" 

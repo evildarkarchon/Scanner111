@@ -15,17 +15,81 @@ internal class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        var serviceProvider = ConfigureServices();
+        try
+        {
+            Console.WriteLine("Starting application...");
+            Console.WriteLine("Configuring services...");
+            var serviceProvider = ConfigureServices();
+            Console.WriteLine("Services configured successfully.");
 
-        BuildAvaloniaApp(serviceProvider)
-            .StartWithClassicDesktopLifetime(args);
+            // Initialize paths asynchronously and wait for completion
+            try
+            {
+                Console.WriteLine("Initializing application paths...");
+                InitializeApplicationPathsAsync(serviceProvider).Wait();
+                Console.WriteLine("Application paths initialized successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing paths: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                    Console.WriteLine($"Inner stack trace: {ex.InnerException.StackTrace}");
+                }
+                // Continue anyway to show the UI
+            }
+
+            Console.WriteLine("Starting Avalonia UI...");
+            var appBuilder = BuildAvaloniaApp(serviceProvider);
+            Console.WriteLine("Avalonia app builder created successfully.");
+            Console.WriteLine("Starting with classic desktop lifetime...");
+            appBuilder.StartWithClassicDesktopLifetime(args);
+            Console.WriteLine(
+                "Application completed successfully."); // This may not be reached as UI runs on main thread
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fatal error in application: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+
+            // Wait for user input before closing
+            Console.WriteLine("Press any key to exit...");
+            Console.ReadKey();
+        }
     }
 
-    public static AppBuilder BuildAvaloniaApp(IServiceProvider serviceProvider) =>
-        AppBuilder.Configure(() => new App(serviceProvider))
-            .UsePlatformDetect()
-            .WithInterFont()
-            .LogToTrace();
+    private static async System.Threading.Tasks.Task InitializeApplicationPathsAsync(IServiceProvider serviceProvider)
+    {
+        var directoryService = serviceProvider.GetRequiredService<IGameDirectoryService>();
+        await directoryService.InitializePathsAsync();
+    }
+
+    public static AppBuilder BuildAvaloniaApp(IServiceProvider serviceProvider)
+    {
+        try
+        {
+            Console.WriteLine("Building Avalonia app...");
+
+            // Create the App instance with the service provider
+            var app = new App(serviceProvider);
+            Console.WriteLine("App instance created successfully.");
+
+            var builder = AppBuilder.Configure(() => app)
+                .UsePlatformDetect()
+                .WithInterFont()
+                .LogToTrace();
+
+            Console.WriteLine("Avalonia app built successfully.");
+            return builder;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error building Avalonia app: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            throw;
+        }
+    }
 
     private static IServiceProvider ConfigureServices()
     {

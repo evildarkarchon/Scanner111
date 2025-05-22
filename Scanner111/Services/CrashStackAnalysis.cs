@@ -14,21 +14,24 @@ namespace Scanner111.Services
     public class CrashStackAnalysis
     {
         private readonly AppSettings _appSettings;
-        private readonly YamlSettingsCacheService _yamlSettingsCacheService;
+        private readonly IYamlSettingsCacheService _yamlSettingsCacheService;
 
-        public CrashStackAnalysis(AppSettings appSettings, YamlSettingsCacheService yamlSettingsCacheService)
+        public CrashStackAnalysis(AppSettings appSettings, IYamlSettingsCacheService yamlSettingsCacheService)
         {
             _appSettings = appSettings;
             _yamlSettingsCacheService = yamlSettingsCacheService;
-        }        /// <summary>
-                 /// Finds and extracts segments from crash data text and extracts metadata including game version, crash
-                 /// generator version, and main error message. Processes the segments for whitespace trimming and ensures
-                 /// completeness by adding placeholders for missing segments.
-                 /// </summary>
-                 /// <param name="crashData">List of strings representing lines of the crash data</param>
-                 /// <param name="crashgenName">Name of the crash generator to identify in the crash data</param>
-                 /// <returns>A tuple containing game version, crash generator version, main error message, and processed segments</returns>
-        public (string GameVersion, string CrashgenVersion, string MainError, List<List<string>> Segments) FindSegments(List<string> crashData, string? crashgenName)
+        }
+
+        /// <summary>
+        /// Finds and extracts segments from crash data text and extracts metadata including game version, crash
+        /// generator version, and main error message. Processes the segments for whitespace trimming and ensures
+        /// completeness by adding placeholders for missing segments.
+        /// </summary>
+        /// <param name="crashData">List of strings representing lines of the crash data</param>
+        /// <param name="crashgenName">Name of the crash generator to identify in the crash data</param>
+        /// <returns>A tuple containing game version, crash generator version, main error message, and processed segments</returns>
+        public (string GameVersion, string CrashgenVersion, string MainError, List<List<string>> Segments) FindSegments(
+            List<string> crashData, string? crashgenName)
         {
             const string UNKNOWN = "UNKNOWN";
             const string EOF_MARKER = "EOF";
@@ -39,20 +42,21 @@ namespace Scanner111.Services
             // Define segment boundaries
             var segmentBoundaries = new List<(string start, string end)>
             {
-                ("[Compatibility]", "SYSTEM SPECS:"),         // segment_crashgen
-                ("SYSTEM SPECS:", "PROBABLE CALL STACK:"),    // segment_system
-                ("PROBABLE CALL STACK:", "MODULES:"),         // segment_callstack
-                ("MODULES:", $"{xse} PLUGINS:"),              // segment_allmodules
-                ($"{xse} PLUGINS:", "PLUGINS:"),              // segment_xsemodules
-                ("PLUGINS:", EOF_MARKER)                      // segment_plugins
-            };            // Initialize metadata variables
+                ("[Compatibility]", "SYSTEM SPECS:"), // segment_crashgen
+                ("SYSTEM SPECS:", "PROBABLE CALL STACK:"), // segment_system
+                ("PROBABLE CALL STACK:", "MODULES:"), // segment_callstack
+                ("MODULES:", $"{xse} PLUGINS:"), // segment_allmodules
+                ($"{xse} PLUGINS:", "PLUGINS:"), // segment_xsemodules
+                ("PLUGINS:", EOF_MARKER) // segment_plugins
+            }; // Initialize metadata variables
             string? gameVersion = null;
             string? crashgenVersion = null;
-            string? mainError = null;            // Parse segments
+            string? mainError = null; // Parse segments
             var segments = ExtractSegments(crashData, segmentBoundaries, EOF_MARKER);
 
             // Extract metadata from crash data
-            string? gameRootName = _appSettings.GameRootName; foreach (var line in crashData)
+            string? gameRootName = _appSettings.GameRootName;
+            foreach (var line in crashData)
             {
                 if (line != null)
                 {
@@ -69,7 +73,8 @@ namespace Scanner111.Services
                         mainError = line.Replace("|", Environment.NewLine, (StringComparison)1)!;
                     }
                 }
-            }            // Process segments to strip whitespace
+            } // Process segments to strip whitespace
+
             var processedSegments = segments?.Select(segment =>
                 segment.Select(line => line != null ? line.Trim()! : string.Empty).ToList()
             ).ToList() ?? new List<List<string>>();
@@ -83,6 +88,7 @@ namespace Scanner111.Services
                     processedSegments.Add(new List<string>());
                 }
             }
+
             return (
                 GameVersion: gameVersion ?? UNKNOWN,
                 CrashgenVersion: crashgenVersion ?? UNKNOWN,
@@ -98,7 +104,8 @@ namespace Scanner111.Services
         /// <param name="segmentBoundaries">List of tuples with (start_marker, end_marker) for each segment</param>
         /// <param name="eofMarker">The marker used to indicate end of file</param>
         /// <returns>A list of segments where each segment is a list of lines</returns>
-        private List<List<string>> ExtractSegments(List<string> crashData, List<(string start, string end)> segmentBoundaries, string eofMarker)
+        private List<List<string>> ExtractSegments(List<string> crashData,
+            List<(string start, string end)> segmentBoundaries, string eofMarker)
         {
             var segments = new List<List<string>>();
             int totalLines = crashData.Count;
@@ -136,7 +143,9 @@ namespace Scanner111.Services
 
                     // Toggle collection state and update boundary
                     collecting = !collecting;
-                    currentBoundary = collecting ? segmentBoundaries[segmentIndex].end : segmentBoundaries[segmentIndex].start;
+                    currentBoundary = collecting
+                        ? segmentBoundaries[segmentIndex].end
+                        : segmentBoundaries[segmentIndex].start;
 
                     // Handle special cases
                     if (collecting && currentBoundary == eofMarker)
@@ -172,7 +181,8 @@ namespace Scanner111.Services
         /// <param name="callstack">List of callstack strings (should be lowercase)</param>
         /// <param name="crashlogPlugins">Set of lowercase plugin names from the crash log</param>
         /// <returns>A list of LogIssues with plugin matches</returns>
-        public List<LogIssue> PluginMatch(string logFilePath, List<string> callstack, IEnumerable<string> crashlogPlugins, string crashgenName)
+        public List<LogIssue> PluginMatch(string logFilePath, List<string> callstack,
+            IEnumerable<string> crashlogPlugins, string crashgenName)
         {
             var issues = new List<LogIssue>();
             if (callstack == null || !callstack.Any() || crashlogPlugins == null || !crashlogPlugins.Any())
@@ -236,9 +246,12 @@ namespace Scanner111.Services
                 }
 
                 messageBuilder.AppendLine();
-                messageBuilder.AppendLine("[Last number counts how many times each Plugin Suspect shows up in the crash log.]");
-                messageBuilder.AppendLine($"These Plugins were caught by {crashgenName} and some of them might be responsible for this crash.");
-                messageBuilder.AppendLine("You can try disabling these plugins and check if the game still crashes, though this method can be unreliable.");
+                messageBuilder.AppendLine(
+                    "[Last number counts how many times each Plugin Suspect shows up in the crash log.]");
+                messageBuilder.AppendLine(
+                    $"These Plugins were caught by {crashgenName} and some of them might be responsible for this crash.");
+                messageBuilder.AppendLine(
+                    "You can try disabling these plugins and check if the game still crashes, though this method can be unreliable.");
 
                 issues.Add(new LogIssue
                 {
@@ -370,9 +383,12 @@ namespace Scanner111.Services
 
             // Add explanatory notes
             messageBuilder.AppendLine();
-            messageBuilder.AppendLine("[Last number counts how many times each Named Record shows up in the crash log.]");
-            messageBuilder.AppendLine($"These records were caught by {crashgenName} and some of them might be related to this crash.");
-            messageBuilder.AppendLine("Named records should give extra info on involved game objects, record types or mod files.");
+            messageBuilder.AppendLine(
+                "[Last number counts how many times each Named Record shows up in the crash log.]");
+            messageBuilder.AppendLine(
+                $"These records were caught by {crashgenName} and some of them might be related to this crash.");
+            messageBuilder.AppendLine(
+                "Named records should give extra info on involved game objects, record types or mod files.");
 
             return messageBuilder.ToString();
         }
@@ -453,9 +469,12 @@ namespace Scanner111.Services
 
                 // Add explanatory notes
                 messageBuilder.AppendLine();
-                messageBuilder.AppendLine("[Last number counts how many times each Form ID shows up in the crash log.]");
-                messageBuilder.AppendLine($"These Form IDs were caught by {crashgenName} and some of them might be related to this crash.");
-                messageBuilder.AppendLine("You can try searching any listed Form IDs in xEdit and see if they lead to relevant records.");
+                messageBuilder.AppendLine(
+                    "[Last number counts how many times each Form ID shows up in the crash log.]");
+                messageBuilder.AppendLine(
+                    $"These Form IDs were caught by {crashgenName} and some of them might be related to this crash.");
+                messageBuilder.AppendLine(
+                    "You can try searching any listed Form IDs in xEdit and see if they lead to relevant records.");
 
                 issues.Add(new LogIssue
                 {
@@ -472,3 +491,4 @@ namespace Scanner111.Services
         }
     }
 }
+

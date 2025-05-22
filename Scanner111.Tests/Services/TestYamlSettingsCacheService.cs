@@ -30,10 +30,11 @@ namespace Scanner111.Tests.Services
             return defaultValue;
         }
 
-        public T? GetSetting<T>(YamlStoreType storeType, string path)
+        public void SetSetting<T>(YAML yamlType, string path, T value)
         {
-            // Simplified implementation for tests
-            return default;
+            // Store the test value
+            string key = $"{yamlType}_{path}";
+            _testValues[key] = value;
         }
     }
 }

@@ -25,7 +25,7 @@ This document outlines the tasks required to port the CLASSIC application from P
 3.  **UI Implementation (Views & ViewModels):**
     *   Design the main window View (`MainWindow.axaml`) based on the structure in CLASSIC_Interface.py, including tabs for main functions and backups. This new UI will be based on modern UI principles and Avalonia's capabilities.
     *   Implement the main window layout using Avalonia's XAML syntax, ensuring it is responsive and user-friendly.
-    *   --Create a `MainWindowViewModel.cs` to handle the logic and data for the main window.--
+    *   ~~Create a `MainWindowViewModel.cs` to handle the logic and data for the main window.~~
     *   **Main Tab:**
         *   Implement ViewModels and View components for folder selection sections (INI, Mods, Custom Scan Path) with "Browse" functionality.
         *   Implement ViewModels and View components for the main action buttons ("SCAN CRASH LOGS", "SCAN GAME FILES").
@@ -43,7 +43,6 @@ This document outlines the tasks required to port the CLASSIC application from P
         *   Create an "About" dialog View and ViewModel.
         *   Implement a "Help" popup mechanism.
         *   Use Avalonia's built-in dialogs or create custom ones for file/folder selection and message boxes/notifications (e.g., for update results, errors).
-    *   Port UI styling from Python/Qt to Avalonia XAML styles. Refer to StyleSheets.py and inline styles in CLASSIC_Interface.py.
 
 4.  **MVVM Implementation:**
     *   Use data binding extensively between Views and ViewModels.

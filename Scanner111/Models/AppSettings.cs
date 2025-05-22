@@ -41,7 +41,10 @@ namespace Scanner111.Models
 
         // Crash log formatting settings
         public bool SimplifyLogs { get; set; } = true;
-        public List<string> SimplifyRemoveStrings { get; set; } = new List<string> { "Steam.dll", "nvwgf2umx.dll", "KERNELBASE.dll", "ntdll.dll" };
+
+        public List<string> SimplifyRemoveStrings { get; set; } = new List<string>
+            { "Steam.dll", "nvwgf2umx.dll", "KERNELBASE.dll", "ntdll.dll" };
+
         public List<string> LastProcessingErrors { get; set; } = new List<string>();
         public bool PreserveOriginalFiles { get; set; } = true; // Create backup of original files
         public bool AutoDetectCrashLogs { get; set; } = true; // Attempt to validate if files are crash logs
@@ -50,12 +53,20 @@ namespace Scanner111.Models
         public string YamlGameDatabasePath { get; set; } = "CLASSIC Fallout4.yaml";
         public YAML ActiveGameYaml { get; set; } = YAML.Game;
 
+        // Paths for YAML stores
+        public string YamlMainPath { get; set; } = Path.Combine("CLASSIC Data", "databases", "CLASSIC Main.yaml");
+        public string YamlSettingsPath { get; set; } = "CLASSIC Settings.yaml";
+        public string YamlIgnorePath { get; set; } = "CLASSIC Ignore.yaml";
+        public string YamlGamePath { get; set; } = Path.Combine("CLASSIC Data", "databases", "CLASSIC Fallout4.yaml");
+        public string YamlGameLocalPath { get; set; } = Path.Combine("CLASSIC Data", "CLASSIC Fallout4 Local.yaml");
+        public string YamlTestPath { get; set; } = Path.Combine("tests", "test_settings.yaml");
+
         // Script Extender information
-        public string XSEAcronym { get; set; } = "F4SE";
-        public string XSEFullName { get; set; } = "Fallout 4 Script Extender";
-        public string XSELatestVersion { get; set; } = "0.6.23";
-        public string XSELatestVersionNG { get; set; } = "0.7.2";
-        public int XSEFileCount { get; set; } = 29;
+        public string XseAcronym { get; set; } = "F4SE";
+        public string XseFullName { get; set; } = "Fallout 4 Script Extender";
+        public string XseLatestVersion { get; set; } = "0.6.23";
+        public string XseLatestVersionNg { get; set; } = "0.7.2";
+        public int XseFileCount { get; set; } = 29;
 
         // Game version information
         public string GameVersion { get; set; } = "1.10.163";
@@ -78,10 +89,10 @@ namespace Scanner111.Models
                     CrashGeneratorName = "Buffout 4";
                     YamlGameDatabasePath = "CLASSIC Fallout4.yaml";
                     ActiveGameYaml = YAML.Game;
-                    XSEAcronym = "F4SE";
-                    XSEFullName = "Fallout 4 Script Extender";
-                    XSELatestVersion = "0.6.23";
-                    XSELatestVersionNG = "0.7.2";
+                    XseAcronym = "F4SE";
+                    XseFullName = "Fallout 4 Script Extender";
+                    XseLatestVersion = "0.6.23";
+                    XseLatestVersionNg = "0.7.2";
                     GameVersion = "1.10.163";
                     GameVersionNew = "1.10.984";
                     GameSteamId = "377160";
@@ -93,9 +104,9 @@ namespace Scanner111.Models
                     CrashGeneratorName = "Buffout 4";
                     YamlGameDatabasePath = "CLASSIC Fallout4VR.yaml";
                     ActiveGameYaml = YAML.Game;
-                    XSEAcronym = "F4SE";
-                    XSEFullName = "Fallout 4 Script Extender VR";
-                    XSELatestVersion = "0.6.20";
+                    XseAcronym = "F4SE";
+                    XseFullName = "Fallout 4 Script Extender VR";
+                    XseLatestVersion = "0.6.20";
                     GameVersion = "1.2.72";
                     GameSteamId = "611660";
                     break;
@@ -106,14 +117,12 @@ namespace Scanner111.Models
                     CrashGeneratorName = "Crash Logger";
                     YamlGameDatabasePath = "CLASSIC SkyrimSE.yaml";
                     ActiveGameYaml = YAML.Game;
-                    XSEAcronym = "SKSE";
-                    XSEFullName = "Skyrim Script Extender";
-                    XSELatestVersion = "2.2.3";
+                    XseAcronym = "SKSE";
+                    XseFullName = "Skyrim Script Extender";
+                    XseLatestVersion = "2.2.3";
                     GameVersion = "1.6.640";
                     GameSteamId = "489830";
                     break;
-
-                // Add more games as needed
 
                 default:
                     // Keep current settings if the game isn't recognized

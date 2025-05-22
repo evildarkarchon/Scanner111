@@ -13,9 +13,9 @@ namespace Scanner111.Services
     /// </summary>
     public class CheckCrashgenSettingsService : ICheckCrashgenSettingsService
     {
-        private readonly YamlSettingsCacheService _yamlSettingsCache;
+        private readonly IYamlSettingsCacheService _yamlSettingsCache;
 
-        public CheckCrashgenSettingsService(YamlSettingsCacheService yamlSettingsCache)
+        public CheckCrashgenSettingsService(IYamlSettingsCacheService yamlSettingsCache)
         {
             _yamlSettingsCache = yamlSettingsCache ?? throw new ArgumentNullException(nameof(yamlSettingsCache));
         }
@@ -105,7 +105,8 @@ namespace Scanner111.Services
                 var trimmedLine = line.Trim();
 
                 // Skip comments and empty lines
-                if (string.IsNullOrWhiteSpace(trimmedLine) || trimmedLine.StartsWith("#") || trimmedLine.StartsWith(";"))
+                if (string.IsNullOrWhiteSpace(trimmedLine) || trimmedLine.StartsWith("#") ||
+                    trimmedLine.StartsWith(";"))
                 {
                     continue;
                 }
@@ -142,16 +143,16 @@ namespace Scanner111.Services
             var recommended = new Dictionary<string, (string Value, string Reason)>
             {
                 // Critical settings for crash logging
-                {"Fixes.MemoryManager", ("true", "Required for proper crash logging")},
-                {"Fixes.ActorIsHostileToActor", ("true", "Prevents common crash")},
-                {"Fixes.Achievements", ("true", "Recommended for mod compatibility")},
-                {"Fixes.BSMTAManager", ("true", "Improves game stability")},
-                
+                { "Fixes.MemoryManager", ("true", "Required for proper crash logging") },
+                { "Fixes.ActorIsHostileToActor", ("true", "Prevents common crash") },
+                { "Fixes.Achievements", ("true", "Recommended for mod compatibility") },
+                { "Fixes.BSMTAManager", ("true", "Improves game stability") },
+
                 // Recommended for crash logging
-                {"Logging.ModNames", ("true", "Helps identify problematic mods in crash logs")},
-                {"Logging.Plugins", ("true", "Essential for crash diagnostics")},
-                {"Logging.Crashes", ("true", "Required for generating useful crash logs")},
-                {"Logging.StockGames", ("true", "Provides better crash logs")}
+                { "Logging.ModNames", ("true", "Helps identify problematic mods in crash logs") },
+                { "Logging.Plugins", ("true", "Essential for crash diagnostics") },
+                { "Logging.Crashes", ("true", "Required for generating useful crash logs") },
+                { "Logging.StockGames", ("true", "Provides better crash logs") }
             };
 
             foreach (var (key, (recommendedValue, reason)) in recommended)
@@ -183,9 +184,9 @@ namespace Scanner111.Services
         {
             var recommended = new Dictionary<string, (string Value, string Reason)>
             {
-                {"Settings.EnableCrashLogger", ("true", "Required for crash logging")},
-                {"Settings.IncludePluginsList", ("true", "Helps identify problematic plugins in crash logs")},
-                {"Settings.DumpModList", ("true", "Helps identify problematic mods in crash logs")}
+                { "Settings.EnableCrashLogger", ("true", "Required for crash logging") },
+                { "Settings.IncludePluginsList", ("true", "Helps identify problematic plugins in crash logs") },
+                { "Settings.DumpModList", ("true", "Helps identify problematic mods in crash logs") }
             };
 
             foreach (var (key, (recommendedValue, reason)) in recommended)
@@ -217,10 +218,10 @@ namespace Scanner111.Services
         {
             var recommended = new Dictionary<string, (string Value, string Reason)>
             {
-                {"Patches.EnableMemoryManager", ("true", "Improves game stability")},
-                {"Patches.SaveGameMaxSize", ("true", "Prevents save corruption")},
-                {"Fixes.MemoryAccessErrors", ("true", "Prevents common crashes")},
-                {"Fixes.RegularQuickSaves", ("true", "Prevents save corruption")}
+                { "Patches.EnableMemoryManager", ("true", "Improves game stability") },
+                { "Patches.SaveGameMaxSize", ("true", "Prevents save corruption") },
+                { "Fixes.MemoryAccessErrors", ("true", "Prevents common crashes") },
+                { "Fixes.RegularQuickSaves", ("true", "Prevents save corruption") }
             };
 
             foreach (var (key, (recommendedValue, reason)) in recommended)
@@ -252,27 +253,13 @@ namespace Scanner111.Services
         {
             try
             {
-                var storeType = YamlTypeToStoreType(yamlType);
-                return _yamlSettingsCache.GetSetting<T>(storeType, key);
+                return _yamlSettingsCache.GetSetting<T>(yamlType, key);
             }
             catch
             {
                 return null; // CS8603
             }
         }
-
-        /// <summary>
-        /// Maps YAML enum to YamlStoreType enum
-        /// </summary>
-        private YamlStoreType YamlTypeToStoreType(YAML yamlType)
-        {
-            return yamlType switch
-            {
-                YAML.Main => YamlStoreType.Main,
-                YAML.Game => YamlStoreType.Game,
-                YAML.Game_Local => YamlStoreType.GameLocal,
-                _ => YamlStoreType.Main // Default case
-            };
-        }
     }
 }
+

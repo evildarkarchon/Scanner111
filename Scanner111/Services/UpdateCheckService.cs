@@ -15,11 +15,11 @@ namespace Scanner111.Services
     /// <summary>
     /// Service for checking if Scanner111 is up to date by comparing
     /// local version with remote versions from GitHub and/or Nexus.
-    /// </summary>
+    /// </summary>    
     public class UpdateCheckService : IUpdateCheckService
     {
         private readonly ILogger<UpdateCheckService>? _logger;
-        private readonly YamlSettingsCacheService _yamlSettingsCache;
+        private readonly IYamlSettingsCacheService _yamlSettingsCache;
         private readonly AppSettings _appSettings;
 
         // Constants for GitHub and Nexus
@@ -32,7 +32,7 @@ namespace Scanner111.Services
         /// <param name="appSettings">Application settings.</param>
         /// <param name="logger">Optional logger.</param>
         public UpdateCheckService(
-            YamlSettingsCacheService yamlSettingsCache,
+            IYamlSettingsCacheService yamlSettingsCache,
             AppSettings appSettings,
             ILogger<UpdateCheckService>? logger = null)
         {
@@ -57,10 +57,12 @@ namespace Scanner111.Services
             try
             {
                 // Remove a leading 'v' if present
-                if (potentialVersionPart.StartsWith("v", StringComparison.OrdinalIgnoreCase) && potentialVersionPart.Length > 1)
+                if (potentialVersionPart.StartsWith("v", StringComparison.OrdinalIgnoreCase) &&
+                    potentialVersionPart.Length > 1)
                 {
                     return new Version(potentialVersionPart.Substring(1));
                 }
+
                 return new Version(potentialVersionPart);
             }
             catch (ArgumentException)
@@ -75,6 +77,7 @@ namespace Scanner111.Services
                     {
                         return new Version(versionStr.Substring(1));
                     }
+
                     return new Version(versionStr);
                 }
                 catch (Exception ex) when (ex is ArgumentException || ex is FormatException || ex is OverflowException)
@@ -83,14 +86,17 @@ namespace Scanner111.Services
                     return null;
                 }
             }
-        }        /// <summary>
-                 /// Gets the latest stable release version from GitHub API.
-                 /// </summary>
-                 /// <param name="client">HTTP client for making requests.</param>
-                 /// <param name="owner">Repository owner/organization name.</param>
-                 /// <param name="repo">Repository name.</param>
-                 /// <returns>Latest stable version or null.</returns>
-        private async Task<Version?> GetGithubLatestStableVersionFromEndpointAsync(HttpClient client, string owner, string repo)
+        }
+
+        /// <summary>
+        /// Gets the latest stable release version from GitHub API.
+        /// </summary>
+        /// <param name="client">HTTP client for making requests.</param>
+        /// <param name="owner">Repository owner/organization name.</param>
+        /// <param name="repo">Repository name.</param>
+        /// <returns>Latest stable version or null.</returns>
+        private async Task<Version?> GetGithubLatestStableVersionFromEndpointAsync(HttpClient client, string owner,
+            string repo)
         {
             string url = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
             try
@@ -139,7 +145,8 @@ namespace Scanner111.Services
         /// <param name="owner">Repository owner/organization name.</param>
         /// <param name="repo">Repository name.</param>
         /// <returns>Latest prerelease version or null.</returns>
-        private async Task<Version?> GetGithubLatestPrereleaseVersionFromListAsync(HttpClient client, string owner, string repo)
+        private async Task<Version?> GetGithubLatestPrereleaseVersionFromListAsync(HttpClient client, string owner,
+            string repo)
         {
             string url = $"https://api.github.com/repos/{owner}/{repo}/releases";
             try
@@ -194,7 +201,9 @@ namespace Scanner111.Services
         /// <param name="owner">Repository owner/organization name.</param>
         /// <param name="repo">Repository name.</param>
         /// <returns>Dictionary with release details or null.</returns>
-        private async Task<Dictionary<string, object?>?> GetLatestAndTopReleaseDetailsAsync(HttpClient client, string owner, string repo)
+        private async Task<Dictionary<string, object?>?> GetLatestAndTopReleaseDetailsAsync(HttpClient client,
+            string owner,
+            string repo)
         {
             string latestUrl = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
             string allReleasesUrl = $"https://api.github.com/repos/{owner}/{repo}/releases";
@@ -308,6 +317,7 @@ namespace Scanner111.Services
                 {
                     results["are_same_release_by_id"] = false; // Or handle as appropriate if one or both are null
                 }
+
                 return results;
             }
             catch (HttpRequestException ex)
@@ -363,7 +373,8 @@ namespace Scanner111.Services
 
                 // Look for the next meta tag with version data
                 // Corrected: Use the variable versionDataProperty
-                var versionDataTag = htmlDoc.DocumentNode.SelectSingleNode($"//meta[@property='{versionDataProperty}']");
+                var versionDataTag =
+                    htmlDoc.DocumentNode.SelectSingleNode($"//meta[@property='{versionDataProperty}']");
 
                 if (versionDataTag == null) // This was line 366 in the error report
                 {
@@ -413,16 +424,21 @@ namespace Scanner111.Services
         /// <returns>True if the installed version is the latest; False otherwise.</returns>
         public async Task<bool> IsLatestVersionAsync(bool quiet = false, bool guiRequest = true)
         {
-            void CheckSourceFailuresAndRaise(bool useGithub, bool useNexus, bool githubFetchFailed, bool nexusFetchFailed)
+            void CheckSourceFailuresAndRaise(bool useGithub, bool useNexus, bool githubFetchFailed,
+                bool nexusFetchFailed)
             {
                 if (useGithub && !useNexus && githubFetchFailed)
                 {
-                    throw new UpdateCheckException("Unable to fetch version information from GitHub (selected as only source).");
+                    throw new UpdateCheckException(
+                        "Unable to fetch version information from GitHub (selected as only source).");
                 }
+
                 if (useNexus && !useGithub && nexusFetchFailed)
                 {
-                    throw new UpdateCheckException("Unable to fetch version information from Nexus (selected as only source).");
+                    throw new UpdateCheckException(
+                        "Unable to fetch version information from Nexus (selected as only source).");
                 }
+
                 if (useGithub && useNexus && githubFetchFailed && nexusFetchFailed)
                 {
                     throw new UpdateCheckException("Unable to fetch version information from both GitHub and Nexus.");
@@ -441,8 +457,10 @@ namespace Scanner111.Services
                 if (!quiet)
                 {
                     Console.WriteLine("\n❌ NOTICE: UPDATE CHECK IS DISABLED IN SETTINGS \n");
-                    Console.WriteLine("\n===============================================================================");
+                    Console.WriteLine(
+                        "\n===============================================================================");
                 }
+
                 return false; // False because it's not the "latest" if checks are off
             }
 
@@ -453,10 +471,13 @@ namespace Scanner111.Services
                 if (!quiet)
                 {
                     Console.WriteLine("\n❌ NOTICE: INVALID VALUE FOR UPDATE SOURCE IN SETTINGS \n");
-                    Console.WriteLine("\n===============================================================================");
+                    Console.WriteLine(
+                        "\n===============================================================================");
                 }
+
                 return false; // Invalid source, cannot determine if latest
-            }            // Get local version
+            } // Get local version
+
             string? localVersionStr = GetSetting<string>(YAML.Main, "Scanner111_Info.version");
 
             // Parse local version string (e.g., "Scanner111 v1.0.0" -> "1.0.0")
@@ -480,7 +501,7 @@ namespace Scanner111.Services
 
             bool useGithub = updateSource == "Both" || updateSource == "GitHub";
             bool useNexus = (updateSource == "Both" || updateSource == "Nexus") &&
-                           !(GetSetting<bool?>(YAML.Main, "Scanner111_Info.is_prerelease") == true);
+                            !(GetSetting<bool?>(YAML.Main, "Scanner111_Info.is_prerelease") == true);
 
             Version? githubVersionToCompare = null;
             Version? nexusVersionToCompare = null;
@@ -502,15 +523,19 @@ namespace Scanner111.Services
                             var candidateStableVersions = new List<Version>();
 
                             if (latestEpInfo != null &&
-                                latestEpInfo.TryGetValue("version", out var latestVersionObj) && latestVersionObj is Version latestVersion &&
-                                latestEpInfo.TryGetValue("prerelease", out var latestIsPrereleaseObj) && latestIsPrereleaseObj is bool latestIsPrerelease && !latestIsPrerelease)
+                                latestEpInfo.TryGetValue("version", out var latestVersionObj) &&
+                                latestVersionObj is Version latestVersion &&
+                                latestEpInfo.TryGetValue("prerelease", out var latestIsPrereleaseObj) &&
+                                latestIsPrereleaseObj is bool latestIsPrerelease && !latestIsPrerelease)
                             {
                                 candidateStableVersions.Add(latestVersion);
                             }
 
                             if (topListInfo != null &&
-                                topListInfo.TryGetValue("version", out var topVersionObj) && topVersionObj is Version topVersion &&
-                                topListInfo.TryGetValue("prerelease", out var topIsPrereleaseObj) && topIsPrereleaseObj is bool topIsPrerelease && !topIsPrerelease)
+                                topListInfo.TryGetValue("version", out var topVersionObj) &&
+                                topVersionObj is Version topVersion &&
+                                topListInfo.TryGetValue("prerelease", out var topIsPrereleaseObj) &&
+                                topIsPrereleaseObj is bool topIsPrerelease && !topIsPrerelease)
                             {
                                 candidateStableVersions.Add(topVersion);
                             }
@@ -518,7 +543,8 @@ namespace Scanner111.Services
                             if (candidateStableVersions.Count > 0)
                             {
                                 githubVersionToCompare = candidateStableVersions.Max();
-                                _logger?.LogInformation($"Determined latest stable GitHub version: {githubVersionToCompare}");
+                                _logger?.LogInformation(
+                                    $"Determined latest stable GitHub version: {githubVersionToCompare}");
                             }
                         }
                     }
@@ -557,6 +583,7 @@ namespace Scanner111.Services
                 {
                     throw new UpdateCheckException(ex.Message, ex);
                 }
+
                 return false;
             }
             catch (UpdateCheckException) // Keep ex if needed for logging or re-throwing with more context
@@ -566,6 +593,7 @@ namespace Scanner111.Services
                 {
                     throw;
                 }
+
                 return false;
             }
             catch (Exception ex)
@@ -575,6 +603,7 @@ namespace Scanner111.Services
                 {
                     throw new UpdateCheckException($"An unexpected error occurred: {ex.Message}", ex);
                 }
+
                 return false;
             }
 
@@ -593,13 +622,15 @@ namespace Scanner111.Services
             {
                 if (githubVersionToCompare != null && localVersion < githubVersionToCompare)
                 {
-                    _logger?.LogInformation($"Local version {localVersion} is older than GitHub version {githubVersionToCompare}.");
+                    _logger?.LogInformation(
+                        $"Local version {localVersion} is older than GitHub version {githubVersionToCompare}.");
                     isOutdated = true;
                 }
 
                 if (!isOutdated && nexusVersionToCompare != null && localVersion < nexusVersionToCompare)
                 {
-                    _logger?.LogInformation($"Local version {localVersion} is older than Nexus version {nexusVersionToCompare}.");
+                    _logger?.LogInformation(
+                        $"Local version {localVersion} is older than Nexus version {nexusVersionToCompare}.");
                     isOutdated = true;
                 }
             }
@@ -609,7 +640,7 @@ namespace Scanner111.Services
                 if (!quiet)
                 {
                     string warningMsg = GetSetting<string>(YAML.Main, "Scanner111_Interface.update_warning") ??
-                        "A new version of Scanner111 is available. Please update to the latest version.";
+                                        "A new version of Scanner111 is available. Please update to the latest version.";
                     Console.WriteLine(warningMsg);
                 }
 
@@ -618,6 +649,7 @@ namespace Scanner111.Services
                     // GUI catches this to indicate an update is available.
                     throw new UpdateCheckException("A new version is available.");
                 }
+
                 return false; // Outdated
             }
 
@@ -650,32 +682,18 @@ namespace Scanner111.Services
             }
 
             return true;
-        }        // Helper method to get settings from the YAML cache
+        } // Helper method to get settings from the YAML cache
+
         private T? GetSetting<T>(YAML yamlType, string key)
         {
             try
             {
-                var storeType = YamlTypeToStoreType(yamlType);
-                return _yamlSettingsCache.GetSetting<T>(storeType, key);
+                return _yamlSettingsCache.GetSetting<T>(yamlType, key);
             }
             catch
             {
                 return default;
             }
-        }
-
-        // Maps YAML enum to YamlStoreType enum
-        private YamlStoreType YamlTypeToStoreType(YAML yamlType)
-        {
-            return yamlType switch
-            {
-                YAML.Main => YamlStoreType.Main,
-                YAML.Settings => YamlStoreType.Settings,
-                YAML.Ignore => YamlStoreType.Ignore,
-                YAML.Game => YamlStoreType.Game,
-                YAML.Game_Local => YamlStoreType.GameLocal,
-                _ => YamlStoreType.Main // Default case
-            };
         }
     }
 
@@ -684,7 +702,13 @@ namespace Scanner111.Services
     /// </summary>
     public class UpdateCheckException : Exception
     {
-        public UpdateCheckException(string message) : base(message) { }
-        public UpdateCheckException(string message, Exception innerException) : base(message, innerException) { }
+        public UpdateCheckException(string message) : base(message)
+        {
+        }
+
+        public UpdateCheckException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
     }
 }
+

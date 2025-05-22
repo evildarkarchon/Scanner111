@@ -14,10 +14,10 @@ namespace Scanner111.Services
     /// </summary>
     public class ScanModInisService : IScanModInisService
     {
-        private readonly YamlSettingsCacheService _yamlSettingsCache;
+        private readonly IYamlSettingsCacheService _yamlSettingsCache;
         private readonly bool _testMode;
 
-        public ScanModInisService(YamlSettingsCacheService yamlSettingsCache, bool testMode = false)
+        public ScanModInisService(IYamlSettingsCacheService yamlSettingsCache, bool testMode = false)
         {
             _yamlSettingsCache = yamlSettingsCache ?? throw new ArgumentNullException(nameof(yamlSettingsCache));
             _testMode = testMode;
@@ -40,7 +40,8 @@ namespace Scanner111.Services
             }
 
             // Get scan configuration
-            var problematicSettings = GetSettingAsList<Dictionary<string, string>>(YAML.Main, "problematic_ini_settings");
+            var problematicSettings =
+                GetSettingAsList<Dictionary<string, string>>(YAML.Main, "problematic_ini_settings");
             var excludedInis = GetSettingAsList<string>(YAML.Main, "exclude_inis");
 
             if (problematicSettings.Count == 0)
@@ -148,7 +149,8 @@ namespace Scanner111.Services
         /// <summary>
         /// Scans a single INI file for problematic settings
         /// </summary>
-        private async Task<List<IniIssue>> ScanIniFileAsync(string iniPath, List<Dictionary<string, string>> problematicSettings)
+        private async Task<List<IniIssue>> ScanIniFileAsync(string iniPath,
+            List<Dictionary<string, string>> problematicSettings)
         {
             var issues = new List<IniIssue>();
 
@@ -233,8 +235,7 @@ namespace Scanner111.Services
         {
             try
             {
-                var storeType = YamlTypeToStoreType(yamlType);
-                return _yamlSettingsCache.GetSetting<T>(storeType, key);
+                return _yamlSettingsCache.GetSetting<T>(yamlType, key);
             }
             catch
             {
@@ -249,8 +250,7 @@ namespace Scanner111.Services
         {
             try
             {
-                var storeType = YamlTypeToStoreType(yamlType);
-                var setting = _yamlSettingsCache.GetSetting<List<T>>(storeType, key);
+                var setting = _yamlSettingsCache.GetSetting<List<T>>(yamlType, key);
                 return setting ?? new List<T>();
             }
             catch
@@ -258,19 +258,6 @@ namespace Scanner111.Services
                 return new List<T>();
             }
         }
-
-        /// <summary>
-        /// Maps YAML enum to YamlStoreType enum
-        /// </summary>
-        private YamlStoreType YamlTypeToStoreType(YAML yamlType)
-        {
-            return yamlType switch
-            {
-                YAML.Main => YamlStoreType.Main,
-                YAML.Game => YamlStoreType.Game,
-                YAML.Game_Local => YamlStoreType.GameLocal,
-                _ => YamlStoreType.Main // Default case
-            };
-        }
     }
 }
+

@@ -14,11 +14,11 @@ namespace Scanner111.Services
     public class CrashReportGenerator
     {
         private readonly AppSettings _appSettings;
-        private readonly YamlSettingsCacheService _yamlSettingsCache;
+        private readonly IYamlSettingsCacheService _yamlSettingsCache;
 
         public CrashReportGenerator(
             AppSettings appSettings,
-            YamlSettingsCacheService yamlSettingsCache)
+            IYamlSettingsCacheService yamlSettingsCache)
         {
             _appSettings = appSettings;
             _yamlSettingsCache = yamlSettingsCache;
@@ -63,6 +63,7 @@ namespace Scanner111.Services
                 {
                     AppendIssue(reportBuilder, issue);
                 }
+
                 reportBuilder.AppendLine();
             }
 
@@ -76,6 +77,7 @@ namespace Scanner111.Services
                 {
                     AppendIssue(reportBuilder, issue);
                 }
+
                 reportBuilder.AppendLine();
             }
 
@@ -89,6 +91,7 @@ namespace Scanner111.Services
                 {
                     AppendIssue(reportBuilder, issue);
                 }
+
                 reportBuilder.AppendLine();
             }
 
@@ -102,6 +105,7 @@ namespace Scanner111.Services
                 {
                     AppendIssue(reportBuilder, issue);
                 }
+
                 reportBuilder.AppendLine();
             }
 
@@ -149,16 +153,9 @@ namespace Scanner111.Services
         {
             try
             {
-                var gameYamlNode = _yamlSettingsCache.GetYamlNode(YAML.Game);
-                if (gameYamlNode == null)
-                    return string.Empty;
+                // Use the GetSetting method from IYamlSettingsCacheService
+                var hints = _yamlSettingsCache.GetSetting<List<string>>(YAML.Game, "Game_Hints", null);
 
-                var hintsNode = _yamlSettingsCache.GetNodeByPath(gameYamlNode, "Game_Hints");
-                if (hintsNode == null)
-                    return string.Empty;
-
-                // Convert the YAML node to a list of hints
-                var hints = _yamlSettingsCache.GetChildrenAsList(hintsNode);
                 if (hints == null || !hints.Any())
                     return string.Empty;
 
@@ -224,7 +221,8 @@ namespace Scanner111.Services
                 {
                     string baseFilename = Path.GetFileNameWithoutExtension(filename);
                     string extension = Path.GetExtension(filename);
-                    unsolvedFilePath = Path.Combine(unsolvedDirectory, $"{baseFilename}_{DateTime.Now:yyyyMMdd_HHmmss}{extension}");
+                    unsolvedFilePath = Path.Combine(unsolvedDirectory,
+                        $"{baseFilename}_{DateTime.Now:yyyyMMdd_HHmmss}{extension}");
                 }
 
                 // Move the file
@@ -238,3 +236,4 @@ namespace Scanner111.Services
         }
     }
 }
+

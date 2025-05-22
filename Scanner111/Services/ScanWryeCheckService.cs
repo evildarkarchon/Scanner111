@@ -14,10 +14,10 @@ namespace Scanner111.Services
     /// </summary>
     public class ScanWryeCheckService : IScanWryeCheckService
     {
-        private readonly YamlSettingsCacheService _yamlSettingsCache;
+        private readonly IYamlSettingsCacheService _yamlSettingsCache;
         private readonly bool _testMode;
 
-        public ScanWryeCheckService(YamlSettingsCacheService yamlSettingsCache, bool testMode = false)
+        public ScanWryeCheckService(IYamlSettingsCacheService yamlSettingsCache, bool testMode = false)
         {
             _yamlSettingsCache = yamlSettingsCache ?? throw new ArgumentNullException(nameof(yamlSettingsCache));
             _testMode = testMode;
@@ -70,7 +70,8 @@ namespace Scanner111.Services
             }
             else
             {
-                results.AppendLine($"Found {reportIssues.Count} issues in Wrye Bash report: {Path.GetFileName(reportFile)}\n");
+                results.AppendLine(
+                    $"Found {reportIssues.Count} issues in Wrye Bash report: {Path.GetFileName(reportFile)}\n");
 
                 foreach (var issue in reportIssues)
                 {
@@ -309,27 +310,13 @@ namespace Scanner111.Services
         {
             try
             {
-                var storeType = YamlTypeToStoreType(yamlType);
-                return _yamlSettingsCache.GetSetting<T>(storeType, key);
+                return _yamlSettingsCache.GetSetting<T>(yamlType, key);
             }
             catch
             {
                 return null;
             }
         }
-
-        /// <summary>
-        /// Maps YAML enum to YamlStoreType enum
-        /// </summary>
-        private YamlStoreType YamlTypeToStoreType(YAML yamlType)
-        {
-            return yamlType switch
-            {
-                YAML.Main => YamlStoreType.Main,
-                YAML.Game => YamlStoreType.Game,
-                YAML.Game_Local => YamlStoreType.GameLocal,
-                _ => YamlStoreType.Main // Default case
-            };
-        }
     }
 }
+

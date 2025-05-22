@@ -13,7 +13,7 @@ namespace Scanner111.Services
     /// </summary>
     public class GameFileManagementService : IGameFileManagementService
     {
-        private readonly YamlSettingsCacheService _yamlSettingsCache;
+        private readonly IYamlSettingsCacheService _yamlSettingsCache;
         private readonly ILogErrorCheckService _logErrorCheckService;
         private readonly IModScanningService _modScanningService;
         private readonly ICheckCrashgenSettingsService _checkCrashgenSettingsService;
@@ -23,7 +23,7 @@ namespace Scanner111.Services
         private readonly bool _testMode;
 
         public GameFileManagementService(
-            YamlSettingsCacheService yamlSettingsCache,
+            IYamlSettingsCacheService yamlSettingsCache,
             ILogErrorCheckService logErrorCheckService,
             IModScanningService modScanningService,
             ICheckCrashgenSettingsService checkCrashgenSettingsService,
@@ -33,12 +33,16 @@ namespace Scanner111.Services
             bool testMode = false)
         {
             _yamlSettingsCache = yamlSettingsCache ?? throw new ArgumentNullException(nameof(yamlSettingsCache));
-            _logErrorCheckService = logErrorCheckService ?? throw new ArgumentNullException(nameof(logErrorCheckService));
+            _logErrorCheckService =
+                logErrorCheckService ?? throw new ArgumentNullException(nameof(logErrorCheckService));
             _modScanningService = modScanningService ?? throw new ArgumentNullException(nameof(modScanningService));
-            _checkCrashgenSettingsService = checkCrashgenSettingsService ?? throw new ArgumentNullException(nameof(checkCrashgenSettingsService));
-            _checkXsePluginsService = checkXsePluginsService ?? throw new ArgumentNullException(nameof(checkXsePluginsService));
+            _checkCrashgenSettingsService = checkCrashgenSettingsService ??
+                                            throw new ArgumentNullException(nameof(checkCrashgenSettingsService));
+            _checkXsePluginsService =
+                checkXsePluginsService ?? throw new ArgumentNullException(nameof(checkXsePluginsService));
             _scanModInisService = scanModInisService ?? throw new ArgumentNullException(nameof(scanModInisService));
-            _scanWryeCheckService = scanWryeCheckService ?? throw new ArgumentNullException(nameof(scanWryeCheckService));
+            _scanWryeCheckService =
+                scanWryeCheckService ?? throw new ArgumentNullException(nameof(scanWryeCheckService));
             _testMode = testMode;
         }
 
@@ -102,6 +106,7 @@ namespace Scanner111.Services
                                 {
                                     File.Copy(sourcePath, backupPath, true);
                                 }
+
                                 successCount++;
                                 break;
 
@@ -110,6 +115,7 @@ namespace Scanner111.Services
                                 {
                                     File.Copy(backupPath, sourcePath, true);
                                 }
+
                                 successCount++;
                                 break;
 
@@ -118,6 +124,7 @@ namespace Scanner111.Services
                                 {
                                     File.Delete(sourcePath);
                                 }
+
                                 successCount++;
                                 break;
 
@@ -233,8 +240,7 @@ namespace Scanner111.Services
         {
             try
             {
-                var storeType = YamlTypeToStoreType(yamlType);
-                return _yamlSettingsCache.GetSetting<T>(storeType, key);
+                return _yamlSettingsCache.GetSetting<T>(yamlType, key);
             }
             catch
             {
@@ -249,8 +255,7 @@ namespace Scanner111.Services
         {
             try
             {
-                var storeType = YamlTypeToStoreType(yamlType);
-                var setting = _yamlSettingsCache.GetSetting<List<T>>(storeType, key);
+                var setting = _yamlSettingsCache.GetSetting<List<T>>(yamlType, key);
                 return setting ?? new List<T>();
             }
             catch
@@ -258,19 +263,6 @@ namespace Scanner111.Services
                 return new List<T>();
             }
         }
-
-        /// <summary>
-        /// Maps YAML enum to YamlStoreType enum
-        /// </summary>
-        private YamlStoreType YamlTypeToStoreType(YAML yamlType)
-        {
-            return yamlType switch
-            {
-                YAML.Main => YamlStoreType.Main,
-                YAML.Game => YamlStoreType.Game,
-                YAML.Game_Local => YamlStoreType.GameLocal,
-                _ => YamlStoreType.Main // Default case
-            };
-        }
     }
 }
+

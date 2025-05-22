@@ -70,7 +70,7 @@ namespace Scanner111.Services
             {
                 // Try to get the warning text from the database
                 string warningText = GetWarningText("Warnings_CRASHGEN", "Warn_TOML_Achievements") ??
-                    "Achievements mods detected, but Buffout 4's Achievements parameter is set to TRUE. This can cause conflicts.";
+                                     "Achievements mods detected, but Buffout 4's Achievements parameter is set to TRUE. This can cause conflicts.";
 
                 issues.Add(new LogIssue
                 {
@@ -78,7 +78,8 @@ namespace Scanner111.Services
                     IssueId = "BuffoutSettings_Achievements",
                     Title = "Buffout 4 Achievement Settings Conflict",
                     Message = warningText,
-                    Recommendation = "Set Achievements=false in Buffout4.toml, since you're using another achievements mod.",
+                    Recommendation =
+                        "Set Achievements=false in Buffout4.toml, since you're using another achievements mod.",
                     Severity = SeverityLevel.Warning,
                     Source = "BuffoutSettingsCheck"
                 });
@@ -98,7 +99,7 @@ namespace Scanner111.Services
             {
                 // Try to get the warning text from the database
                 string warningText = GetWarningText("Warnings_CRASHGEN", "Warn_TOML__Memory") ??
-                    "BakaScrapHeap detected, but Buffout 4's MemoryManager parameter is set to TRUE. This can cause conflicts.";
+                                     "BakaScrapHeap detected, but Buffout 4's MemoryManager parameter is set to TRUE. This can cause conflicts.";
 
                 issues.Add(new LogIssue
                 {
@@ -129,7 +130,8 @@ namespace Scanner111.Services
                     IssueId = "BuffoutSettings_ArchiveLimit",
                     Title = "Archive Limit Reached",
                     Message = "Signs of archive limit issues detected in the crash log.",
-                    Recommendation = "You may need to increase archive limit settings in Fallout4Custom.ini or install an archive limit fix mod.",
+                    Recommendation =
+                        "You may need to increase archive limit settings in Fallout4Custom.ini or install an archive limit fix mod.",
                     Severity = SeverityLevel.Error,
                     Source = "ArchiveLimitCheck"
                 });
@@ -149,7 +151,7 @@ namespace Scanner111.Services
             {
                 // Try to get the warning text from the database
                 string warningText = GetWarningText("Warnings_CRASHGEN", "Warn_TOML__F4EE") ??
-                    "LooksMenu detected, but Buffout 4's F4EE parameter under [Compatibility] is set to FALSE.";
+                                     "LooksMenu detected, but Buffout 4's F4EE parameter under [Compatibility] is set to FALSE.";
 
                 issues.Add(new LogIssue
                 {
@@ -176,21 +178,22 @@ namespace Scanner111.Services
                 return; // No F4SE information found
 
             // Get the latest F4SE version from settings
-            string latestF4SEVersion = _appSettings.XSELatestVersion ?? "0.6.23"; // Default value from YAML
+            string latestF4SEVersion = _appSettings.XseLatestVersion ?? "0.6.23"; // Default value from YAML
 
             // Compare versions
             if (!f4seVersion.Equals(latestF4SEVersion, StringComparison.OrdinalIgnoreCase))
             {
                 // Try to get the warning text from the database
                 string warningText = GetWarningText("Warnings_XSE", "Warn_Outdated") ??
-                    "Your F4SE version might be out of date. Please update F4SE if necessary.";
+                                     "Your F4SE version might be out of date. Please update F4SE if necessary.";
 
                 issues.Add(new LogIssue
                 {
                     FileName = Path.GetFileName(parsedLog.FilePath),
                     IssueId = "F4SE_Outdated",
                     Title = "F4SE Version Check",
-                    Message = $"Installed F4SE version: {f4seVersion}, Latest version: {latestF4SEVersion}. {warningText}",
+                    Message =
+                        $"Installed F4SE version: {f4seVersion}, Latest version: {latestF4SEVersion}. {warningText}",
                     Recommendation = "Download the latest F4SE version from https://f4se.silverlock.org/",
                     Severity = SeverityLevel.Warning,
                     Source = "F4SECheck"
@@ -357,6 +360,7 @@ namespace Scanner111.Services
                     }
                 }
             }
+
             return null;
         }
 
@@ -382,3 +386,4 @@ namespace Scanner111.Services
         #endregion
     }
 }
+

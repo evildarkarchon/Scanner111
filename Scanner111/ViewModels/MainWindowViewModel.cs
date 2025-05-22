@@ -25,8 +25,10 @@ namespace Scanner111.ViewModels
         private readonly AppSettings _appSettings;
         private readonly ScanLogService? _scanLogService;
         private readonly CrashLogFormattingService? _formattingService;
+        private readonly IGameDirectoryService? _gameDirectoryService;
 
         private string _statusMessage = string.Empty;
+
         public string StatusMessage
         {
             get => _statusMessage;
@@ -34,6 +36,7 @@ namespace Scanner111.ViewModels
         }
 
         private ObservableCollection<LogIssue> _scanResults = new();
+
         public ObservableCollection<LogIssue> ScanResults
         {
             get => _scanResults;
@@ -78,11 +81,48 @@ namespace Scanner111.ViewModels
                     this.RaisePropertyChanged(nameof(AutoDetectCrashLogs));
                 }
             }
-        }        // Commands
+        } // Commands
+
         public ICommand ScanCrashLogsCommand { get; }
         public ICommand ReformatCrashLogsCommand { get; }
         public ICommand OpenSettingsCommand { get; }
         public ICommand OpenPapyrusMonitoringCommand { get; }
+
+        // Game directory properties
+        private string _gameDirectory = string.Empty;
+
+        public string GameDirectory
+        {
+            get => _gameDirectory;
+            set => this.RaiseAndSetIfChanged(ref _gameDirectory, value);
+        }
+
+        private string _docsDirectory = string.Empty;
+
+        public string DocsDirectory
+        {
+            get => _docsDirectory;
+            set => this.RaiseAndSetIfChanged(ref _docsDirectory, value);
+        }
+
+        private string _directoryStatusMessage = string.Empty;
+
+        public string DirectoryStatusMessage
+        {
+            get => _directoryStatusMessage;
+            set => this.RaiseAndSetIfChanged(ref _directoryStatusMessage, value);
+        }
+
+        private string _directoryStatusColor = "Gray";
+
+        public string DirectoryStatusColor
+        {
+            get => _directoryStatusColor;
+            set => this.RaiseAndSetIfChanged(ref _directoryStatusColor, value);
+        }
+
+        // Command for automatic directory detection
+        public ICommand DetectDirectoriesCommand { get; }
 
         // Constructor for design-time, if needed, or for DI to inject services
         public MainWindowViewModel()
@@ -90,29 +130,63 @@ namespace Scanner111.ViewModels
             // This parameterless constructor can be used by the designer.
             // If AppSettings is critical even for design, you might initialize a default/mock instance here.
             // For runtime, the DI container will use the constructor that takes AppSettings.
-            _appSettings = new AppSettings(); // Example: Provide a default for the designer or if DI fails            // Set up no-op commands for design-time
+            _appSettings =
+                new AppSettings(); // Example: Provide a default for the designer or if DI fails            // Set up no-op commands for design-time
             ScanCrashLogsCommand = ReactiveCommand.Create(() => { });
             ReformatCrashLogsCommand = ReactiveCommand.Create(() => { });
             OpenSettingsCommand = ReactiveCommand.Create(() => { });
             OpenPapyrusMonitoringCommand = ReactiveCommand.Create(() => { });
+            BrowseGameDirectoryCommand = ReactiveCommand.Create(() => { });
+            BrowseDocsDirectoryCommand = ReactiveCommand.Create(() => { });
+            DetectDirectoriesCommand = ReactiveCommand.Create(() => { });
         }
 
         public MainWindowViewModel(
             AppSettings appSettings,
             ScanLogService scanLogService,
-            CrashLogFormattingService formattingService)
+            CrashLogFormattingService formattingService,
+            IGameDirectoryService gameDirectoryService)
         {
             _appSettings = appSettings ?? throw new ArgumentNullException(nameof(appSettings));
             _scanLogService = scanLogService ?? throw new ArgumentNullException(nameof(scanLogService));
-            _formattingService = formattingService ?? throw new ArgumentNullException(nameof(formattingService));            // Initialize commands
+            _formattingService = formattingService ?? throw new ArgumentNullException(nameof(formattingService));
+            _gameDirectoryService =
+                gameDirectoryService ?? throw new ArgumentNullException(nameof(gameDirectoryService));
+
+            // Initialize directory properties from the service
+            _gameDirectory = _gameDirectoryService.GamePath ?? string.Empty;
+            _docsDirectory = _gameDirectoryService.DocsPath ?? string.Empty;
+
+            if (!string.IsNullOrEmpty(_gameDirectory) && !string.IsNullOrEmpty(_docsDirectory))
+            {
+                _directoryStatusMessage = "Directories loaded from settings";
+                _directoryStatusColor = "Green";
+            }
+            else
+            {
+                _directoryStatusMessage = "Directories not set or detected";
+                _directoryStatusColor = "Orange";
+            }
+
+            // Initialize commands
             ScanCrashLogsCommand = ReactiveCommand.CreateFromTask(ScanCrashLogsAsync);
             ReformatCrashLogsCommand = ReactiveCommand.CreateFromTask(ReformatCrashLogsAsync);
             OpenSettingsCommand = ReactiveCommand.Create(OpenSettings);
             OpenPapyrusMonitoringCommand = ReactiveCommand.Create(OpenPapyrusMonitoring);
-        }
+            BrowseGameDirectoryCommand = ReactiveCommand.CreateFromTask(BrowseGameDirectoryAsync);
+            BrowseDocsDirectoryCommand = ReactiveCommand.CreateFromTask(BrowseDocsDirectoryAsync);
+            DetectDirectoriesCommand = ReactiveCommand.CreateFromTask(DetectDirectoriesAsync);
+        } // Example property using a setting
 
-        // Example property using a setting
-        public string GamePathDisplay => $"Game Path from Settings: {_appSettings.GamePath}";
+        public string GamePathDisplay =>
+            string.IsNullOrEmpty(_appSettings.GamePath) ? "Not set" : _appSettings.GamePath;
+
+        public string DocsPathDisplay =>
+            string.IsNullOrEmpty(_appSettings.DocsPath) ? "Not set" : _appSettings.DocsPath;
+
+        // Commands for browsing directories
+        public ICommand BrowseGameDirectoryCommand { get; }
+        public ICommand BrowseDocsDirectoryCommand { get; }
 
         /// <summary>
         /// Opens a file dialog to select crash log files and then scans them
@@ -146,7 +220,8 @@ namespace Scanner111.ViewModels
 
                     if (validFiles.Count < files.Count())
                     {
-                        StatusMessage = $"Warning: {files.Count() - validFiles.Count} files didn't appear to be crash logs and were skipped.";
+                        StatusMessage =
+                            $"Warning: {files.Count() - validFiles.Count} files didn't appear to be crash logs and were skipped.";
                         files = validFiles;
                     }
 
@@ -178,11 +253,13 @@ namespace Scanner111.ViewModels
                 // Show errors if any occurred during processing
                 if (_appSettings.LastProcessingErrors.Any())
                 {
-                    StatusMessage = $"Scan complete with some issues. Processed {processedCount} files. Found {ScanResults.Count} issues. {_appSettings.LastProcessingErrors.Count} errors occurred during processing.";
+                    StatusMessage =
+                        $"Scan complete with some issues. Processed {processedCount} files. Found {ScanResults.Count} issues. {_appSettings.LastProcessingErrors.Count} errors occurred during processing.";
                 }
                 else
                 {
-                    StatusMessage = $"Scan complete. Processed {processedCount} files. Found {ScanResults.Count} issues.";
+                    StatusMessage =
+                        $"Scan complete. Processed {processedCount} files. Found {ScanResults.Count} issues.";
                 }
             }
             catch (Exception ex)
@@ -223,7 +300,8 @@ namespace Scanner111.ViewModels
 
                     if (validFiles.Count < files.Count())
                     {
-                        StatusMessage = $"Warning: {files.Count() - validFiles.Count} files didn't appear to be crash logs and were skipped.";
+                        StatusMessage =
+                            $"Warning: {files.Count() - validFiles.Count} files didn't appear to be crash logs and were skipped.";
                         files = validFiles;
                     }
 
@@ -248,7 +326,8 @@ namespace Scanner111.ViewModels
                 // Show errors if any occurred during processing
                 if (_appSettings.LastProcessingErrors.Any())
                 {
-                    StatusMessage = $"Reformat complete with some issues. Processed {processedCount} files. {_appSettings.LastProcessingErrors.Count} errors occurred during processing.";
+                    StatusMessage =
+                        $"Reformat complete with some issues. Processed {processedCount} files. {_appSettings.LastProcessingErrors.Count} errors occurred during processing.";
                 }
                 else
                 {
@@ -375,6 +454,181 @@ namespace Scanner111.ViewModels
             papyrusMonitoringView.ShowDialog(_mainWindow);
 
             StatusMessage = "Opened Papyrus monitoring window";
+        }
+
+        /// <summary>
+        /// Opens a folder dialog to select the game installation directory
+        /// </summary>
+        private async Task BrowseGameDirectoryAsync()
+        {
+            if (_gameDirectoryService == null)
+            {
+                StatusMessage = "Error: GameDirectoryService is not available";
+                return;
+            }
+
+            if (_mainWindow == null)
+            {
+                StatusMessage = "Error: Main window reference not set";
+                return;
+            }
+
+            var topLevel = TopLevel.GetTopLevel(_mainWindow);
+            if (topLevel == null)
+            {
+                StatusMessage = "Error: Cannot get top level window";
+                return;
+            }
+
+            var folderDialog = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            {
+                Title = "Select Game Installation Directory",
+                AllowMultiple = false
+            });
+
+            if (folderDialog.Count > 0)
+            {
+                string selectedPath = folderDialog[0].Path.LocalPath;
+                StatusMessage = $"Setting game directory to: {selectedPath}";
+
+                bool success = await _gameDirectoryService.SetGamePathManuallyAsync(selectedPath);
+                if (success)
+                {
+                    StatusMessage = $"Game directory successfully set to: {selectedPath}";
+                    this.RaisePropertyChanged(nameof(GamePathDisplay));
+                }
+                else
+                {
+                    StatusMessage = $"Error: Could not set game directory to {selectedPath}";
+                }
+            }
+        }
+
+        /// <summary>
+        /// Opens a folder dialog to select the game documents directory
+        /// </summary>
+        private async Task BrowseDocsDirectoryAsync()
+        {
+            if (_gameDirectoryService == null)
+            {
+                StatusMessage = "Error: GameDirectoryService is not available";
+                return;
+            }
+
+            if (_mainWindow == null)
+            {
+                StatusMessage = "Error: Main window reference not set";
+                return;
+            }
+
+            var topLevel = TopLevel.GetTopLevel(_mainWindow);
+            if (topLevel == null)
+            {
+                StatusMessage = "Error: Cannot get top level window";
+                return;
+            }
+
+            var folderDialog = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+            {
+                Title = "Select Game Documents Directory",
+                AllowMultiple = false
+            });
+
+            if (folderDialog.Count > 0)
+            {
+                string selectedPath = folderDialog[0].Path.LocalPath;
+                StatusMessage = $"Setting documents directory to: {selectedPath}";
+
+                bool success = await _gameDirectoryService.SetDocsPathManuallyAsync(selectedPath);
+                if (success)
+                {
+                    StatusMessage = $"Documents directory successfully set to: {selectedPath}";
+                    this.RaisePropertyChanged(nameof(DocsPathDisplay));
+                }
+                else
+                {
+                    StatusMessage = $"Error: Could not set documents directory to {selectedPath}";
+                }
+            }
+        }
+
+        /// <summary>
+        /// Automatically detect game and docs directories
+        /// </summary>
+        private async Task DetectDirectoriesAsync()
+        {
+            if (_gameDirectoryService == null)
+            {
+                StatusMessage = "Error: GameDirectoryService is not available";
+                DirectoryStatusMessage = "Directory detection failed";
+                DirectoryStatusColor = "Red";
+                return;
+            }
+
+            StatusMessage = "Detecting game and docs directories...";
+            DirectoryStatusMessage = "Detection in progress...";
+            DirectoryStatusColor = "Gray";
+
+            try
+            {
+                // First try to detect game directory
+                var gamePathResult = await _gameDirectoryService.FindGamePathAsync();
+                bool gamePathFound = !string.IsNullOrEmpty(_gameDirectoryService.GamePath);
+                if (gamePathFound)
+                {
+                    GameDirectory = _gameDirectoryService.GamePath ?? string.Empty;
+                    StatusMessage = $"Game directory detected: {GameDirectory}";
+                }
+                else
+                {
+                    StatusMessage = "Could not detect game directory";
+                }
+
+                // Then try to detect docs directory
+                var docsPathResult = await _gameDirectoryService.FindDocsPathAsync();
+                bool docsPathFound = !string.IsNullOrEmpty(_gameDirectoryService.DocsPath);
+                if (docsPathFound)
+                {
+                    DocsDirectory = _gameDirectoryService.DocsPath ?? string.Empty;
+                    StatusMessage = $"Docs directory detected: {DocsDirectory}";
+                }
+                else
+                {
+                    StatusMessage = "Could not detect docs directory";
+                }
+
+                // Update status based on detection results
+                if (gamePathFound && docsPathFound)
+                {
+                    DirectoryStatusMessage = "Directories successfully detected";
+                    DirectoryStatusColor = "Green";
+                    StatusMessage = "Game and docs directories detected successfully";
+                }
+                else if (gamePathFound)
+                {
+                    DirectoryStatusMessage = "Game directory detected, docs directory not found";
+                    DirectoryStatusColor = "Orange";
+                    StatusMessage = "Game directory detected, but docs directory could not be found";
+                }
+                else if (docsPathFound)
+                {
+                    DirectoryStatusMessage = "Docs directory detected, game directory not found";
+                    DirectoryStatusColor = "Orange";
+                    StatusMessage = "Docs directory detected, but game directory could not be found";
+                }
+                else
+                {
+                    DirectoryStatusMessage = "Could not detect directories automatically";
+                    DirectoryStatusColor = "Red";
+                    StatusMessage = "Could not detect game or docs directories automatically";
+                }
+            }
+            catch (Exception ex)
+            {
+                DirectoryStatusMessage = "Error during directory detection";
+                DirectoryStatusColor = "Red";
+                StatusMessage = $"Error detecting directories: {ex.Message}";
+            }
         }
     }
 }

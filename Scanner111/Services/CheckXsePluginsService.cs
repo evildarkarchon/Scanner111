@@ -14,10 +14,10 @@ namespace Scanner111.Services
     /// </summary>
     public class CheckXsePluginsService : ICheckXsePluginsService
     {
-        private readonly YamlSettingsCacheService _yamlSettingsCache;
+        private readonly IYamlSettingsCacheService _yamlSettingsCache;
         private readonly bool _testMode;
 
-        public CheckXsePluginsService(YamlSettingsCacheService yamlSettingsCache, bool testMode = false)
+        public CheckXsePluginsService(IYamlSettingsCacheService yamlSettingsCache, bool testMode = false)
         {
             _yamlSettingsCache = yamlSettingsCache ?? throw new ArgumentNullException(nameof(yamlSettingsCache));
             _testMode = testMode;
@@ -72,7 +72,8 @@ namespace Scanner111.Services
 
             if (string.IsNullOrEmpty(expectedVersion))
             {
-                results.AppendLine("⚠️ WARNING : Game version not specified in settings, cannot verify Address Library version");
+                results.AppendLine(
+                    "⚠️ WARNING : Game version not specified in settings, cannot verify Address Library version");
                 return;
             }
 
@@ -103,7 +104,9 @@ namespace Scanner111.Services
                                 {
                                     results.AppendLine($"     - {Path.GetFileName(file)}");
                                 }
-                                results.AppendLine($"     You need the version for {expectedVersion} to avoid crashes!");
+
+                                results.AppendLine(
+                                    $"     You need the version for {expectedVersion} to avoid crashes!");
                             }
                         }
                     }
@@ -179,7 +182,8 @@ namespace Scanner111.Services
         /// <summary>
         /// Checks the version of a specific XSE plugin
         /// </summary>
-        private async Task CheckPluginVersionAsync(string pluginPath, string pluginName, string minVersion, StringBuilder results)
+        private async Task CheckPluginVersionAsync(string pluginPath, string pluginName, string minVersion,
+            StringBuilder results)
         {
             // Skip actual file reading in test mode
             if (_testMode)
@@ -196,7 +200,8 @@ namespace Scanner111.Services
 
                 // Look for version string in the binary data
                 var versionPattern = new Regex(@"(?:Version:|v)[.\s]*(\d+\.\d+\.\d+(?:\.\d+)?)");
-                var pluginText = Encoding.UTF8.GetString(pluginBytes, 0, Math.Min(pluginBytes.Length, 10000)); // Look at first 10KB
+                var pluginText =
+                    Encoding.UTF8.GetString(pluginBytes, 0, Math.Min(pluginBytes.Length, 10000)); // Look at first 10KB
                 var match = versionPattern.Match(pluginText);
 
                 if (match.Success)
@@ -206,11 +211,13 @@ namespace Scanner111.Services
 
                     if (versionCheck >= 0)
                     {
-                        results.AppendLine($"✔️ {pluginName} version {foundVersion} meets minimum requirement ({minVersion})");
+                        results.AppendLine(
+                            $"✔️ {pluginName} version {foundVersion} meets minimum requirement ({minVersion})");
                     }
                     else
                     {
-                        results.AppendLine($"❌ {pluginName} version {foundVersion} is outdated (minimum: {minVersion})");
+                        results.AppendLine(
+                            $"❌ {pluginName} version {foundVersion} is outdated (minimum: {minVersion})");
                     }
                 }
                 else
@@ -254,8 +261,7 @@ namespace Scanner111.Services
         {
             try
             {
-                var storeType = YamlTypeToStoreType(yamlType);
-                return _yamlSettingsCache.GetSetting<T>(storeType, key);
+                return _yamlSettingsCache.GetSetting<T>(yamlType, key);
             }
             catch
             {
@@ -270,8 +276,7 @@ namespace Scanner111.Services
         {
             try
             {
-                var storeType = YamlTypeToStoreType(yamlType);
-                var setting = _yamlSettingsCache.GetSetting<List<T>>(storeType, key);
+                var setting = _yamlSettingsCache.GetSetting<List<T>>(yamlType, key);
                 return setting ?? new List<T>();
             }
             catch
@@ -279,19 +284,6 @@ namespace Scanner111.Services
                 return new List<T>();
             }
         }
-
-        /// <summary>
-        /// Maps YAML enum to YamlStoreType enum
-        /// </summary>
-        private YamlStoreType YamlTypeToStoreType(YAML yamlType)
-        {
-            return yamlType switch
-            {
-                YAML.Main => YamlStoreType.Main,
-                YAML.Game => YamlStoreType.Game,
-                YAML.Game_Local => YamlStoreType.GameLocal,
-                _ => YamlStoreType.Main // Default case
-            };
-        }
     }
 }
+

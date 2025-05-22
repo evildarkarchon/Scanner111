@@ -14,11 +14,11 @@ namespace Scanner111.Services
     /// </summary>
     public class ModScanningService : IModScanningService
     {
-        private readonly YamlSettingsCacheService _yamlSettingsCache;
+        private readonly IYamlSettingsCacheService _yamlSettingsCache;
         private readonly bool _testMode;
         private readonly string _backupPath = "CLASSIC Backup/Cleaned Files";
 
-        public ModScanningService(YamlSettingsCacheService yamlSettingsCache, bool testMode = false)
+        public ModScanningService(IYamlSettingsCacheService yamlSettingsCache, bool testMode = false)
         {
             _yamlSettingsCache = yamlSettingsCache ?? throw new ArgumentNullException(nameof(yamlSettingsCache));
             _testMode = testMode;
@@ -52,13 +52,14 @@ namespace Scanner111.Services
                 ["snd_frmt"] = new HashSet<string>(),
                 ["xse_file"] = new HashSet<string>(),
                 ["previs"] = new HashSet<string>(),
-            };
-
-            // Get settings
+            }; // Get settings
             var vrMode = GetGlobalRegistryVR();
-            var xseAcronym = _yamlSettingsCache.GetSetting<string>(YamlStoreType.Game, $"Game{vrMode}_Info.XSE_Acronym") ?? "XSE";
-            var xseScriptfiles = _yamlSettingsCache.GetSetting<Dictionary<string, string>>(YamlStoreType.Game, $"Game{vrMode}_Info.XSE_HashedScripts")
-                               ?? new Dictionary<string, string>();
+            var xseAcronym = _yamlSettingsCache.GetSetting<string>(YAML.Game, $"Game{vrMode}_Info.XSE_Acronym") ??
+                             "XSE";
+            var xseScriptfiles =
+                _yamlSettingsCache.GetSetting<Dictionary<string, string>>(YAML.Game,
+                    $"Game{vrMode}_Info.XSE_HashedScripts")
+                ?? new Dictionary<string, string>();
 
             // Setup paths
             var backupPath = new DirectoryInfo(Path.Combine(Directory.GetCurrentDirectory(), _backupPath));
@@ -67,17 +68,17 @@ namespace Scanner111.Services
                 backupPath.Create();
             }
 
-            var modPathSetting = _yamlSettingsCache.GetSetting<DirectoryInfo>(YamlStoreType.Settings, "MODS Folder Path");
+            var modPathSetting = _yamlSettingsCache.GetSetting<DirectoryInfo>(YAML.Settings, "MODS Folder Path");
             if (modPathSetting == null)
             {
-                return _yamlSettingsCache.GetSetting<string>(YamlStoreType.Main, "Mods_Warn.Mods_Path_Missing") ??
+                return _yamlSettingsCache.GetSetting<string>(YAML.Main, "Mods_Warn.Mods_Path_Missing") ??
                        "❌ MODS FOLDER PATH NOT PROVIDED!";
             }
 
             var modPath = modPathSetting;
             if (!modPath.Exists)
             {
-                return _yamlSettingsCache.GetSetting<string>(YamlStoreType.Main, "Mods_Warn.Mods_Path_Invalid") ??
+                return _yamlSettingsCache.GetSetting<string>(YAML.Main, "Mods_Warn.Mods_Path_Invalid") ??
                        "❌ MODS FOLDER PATH NOT VALID!";
             }
 
@@ -121,35 +122,36 @@ namespace Scanner111.Services
                 ["snd_frmt"] = new HashSet<string>(),
                 ["xse_file"] = new HashSet<string>(),
                 ["previs"] = new HashSet<string>(),
-            };
-
-            // Get settings
+            }; // Get settings
             var vrMode = GetGlobalRegistryVR();
-            var xseAcronym = _yamlSettingsCache.GetSetting<string>(YamlStoreType.Game, $"Game{vrMode}_Info.XSE_Acronym") ?? "XSE";
-            var xseScriptfiles = _yamlSettingsCache.GetSetting<Dictionary<string, string>>(YamlStoreType.Game, $"Game{vrMode}_Info.XSE_HashedScripts")
-                               ?? new Dictionary<string, string>();
+            var xseAcronym = _yamlSettingsCache.GetSetting<string>(YAML.Game, $"Game{vrMode}_Info.XSE_Acronym") ??
+                             "XSE";
+            var xseScriptfiles =
+                _yamlSettingsCache.GetSetting<Dictionary<string, string>>(YAML.Game,
+                    $"Game{vrMode}_Info.XSE_HashedScripts")
+                ?? new Dictionary<string, string>();
 
             // Setup paths
             var bsarchPath = Path.Combine(Directory.GetCurrentDirectory(), "CLASSIC Data", "BSArch.exe");
-            var modPathSetting = _yamlSettingsCache.GetSetting<DirectoryInfo>(YamlStoreType.Settings, "MODS Folder Path");
+            var modPathSetting = _yamlSettingsCache.GetSetting<DirectoryInfo>(YAML.Settings, "MODS Folder Path");
 
             // Validate paths
             if (modPathSetting == null)
             {
-                return _yamlSettingsCache.GetSetting<string>(YamlStoreType.Main, "Mods_Warn.Mods_Path_Missing") ??
+                return _yamlSettingsCache.GetSetting<string>(YAML.Main, "Mods_Warn.Mods_Path_Missing") ??
                        "❌ MODS FOLDER PATH NOT PROVIDED!";
             }
 
             var modPath = modPathSetting;
             if (!modPath.Exists)
             {
-                return _yamlSettingsCache.GetSetting<string>(YamlStoreType.Main, "Mods_Warn.Mods_Path_Invalid") ??
+                return _yamlSettingsCache.GetSetting<string>(YAML.Main, "Mods_Warn.Mods_Path_Invalid") ??
                        "❌ MODS FOLDER PATH NOT VALID!";
             }
 
             if (!File.Exists(bsarchPath))
             {
-                return _yamlSettingsCache.GetSetting<string>(YamlStoreType.Main, "Mods_Warn.Mods_BSArch_Missing") ??
+                return _yamlSettingsCache.GetSetting<string>(YAML.Main, "Mods_Warn.Mods_BSArch_Missing") ??
                        "❌ BSARCH.EXE NOT FOUND! CANNOT SCAN BA2 FILES!";
             }
 
@@ -182,7 +184,8 @@ namespace Scanner111.Services
 
         #region Helper Methods
 
-        private async Task ProcessDirectoriesRecursively(DirectoryInfo rootDir, DirectoryInfo backupPath, Dictionary<string, HashSet<string>> issueLists, string[] filterNames)
+        private async Task ProcessDirectoriesRecursively(DirectoryInfo rootDir, DirectoryInfo backupPath,
+            Dictionary<string, HashSet<string>> issueLists, string[] filterNames)
         {
             try
             {
@@ -192,7 +195,8 @@ namespace Scanner111.Services
                     var hasAnimData = false;
 
                     // Check for animation data folders
-                    if (dir.Name.ToLower().Contains("animationdata") || dir.Name.ToLower().Contains("animationsdatasinglefile"))
+                    if (dir.Name.ToLower().Contains("animationdata") ||
+                        dir.Name.ToLower().Contains("animationsdatasinglefile"))
                     {
                         hasAnimData = true;
                         issueLists["animdata"].Add($"• {rootMain.TrimEnd('/')}");
@@ -225,6 +229,7 @@ namespace Scanner111.Services
                                     file.CopyTo(targetPath);
                                 }
                             }
+
                             issueLists["cleanup"].Add($"• {rootMain}/{file.Name}");
                         }
 
@@ -241,7 +246,8 @@ namespace Scanner111.Services
             await Task.CompletedTask;
         }
 
-        private async Task AnalyzeModFiles(DirectoryInfo modPath, Dictionary<string, HashSet<string>> issueLists, Dictionary<string, string> xseScriptfiles, string xseAcronym)
+        private async Task AnalyzeModFiles(DirectoryInfo modPath, Dictionary<string, HashSet<string>> issueLists,
+            Dictionary<string, string> xseScriptfiles, string xseAcronym)
         {
             try
             {
@@ -302,7 +308,8 @@ namespace Scanner111.Services
             await Task.CompletedTask;
         }
 
-        private async Task ProcessBA2Files(DirectoryInfo modPath, string bsarchPath, Dictionary<string, HashSet<string>> issueLists, Dictionary<string, string> xseScriptfiles)
+        private async Task ProcessBA2Files(DirectoryInfo modPath, string bsarchPath,
+            Dictionary<string, HashSet<string>> issueLists, Dictionary<string, string> xseScriptfiles)
         {
             try
             {
@@ -359,7 +366,8 @@ namespace Scanner111.Services
                             issueLists["snd_frmt"].Add($"• {rootMain}/{fileName} (Contains: {Path.GetFileName(line)})");
                         }
 
-                        if (lineLower.EndsWith(".png") || lineLower.EndsWith(".jpg") || lineLower.EndsWith(".jpeg") || lineLower.EndsWith(".bmp"))
+                        if (lineLower.EndsWith(".png") || lineLower.EndsWith(".jpg") || lineLower.EndsWith(".jpeg") ||
+                            lineLower.EndsWith(".bmp"))
                         {
                             issueLists["tex_frmt"].Add($"• {rootMain}/{fileName} (Contains: {Path.GetFileName(line)})");
                         }
@@ -396,7 +404,8 @@ namespace Scanner111.Services
             await Task.CompletedTask;
         }
 
-        private async Task AppendIssueMessages(List<string> messageList, Dictionary<string, HashSet<string>> issueLists, string xseAcronym, bool isBA2 = false)
+        private async Task AppendIssueMessages(List<string> messageList, Dictionary<string, HashSet<string>> issueLists,
+            string xseAcronym, bool isBA2 = false)
         {
             // Define issue messages based on type
             var issueMessages = new Dictionary<string, List<string>>
@@ -495,17 +504,7 @@ namespace Scanner111.Services
             return ""; // Empty string for non-VR, or could be "VR" for VR mode
         }
 
-        private YamlStoreType YamlTypeToStoreType(YAML yamlType)
-        {
-            return yamlType switch
-            {
-                YAML.Main => YamlStoreType.Main,
-                YAML.Game => YamlStoreType.Game,
-                YAML.Game_Local => YamlStoreType.GameLocal,
-                _ => YamlStoreType.Main // Default case
-            };
-        }
-
         #endregion
     }
 }
+

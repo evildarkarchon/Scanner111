@@ -7,7 +7,7 @@ namespace Scanner111.Services
     /// </summary>
     public class YamlSettingsCacheServiceAdapter : IYamlSettingsCacheService
     {
-        private readonly YamlSettingsCacheService _yamlService;
+        private readonly IYamlSettingsCacheService _yamlService;
 
         public YamlSettingsCacheServiceAdapter()
         {
@@ -19,9 +19,10 @@ namespace Scanner111.Services
             return _yamlService.GetSetting<T>(yamlType, path, defaultValue);
         }
 
-        public T? GetSetting<T>(YamlStoreType storeType, string path)
+        public void SetSetting<T>(YAML yamlType, string path, T value)
         {
-            return _yamlService.GetSetting<T>(storeType, path);
+            _yamlService.SetSetting<T>(yamlType, path, value);
         }
     }
 }
+

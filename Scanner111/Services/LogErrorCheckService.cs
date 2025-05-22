@@ -13,9 +13,9 @@ namespace Scanner111.Services
     /// </summary>
     public class LogErrorCheckService : ILogErrorCheckService
     {
-        private readonly YamlSettingsCacheService _yamlSettingsCache;
+        private readonly IYamlSettingsCacheService _yamlSettingsCache;
 
-        public LogErrorCheckService(YamlSettingsCacheService yamlSettingsCache)
+        public LogErrorCheckService(IYamlSettingsCacheService yamlSettingsCache)
         {
             _yamlSettingsCache = yamlSettingsCache ?? throw new ArgumentNullException(nameof(yamlSettingsCache));
         }
@@ -69,15 +69,17 @@ namespace Scanner111.Services
 
             // Get YAML settings
             var catchErrors = GetSettingAsList<string>(YAML.Main, "catch_log_errors").Select(s => s.ToLower()).ToList();
-            var ignoreFiles = GetSettingAsList<string>(YAML.Main, "exclude_log_files").Select(s => s.ToLower()).ToList();
-            var ignoreErrors = GetSettingAsList<string>(YAML.Main, "exclude_log_errors").Select(s => s.ToLower()).ToList();
+            var ignoreFiles = GetSettingAsList<string>(YAML.Main, "exclude_log_files").Select(s => s.ToLower())
+                .ToList();
+            var ignoreErrors = GetSettingAsList<string>(YAML.Main, "exclude_log_errors").Select(s => s.ToLower())
+                .ToList();
 
             var errorReport = new StringBuilder();
 
             // Find valid log files (excluding crash logs)
             var validLogFiles = folderPath.GetFiles("*.log")
-                                         .Where(file => !file.Name.Contains("crash-"))
-                                         .ToList();
+                .Where(file => !file.Name.Contains("crash-"))
+                .ToList();
 
             foreach (var logFilePath in validLogFiles)
             {
@@ -148,8 +150,7 @@ namespace Scanner111.Services
         {
             try
             {
-                var storeType = YamlTypeToStoreType(yamlType);
-                return _yamlSettingsCache.GetSetting<T>(storeType, key);
+                return _yamlSettingsCache.GetSetting<T>(yamlType, key);
             }
             catch
             {
@@ -164,8 +165,7 @@ namespace Scanner111.Services
         {
             try
             {
-                var storeType = YamlTypeToStoreType(yamlType);
-                var setting = _yamlSettingsCache.GetSetting<List<T>>(storeType, key);
+                var setting = _yamlSettingsCache.GetSetting<List<T>>(yamlType, key);
                 return setting ?? new List<T>();
             }
             catch
@@ -173,19 +173,6 @@ namespace Scanner111.Services
                 return new List<T>();
             }
         }
-
-        /// <summary>
-        /// Maps YAML enum to YamlStoreType enum
-        /// </summary>
-        private YamlStoreType YamlTypeToStoreType(YAML yamlType)
-        {
-            return yamlType switch
-            {
-                YAML.Main => YamlStoreType.Main,
-                YAML.Game => YamlStoreType.Game,
-                YAML.Game_Local => YamlStoreType.GameLocal,
-                _ => YamlStoreType.Main // Default case
-            };
-        }
     }
 }
+

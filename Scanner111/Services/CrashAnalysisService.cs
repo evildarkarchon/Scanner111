@@ -16,14 +16,14 @@ namespace Scanner111.Services
         private readonly AppSettings _appSettings;
         private readonly WarningDatabase _warningDatabase;
         private readonly CrashStackAnalysis _crashStackAnalysis;
-        private readonly YamlSettingsCacheService _yamlSettingsCache;
+        private readonly IYamlSettingsCacheService _yamlSettingsCache;
         private readonly FormIdDatabaseService _formIdDatabaseService;
 
         public CrashAnalysisService(
             AppSettings appSettings,
             WarningDatabase warningDatabase,
             CrashStackAnalysis crashStackAnalysis,
-            YamlSettingsCacheService yamlSettingsCache,
+            IYamlSettingsCacheService yamlSettingsCache,
             FormIdDatabaseService formIdDatabaseService)
         {
             _appSettings = appSettings;
@@ -417,3 +417,4 @@ namespace Scanner111.Services
         }
     }
 }
+
