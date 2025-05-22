@@ -52,7 +52,7 @@ public static class YamlSettings
             }
         }
         
-        var setting = _yamlSettingsCache.GetSetting<T>(yamlStore, keyPath, newValue);
+        var setting = _yamlSettingsCache.GetSetting(yamlStore, keyPath, newValue);
         
         // Special handling for Path type
         if (typeof(T) == typeof(string) && setting is string stringValue && !string.IsNullOrEmpty(stringValue))

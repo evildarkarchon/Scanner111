@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -25,7 +26,7 @@ public class YamlSettingsCache : IYamlSettingsCache
     
     // Singleton instance
     private static YamlSettingsCache? _instance;
-    private static readonly object LockObject = new object();
+    private static readonly Lock LockObject = new Lock();
     
     /// <summary>
     /// Gets the singleton instance of YamlSettingsCache.
@@ -58,11 +59,8 @@ public class YamlSettingsCache : IYamlSettingsCache
     {
         lock (LockObject)
         {
-            if (_instance == null)
-            {
-                _instance = new YamlSettingsCache(logger, gameContextService);
-            }
-            return _instance;
+          _instance ??= new YamlSettingsCache(logger, gameContextService);
+          return _instance;
         }
     }
     
@@ -170,8 +168,7 @@ public class YamlSettingsCache : IYamlSettingsCache
             _logger.LogDebug($"Loading {(isStatic ? "static" : "dynamic")} YAML file: {yamlPath}");
             
             var yamlContent = File.ReadAllText(yamlPath);
-            var data = _deserializer.Deserialize<Dictionary<string, object>>(yamlContent) ?? 
-                      new Dictionary<string, object>();
+            var data = _deserializer.Deserialize<Dictionary<string, object>>(yamlContent);
             
             _cache[yamlPath] = data;
             return data;
@@ -268,10 +265,7 @@ public class YamlSettingsCache : IYamlSettingsCache
                 _cache[yamlPath] = data;
                 
                 // Clear any cached results for this path
-                if (_settingsCache.ContainsKey(cacheKey))
-                {
-                    _settingsCache.Remove(cacheKey);
-                }
+                _settingsCache.Remove(cacheKey);
                 
                 return newValue;
             }
@@ -294,24 +288,20 @@ public class YamlSettingsCache : IYamlSettingsCache
                 {
                     typedValue = directValue;
                 }
-                else if (typeof(T) == typeof(string) && value != null)
+                else if (typeof(T) == typeof(string))
                 {
                     typedValue = (T)(object)value.ToString()!;
                 }
-                else if (value != null)
-                {
-                    // Try conversion using Convert
-                    typedValue = (T)Convert.ChangeType(value, typeof(T));
-                }
                 else
                 {
-                    typedValue = default;
+                  // Try conversion using Convert
+                  typedValue = (T)Convert.ChangeType(value, typeof(T));
                 }
-                
+
                 // Cache the result for static stores
                 if (YamlConstants.StaticYamlStores.Contains(yamlStore))
                 {
-                    _settingsCache[cacheKey] = typedValue!;
+                    _settingsCache[cacheKey] = typedValue;
                 }
                 
                 return typedValue;
