@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Scanner111.ClassicLib.ScanLog.Models;
 using Scanner111.ClassicLib.ScanLog.Services.Interfaces;
 using Scanner111.Services;
+using Scanner111.Services.Interfaces;
 
 namespace Scanner111.ClassicLib.ScanLog.Services;
 

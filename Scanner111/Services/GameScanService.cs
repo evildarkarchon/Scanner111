@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Scanner111.ClassicLib.ScanLog.Services.Interfaces;
+using Scanner111.Services.Interfaces;
 
 namespace Scanner111.Services;
 

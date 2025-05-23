@@ -1,4 +1,4 @@
-namespace Scanner111.Services;
+namespace Scanner111.ClassicLib.ScanLog.Services.Interfaces;
 
 /// <summary>
 ///     Service for managing game context information.
