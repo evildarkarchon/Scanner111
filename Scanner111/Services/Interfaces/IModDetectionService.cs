@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Scanner111.Models;
 
 namespace Scanner111.Services.Interfaces;
 
@@ -15,30 +16,30 @@ public interface IModDetectionService
     /// </summary>
     /// <param name="yamlDict">Dictionary of mod names to warnings.</param>
     /// <param name="crashlogPlugins">Plugins found in crash log.</param>
-    /// <param name="autoscanReport">Report to update with findings.</param>
+    /// <param name="reportBuilder">Report builder to update with findings.</param>
     /// <returns>True if any mods were detected.</returns>
     bool DetectModsSingle(Dictionary<string, string> yamlDict, Dictionary<string, string> crashlogPlugins,
-        List<string> autoscanReport);
+        CrashReportBuilder reportBuilder);
 
     /// <summary>
     ///     Detects conflicting mod combinations.
     /// </summary>
     /// <param name="yamlDict">Dictionary of mod pairs to warnings.</param>
     /// <param name="crashlogPlugins">Plugins found in crash log.</param>
-    /// <param name="autoscanReport">Report to update with findings.</param>
+    /// <param name="reportBuilder">Report builder to update with findings.</param>
     /// <returns>True if any conflicts were detected.</returns>
     bool DetectModsDouble(Dictionary<string, string> yamlDict, Dictionary<string, string> crashlogPlugins,
-        List<string> autoscanReport);
+        CrashReportBuilder reportBuilder);
 
     /// <summary>
     ///     Detects important mods and evaluates their compatibility.
     /// </summary>
     /// <param name="yamlDict">Dictionary of important mods to check.</param>
     /// <param name="crashlogPlugins">Plugins found in crash log.</param>
-    /// <param name="autoscanReport">Report to update with findings.</param>
+    /// <param name="reportBuilder">Report builder to update with findings.</param>
     /// <param name="gpuRival">GPU type for compatibility checking.</param>
     void DetectModsImportant(Dictionary<string, string> yamlDict, Dictionary<string, string> crashlogPlugins,
-        List<string> autoscanReport, string? gpuRival);
+        CrashReportBuilder reportBuilder, string? gpuRival);
 }
 
 /// <summary>
@@ -50,7 +51,7 @@ public class ModDetectionService : IModDetectionService
     ///     Detects single mods based on YAML dictionary.
     /// </summary>
     public bool DetectModsSingle(Dictionary<string, string> yamlDict, Dictionary<string, string> crashlogPlugins,
-        List<string> autoscanReport)
+        CrashReportBuilder reportBuilder)
     {
         var modsFound = false;
         var yamlDictLower = ConvertToLowercase(yamlDict);
@@ -61,7 +62,7 @@ public class ModDetectionService : IModDetectionService
             {
                 ValidateWarning(modName, modWarning);
 
-                autoscanReport.Add($"🚨 [{pluginId}] {modWarning}\n");
+                reportBuilder.AddToSection("Problematic Mods", $"🚨 [{pluginId}] {modWarning}");
                 modsFound = true;
             }
 
@@ -72,7 +73,7 @@ public class ModDetectionService : IModDetectionService
     ///     Detects conflicting mod combinations.
     /// </summary>
     public bool DetectModsDouble(Dictionary<string, string> yamlDict, Dictionary<string, string> crashlogPlugins,
-        List<string> autoscanReport)
+        CrashReportBuilder reportBuilder)
     {
         var modsFound = false;
         var yamlDictLower = ConvertToLowercase(yamlDict);
@@ -89,7 +90,7 @@ public class ModDetectionService : IModDetectionService
                 var plugin1Id = crashlogPluginsLower[mods[0]];
                 var plugin2Id = crashlogPluginsLower[mods[1]];
 
-                autoscanReport.Add($"🚨 [{plugin1Id}] + [{plugin2Id}] {modWarning}\n");
+                reportBuilder.AddToSection("Problematic Mods", $"🚨 [{plugin1Id}] + [{plugin2Id}] {modWarning}");
                 modsFound = true;
             }
         }
@@ -101,7 +102,7 @@ public class ModDetectionService : IModDetectionService
     ///     Detects important mods and evaluates compatibility.
     /// </summary>
     public void DetectModsImportant(Dictionary<string, string> yamlDict, Dictionary<string, string> crashlogPlugins,
-        List<string> autoscanReport, string? gpuRival)
+        CrashReportBuilder reportBuilder, string? gpuRival)
     {
         var yamlDictLower = ConvertToLowercase(yamlDict);
         var crashlogPluginsLower = ConvertToLowercase(crashlogPlugins);
@@ -127,7 +128,7 @@ public class ModDetectionService : IModDetectionService
             var statusIcon = isInstalled ? "✅" : "❌";
             var statusText = isInstalled ? "INSTALLED" : "NOT INSTALLED";
 
-            autoscanReport.Add($"{statusIcon} {statusText}: {modName} - {warningText}\n");
+            reportBuilder.AddToSection("Important Mods", $"{statusIcon} {statusText}: {modName} - {warningText}");
         }
     }
 

@@ -10,7 +10,21 @@ namespace Scanner111.ViewModels
 {
     public class AboutDialogViewModel : ViewModelBase
     {
-        private readonly Window _owner;
+        public AboutDialogViewModel(Window owner)
+        {
+            var owner1 = owner;
+
+            OpenGitHubCommand = ReactiveCommand.Create(() =>
+                OpenUrl("https://github.com/yourusername/Scanner111"));
+
+            OpenNexusCommand = ReactiveCommand.Create(() =>
+                OpenUrl("https://www.nexusmods.com/fallout4/mods/yourmodid"));
+
+            OpenIssueTrackerCommand = ReactiveCommand.Create(() =>
+                OpenUrl("https://github.com/yourusername/Scanner111/issues"));
+
+            CloseCommand = ReactiveCommand.Create(() => owner1.Close());
+        }
 
         public string VersionInfo => $"Version {GetVersionString()}";
 
@@ -18,22 +32,6 @@ namespace Scanner111.ViewModels
         public ICommand OpenNexusCommand { get; }
         public ICommand OpenIssueTrackerCommand { get; }
         public ICommand CloseCommand { get; }
-
-        public AboutDialogViewModel(Window owner)
-        {
-            _owner = owner;
-
-            OpenGitHubCommand = ReactiveCommand.Create(() => 
-                OpenUrl("https://github.com/yourusername/Scanner111"));
-            
-            OpenNexusCommand = ReactiveCommand.Create(() => 
-                OpenUrl("https://www.nexusmods.com/fallout4/mods/yourmodid"));
-            
-            OpenIssueTrackerCommand = ReactiveCommand.Create(() => 
-                OpenUrl("https://github.com/yourusername/Scanner111/issues"));
-            
-            CloseCommand = ReactiveCommand.Create(() => _owner.Close());
-        }
 
         private string GetVersionString()
         {

@@ -75,7 +75,7 @@ public class ThreadSafeLogCache : ILogCache
         {
             lock (_lock)
             {
-                if (!_cache.TryGetValue(logName, out var logData)) return new List<string>();
+                if (!_cache.TryGetValue(logName, out var logData)) return [];
 
                 var content = Encoding.UTF8.GetString(logData);
                 var lines = content.Split('\n', '\r');
@@ -98,7 +98,7 @@ public class ThreadSafeLogCache : ILogCache
     {
         lock (_lock)
         {
-            return new List<string>(_cache.Keys);
+            return [.._cache.Keys];
         }
     }
 

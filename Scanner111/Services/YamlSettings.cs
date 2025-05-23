@@ -69,18 +69,16 @@ public static class YamlSettings
         var settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CLASSIC Settings.yaml");
 
         // Create settings file if it doesn't exist
-        if (!File.Exists(settingsPath))
-        {
-            var defaultSettings = Get<string>(YamlStore.Main, "CLASSIC_Info.default_settings");
-            if (string.IsNullOrEmpty(defaultSettings))
-                throw new InvalidOperationException("Invalid Default Settings in 'CLASSIC Main.yaml'");
+        if (File.Exists(settingsPath)) return Get<T>(YamlStore.Settings, $"CLASSIC_Settings.{setting}");
+        var defaultSettings = Get<string>(YamlStore.Main, "CLASSIC_Info.default_settings");
+        if (string.IsNullOrEmpty(defaultSettings))
+            throw new InvalidOperationException("Invalid Default Settings in 'CLASSIC Main.yaml'");
 
-            // Ensure directory exists
-            var directory = Path.GetDirectoryName(settingsPath);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory)) Directory.CreateDirectory(directory);
+        // Ensure directory exists
+        var directory = Path.GetDirectoryName(settingsPath);
+        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory)) Directory.CreateDirectory(directory);
 
-            File.WriteAllText(settingsPath, defaultSettings);
-        }
+        File.WriteAllText(settingsPath, defaultSettings);
 
         return Get<T>(YamlStore.Settings, $"CLASSIC_Settings.{setting}");
     }

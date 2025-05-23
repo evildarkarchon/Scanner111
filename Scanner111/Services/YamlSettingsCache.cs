@@ -70,32 +70,18 @@ public class YamlSettingsCache : IYamlSettingsCache
     {
         if (_pathCache.TryGetValue(yamlStore, out var path)) return path;
 
-        string yamlPath;
         var dataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CLASSIC Data/");
 
-        switch (yamlStore)
+        var yamlPath = yamlStore switch
         {
-            case YamlStore.Main:
-                yamlPath = Path.Combine(dataPath, "databases/CLASSIC Main.yaml");
-                break;
-            case YamlStore.Settings:
-                yamlPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CLASSIC Settings.yaml");
-                break;
-            case YamlStore.Ignore:
-                yamlPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CLASSIC Ignore.yaml");
-                break;
-            case YamlStore.Game:
-                yamlPath = Path.Combine(dataPath, $"databases/CLASSIC {_gameContextService.GetCurrentGame()}.yaml");
-                break;
-            case YamlStore.GameLocal:
-                yamlPath = Path.Combine(dataPath, $"CLASSIC {_gameContextService.GetCurrentGame()} Local.yaml");
-                break;
-            case YamlStore.Test:
-                yamlPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tests/test_settings.yaml");
-                break;
-            default:
-                throw new NotImplementedException($"YAML store {yamlStore} not implemented");
-        }
+            YamlStore.Main => Path.Combine(dataPath, "databases/CLASSIC Main.yaml"),
+            YamlStore.Settings => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CLASSIC Settings.yaml"),
+            YamlStore.Ignore => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CLASSIC Ignore.yaml"),
+            YamlStore.Game => Path.Combine(dataPath, $"databases/CLASSIC {_gameContextService.GetCurrentGame()}.yaml"),
+            YamlStore.GameLocal => Path.Combine(dataPath, $"CLASSIC {_gameContextService.GetCurrentGame()} Local.yaml"),
+            YamlStore.Test => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tests/test_settings.yaml"),
+            _ => throw new NotImplementedException($"YAML store {yamlStore} not implemented")
+        };
 
         if (!string.IsNullOrEmpty(yamlPath))
             _pathCache[yamlStore] = yamlPath;

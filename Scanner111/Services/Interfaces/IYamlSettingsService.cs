@@ -12,7 +12,7 @@ namespace Scanner111.Services.Interfaces
         /// <param name="key">The key to retrieve (can include dots for nested properties)</param>
         /// <param name="section">The section name, defaults to "CLASSIC"</param>
         /// <returns>The string value, or null if not found</returns>
-        string GetStringSetting(string key, string section = "CLASSIC");
+        string? GetStringSetting(string key, string section = "CLASSIC");
 
         /// <summary>
         /// Gets a boolean setting from the specified section
@@ -37,7 +37,7 @@ namespace Scanner111.Services.Interfaces
         /// <param name="key">The key to retrieve (can include dots for nested properties)</param>
         /// <param name="section">The section name, defaults to "CLASSIC"</param>
         /// <returns>The value as type T, or default(T) if not found</returns>
-        T GetSetting<T>(string key, string section = "CLASSIC");
+        T? GetSetting<T>(string key, string section = "CLASSIC");
 
         /// <summary>
         /// Sets a setting value in the specified section

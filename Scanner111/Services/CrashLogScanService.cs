@@ -14,18 +14,20 @@ namespace Scanner111.Services;
 /// <summary>
 ///     Implementation of crash log scanning service.
 /// </summary>
-public class CrashLogScanService : ICrashLogScanService
+public partial class CrashLogScanService(
+    ILogger<CrashLogScanService> logger,
+    IYamlSettingsCache yamlSettings,
+    IGameContextService gameContext,
+    ICrashLogFileService fileService,
+    IDatabaseService databaseService,
+    IModDetectionService modDetectionService,
+    IReportWriterService reportWriter)
+    : ICrashLogScanService
 {
-    private readonly IDatabaseService _databaseService;
-    private readonly ICrashLogFileService _fileService;
-    private readonly IGameContextService _gameContext;
-
     private readonly SemaphoreSlim _initializationSemaphore = new(1, 1);
-    private readonly ILogger<CrashLogScanService> _logger;
-    private readonly IModDetectionService _modDetectionService;
-    private readonly Regex? _pluginSearchRegex;
-    private readonly IReportWriterService _reportWriter;
-    private readonly IYamlSettingsCache _yamlSettings;
+
+    private readonly Regex? _pluginSearchRegex = InitializePluginSearchRegex();
+
     private ILogCache? _crashLogs;
     private bool _disposed;
     private string _gameFilesResult = string.Empty;
@@ -34,28 +36,7 @@ public class CrashLogScanService : ICrashLogScanService
     private ScanStatistics _statistics = new();
     private ScanLogInfo? _yamlData;
 
-    public CrashLogScanService(
-        ILogger<CrashLogScanService> logger,
-        IYamlSettingsCache yamlSettings,
-        IGameContextService gameContext,
-        ICrashLogFileService fileService,
-        IDatabaseService databaseService,
-        IModDetectionService modDetectionService,
-        IReportWriterService reportWriter)
-    {
-        _logger = logger;
-        _yamlSettings = yamlSettings;
-        _gameContext = gameContext;
-        _fileService = fileService;
-        _databaseService = databaseService;
-        _modDetectionService = modDetectionService;
-        _reportWriter = reportWriter;
-
-        // Initialize regex pattern for plugin search
-        _pluginSearchRegex = new Regex(
-            @"^(?:\[[\dA-Fa-f ]{2,8}\])?(?:[\d]+\))?[ ]*([^:]+?)(?:\.es[lpm])?:?",
-            RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    }
+    // Initialize regex pattern for plugin search
 
     /// <summary>
     ///     Initializes the scan service with settings and file cache.
@@ -67,25 +48,25 @@ public class CrashLogScanService : ICrashLogScanService
         {
             if (_initialized) return;
 
-            _logger.LogInformation("Initializing crash log scan service");
+            logger.LogInformation("Initializing crash log scan service");
 
             // Load scan log info from settings
-            _yamlData = ScanLogInfo.LoadFromSettings(_yamlSettings, _gameContext);
+            _yamlData = ScanLogInfo.LoadFromSettings(yamlSettings, gameContext);
 
             // Get crash log files
-            var crashLogFiles = await _fileService.GetCrashLogFilesAsync(); // Get remove list for log reformatting
-            var removeList = _yamlSettings.GetSetting<List<string>>(YamlStore.Main, "exclude_log_records") ?? [];
+            var crashLogFiles = await fileService.GetCrashLogFilesAsync(); // Get remove list for log reformatting
+            var removeList = yamlSettings.GetSetting<List<string>>(YamlStore.Main, "exclude_log_records") ?? [];
 
             // Reformat crash logs
-            await _fileService.ReformatCrashLogsAsync(crashLogFiles, removeList);
+            await fileService.ReformatCrashLogsAsync(crashLogFiles, removeList);
 
             // Initialize log cache
             _crashLogs = new ThreadSafeLogCache(crashLogFiles);
 
-            _logger.LogInformation("Initialized log cache with {Count} log files", crashLogFiles.Count);
+            logger.LogInformation("Initialized log cache with {Count} log files", crashLogFiles.Count);
 
             _initialized = true;
-            _logger.LogInformation("Scan service initialization complete. Found {LogCount} crash logs",
+            logger.LogInformation("Scan service initialization complete. Found {LogCount} crash logs",
                 crashLogFiles.Count);
         }
         finally
@@ -106,12 +87,12 @@ public class CrashLogScanService : ICrashLogScanService
             // Double-check initialization was successful
             if (_crashLogs == null || _yamlData == null)
             {
-                _logger.LogError("Failed to initialize crash log service");
-                return (new List<CrashLogProcessResult>(), new ScanStatistics());
+                logger.LogError("Failed to initialize crash log service");
+                return ([], new ScanStatistics());
             }
         }
 
-        _logger.LogInformation("Starting crash log processing");
+        logger.LogInformation("Starting crash log processing");
 
         var startTime = DateTime.Now;
         var results = new List<CrashLogProcessResult>();
@@ -141,10 +122,10 @@ public class CrashLogScanService : ICrashLogScanService
         _statistics.FailedFiles.AddRange(results.Where(r => r.ScanFailed).Select(r => r.LogFileName));
 
         var processingTime = DateTime.Now - startTime;
-        _logger.LogInformation("Completed crash log processing in {Time} seconds", processingTime.TotalSeconds);
+        logger.LogInformation("Completed crash log processing in {Time} seconds", processingTime.TotalSeconds);
 
         // Write combined results
-        await _reportWriter.WriteCombinedResultsAsync(results, _statistics);
+        await reportWriter.WriteCombinedResultsAsync(results, _statistics);
 
         return (results, _statistics);
     }
@@ -156,66 +137,67 @@ public class CrashLogScanService : ICrashLogScanService
     {
         if (!_initialized || _yamlData == null || _crashLogs == null) await InitializeAsync();
 
-        _logger.LogDebug("Processing crash log: {LogFile}", logFileName);
+        logger.LogDebug("Processing crash log: {LogFile}", logFileName);
         try
         {
             // Read the crash log content
             if (_crashLogs == null) throw new InvalidOperationException("Log cache is not initialized");
 
             var crashData = await _crashLogs.ReadLogAsync(logFileName);
-            var autoscanReport = new List<string>();
-            var statistics = new Dictionary<string, int> { ["scanned"] = 1 };
+            var reportBuilder = new CrashReportBuilder { LogFileName = logFileName };
+            reportBuilder.AddStatistic("scanned", 1);
 
             if (crashData.Count == 0)
             {
-                autoscanReport.Add("ERROR: Empty or inaccessible crash log file");
-                statistics["failed"] = 1;
-                return new CrashLogProcessResult
-                {
-                    LogFileName = logFileName,
-                    Report = autoscanReport,
-                    ScanFailed = true,
-                    Statistics = statistics
-                };
-            } // Add header to report
+                reportBuilder.AddSection("Error", "ERROR: Empty or inaccessible crash log file")
+                    .AddStatistic("failed", 1)
+                    .ScanFailed = true;
 
+                return reportBuilder.BuildResult();
+            }
+
+            // Add header to report
             if (_yamlData != null)
-                autoscanReport.AddRange([
-                    $"{logFileName} -> AUTOSCAN REPORT GENERATED BY {_yamlData.ClassicVersion}\n",
-                    "# FOR BEST VIEWING EXPERIENCE OPEN THIS FILE IN NOTEPAD++ OR SIMILAR #\n",
-                    "# PLEASE READ EVERYTHING CAREFULLY AND BEWARE OF FALSE POSITIVES #\n",
-                    "====================================================\n"
-                ]);
+                reportBuilder.AddSection("Header",
+                    $"{logFileName} -> AUTOSCAN REPORT GENERATED BY {_yamlData.ClassicVersion}",
+                    "",
+                    "# FOR BEST VIEWING EXPERIENCE OPEN THIS FILE IN NOTEPAD++ OR SIMILAR #",
+                    "# PLEASE READ EVERYTHING CAREFULLY AND BEWARE OF FALSE POSITIVES #",
+                    "====================================================");
             else
-                autoscanReport.AddRange([
-                    $"{logFileName} -> AUTOSCAN REPORT\n",
-                    "# FOR BEST VIEWING EXPERIENCE OPEN THIS FILE IN NOTEPAD++ OR SIMILAR #\n",
-                    "# PLEASE READ EVERYTHING CAREFULLY AND BEWARE OF FALSE POSITIVES #\n",
-                    "====================================================\n"
-                ]); // Find segments in the crash log
+                reportBuilder.AddSection("Header",
+                    $"{logFileName} -> AUTOSCAN REPORT",
+                    "",
+                    "# FOR BEST VIEWING EXPERIENCE OPEN THIS FILE IN NOTEPAD++ OR SIMILAR #",
+                    "# PLEASE READ EVERYTHING CAREFULLY AND BEWARE OF FALSE POSITIVES #",
+                    "====================================================");
 
+            // Find segments in the crash log
             var segments = await FindSegmentsAsync(crashData, _yamlData!.CrashgenName);
 
             // Check for basic validity
             if (segments.PluginsSegment.Count == 0)
             {
-                autoscanReport.Add("\n⚠️ NO PLUGINS FOUND IN CRASH LOG ⚠️\n");
-                statistics["incomplete"] = 1;
+                reportBuilder.AddSection("Warnings", "⚠️ NO PLUGINS FOUND IN CRASH LOG ⚠️");
+                reportBuilder.AddStatistic("incomplete", 1);
             }
 
             if (crashData.Count < 20)
             {
-                autoscanReport.Add("\n⚠️ CRASH LOG APPEARS TO BE INCOMPLETE ⚠️\n");
-                statistics["incomplete"] = 1;
-            } // Check for FCX mode
+                reportBuilder.AddToSection("Warnings", "⚠️ CRASH LOG APPEARS TO BE INCOMPLETE ⚠️");
+                reportBuilder.AddStatistic("incomplete", 1);
+            }
 
-            var fcxMode = _yamlSettings.GetSetting<bool?>(YamlStore.Main, "FCX Mode");
+            // Check for FCX mode
+            var fcxMode = yamlSettings.GetSetting<bool?>(YamlStore.Main, "FCX Mode");
             await CheckFcxModeAsync(fcxMode ?? false);
 
             // Add FCX check results to report
-            if (!string.IsNullOrEmpty(_mainFilesResult)) autoscanReport.Add(_mainFilesResult);
+            if (!string.IsNullOrEmpty(_mainFilesResult))
+                reportBuilder.AddSection("FCX Results", _mainFilesResult);
 
-            if (!string.IsNullOrEmpty(_gameFilesResult)) autoscanReport.Add(_gameFilesResult);
+            if (!string.IsNullOrEmpty(_gameFilesResult))
+                reportBuilder.AddToSection("FCX Results", _gameFilesResult);
 
             // Extract plugins from the segments
             var pluginsMap = ExtractPluginsFromSegment(segments.PluginsSegment);
@@ -223,34 +205,35 @@ public class CrashLogScanService : ICrashLogScanService
             // Process main error for suspect detection
             var suspectFound = false;
             if (!string.IsNullOrEmpty(segments.MainError))
-                suspectFound = ScanSuspectMainError(autoscanReport, segments.MainError);
+                suspectFound = ScanSuspectMainError(reportBuilder, segments.MainError);
 
             // Process call stack for suspect detection
             var callStackText = string.Join("\n", segments.CallStackSegment);
-            var suspectStackFound = ScanSuspectStack(segments.MainError, callStackText, autoscanReport);
+            var suspectStackFound = ScanSuspectStack(segments.MainError, callStackText, reportBuilder);
             suspectFound = suspectFound || suspectStackFound;
 
             // If no suspects found, note that in the report
             if (!suspectFound)
-                autoscanReport.Add(
-                    "# ℹ️ No suspect patterns found in main error or call stack # \n-----\n"); // Analyze FormIDs if database exists and show FormID values is enabled
+                reportBuilder.AddSection("Suspects",
+                    "# ℹ️ No suspect patterns found in main error or call stack # \n-----\n");
 
-            var showFormIdValues = _yamlSettings.GetSetting<bool?>(YamlStore.Main, "Show FormID Values");
-            if (showFormIdValues.HasValue && showFormIdValues.Value && _databaseService.DatabaseExists())
-                await AnalyzeFormIdsAsync(segments.CallStackSegment, pluginsMap, autoscanReport);
+            // Analyze FormIDs if database exists and show FormID values is enabled
+            var showFormIdValues = yamlSettings.GetSetting<bool?>(YamlStore.Main, "Show FormID Values");
+            if (showFormIdValues.HasValue && showFormIdValues.Value && databaseService.DatabaseExists())
+                await AnalyzeFormIdsAsync(segments.CallStackSegment, pluginsMap, reportBuilder);
 
             // Detect mods from plugins
             if (pluginsMap.Count > 0)
             {
-                autoscanReport.Add("\n# CHECKING FOR KNOWN PROBLEMATIC MODS #\n");
+                reportBuilder.AddSection("Problematic Mods", "# CHECKING FOR KNOWN PROBLEMATIC MODS #");
 
                 // Detect single problematic mods
                 var singleModsFound =
-                    _modDetectionService.DetectModsSingle(_yamlData.GameModsFreq, pluginsMap, autoscanReport);
+                    modDetectionService.DetectModsSingle(_yamlData.GameModsFreq, pluginsMap, reportBuilder);
 
                 // Detect conflicting mod combinations
                 var conflictingModsFound =
-                    _modDetectionService.DetectModsDouble(_yamlData.GameModsConf, pluginsMap, autoscanReport);
+                    modDetectionService.DetectModsDouble(_yamlData.GameModsConf, pluginsMap, reportBuilder);
 
                 // Detect important mods and check compatibility
                 // Extract GPU info from system segment for compatibility checking
@@ -265,11 +248,11 @@ public class CrashLogScanService : ICrashLogScanService
                          gpuInfo.Contains("Radeon", StringComparison.OrdinalIgnoreCase))
                     gpuRival = "amd";
 
-                autoscanReport.Add("\n# CHECKING FOR IMPORTANT MODS #\n");
-                _modDetectionService.DetectModsImportant(_yamlData.GameModsCore, pluginsMap, autoscanReport, gpuRival);
+                reportBuilder.AddSection("Important Mods", "# CHECKING FOR IMPORTANT MODS #");
+                modDetectionService.DetectModsImportant(_yamlData.GameModsCore, pluginsMap, reportBuilder, gpuRival);
 
                 if (!singleModsFound && !conflictingModsFound)
-                    autoscanReport.Add("\n# ℹ️ No known problematic mods detected #\n");
+                    reportBuilder.AddToSection("Problematic Mods", "# ℹ️ No known problematic mods detected #");
             }
 
             // Add version information
@@ -277,97 +260,72 @@ public class CrashLogScanService : ICrashLogScanService
             var versionLatest = ParseVersion(_yamlData.CrashgenLatestOg);
             var versionLatestVr = ParseVersion(_yamlData.CrashgenLatestVr);
 
-            autoscanReport.AddRange([
-                $"\nMain Error: {segments.MainError}\n",
-                $"Detected {_yamlData.CrashgenName} Version: {segments.Crashgen}\n",
+            reportBuilder.AddSection("Version Info",
+                $"Main Error: {segments.MainError}",
+                $"Detected {_yamlData.CrashgenName} Version: {segments.Crashgen}",
                 IsLatestVersion(versionCurrent, versionLatest, versionLatestVr)
-                    ? $"* You have the latest version of {_yamlData.CrashgenName}! *\n\n"
-                    : $"{_yamlData.WarnOutdated}\n"
-            ]);
+                    ? $"* You have the latest version of {_yamlData.CrashgenName}! *"
+                    : $"{_yamlData.WarnOutdated}");
 
             // Extract and analyze plugins
             var crashlogPlugins = ExtractPluginsFromSegment(segments.PluginsSegment);
-            if (crashlogPlugins.Count > 0) autoscanReport.Add($"## Found {crashlogPlugins.Count} plugins\n");
-            // Detect mods - these need to be implemented
-            /*
-                var modsFound = _modDetectionService.DetectModsSingle(_yamlData.GameModsCore, crashlogPlugins, autoscanReport);
-                modsFound |= _modDetectionService.DetectModsDouble(_yamlData.GameModsConf, crashlogPlugins, autoscanReport);
+            if (crashlogPlugins.Count > 0)
+                reportBuilder.AddSection("Plugins", $"## Found {crashlogPlugins.Count} plugins");
 
-                if (!modsFound)
-                {
-                    autoscanReport.Add("✅ No known problematic mods detected\n");
-                }
-                */
             // Analyze call stack if available
             if (segments.CallStackSegment.Count > 0)
             {
-                autoscanReport.Add("## Call Stack Analysis\n");
+                reportBuilder.AddSection("Call Stack", "## Call Stack Analysis", "");
                 // TODO: Implement stack analysis
-                autoscanReport.Add("\n");
-            } // Add summary
-
-            autoscanReport.Add("## Summary\n");
-            autoscanReport.Add(
-                "This analysis provides possible crash causes. Verify suggested solutions and consult the community for help.\n");
-
-            // Mark success
-            statistics["success"] = 1;
-
-            // Move unsolved logs if necessary
-            await MoveUnsolvedLogsAsync(logFileName, autoscanReport);
-
-            // Add final information
-            autoscanReport.Add($"\nAnalysis completed on: {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n");
-
-            // Write report to file
-            await _reportWriter.WriteReportToFileAsync(logFileName, autoscanReport, false);
-
-            // Move unsolved logs to a separate folder
-            await MoveUnsolvedLogsAsync(logFileName, autoscanReport);
+            }
 
             try
             {
-                // Final step - move unsolved logs if necessary
-                await MoveUnsolvedLogsAsync(logFileName, autoscanReport);
+                // Move unsolved logs if necessary
+                await MoveUnsolvedLogsAsync(logFileName, reportBuilder.Build());
 
                 // Add summary information
-                autoscanReport.Add("\n## SCAN SUMMARY ##\n");
-                autoscanReport.Add(
-                    "This analysis provides possible crash causes based on known patterns and mod detection.\n");
-                autoscanReport.Add("Verify suggested solutions and consult the community for help if needed.\n");
-                autoscanReport.Add($"\nAnalysis completed on: {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n");
+                reportBuilder.AddSection("Summary",
+                    "## SCAN SUMMARY ##",
+                    "",
+                    "This analysis provides possible crash causes based on known patterns and mod detection.",
+                    "Verify suggested solutions and consult the community for help if needed.",
+                    "",
+                    $"Analysis completed on: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
 
                 // Mark success
-                statistics["success"] = 1;
+                reportBuilder.AddStatistic("success", 1);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during final analysis steps for {LogFile}", logFileName);
-                autoscanReport.Add($"\n⚠️ ERROR DURING FINAL ANALYSIS: {ex.Message}\n");
+                logger.LogError(ex, "Error during final analysis steps for {LogFile}", logFileName);
+                reportBuilder.AddSection("Error", $"⚠️ ERROR DURING FINAL ANALYSIS: {ex.Message}");
             }
 
-            return new CrashLogProcessResult
-            {
-                LogFileName = logFileName,
-                ScanFailed = false,
-                Statistics = statistics,
-                Report = autoscanReport
-            };
+            var result = reportBuilder.BuildResult();
+
+            // Write report to file
+            await reportWriter.WriteReportToFileAsync(logFileName, result.Report, false);
+
+            return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing crash log {LogFile}", logFileName);
-            var errorReport = new List<string> { $"Error processing {logFileName}: {ex.Message}" };
+            logger.LogError(ex, "Error processing crash log {LogFile}", logFileName);
 
-            await _reportWriter.WriteReportToFileAsync(logFileName, errorReport, true);
-
-            return new CrashLogProcessResult
+            var reportBuilder = new CrashReportBuilder
             {
                 LogFileName = logFileName,
-                ScanFailed = true,
-                Statistics = new Dictionary<string, int> { ["failed"] = 1 },
-                Report = errorReport
+                ScanFailed = true
             };
+
+            reportBuilder.AddSection("Error", $"Error processing {logFileName}: {ex.Message}")
+                .AddStatistic("failed", 1);
+
+            var result = reportBuilder.BuildResult();
+            await reportWriter.WriteReportToFileAsync(logFileName, result.Report, true);
+
+            return result;
         }
     }
 
@@ -518,22 +476,18 @@ public class CrashLogScanService : ICrashLogScanService
         foreach (var line in pluginSegment)
         {
             var match = _pluginSearchRegex.Match(line);
-            if (match is { Success: true, Groups.Count: > 1 })
-            {
-                var pluginName = match.Groups[1].Value.Trim();
-                if (!string.IsNullOrEmpty(pluginName))
-                {
-                    // Extract the load order if available
-                    var loadOrder = "FF";
-                    var bracketStart = line.IndexOf('[');
-                    var bracketEnd = line.IndexOf(']');
+            if (match is not { Success: true, Groups.Count: > 1 }) continue;
+            var pluginName = match.Groups[1].Value.Trim();
+            if (string.IsNullOrEmpty(pluginName)) continue;
+            // Extract the load order if available
+            var loadOrder = "FF";
+            var bracketStart = line.IndexOf('[');
+            var bracketEnd = line.IndexOf(']');
 
-                    if (bracketStart >= 0 && bracketEnd > bracketStart)
-                        loadOrder = line.Substring(bracketStart + 1, bracketEnd - bracketStart - 1).Trim();
+            if (bracketStart >= 0 && bracketEnd > bracketStart)
+                loadOrder = line.Substring(bracketStart + 1, bracketEnd - bracketStart - 1).Trim();
 
-                    result[pluginName] = loadOrder;
-                }
-            }
+            result[pluginName] = loadOrder;
         }
 
         return result;
@@ -627,7 +581,7 @@ public class CrashLogScanService : ICrashLogScanService
     /// <summary>
     ///     Scans for suspect errors in the callstack.
     /// </summary>
-    private bool ScanSuspectStack(string crashlogMainError, string callStack, List<string> autoscanReport)
+    private bool ScanSuspectStack(string crashlogMainError, string callStack, CrashReportBuilder reportBuilder)
     {
         if (_yamlData == null || string.IsNullOrEmpty(crashlogMainError) || string.IsNullOrEmpty(callStack))
             return false;
@@ -653,25 +607,20 @@ public class CrashLogScanService : ICrashLogScanService
             };
 
             // Process each signal in the list
-            var skipError = false;
-            foreach (var signal in signalList)
-                if (ProcessSuspectStackSignals(signal, crashlogMainError, callStack, matchStatus))
-                {
-                    skipError = true;
-                    break;
-                }
+            var skipError = signalList.Any(signal =>
+                ProcessSuspectStackSignals(signal, crashlogMainError, callStack, matchStatus));
 
             if (skipError) continue;
 
             // Check if we have a match
-            if (IsSuspectStackMatch(matchStatus))
-            {
-                // Format warning
-                var formattedErrorName = errorName.PadRight(maxWarnLength, '.');
-                autoscanReport.Add(
-                    $"# Checking for {formattedErrorName} SUSPECT FOUND! > Severity : {errorSeverity} # \n-----\n");
-                anySuspectFound = true;
-            }
+            if (!IsSuspectStackMatch(matchStatus)) continue;
+
+            // Format warning
+            var formattedErrorName = errorName.PadRight(maxWarnLength, '.');
+            reportBuilder.AddToSection("Suspects",
+                $"# Checking for {formattedErrorName} SUSPECT FOUND! > Severity : {errorSeverity} # ",
+                "-----");
+            anySuspectFound = true;
         }
 
         return anySuspectFound;
@@ -680,7 +629,7 @@ public class CrashLogScanService : ICrashLogScanService
     /// <summary>
     ///     Scans for main errors in the crash log.
     /// </summary>
-    private bool ScanSuspectMainError(List<string> autoscanReport, string crashlogMainError)
+    private bool ScanSuspectMainError(CrashReportBuilder reportBuilder, string crashlogMainError)
     {
         if (_yamlData == null || string.IsNullOrEmpty(crashlogMainError)) return false;
 
@@ -701,8 +650,9 @@ public class CrashLogScanService : ICrashLogScanService
             var formattedErrorName = errorName.PadRight(maxWarnLength, '.');
 
             // Add the error to the report
-            autoscanReport.Add(
-                $"# Checking for {formattedErrorName} SUSPECT FOUND! > Severity : {errorSeverity} # \n-----\n");
+            reportBuilder.AddSection("Suspects",
+                $"# Checking for {formattedErrorName} SUSPECT FOUND! > Severity : {errorSeverity} # ",
+                "-----");
 
             foundSuspect = true;
         }
@@ -745,41 +695,40 @@ public class CrashLogScanService : ICrashLogScanService
     ///     Analyzes FormIDs in crash log callstack for matching.
     /// </summary>
     private async Task AnalyzeFormIdsAsync(List<string> callStackSegment, Dictionary<string, string> pluginsMap,
-        List<string> autoscanReport)
+        CrashReportBuilder reportBuilder)
     {
-        if (callStackSegment.Count == 0 || pluginsMap.Count == 0 || !_databaseService.DatabaseExists()) return;
+        if (callStackSegment.Count == 0 || pluginsMap.Count == 0 || !databaseService.DatabaseExists()) return;
 
         // FormID pattern in callstack: typically in format like "[formID]" or similar
-        var formIdRegex = new Regex(@"\[([0-9A-Fa-f]{8})\]", RegexOptions.Compiled);
+        var formIdRegex = InitializeFormIdRegex();
         var formIdsFound = false;
 
-        autoscanReport.Add("\n# MATCHING FORMIDS FROM CALL STACK #\n");
+        reportBuilder.AddSection("FormID Analysis", "# MATCHING FORMIDS FROM CALL STACK #");
 
-        foreach (var line in callStackSegment)
+        foreach (var formId in from line in callStackSegment
+                 select formIdRegex.Matches(line)
+                 into matches
+                 from Match match in matches
+                 where match.Success && match.Groups.Count >= 2
+                 select match.Groups[1].Value
+                 into formId
+                 where !string.IsNullOrEmpty(formId)
+                 select formId)
         {
-            var matches = formIdRegex.Matches(line);
-            foreach (Match match in matches)
+            // Try to find which plugin this FormID belongs to
+            foreach (var (plugin, _) in pluginsMap)
             {
-                if (!match.Success || match.Groups.Count < 2) continue;
-
-                var formId = match.Groups[1].Value;
-                if (string.IsNullOrEmpty(formId)) continue;
-
-                // Try to find which plugin this FormID belongs to
-                foreach (var (plugin, _) in pluginsMap)
-                {
-                    var entry = await _databaseService.GetEntryAsync(formId, plugin);
-                    if (!string.IsNullOrEmpty(entry))
-                    {
-                        autoscanReport.Add($"🔍 FormID [{formId}] matched to {plugin}: {entry}\n");
-                        formIdsFound = true;
-                        break; // Found a match, no need to check other plugins
-                    }
-                }
+                var entry = await databaseService.GetEntryAsync(formId, plugin);
+                if (string.IsNullOrEmpty(entry)) continue;
+                reportBuilder.AddToSection("FormID Analysis", $"🔍 FormID [{formId}] matched to {plugin}: {entry}");
+                formIdsFound = true;
+                break; // Found a match, no need to check other plugins
             }
         }
 
-        if (!formIdsFound) autoscanReport.Add("❓ No FormIDs from call stack matched to plugins in database\n");
+        if (!formIdsFound)
+            reportBuilder.AddToSection("FormID Analysis",
+                "❓ No FormIDs from call stack matched to plugins in database");
     }
 
     /// <summary>
@@ -789,7 +738,7 @@ public class CrashLogScanService : ICrashLogScanService
     {
         if (_yamlData == null) return;
 
-        var moveUnsolved = _yamlSettings.GetSetting<bool?>(YamlStore.Main, "Move Unsolved Logs") ?? false;
+        var moveUnsolved = yamlSettings.GetSetting<bool?>(YamlStore.Main, "Move Unsolved Logs") ?? false;
         if (!moveUnsolved) return;
 
         // Determine if this log is "unsolved" based on specific keywords or patterns
@@ -808,20 +757,27 @@ public class CrashLogScanService : ICrashLogScanService
             {
                 if (!File.Exists(destFile))
                 {
-                    await _fileService.CopyFilesAsync(
+                    await fileService.CopyFilesAsync(
                         Path.GetDirectoryName(logFileName) ?? string.Empty,
                         unsolvedDir,
                         Path.GetFileName(logFileName));
 
-                    _logger.LogInformation("Moved unsolved log {LogFile} to unsolved directory", logFileName);
+                    logger.LogInformation("Moved unsolved log {LogFile} to unsolved directory", logFileName);
                     autoscanReport.Add("\n# Log has been copied to 'Unsolved Logs' folder for further analysis #\n");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error moving unsolved log {LogFile}", logFileName);
+                logger.LogError(ex, "Error moving unsolved log {LogFile}", logFileName);
                 autoscanReport.Add($"\n# Error moving log to 'Unsolved Logs' folder: {ex.Message} #\n");
             }
         }
     }
+
+    [GeneratedRegex(@"^(?:\[[\dA-Fa-f ]{2,8}\])?(?:[\d]+\))?[ ]*([^:]+?)(?:\.es[lpm])?:?",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled, "en-US")]
+    private static partial Regex InitializePluginSearchRegex();
+
+    [GeneratedRegex(@"\[([0-9A-Fa-f]{8})\]", RegexOptions.Compiled)]
+    private static partial Regex InitializeFormIdRegex();
 }

@@ -12,15 +12,8 @@ namespace Scanner111.Services;
 /// <summary>
 ///     Implementation of report writer service.
 /// </summary>
-public class ReportWriterService : IReportWriterService
+public class ReportWriterService(ILogger<ReportWriterService> logger) : IReportWriterService
 {
-    private readonly ILogger<ReportWriterService> _logger;
-
-    public ReportWriterService(ILogger<ReportWriterService> logger)
-    {
-        _logger = logger;
-    }
-
     /// <summary>
     ///     Writes a crash log scan report to file.
     /// </summary>
@@ -43,7 +36,7 @@ public class ReportWriterService : IReportWriterService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error writing report for {LogFile}", logFileName);
+            logger.LogError(ex, "Error writing report for {LogFile}", logFileName);
         }
     }
 
@@ -111,7 +104,7 @@ public class ReportWriterService : IReportWriterService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error moving failed log {LogFile}", logFileName);
+            logger.LogError(ex, "Error moving failed log {LogFile}", logFileName);
         }
     }
 

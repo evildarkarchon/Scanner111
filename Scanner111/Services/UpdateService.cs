@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
@@ -17,13 +19,13 @@ namespace Scanner111.Services
     /// Service responsible for checking if the current version of CLASSIC is the latest available.
     /// Compares local version against GitHub and/or Nexus sources based on configuration.
     /// </summary>
-    public class UpdateService : IUpdateService
+    public partial class UpdateService(
+        ILogger logger,
+        IYamlSettingsService settingsService,
+        IGameContextService gameContextService,
+        HttpClient? httpClient = null)
+        : IUpdateService
     {
-        private readonly ILogger _logger;
-        private readonly IYamlSettingsService _settingsService;
-        private readonly IGameContextService _gameContextService;
-        private readonly HttpClient _httpClient;
-        
         // Constants
         private const string RepoOwner = "evildarkarchon";
         private const string RepoName = "CLASSIC-Fallout4";
@@ -31,65 +33,59 @@ namespace Scanner111.Services
         private const string VersionPropertyName = "twitter:label1";
         private const string VersionPropertyValue = "Version";
         private const string VersionDataProperty = "twitter:data1";
-        
-        // Null version representation similar to Python's NULL_VERSION
-        private static readonly SemanticVersion NullVersion = new SemanticVersion(0, 0, 0);
 
-        public UpdateService(
-            ILogger logger, 
-            IYamlSettingsService settingsService, 
-            IGameContextService gameContextService,
-            HttpClient? httpClient = null)
-        {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
-            _gameContextService = gameContextService ?? throw new ArgumentNullException(nameof(gameContextService));
-            _httpClient = httpClient ?? new HttpClient();
-        }
+        // Null version representation similar to Python's NULL_VERSION
+        private static readonly SemanticVersion? NullVersion = new(0, 0, 0);
+        private static readonly string[] SourceArray = ["Both", "GitHub", "Nexus"];
+
+        private readonly IGameContextService _gameContextService =
+            gameContextService ?? throw new ArgumentNullException(nameof(gameContextService));
+
+        private readonly HttpClient _httpClient = httpClient ?? new HttpClient();
+        private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+        private readonly IYamlSettingsService _settingsService =
+            settingsService ?? throw new ArgumentNullException(nameof(settingsService));
 
         /// <inheritdoc />
         public async Task<bool> IsLatestVersionAsync(bool quiet = false, bool guiRequest = true)
         {
             _logger.Debug("- - - INITIATED UPDATE CHECK");
-            
+
             // Check if update check is enabled in settings
             if (!guiRequest && !_settingsService.GetBoolSetting("Update Check", "CLASSIC"))
             {
-                if (!quiet)
-                {
-                    Console.WriteLine("\n❌ NOTICE: UPDATE CHECK IS DISABLED IN CLASSIC Settings.yaml \n");
-                    Console.WriteLine("\n===============================================================================");
-                }
+                if (quiet) return false; // False because it's not the "latest" if checks are off (unless for GUI)
+                Console.WriteLine("\n❌ NOTICE: UPDATE CHECK IS DISABLED IN CLASSIC Settings.yaml \n");
+                Console.WriteLine("\n===============================================================================");
                 return false; // False because it's not the "latest" if checks are off (unless for GUI)
             }
 
             // Get update source from settings
-            string updateSource = _settingsService.GetStringSetting("Update Source", "CLASSIC") ?? "Both";
-            if (!new[] { "Both", "GitHub", "Nexus" }.Contains(updateSource))
+            var updateSource = _settingsService.GetStringSetting("Update Source") ?? "Both";
+            if (!SourceArray.Contains(updateSource))
             {
-                if (!quiet)
-                {
-                    Console.WriteLine("\n❌ NOTICE: INVALID VALUE FOR UPDATE SOURCE IN CLASSIC Settings.yaml \n");
-                    Console.WriteLine("\n===============================================================================");
-                }
+                if (quiet) return false; // Invalid source, cannot determine if latest
+                Console.WriteLine("\n❌ NOTICE: INVALID VALUE FOR UPDATE SOURCE IN CLASSIC Settings.yaml \n");
+                Console.WriteLine("\n===============================================================================");
                 return false; // Invalid source, cannot determine if latest
             }
 
             // Parse local version
-            string classicLocalStr = _settingsService.GetStringSetting("CLASSIC_Info.version", "Main");
-            SemanticVersion versionLocal = null;
-            
+            var classicLocalStr = _settingsService.GetStringSetting("CLASSIC_Info.version", "Main");
+            SemanticVersion? versionLocal = null;
+
             if (!string.IsNullOrEmpty(classicLocalStr))
             {
-                string[] parts = classicLocalStr.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var parts = classicLocalStr.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length > 0)
                 {
-                    string parsedLocalVersionStr = parts[^1]; // Last element, equivalent to parts[-1] in Python
+                    var parsedLocalVersionStr = parts[^1]; // Last element, equivalent to parts[-1] in Python
                     if (parsedLocalVersionStr.StartsWith("v"))
                     {
-                        parsedLocalVersionStr = parsedLocalVersionStr.Substring(1);
+                        parsedLocalVersionStr = parsedLocalVersionStr[1..];
                     }
-                    
+
                     SemanticVersion.TryParse(parsedLocalVersionStr, out versionLocal);
                 }
             }
@@ -100,12 +96,12 @@ namespace Scanner111.Services
                 Console.WriteLine("   (You can disable this check in the EXE or CLASSIC Settings.yaml) \n");
             }
 
-            bool useGithub = updateSource is "Both" or "GitHub";
-            bool useNexus = updateSource is "Both" or "Nexus" && 
-                         !_settingsService.GetBoolSetting("CLASSIC_Info.is_prerelease", "Main");
+            var useGithub = updateSource is "Both" or "GitHub";
+            var useNexus = updateSource is "Both" or "Nexus" &&
+                           !_settingsService.GetBoolSetting("CLASSIC_Info.is_prerelease", "Main");
 
-            SemanticVersion versionGithubToCompare = null;
-            SemanticVersion versionNexusToCompare = null;
+            SemanticVersion? versionGithubToCompare = null;
+            SemanticVersion? versionNexusToCompare = null;
 
             try
             {
@@ -113,21 +109,22 @@ namespace Scanner111.Services
                 {
                     _logger.Debug($"Fetching GitHub release details for {RepoOwner}/{RepoName}");
                     var githubDetails = await GetLatestAndTopReleaseDetailsAsync(RepoOwner, RepoName);
-                    
-                    if (githubDetails != null)
+
                     {
-                        var candidateStableVersions = new List<SemanticVersion>();
-                        
-                        if (githubDetails.LatestEndpointRelease?.Version != null && !githubDetails.LatestEndpointRelease.IsPreRelease)
+                        var candidateStableVersions = new List<SemanticVersion?>();
+
+                        if (githubDetails.LatestEndpointRelease?.Version != null &&
+                            !githubDetails.LatestEndpointRelease.IsPreRelease)
                         {
                             candidateStableVersions.Add(githubDetails.LatestEndpointRelease.Version);
                         }
-                        
-                        if (githubDetails.TopOfListRelease?.Version != null && !githubDetails.TopOfListRelease.IsPreRelease)
+
+                        if (githubDetails.TopOfListRelease?.Version != null &&
+                            !githubDetails.TopOfListRelease.IsPreRelease)
                         {
                             candidateStableVersions.Add(githubDetails.TopOfListRelease.Version);
                         }
-                        
+
                         if (candidateStableVersions.Count > 0)
                         {
                             versionGithubToCompare = candidateStableVersions.Max();
@@ -135,20 +132,17 @@ namespace Scanner111.Services
                         }
                     }
                 }
-                
+
                 if (useNexus)
                 {
                     _logger.Debug("Fetching Nexus version");
                     versionNexusToCompare = await GetNexusVersionAsync();
-                    
-                    if (versionNexusToCompare != null)
-                    {
-                        _logger.Info($"Determined Nexus version: {versionNexusToCompare}");
-                    }
+
+                    _logger.Info($"Determined Nexus version: {versionNexusToCompare}");
                 }
 
-                bool nexusSourceFailed = useNexus && (versionNexusToCompare == null);
-                bool githubSourceFailed = useGithub && (versionGithubToCompare == null);
+                var nexusSourceFailed = useNexus && versionNexusToCompare == null;
+                var githubSourceFailed = useGithub && versionGithubToCompare == null;
 
                 // Check if sources failed and raise appropriate exception if needed
                 CheckSourceFailuresAndRaise(useGithub, useNexus, githubSourceFailed, nexusSourceFailed);
@@ -156,57 +150,59 @@ namespace Scanner111.Services
             catch (HttpRequestException ex)
             {
                 _logger.Error($"Update check failed during version fetching: {ex.Message}");
-                
+
                 if (!quiet)
                 {
                     Console.WriteLine(ex.Message);
-                    string unableMsg = _settingsService.GetStringSetting($"CLASSIC_Interface.update_unable_{_gameContextService.GetCurrentGame()}", "Main");
+                    var unableMsg = _settingsService.GetStringSetting(
+                        $"CLASSIC_Interface.update_unable_{_gameContextService.GetCurrentGame()}", "Main");
                     Console.WriteLine(unableMsg);
                 }
-                
+
                 if (guiRequest)
                 {
                     throw new UpdateCheckException(ex.Message, ex);
                 }
-                
+
                 return false;
             }
             catch (UpdateCheckException ex)
             {
                 _logger.Error($"Update check failed: {ex.Message}");
-                
+
                 if (!quiet)
                 {
                     Console.WriteLine(ex.Message);
-                    string unableMsg = _settingsService.GetStringSetting($"CLASSIC_Interface.update_unable_{_gameContextService.GetCurrentGame()}", "Main");
+                    var unableMsg = _settingsService.GetStringSetting(
+                        $"CLASSIC_Interface.update_unable_{_gameContextService.GetCurrentGame()}", "Main");
                     Console.WriteLine(unableMsg);
                 }
-                
+
                 if (guiRequest)
                 {
                     throw;
                 }
-                
+
                 return false;
             }
             catch (Exception ex)
             {
                 _logger.Error($"Unexpected error during update check: {ex.Message}", ex);
-                
+
                 if (guiRequest)
                 {
                     throw new UpdateCheckException($"An unexpected error occurred: {ex.Message}", ex);
                 }
-                
+
                 return false;
             }
 
-            bool isOutdated = false;
-            
+            var isOutdated = false;
+
             if (versionLocal == null)
             {
                 _logger.Warning("Local version is unknown. Assuming update is needed or there's an issue.");
-                
+
                 // For safety, if local version is unknown, and remote versions exist, consider it outdated
                 if (versionGithubToCompare != null || versionNexusToCompare != null)
                 {
@@ -217,7 +213,8 @@ namespace Scanner111.Services
             {
                 if (versionGithubToCompare != null && versionLocal < versionGithubToCompare)
                 {
-                    _logger.Info($"Local version {versionLocal} is older than GitHub version {versionGithubToCompare}.");
+                    _logger.Info(
+                        $"Local version {versionLocal} is older than GitHub version {versionGithubToCompare}.");
                     isOutdated = true;
                 }
 
@@ -232,51 +229,47 @@ namespace Scanner111.Services
             {
                 if (!quiet)
                 {
-                    string warningMsg = _settingsService.GetStringSetting($"CLASSIC_Interface.update_warning_{_gameContextService.GetCurrentGame()}", "Main") ?? 
-                                        "A new version of CLASSIC is available!";
+                    var warningMsg =
+                        _settingsService.GetStringSetting(
+                            $"CLASSIC_Interface.update_warning_{_gameContextService.GetCurrentGame()}", "Main") ??
+                        "A new version of CLASSIC is available!";
                     Console.WriteLine(warningMsg);
                 }
-                
+
                 if (guiRequest)
                 {
                     // GUI catches this to indicate an update is available
                     throw new UpdateCheckException("A new version is available.");
                 }
-                
+
                 return false; // Outdated
             }
 
             // If not outdated
-            if (!quiet)
-            {
-                Console.Write($"Your CLASSIC Version: {versionLocal?.ToString() ?? "Unknown"}");
-                
-                if (useGithub)
-                {
-                    Console.Write(versionGithubToCompare != null ? 
-                        $"\nLatest GitHub Version: {versionGithubToCompare}" : 
-                        "\nLatest GitHub Version: Not found/checked");
-                }
-                
-                if (useNexus)
-                {
-                    Console.Write(versionNexusToCompare != null ? 
-                        $"\nLatest Nexus Version: {versionNexusToCompare}" : 
-                        "\nLatest Nexus Version: Not found/checked");
-                }
-                
-                Console.WriteLine("\n\n✔️ You have the latest version of CLASSIC!\n");
-            }
-            
+            if (quiet) return true;
+            Console.Write($"Your CLASSIC Version: {versionLocal?.ToString() ?? "Unknown"}");
+
+            if (useGithub)
+                Console.Write(versionGithubToCompare != null
+                    ? $"\nLatest GitHub Version: {versionGithubToCompare}"
+                    : "\nLatest GitHub Version: Not found/checked");
+
+            if (useNexus)
+                Console.Write(versionNexusToCompare != null
+                    ? $"\nLatest Nexus Version: {versionNexusToCompare}"
+                    : "\nLatest Nexus Version: Not found/checked");
+
+            Console.WriteLine("\n\n✔️ You have the latest version of CLASSIC!\n");
+
             return true;
         }
 
         #region Helper Methods
-        
+
         /// <summary>
         /// Attempts to parse a version string into a SemanticVersion object
         /// </summary>
-        private SemanticVersion TryParseVersion(string versionStr)
+        private SemanticVersion? TryParseVersion(string? versionStr)
         {
             if (string.IsNullOrEmpty(versionStr))
             {
@@ -284,7 +277,7 @@ namespace Scanner111.Services
             }
 
             // Extract the last part after a space, common for "Name v1.2.3"
-            string potentialVersionPart = versionStr.Split(' ').Last();
+            var potentialVersionPart = versionStr.Split(' ').Last();
 
             // Try with the potential version part first
             if (potentialVersionPart.StartsWith("v") && potentialVersionPart.Length > 1)
@@ -300,7 +293,7 @@ namespace Scanner111.Services
             // If that fails and we split the string, try with the original string
             if (versionStr != potentialVersionPart)
             {
-                string originalVersion = versionStr;
+                var originalVersion = versionStr;
                 if (originalVersion.StartsWith("v") && originalVersion.Length > 1)
                 {
                     originalVersion = originalVersion.Substring(1);
@@ -319,35 +312,35 @@ namespace Scanner111.Services
         /// <summary>
         /// Fetches the latest stable release version from a GitHub repository
         /// </summary>
-        private async Task<SemanticVersion> GetGithubLatestStableVersionFromEndpointAsync(string owner, string repo)
+        private async Task<SemanticVersion?> GetGithubLatestStableVersionFromEndpointAsync(string owner, string repo)
         {
-            string url = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
-            
+            var url = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
+
             try
             {
                 var response = await _httpClient.GetAsync(url);
-                
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+
+                if (response.StatusCode == HttpStatusCode.NotFound)
                 {
                     _logger.Info($"No '/releases/latest' found for {owner}/{repo} (status 404).");
                     return null;
                 }
-                
+
                 response.EnsureSuccessStatusCode();
                 var responseJson = await response.Content.ReadAsStringAsync();
                 var releaseData = JsonSerializer.Deserialize<JsonElement>(responseJson);
 
-                if (releaseData.TryGetProperty("prerelease", out var prereleaseElement) && 
+                if (releaseData.TryGetProperty("prerelease", out var prereleaseElement) &&
                     prereleaseElement.ValueKind == JsonValueKind.True)
                 {
                     _logger.Warning($"{url} returned a prerelease. Expected a stable release.");
                     return null;
                 }
 
-                if (releaseData.TryGetProperty("name", out var nameElement) && 
+                if (releaseData.TryGetProperty("name", out var nameElement) &&
                     nameElement.ValueKind == JsonValueKind.String)
                 {
-                    string releaseName = nameElement.GetString();
+                    var releaseName = nameElement.GetString();
                     return TryParseVersion(releaseName);
                 }
             }
@@ -355,17 +348,17 @@ namespace Scanner111.Services
             {
                 _logger.Error($"Error fetching latest stable release from {url}: {ex.Message}");
             }
-            
+
             return null;
         }
 
         /// <summary>
         /// Fetches the latest prerelease version from a GitHub repository's releases list
         /// </summary>
-        private async Task<SemanticVersion> GetGithubLatestPrereleaseVersionFromListAsync(string owner, string repo)
+        private async Task<SemanticVersion?> GetGithubLatestPrereleaseVersionFromListAsync(string owner, string repo)
         {
-            string url = $"https://api.github.com/repos/{owner}/{repo}/releases";
-            
+            var url = $"https://api.github.com/repos/{owner}/{repo}/releases";
+
             try
             {
                 var response = await _httpClient.GetAsync(url);
@@ -381,37 +374,30 @@ namespace Scanner111.Services
 
                 foreach (var releaseData in releasesData) // Iterates from newest to oldest
                 {
-                    if (releaseData.TryGetProperty("prerelease", out var prereleaseElement) && 
-                        prereleaseElement.ValueKind == JsonValueKind.True)
-                    {
-                        if (releaseData.TryGetProperty("name", out var nameElement) && 
-                            nameElement.ValueKind == JsonValueKind.String)
-                        {
-                            string prereleaseName = nameElement.GetString();
-                            var parsedVersion = TryParseVersion(prereleaseName);
-                            if (parsedVersion != null)
-                            {
-                                return parsedVersion;
-                            }
-                        }
-                    }
+                    if (!releaseData.TryGetProperty("prerelease", out var prereleaseElement) ||
+                        prereleaseElement.ValueKind != JsonValueKind.True) continue;
+                    if (!releaseData.TryGetProperty("name", out var nameElement) ||
+                        nameElement.ValueKind != JsonValueKind.String) continue;
+                    var prereleaseName = nameElement.GetString();
+                    var parsedVersion = TryParseVersion(prereleaseName);
+                    return parsedVersion;
                 }
             }
             catch (HttpRequestException ex)
             {
                 _logger.Error($"Error fetching releases list from {url}: {ex.Message}");
             }
-            
+
             return null;
         }
 
         /// <summary>
         /// Fetches details of the latest and top releases from a GitHub repository
         /// </summary>
-        private async Task<ReleaseDetailsInfo> GetLatestAndTopReleaseDetailsAsync(string owner, string repo)
+        private async Task<ReleaseDetailsInfo?> GetLatestAndTopReleaseDetailsAsync(string owner, string repo)
         {
-            string latestUrl = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
-            string allReleasesUrl = $"https://api.github.com/repos/{owner}/{repo}/releases";
+            var latestUrl = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
+            var allReleasesUrl = $"https://api.github.com/repos/{owner}/{repo}/releases";
 
             var results = new ReleaseDetailsInfo
             {
@@ -424,8 +410,8 @@ namespace Scanner111.Services
             {
                 // 1. Get release from /releases/latest
                 var latestResponse = await _httpClient.GetAsync(latestUrl);
-                
-                if (latestResponse.StatusCode != System.Net.HttpStatusCode.NotFound)
+
+                if (latestResponse.StatusCode != HttpStatusCode.NotFound)
                 {
                     latestResponse.EnsureSuccessStatusCode();
                     var latestJson = await latestResponse.Content.ReadAsStringAsync();
@@ -434,12 +420,13 @@ namespace Scanner111.Services
                     results.LatestEndpointRelease = new ReleaseInfo
                     {
                         Id = latestData.GetProperty("id").ToString(),
-                        TagName = latestData.GetProperty("tag_name").GetString(),
-                        Name = latestData.GetProperty("name").GetString(),
+                        TagName = latestData.GetProperty("tag_name").GetString() ?? string.Empty,
+                        Name = latestData.GetProperty("name").GetString() ?? string.Empty,
                         Version = TryParseVersion(latestData.GetProperty("name").GetString()),
                         IsPreRelease = latestData.GetProperty("prerelease").GetBoolean(),
-                        PublishedAt = latestData.TryGetProperty("published_at", out var publishedAt) ? 
-                            DateTimeOffset.Parse(publishedAt.GetString()) : null
+                        PublishedAt = latestData.TryGetProperty("published_at", out var publishedAt)
+                            ? DateTimeOffset.Parse(publishedAt.GetString() ?? string.Empty)
+                            : null
                     };
                 }
                 else
@@ -463,20 +450,21 @@ namespace Scanner111.Services
                     results.TopOfListRelease = new ReleaseInfo
                     {
                         Id = topReleaseData.GetProperty("id").ToString(),
-                        TagName = topReleaseData.GetProperty("tag_name").GetString(),
-                        Name = topReleaseData.GetProperty("name").GetString(),
+                        TagName = topReleaseData.GetProperty("tag_name").GetString() ?? string.Empty,
+                        Name = topReleaseData.GetProperty("name").GetString() ?? string.Empty,
                         Version = TryParseVersion(topReleaseData.GetProperty("name").GetString()),
                         IsPreRelease = topReleaseData.GetProperty("prerelease").GetBoolean(),
-                        PublishedAt = topReleaseData.TryGetProperty("published_at", out var publishedAt) ? 
-                            DateTimeOffset.Parse(publishedAt.GetString()) : null
+                        PublishedAt = topReleaseData.TryGetProperty("published_at", out var publishedAt)
+                            ? DateTimeOffset.Parse(publishedAt.GetString() ?? string.Empty)
+                            : null
                     };
                 }
 
-                if (results.LatestEndpointRelease != null && results.TopOfListRelease != null)
+                if (results is { LatestEndpointRelease: not null, TopOfListRelease: not null })
                 {
                     results.AreSameReleaseById = results.LatestEndpointRelease.Id == results.TopOfListRelease.Id;
                 }
-                
+
                 return results;
             }
             catch (HttpRequestException ex)
@@ -494,15 +482,15 @@ namespace Scanner111.Services
         /// <summary>
         /// Fetches the NexusMods version information for the CLASSIC Fallout 4 mod
         /// </summary>
-        private async Task<SemanticVersion> GetNexusVersionAsync()
+        private async Task<SemanticVersion?> GetNexusVersionAsync()
         {
             try
             {
                 // Set a timeout to prevent hanging on large responses
-                var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(30));
-                
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
                 var response = await _httpClient.GetAsync(NexusModUrl, cts.Token);
-                
+
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.Warning($"Failed to fetch Nexus mod page: HTTP {response.StatusCode}");
@@ -516,7 +504,7 @@ namespace Scanner111.Services
                     _logger.Warning($"Unexpected content type from Nexus mod page: {contentType}");
                     return null;
                 }
-                
+
                 // Set a reasonable size limit for the HTML content
                 const int maxHtmlLength = 10 * 1024 * 1024; // 10 MB
                 var contentLength = response.Content.Headers.ContentLength ?? 0;
@@ -526,21 +514,22 @@ namespace Scanner111.Services
                     return null;
                 }
 
-                var htmlContent = await response.Content.ReadAsStringAsync();
-                
+                var htmlContent = await response.Content.ReadAsStringAsync(cts.Token);
+
                 // Additional validation of HTML content
                 if (string.IsNullOrEmpty(htmlContent) || htmlContent.Length > maxHtmlLength)
                 {
                     _logger.Warning($"Invalid HTML content received from Nexus mod page (empty or too large)");
                     return null;
                 }
-                
-                var htmlDoc = new HtmlDocument();
-                
-                // Configure HtmlAgilityPack's options for safety
-                htmlDoc.OptionCheckSyntax = true;
-                htmlDoc.OptionFixNestedTags = true;
-                
+
+                var htmlDoc = new HtmlDocument
+                {
+                    // Configure HtmlAgilityPack's options for safety
+                    OptionCheckSyntax = true,
+                    OptionFixNestedTags = true
+                };
+
                 // Use try-catch specifically for the HTML parsing step
                 try
                 {
@@ -563,7 +552,8 @@ namespace Scanner111.Services
                 }
 
                 // Look for the next meta tag with version data
-                var versionDataNode = htmlDoc.DocumentNode.SelectSingleNode($"//meta[@property='{VersionDataProperty}']");
+                var versionDataNode =
+                    htmlDoc.DocumentNode.SelectSingleNode($"//meta[@property='{VersionDataProperty}']");
 
                 if (versionDataNode == null)
                 {
@@ -572,8 +562,8 @@ namespace Scanner111.Services
                 }
 
                 // Use SafeGetAttribute to handle potential edge cases in attribute values
-                string versionStr = SafeGetAttribute(versionDataNode, "content");
-                
+                var versionStr = SafeGetAttribute(versionDataNode, "content");
+
                 if (string.IsNullOrEmpty(versionStr))
                 {
                     _logger.Debug("Version string from meta tag is empty or null.");
@@ -582,17 +572,12 @@ namespace Scanner111.Services
 
                 // Validate and sanitize the version string before parsing
                 versionStr = SanitizeVersionString(versionStr);
-                
+
                 var parsedVersion = TryParseVersion(versionStr);
-                
-                if (parsedVersion != null)
-                {
-                    _logger.Debug($"Successfully parsed Nexus version: {parsedVersion}");
-                }
-                else
-                {
-                    _logger.Debug($"Failed to parse version string: '{versionStr}'");
-                }
+
+                _logger.Debug(parsedVersion != null
+                    ? $"Successfully parsed Nexus version: {parsedVersion}"
+                    : $"Failed to parse version string: '{versionStr}'");
 
                 return parsedVersion;
             }
@@ -611,20 +596,20 @@ namespace Scanner111.Services
 
             return null;
         }
-        
+
         /// <summary>
         /// Safely retrieves an attribute from an HTML node, with error handling
         /// </summary>
-        private string SafeGetAttribute(HtmlNode node, string attributeName)
+        private string? SafeGetAttribute(HtmlNode? node, string attributeName)
         {
             if (node == null || string.IsNullOrEmpty(attributeName))
             {
                 return null;
             }
-            
+
             try
             {
-                return node.GetAttributeValue(attributeName, null);
+                return node.GetAttributeValue(attributeName, null!);
             }
             catch (Exception ex)
             {
@@ -632,29 +617,29 @@ namespace Scanner111.Services
                 return null;
             }
         }
-        
+
         /// <summary>
         /// Sanitizes a version string to remove potentially harmful or unexpected characters
         /// </summary>
-        private string SanitizeVersionString(string versionStr)
+        private string? SanitizeVersionString(string? versionStr)
         {
             if (string.IsNullOrEmpty(versionStr))
             {
                 return string.Empty;
             }
-            
+
             // Trim whitespace
             versionStr = versionStr.Trim();
-            
+
             // Limit length
             if (versionStr.Length > 100)
             {
-                versionStr = versionStr.Substring(0, 100);
+                versionStr = versionStr[..100];
             }
-            
+
             // Limit to version-relevant characters (alphanumeric, dots, dashes, plus)
             // This regex matches valid version string characters and replaces everything else
-            return Regex.Replace(versionStr, @"[^a-zA-Z0-9.\-+]", "");
+            return SanitizeVersionRegex().Replace(versionStr, "");
         }
 
         /// <summary>
@@ -664,20 +649,25 @@ namespace Scanner111.Services
         {
             if (useGithub && !useNexus && githubFailed)
             {
-                throw new UpdateCheckException("Unable to fetch version information from GitHub (selected as only source).");
+                throw new UpdateCheckException(
+                    "Unable to fetch version information from GitHub (selected as only source).");
             }
-            
+
             if (useNexus && !useGithub && nexusFailed)
             {
-                throw new UpdateCheckException("Unable to fetch version information from Nexus (selected as only source).");
+                throw new UpdateCheckException(
+                    "Unable to fetch version information from Nexus (selected as only source).");
             }
-            
+
             if (useGithub && useNexus && githubFailed && nexusFailed)
             {
                 throw new UpdateCheckException("Unable to fetch version information from both GitHub and Nexus.");
             }
         }
-        
+
+        [GeneratedRegex(@"[^a-zA-Z0-9.\-+]")]
+        private static partial Regex SanitizeVersionRegex();
+
         #endregion
     }
 }

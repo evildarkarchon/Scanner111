@@ -19,7 +19,7 @@ public class CrashLogScanViewModel : ViewModelBase
     private int _incompleteCount;
     private bool _isScanning;
     private int _scannedCount;
-    private ObservableCollection<string> _scanResults = new();
+    private ObservableCollection<string> _scanResults = [];
     private string _statusMessage = "Ready to scan";
 
     /// <summary>

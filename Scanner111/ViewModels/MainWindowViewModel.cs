@@ -5,8 +5,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using Avalonia.Platform.Storage;
-using Microsoft.Extensions.Logging;
 using ReactiveUI;
 using Scanner111.Services;
 
@@ -14,56 +12,55 @@ namespace Scanner111.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
-    private string _outputText = string.Empty;
-    private bool _isTaskRunning;
-    private bool _isTaskIndeterminate = true;
-    private double _taskProgress;
-    private string _statusText = "Ready";
-    private bool _isPapyrusMonitoringEnabled;
-    
+    private readonly DialogService _dialogService;
+    private string _customScanPath = string.Empty;
+    private List<string> _gameOptions = ["Fallout 4", "Fallout 4 VR", "Skyrim Special Edition", "Skyrim VR"];
+
     // Settings tab properties
     private string _iniFilesPath = string.Empty;
-    private string _modsFolderPath = string.Empty;
-    private string _customScanPath = string.Empty;
-    private string _pastebinUrl = string.Empty;
-    private List<string> _gameOptions = new() { "Fallout 4", "Fallout 4 VR", "Skyrim Special Edition", "Skyrim VR" };
-    private string _selectedGame = "Fallout 4";
+    private bool _isBackupBeforeChangesEnabled = true;
+    private bool _isDebugModeEnabled;
     private bool _isFcxModeEnabled;
+    private bool _isPapyrusMonitoringEnabled;
     private bool _isSimplifyLogsEnabled = true;
+    private bool _isTaskIndeterminate = true;
+    private bool _isTaskRunning;
     private bool _isUpdateCheckEnabled = true;
     private bool _isVrModeEnabled;
-    private bool _isDebugModeEnabled;
-    private bool _isBackupBeforeChangesEnabled = true;
+    private string _modsFolderPath = string.Empty;
+    private string _outputText = string.Empty;
+    private string _pastebinUrl = string.Empty;
+    private string _selectedGame = "Fallout 4";
+    private string _statusText = "Ready";
+    private double _taskProgress;
 
-    private readonly DialogService _dialogService;
-    
     // Services would be injected here
     public MainWindowViewModel(DialogService dialogService = null)
     {
         _dialogService = dialogService;
-        
+
         // Initialize commands for Main tab
         ScanCrashLogsCommand = ReactiveCommand.CreateFromTask(ScanCrashLogsAsync);
         ScanGameFilesCommand = ReactiveCommand.CreateFromTask(ScanGameFilesAsync);
         DownloadFromPastebinCommand = ReactiveCommand.CreateFromTask(DownloadFromPastebinAsync);
         CheckUpdatesCommand = ReactiveCommand.CreateFromTask(CheckUpdatesAsync);
         TogglePapyrusMonitoringCommand = ReactiveCommand.Create(TogglePapyrusMonitoring);
-        
+
         // Initialize commands for Settings tab
         BrowseIniPathCommand = ReactiveCommand.CreateFromTask(BrowseIniPathAsync);
         BrowseModsPathCommand = ReactiveCommand.CreateFromTask(BrowseModsPathAsync);
         BrowseCustomScanPathCommand = ReactiveCommand.CreateFromTask(BrowseCustomScanPathAsync);
         ClearBackupFilesCommand = ReactiveCommand.CreateFromTask(ClearBackupFilesAsync);
-        
+
         // Initialize commands for Articles tab
         OpenArticleCommand = ReactiveCommand.Create<string>(OpenArticle);
-        
+
         // Initialize commands for Backups tab
         BackupFilesCommand = ReactiveCommand.CreateFromTask<string>(BackupFilesAsync);
         RestoreFilesCommand = ReactiveCommand.CreateFromTask<string>(RestoreFilesAsync);
         RemoveFilesCommand = ReactiveCommand.CreateFromTask<string>(RemoveFilesAsync);
         OpenBackupsFolderCommand = ReactiveCommand.Create(OpenBackupsFolder);
-        
+
         // Initialize commands for menu/toolbar actions
         ShowAboutCommand = ReactiveCommand.CreateFromTask(ShowAboutAsync);
         ShowHelpCommand = ReactiveCommand.CreateFromTask(ShowHelpAsync);
@@ -214,18 +211,18 @@ public partial class MainWindowViewModel : ViewModelBase
             AppendToOutput("Starting crash log scan...");
             await Task.Delay(500); // Simulate work
             progress.Report(30);
-            
+
             AppendToOutput("Analyzing crash data...");
             await Task.Delay(500); // Simulate work
             progress.Report(60);
-            
+
             AppendToOutput("Generating report...");
             await Task.Delay(500); // Simulate work
             progress.Report(90);
-            
+
             AppendToOutput("Scan complete.\n");
             AppendToOutput("Found 0 critical issues.\n");
-            
+
             return "Crash log scan completed";
         });
     }
@@ -238,18 +235,18 @@ public partial class MainWindowViewModel : ViewModelBase
             AppendToOutput("Starting game file scan...");
             await Task.Delay(500); // Simulate work
             progress.Report(30);
-            
+
             AppendToOutput("Checking mod files...");
             await Task.Delay(500); // Simulate work
             progress.Report(60);
-            
+
             AppendToOutput("Analyzing game configuration...");
             await Task.Delay(500); // Simulate work
             progress.Report(90);
-            
+
             AppendToOutput("Scan complete.\n");
             AppendToOutput("Found 0 issues with game files.\n");
-            
+
             return "Game file scan completed";
         });
     }
@@ -279,23 +276,23 @@ public partial class MainWindowViewModel : ViewModelBase
                     url = "https://pastebin.com/" + url;
                 }
             }
-            
+
             AppendToOutput($"Downloading content from: {url}");
-            
+
             // In a real implementation, we would use HttpClient to download the content
             // For now, just simulate the process
             await Task.Delay(1000); // Simulate download
             progress.Report(50);
-            
+
             AppendToOutput("Processing downloaded content...");
             await Task.Delay(500); // Simulate processing
             progress.Report(90);
-            
+
             // Clear the URL field after successful download
             PastebinUrl = string.Empty;
-            
+
             AppendToOutput("Download and processing completed successfully.\n");
-            
+
             return "Pastebin download completed";
         });
     }
@@ -307,9 +304,9 @@ public partial class MainWindowViewModel : ViewModelBase
             AppendToOutput("Checking for updates...");
             await Task.Delay(1000); // Simulate work
             progress.Report(100);
-            
+
             AppendToOutput("You are running the latest version.\n");
-            
+
             return "Update check completed";
         });
     }
@@ -337,11 +334,11 @@ public partial class MainWindowViewModel : ViewModelBase
             // In a real implementation, we would use Avalonia's FolderBrowserDialog
             AppendToOutput($"Opening folder browser for: {title}");
             await Task.Delay(500); // Simulate dialog opening
-            
+
             // Simulate a folder selection
             string selectedPath = $"C:\\Users\\Username\\Documents\\{title}";
             AppendToOutput($"Selected folder: {selectedPath}");
-            
+
             return selectedPath;
         }
         catch (Exception ex)
@@ -385,9 +382,9 @@ public partial class MainWindowViewModel : ViewModelBase
             AppendToOutput("Clearing backup files...");
             await Task.Delay(1000); // Simulate work
             progress.Report(100);
-            
+
             AppendToOutput("All backup files have been removed.\n");
-            
+
             return "Backup files cleared";
         });
     }
@@ -402,22 +399,22 @@ public partial class MainWindowViewModel : ViewModelBase
             { "CrashLogGuide", "https://example.com/crash-log-guide" },
             { "GameSetupGuide", "https://example.com/game-setup-guide" },
             { "ModTroubleshooting", "https://example.com/mod-troubleshooting" },
-            
+
             // Performance Guides
             { "PerformanceOptimization", "https://example.com/performance-optimization" },
             { "EnbSetup", "https://example.com/enb-setup-guide" },
             { "GraphicsMods", "https://example.com/graphics-mods-guide" },
-            
+
             // Mod Management
             { "Mo2Guide", "https://example.com/mod-organizer-2-guide" },
             { "VortexGuide", "https://example.com/vortex-guide" },
             { "LoadOrderGuide", "https://example.com/load-order-optimization" },
-            
+
             // Troubleshooting
             { "CrashFixes", "https://example.com/common-crash-fixes" },
             { "PluginConflicts", "https://example.com/plugin-conflict-resolution" },
             { "SaveGameIssues", "https://example.com/save-game-troubleshooting" },
-            
+
             // Community Resources
             { "DiscordCommunity", "https://discord.gg/exampleserver" },
             { "RedditCommunity", "https://reddit.com/r/examplesubreddit" },
@@ -488,18 +485,18 @@ public partial class MainWindowViewModel : ViewModelBase
             AppendToOutput($"Backing up {componentType} files...");
             await Task.Delay(500); // Simulate work
             progress.Report(50);
-            
+
             // In a real implementation, this would copy files to the backup folder
             AppendToOutput($"Files identified for backup: 5");
             await Task.Delay(500); // Simulate work
             progress.Report(75);
-            
+
             AppendToOutput($"All {componentType} files have been backed up successfully.\n");
-            
+
             return $"{componentType} files backed up";
         });
     }
-    
+
     private async Task RestoreFilesAsync(string componentType)
     {
         await RunTaskAsync($"Restoring {componentType} files...", async (progress) =>
@@ -507,18 +504,18 @@ public partial class MainWindowViewModel : ViewModelBase
             AppendToOutput($"Restoring {componentType} files from backup...");
             await Task.Delay(500); // Simulate work
             progress.Report(50);
-            
+
             // In a real implementation, this would copy files from the backup folder
             AppendToOutput($"Files identified for restore: 5");
             await Task.Delay(500); // Simulate work
             progress.Report(75);
-            
+
             AppendToOutput($"All {componentType} files have been restored successfully.\n");
-            
+
             return $"{componentType} files restored";
         });
     }
-    
+
     private async Task RemoveFilesAsync(string componentType)
     {
         await RunTaskAsync($"Removing {componentType} files...", async (progress) =>
@@ -526,33 +523,34 @@ public partial class MainWindowViewModel : ViewModelBase
             AppendToOutput($"Removing {componentType} files...");
             await Task.Delay(500); // Simulate work
             progress.Report(50);
-            
+
             // In a real implementation, this would delete files
             AppendToOutput($"Files identified for removal: 5");
             await Task.Delay(500); // Simulate work
             progress.Report(75);
-            
+
             AppendToOutput($"All {componentType} files have been removed successfully.\n");
-            
+
             return $"{componentType} files removed";
         });
     }
-    
+
     private void OpenBackupsFolder()
     {
         try
         {
             // In a real implementation, this would use the actual backups folder path
-            string backupsFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "CLASSIC Backup");
-            
+            var backupsFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "CLASSIC Backup");
+
             AppendToOutput($"Opening backups folder: {backupsFolderPath}");
-            
+
             // Create the directory if it doesn't exist
             if (!Directory.Exists(backupsFolderPath))
             {
                 Directory.CreateDirectory(backupsFolderPath);
             }
-            
+
             // Open the folder in the default file explorer
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -570,7 +568,7 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 throw new PlatformNotSupportedException("Platform not supported for opening folders");
             }
-            
+
             StatusText = "Opened backups folder";
         }
         catch (Exception ex)

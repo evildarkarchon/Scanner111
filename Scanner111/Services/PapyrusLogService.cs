@@ -133,10 +133,13 @@ public class PapyrusLogService : IPapyrusLogService
                 return Encoding.Unicode;
             if (buffer[0] == 0xFE && buffer[1] == 0xFF)
                 return Encoding.BigEndianUnicode;
-            if (buffer is [0xEF, 0xBB, 0xBF, ..])
-                return Encoding.UTF8;
-            if (buffer is [0, 0, 0xFE, 0xFF, ..])
-                return Encoding.UTF32;
+            switch (buffer)
+            {
+                case [0xEF, 0xBB, 0xBF, ..]:
+                    return Encoding.UTF8;
+                case [0, 0, 0xFE, 0xFF, ..]:
+                    return Encoding.UTF32;
+            }
         }
 
         // Simple heuristic for ASCII vs UTF-8

@@ -17,19 +17,17 @@ namespace Scanner111.Services
         }
 
         /// <inheritdoc />
-        public string GetStringSetting(string key, string section = "CLASSIC")
+        public string? GetStringSetting(string key, string section = "CLASSIC")
         {
             // Map the section parameter to the appropriate YamlStore
-            YamlStore yamlStore = MapSectionToYamlStore(section);
-            
+            var yamlStore = MapSectionToYamlStore(section);
+
             // If the section is "CLASSIC", use GetClassicSetting
-            if (section == "CLASSIC")
-            {
-                return YamlSettings.GetClassicSetting<string>(key);
-            }
-            
-            // Otherwise, use Get with the mapped YamlStore
-            return YamlSettings.Get<string>(yamlStore, key);
+            return section == "CLASSIC"
+                ? YamlSettings.GetClassicSetting<string>(key)
+                :
+                // Otherwise, use Get with the mapped YamlStore
+                YamlSettings.Get<string>(yamlStore, key);
         }
 
         /// <inheritdoc />
@@ -37,13 +35,13 @@ namespace Scanner111.Services
         {
             // Map the section parameter to the appropriate YamlStore
             YamlStore yamlStore = MapSectionToYamlStore(section);
-            
+
             // If the section is "CLASSIC", use GetClassicSetting
             if (section == "CLASSIC")
             {
                 return YamlSettings.GetClassicSetting<bool>(key);
             }
-            
+
             // Otherwise, use Get with the mapped YamlStore
             return YamlSettings.Get<bool>(yamlStore, key);
         }
@@ -52,40 +50,34 @@ namespace Scanner111.Services
         public int GetIntSetting(string key, string section = "CLASSIC")
         {
             // Map the section parameter to the appropriate YamlStore
-            YamlStore yamlStore = MapSectionToYamlStore(section);
-            
+            var yamlStore = MapSectionToYamlStore(section);
+
             // If the section is "CLASSIC", use GetClassicSetting
-            if (section == "CLASSIC")
-            {
-                return YamlSettings.GetClassicSetting<int>(key);
-            }
-            
-            // Otherwise, use Get with the mapped YamlStore
-            return YamlSettings.Get<int>(yamlStore, key);
+            return section == "CLASSIC"
+                ? YamlSettings.GetClassicSetting<int>(key)
+                :
+                // Otherwise, use Get with the mapped YamlStore
+                YamlSettings.Get<int>(yamlStore, key);
         }
 
         /// <inheritdoc />
-        public T GetSetting<T>(string key, string section = "CLASSIC")
+        public T? GetSetting<T>(string key, string section = "CLASSIC")
         {
             // Map the section parameter to the appropriate YamlStore
-            YamlStore yamlStore = MapSectionToYamlStore(section);
-            
+            var yamlStore = MapSectionToYamlStore(section);
+
             // If the section is "CLASSIC", use GetClassicSetting
-            if (section == "CLASSIC")
-            {
-                return YamlSettings.GetClassicSetting<T>(key);
-            }
-            
+            return section != "CLASSIC" ? YamlSettings.Get<T>(yamlStore, key) : YamlSettings.GetClassicSetting<T>(key);
+
             // Otherwise, use Get with the mapped YamlStore
-            return YamlSettings.Get<T>(yamlStore, key);
         }
 
         /// <inheritdoc />
         public bool SetSetting<T>(string key, T value, string section = "CLASSIC")
         {
             // Map the section parameter to the appropriate YamlStore
-            YamlStore yamlStore = MapSectionToYamlStore(section);
-            
+            var yamlStore = MapSectionToYamlStore(section);
+
             try
             {
                 // Use Get with a new value to set the setting
@@ -101,25 +93,26 @@ namespace Scanner111.Services
         /// <inheritdoc />
         public void SaveChanges()
         {
-            // No explicit SaveChanges in YamlSettings - changes are saved immediately in Get<T> when newValue is provided
+            // In this implementation, changes are saved automatically when SetSetting is called
+            // No additional action is required to save changes
         }
 
         /// <summary>
-        /// Maps a section string to the corresponding YamlStore enum value
+        /// Maps a section name to the corresponding YamlStore enum value
         /// </summary>
-        /// <param name="section">The section name</param>
+        /// <param name="section">The section name to map</param>
         /// <returns>The corresponding YamlStore enum value</returns>
         private YamlStore MapSectionToYamlStore(string section)
         {
-            return section switch
+            return section.ToUpperInvariant() switch
             {
                 "CLASSIC" => YamlStore.Settings,
-                "Main" => YamlStore.Main,
-                "Game" => YamlStore.Game,
-                "GameLocal" => YamlStore.GameLocal,
-                "Ignore" => YamlStore.Ignore,
-                "Test" => YamlStore.Test,
-                _ => YamlStore.Settings // Default to Settings
+                "MAIN" => YamlStore.Main,
+                "IGNORE" => YamlStore.Ignore,
+                "GAME" => YamlStore.Game,
+                "GAMELOCAL" => YamlStore.GameLocal,
+                "TEST" => YamlStore.Test,
+                _ => YamlStore.Settings // Default to Settings for unknown sections
             };
         }
     }

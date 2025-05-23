@@ -12,25 +12,16 @@ namespace Scanner111.Services;
 ///     Service for scanning game files and mods for issues.
 ///     Port of the CLASSIC_ScanGame.py file from the original Python implementation.
 /// </summary>
-public class GameScanService : IGameScanService
+public class GameScanService(
+    IYamlSettingsCache settingsCache,
+    IGameContextService gameContextService,
+    IFileService fileService)
+    : IGameScanService
 {
     // Constants
     private const string BackupDir = "CLASSIC Backup/Game Files";
     private const string CleanupFilesDir = "CLASSIC Backup/Cleaned Files";
     private const bool TestMode = false; // Set to true for testing
-    private readonly IFileService _fileService;
-    private readonly IGameContextService _gameContextService;
-    private readonly IYamlSettingsCache _settingsCache;
-
-    public GameScanService(
-        IYamlSettingsCache settingsCache,
-        IGameContextService gameContextService,
-        IFileService fileService)
-    {
-        _settingsCache = settingsCache;
-        _gameContextService = gameContextService;
-        _fileService = fileService;
-    }
 
     /// <summary>
     ///     Inspects log files within a specified folder for recorded errors.
@@ -43,9 +34,9 @@ public class GameScanService : IGameScanService
             return string.Empty;
 
         // Get YAML settings
-        var catchErrors = NormalizeList(_settingsCache.GetSetting<List<string>>(YamlStore.Main, "catch_log_errors"));
-        var ignoreFiles = NormalizeList(_settingsCache.GetSetting<List<string>>(YamlStore.Main, "exclude_log_files"));
-        var ignoreErrors = NormalizeList(_settingsCache.GetSetting<List<string>>(YamlStore.Main, "exclude_log_errors"));
+        var catchErrors = NormalizeList(settingsCache.GetSetting<List<string>>(YamlStore.Main, "catch_log_errors"));
+        var ignoreFiles = NormalizeList(settingsCache.GetSetting<List<string>>(YamlStore.Main, "exclude_log_files"));
+        var ignoreErrors = NormalizeList(settingsCache.GetSetting<List<string>>(YamlStore.Main, "exclude_log_errors"));
 
         var errorReport = new StringBuilder();
 
@@ -57,7 +48,7 @@ public class GameScanService : IGameScanService
         foreach (var logFile in validLogFiles)
         {
             // Skip files that should be ignored
-            if (ignoreFiles.Any(part => logFile.FullName.ToLowerInvariant().Contains(part)))
+            if (ignoreFiles.Any(part => logFile.FullName.Contains(part, StringComparison.InvariantCultureIgnoreCase)))
                 continue;
 
             try
@@ -66,8 +57,9 @@ public class GameScanService : IGameScanService
 
                 // Filter for relevant errors
                 var detectedErrors = logLines
-                    .Where(line => catchErrors.Any(error => line.ToLowerInvariant().Contains(error)) &&
-                                   ignoreErrors.All(ignore => !line.ToLowerInvariant().Contains(ignore)))
+                    .Where(line =>
+                        catchErrors.Any(error => line.Contains(error, StringComparison.InvariantCultureIgnoreCase)) &&
+                        ignoreErrors.All(ignore => !line.Contains(ignore, StringComparison.InvariantCultureIgnoreCase)))
                     .Select(line => $"ERROR > {line}");
 
                 var errorsList = detectedErrors.ToList();
@@ -110,31 +102,31 @@ public class GameScanService : IGameScanService
         // Initialize sets for collecting different issue types
         var issueCollections = new Dictionary<string, HashSet<string>>
         {
-            ["cleanup"] = new(),
-            ["animdata"] = new(),
-            ["tex_dims"] = new(),
-            ["tex_frmt"] = new(),
-            ["snd_frmt"] = new(),
-            ["xse_file"] = new(),
-            ["previs"] = new()
+            ["cleanup"] = [],
+            ["animdata"] = [],
+            ["tex_dims"] = [],
+            ["tex_frmt"] = [],
+            ["snd_frmt"] = [],
+            ["xse_file"] = [],
+            ["previs"] = []
         };
 
         // Get settings
-        var vr = _gameContextService.GetGameVr();
-        var xseAcronym = _settingsCache.GetSetting<string>(YamlStore.Game, $"Game{vr}_Info.XSE_Acronym") ?? "XSE";
-        var xseScriptFiles = _settingsCache.GetSetting<Dictionary<string, string>>(
+        var vr = gameContextService.GetGameVr();
+        var xseAcronym = settingsCache.GetSetting<string>(YamlStore.Game, $"Game{vr}_Info.XSE_Acronym") ?? "XSE";
+        var xseScriptFiles = settingsCache.GetSetting<Dictionary<string, string>>(
             YamlStore.Game, $"Game{vr}_Info.XSE_HashedScripts") ?? new Dictionary<string, string>();
 
         // Setup paths
         var backupPath = new DirectoryInfo(CleanupFilesDir);
         if (!TestMode) backupPath.Create();
 
-        var modPath = _settingsCache.GetSetting<string>(YamlStore.Settings, "CLASSIC_Settings.MODS Folder Path");
+        var modPath = settingsCache.GetSetting<string>(YamlStore.Settings, "CLASSIC_Settings.MODS Folder Path");
         if (string.IsNullOrEmpty(modPath))
-            return _settingsCache.GetSetting<string>(YamlStore.Main, "Mods_Warn.Mods_Path_Missing");
+            return settingsCache.GetSetting<string>(YamlStore.Main, "Mods_Warn.Mods_Path_Missing");
 
         if (!Directory.Exists(modPath))
-            return _settingsCache.GetSetting<string>(YamlStore.Main, "Mods_Warn.Mods_Path_Invalid");
+            return settingsCache.GetSetting<string>(YamlStore.Main, "Mods_Warn.Mods_Path_Invalid");
 
         Console.WriteLine("✔️ MODS FOLDER PATH FOUND! PERFORMING INITIAL MOD FILES CLEANUP...");
 
@@ -176,20 +168,18 @@ public class GameScanService : IGameScanService
             foreach (var file in rootDir.GetFiles("*.txt"))
             {
                 var filenameLower = file.Name.ToLowerInvariant();
-                if (filterNames.Any(name => filenameLower.Contains(name)))
+                if (!filterNames.Any(name => filenameLower.Contains(name))) continue;
+                var relativePath = file.FullName.Substring(modPath.Length).TrimStart(Path.DirectorySeparatorChar);
+                var newFilePath = Path.Combine(backupPath.FullName, relativePath);
+
+                if (!TestMode)
                 {
-                    var relativePath = file.FullName.Substring(modPath.Length).TrimStart(Path.DirectorySeparatorChar);
-                    var newFilePath = Path.Combine(backupPath.FullName, relativePath);
-
-                    if (!TestMode)
-                    {
-                        // Create directory if it doesn't exist
-                        Directory.CreateDirectory(Path.GetDirectoryName(newFilePath)!);
-                        File.Move(file.FullName, newFilePath, true);
-                    }
-
-                    issueCollections["cleanup"].Add($"  - {relativePath}\n");
+                    // Create directory if it doesn't exist
+                    Directory.CreateDirectory(Path.GetDirectoryName(newFilePath)!);
+                    File.Move(file.FullName, newFilePath, true);
                 }
+
+                issueCollections["cleanup"].Add($"  - {relativePath}\n");
             }
         }
 
@@ -204,95 +194,104 @@ public class GameScanService : IGameScanService
             var relativePath = file.Substring(modPath.Length).TrimStart(Path.DirectorySeparatorChar);
             var fileExt = fileInfo.Extension.ToLowerInvariant();
 
-            // Check DDS dimensions
-            if (fileExt == ".dds")
-                try
-                {
-                    using var ddsFile = File.OpenRead(file);
-                    var ddsData = new byte[20];
-                    ddsFile.ReadExactly(ddsData, 0, 20);
-
-                    if (ddsData[0] == 'D' && ddsData[1] == 'D' && ddsData[2] == 'S' && ddsData[3] == ' ')
+            switch (fileExt)
+            {
+                // Check DDS dimensions
+                case ".dds":
+                    try
                     {
-                        var width = BitConverter.ToInt32(ddsData, 12);
-                        var height = BitConverter.ToInt32(ddsData, 16);
+                        using var ddsFile = File.OpenRead(file);
+                        var ddsData = new byte[20];
+                        ddsFile.ReadExactly(ddsData, 0, 20);
 
-                        if (width % 2 != 0 || height % 2 != 0)
-                            issueCollections["tex_dims"].Add($"  - {relativePath} ({width}x{height})");
+                        if (ddsData[0] == 'D' && ddsData[1] == 'D' && ddsData[2] == 'S' && ddsData[3] == ' ')
+                        {
+                            var width = BitConverter.ToInt32(ddsData, 12);
+                            var height = BitConverter.ToInt32(ddsData, 16);
+
+                            if (width % 2 != 0 || height % 2 != 0)
+                                issueCollections["tex_dims"].Add($"  - {relativePath} ({width}x{height})");
+                        }
                     }
-                }
-                catch (Exception ex)
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error reading DDS file {file}: {ex.Message}");
+                    }
+
+                    break;
+                // Check for invalid texture formats
+                case ".tga" or ".png" when !file.Contains("BodySlide"):
+                    issueCollections["tex_frmt"]
+                        .Add($"  - {fileExt.Substring(1).ToUpperInvariant()} : {relativePath}\n");
+                    break;
+                // Check for invalid sound formats
+                case ".mp3":
+                case ".m4a":
+                    issueCollections["snd_frmt"]
+                        .Add($"  - {fileExt.Substring(1).ToUpperInvariant()} : {relativePath}\n");
+                    break;
+                // Check for XSE files
+                default:
                 {
-                    Console.WriteLine($"Error reading DDS file {file}: {ex.Message}");
+                    if (xseScriptFiles.Keys.Any(key =>
+                            filenameLower.Equals(key, StringComparison.InvariantCultureIgnoreCase)) &&
+                        !file.Contains("workshop framework", StringComparison.InvariantCultureIgnoreCase) &&
+                        file.Contains($"Scripts{Path.DirectorySeparatorChar}{fileInfo.Name}"))
+                        issueCollections["xse_file"].Add($"  - {rootMain}\n");
+
+                    // Check for previs files
+                    else if (filenameLower.EndsWith(".uvd") || filenameLower.EndsWith("_oc.nif"))
+                        issueCollections["previs"].Add($"  - {rootMain}\n");
+                    break;
                 }
-
-            // Check for invalid texture formats
-            else if ((fileExt == ".tga" || fileExt == ".png") && !file.Contains("BodySlide"))
-                issueCollections["tex_frmt"].Add($"  - {fileExt.Substring(1).ToUpperInvariant()} : {relativePath}\n");
-
-            // Check for invalid sound formats
-            else if (fileExt == ".mp3" || fileExt == ".m4a")
-                issueCollections["snd_frmt"].Add($"  - {fileExt.Substring(1).ToUpperInvariant()} : {relativePath}\n");
-
-            // Check for XSE files
-            else if (xseScriptFiles.Keys.Any(key => filenameLower == key.ToLowerInvariant()) &&
-                     !file.ToLowerInvariant().Contains("workshop framework") &&
-                     file.Contains($"Scripts{Path.DirectorySeparatorChar}{fileInfo.Name}"))
-                issueCollections["xse_file"].Add($"  - {rootMain}\n");
-
-            // Check for previs files
-            else if (filenameLower.EndsWith(".uvd") || filenameLower.EndsWith("_oc.nif"))
-                issueCollections["previs"].Add($"  - {rootMain}\n");
+            }
         }
 
         // Build the report
         var issueMessages = new Dictionary<string, List<string>>
         {
-            ["xse_file"] = new()
-            {
+            ["xse_file"] =
+            [
                 $"\n# ⚠️ FOLDERS CONTAIN COPIES OF *{xseAcronym}* SCRIPT FILES ⚠️\n",
                 "▶️ Any mods with copies of original Script Extender files\n",
                 "  may cause script related problems or crashes.\n\n"
-            },
-            ["previs"] = new()
-            {
+            ],
+            ["previs"] =
+            [
                 "\n# ⚠️ FOLDERS CONTAIN LOOSE PRECOMBINE / PREVIS FILES ⚠️\n",
                 "▶️ Any mods that contain custom precombine/previs files\n",
                 "  should load after the PRP.esp plugin from Previs Repair Pack (PRP).\n",
                 "  Otherwise, see if there is a PRP patch available for these mods.\n\n"
-            },
-            ["tex_dims"] = new()
-            {
+            ],
+            ["tex_dims"] =
+            [
                 "\n# ⚠️ DDS DIMENSIONS ARE NOT DIVISIBLE BY 2 ⚠️\n",
                 "▶️ Any mods that have texture files with incorrect dimensions\n",
                 "  are very likely to cause a *Texture (DDS) Crash*. For further details,\n",
                 "  read the *How To Read Crash Logs.pdf* included with the CLASSIC exe.\n\n"
-            },
-            ["tex_frmt"] = new()
-            {
+            ],
+            ["tex_frmt"] =
+            [
                 "\n# ❓ TEXTURE FILES HAVE INCORRECT FORMAT, SHOULD BE DDS ❓\n",
                 "▶️ Any files with an incorrect file format will not work.\n",
                 "  Mod authors should convert these files to their proper game format.\n",
                 "  If possible, notify the original mod authors about these problems.\n\n"
-            },
-            ["snd_frmt"] = new()
-            {
+            ],
+            ["snd_frmt"] =
+            [
                 "\n# ❓ SOUND FILES HAVE INCORRECT FORMAT, SHOULD BE XWM OR WAV ❓\n",
                 "▶️ Any files with an incorrect file format will not work.\n",
                 "  Mod authors should convert these files to their proper game format.\n",
                 "  If possible, notify the original mod authors about these problems.\n\n"
-            },
-            ["animdata"] = new()
-            {
+            ],
+            ["animdata"] =
+            [
                 "\n# ❓ FOLDERS CONTAIN CUSTOM ANIMATION FILE DATA ❓\n",
                 "▶️ Any mods that have their own custom Animation File Data\n",
                 "  may rarely cause an *Animation Corruption Crash*. For further details,\n",
                 "  read the *How To Read Crash Logs.pdf* included with the CLASSIC exe.\n\n"
-            },
-            ["cleanup"] = new()
-            {
-                "\n# 📄 DOCUMENTATION FILES MOVED TO 'CLASSIC Backup\\Cleaned Files' 📄\n"
-            }
+            ],
+            ["cleanup"] = ["\n# 📄 DOCUMENTATION FILES MOVED TO 'CLASSIC Backup\\Cleaned Files' 📄\n"]
         };
 
         // Add found issues to message list
@@ -320,34 +319,34 @@ public class GameScanService : IGameScanService
         // Initialize collections for different issue types
         var issueCollections = new Dictionary<string, HashSet<string>>
         {
-            ["ba2_frmt"] = new(),
-            ["animdata"] = new(),
-            ["tex_dims"] = new(),
-            ["tex_frmt"] = new(),
-            ["snd_frmt"] = new(),
-            ["xse_file"] = new(),
-            ["previs"] = new()
+            ["ba2_frmt"] = [],
+            ["animdata"] = [],
+            ["tex_dims"] = [],
+            ["tex_frmt"] = [],
+            ["snd_frmt"] = [],
+            ["xse_file"] = [],
+            ["previs"] = []
         };
 
         // Get settings
-        var vr = _gameContextService.GetGameVr();
-        var xseAcronym = _settingsCache.GetSetting<string>(YamlStore.Game, $"Game{vr}_Info.XSE_Acronym") ?? "";
-        var xseScriptFiles = _settingsCache.GetSetting<Dictionary<string, string>>(
+        var vr = gameContextService.GetGameVr();
+        var xseAcronym = settingsCache.GetSetting<string>(YamlStore.Game, $"Game{vr}_Info.XSE_Acronym") ?? "";
+        var xseScriptFiles = settingsCache.GetSetting<Dictionary<string, string>>(
             YamlStore.Game, $"Game{vr}_Info.XSE_HashedScripts") ?? new Dictionary<string, string>();
 
         // Setup paths
         var bsarchPath = Path.Combine(Directory.GetCurrentDirectory(), "CLASSIC Data", "BSArch.exe");
-        var modPath = _settingsCache.GetSetting<string>(YamlStore.Settings, "CLASSIC_Settings.MODS Folder Path");
+        var modPath = settingsCache.GetSetting<string>(YamlStore.Settings, "CLASSIC_Settings.MODS Folder Path");
 
         // Validate paths
         if (string.IsNullOrEmpty(modPath))
-            return _settingsCache.GetSetting<string>(YamlStore.Main, "Mods_Warn.Mods_Path_Missing");
+            return settingsCache.GetSetting<string>(YamlStore.Main, "Mods_Warn.Mods_Path_Missing");
 
         if (!Directory.Exists(modPath))
-            return _settingsCache.GetSetting<string>(YamlStore.Main, "Mods_Warn.Mods_Path_Invalid");
+            return settingsCache.GetSetting<string>(YamlStore.Main, "Mods_Warn.Mods_Path_Invalid");
 
         if (!File.Exists(bsarchPath))
-            return _settingsCache.GetSetting<string>(YamlStore.Main, "Mods_Warn.Mods_BSArch_Missing");
+            return settingsCache.GetSetting<string>(YamlStore.Main, "Mods_Warn.Mods_BSArch_Missing");
 
         Console.WriteLine("✔️ ALL REQUIREMENTS SATISFIED! NOW ANALYZING ALL BA2 MOD ARCHIVES...");
 
@@ -423,17 +422,15 @@ public class GameScanService : IGameScanService
                         }
 
                         // Check texture dimensions
-                        var parts = blockSplit[2].Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                        if (parts.Length >= 5)
-                        {
-                            var width = parts[1];
-                            var height = parts[3];
+                        var parts = blockSplit[2].Split([' '], StringSplitOptions.RemoveEmptyEntries);
+                        if (parts.Length < 5) continue;
+                        var width = parts[1];
+                        var height = parts[3];
 
-                            if ((int.TryParse(width, out var w) && w % 2 != 0) ||
-                                (int.TryParse(height, out var h) && h % 2 != 0))
-                                issueCollections["tex_dims"]
-                                    .Add($"  - {width}x{height} : {fileName} > {blockSplit[0]}");
-                        }
+                        if ((int.TryParse(width, out var w) && w % 2 != 0) ||
+                            (int.TryParse(height, out var h) && h % 2 != 0))
+                            issueCollections["tex_dims"]
+                                .Add($"  - {width}x{height} : {fileName} > {blockSplit[0]}");
                     }
                 }
                 else
@@ -484,7 +481,7 @@ public class GameScanService : IGameScanService
                         // Check XSE files
                         else if (!hasXseFiles &&
                                  xseScriptFiles.Keys.Any(key => file.Contains($"scripts\\{key.ToLowerInvariant()}")) &&
-                                 !filePath.ToLowerInvariant().Contains("workshop framework"))
+                                 !filePath.Contains("workshop framework", StringComparison.InvariantCultureIgnoreCase))
                         {
                             hasXseFiles = true;
                             issueCollections["xse_file"].Add($"  - {fileName}\n");
@@ -507,54 +504,54 @@ public class GameScanService : IGameScanService
         // Build the report
         var issueMessages = new Dictionary<string, List<string>>
         {
-            ["xse_file"] = new()
-            {
+            ["xse_file"] =
+            [
                 $"\n# ⚠️ BA2 ARCHIVES CONTAIN COPIES OF *{xseAcronym}* SCRIPT FILES ⚠️\n",
                 "▶️ Any mods with copies of original Script Extender files\n",
                 "  may cause script related problems or crashes.\n\n"
-            },
-            ["previs"] = new()
-            {
+            ],
+            ["previs"] =
+            [
                 "\n# ⚠️ BA2 ARCHIVES CONTAIN CUSTOM PRECOMBINE / PREVIS FILES ⚠️\n",
                 "▶️ Any mods that contain custom precombine/previs files\n",
                 "  should load after the PRP.esp plugin from Previs Repair Pack (PRP).\n",
                 "  Otherwise, see if there is a PRP patch available for these mods.\n\n"
-            },
-            ["tex_dims"] = new()
-            {
+            ],
+            ["tex_dims"] =
+            [
                 "\n# ⚠️ DDS DIMENSIONS ARE NOT DIVISIBLE BY 2 ⚠️\n",
                 "▶️ Any mods that have texture files with incorrect dimensions\n",
                 "  are very likely to cause a *Texture (DDS) Crash*. For further details,\n",
                 "  read the *How To Read Crash Logs.pdf* included with the CLASSIC exe.\n\n"
-            },
-            ["tex_frmt"] = new()
-            {
+            ],
+            ["tex_frmt"] =
+            [
                 "\n# ❓ TEXTURE FILES HAVE INCORRECT FORMAT, SHOULD BE DDS ❓\n",
                 "▶️ Any files with an incorrect file format will not work.\n",
                 "  Mod authors should convert these files to their proper game format.\n",
                 "  If possible, notify the original mod authors about these problems.\n\n"
-            },
-            ["snd_frmt"] = new()
-            {
+            ],
+            ["snd_frmt"] =
+            [
                 "\n# ❓ SOUND FILES HAVE INCORRECT FORMAT, SHOULD BE XWM OR WAV ❓\n",
                 "▶️ Any files with an incorrect file format will not work.\n",
                 "  Mod authors should convert these files to their proper game format.\n",
                 "  If possible, notify the original mod authors about these problems.\n\n"
-            },
-            ["animdata"] = new()
-            {
+            ],
+            ["animdata"] =
+            [
                 "\n# ❓ BA2 ARCHIVES CONTAIN CUSTOM ANIMATION FILE DATA ❓\n",
                 "▶️ Any mods that have their own custom Animation File Data\n",
                 "  may rarely cause an *Animation Corruption Crash*. For further details,\n",
                 "  read the *How To Read Crash Logs.pdf* included with the CLASSIC exe.\n\n"
-            },
-            ["ba2_frmt"] = new()
-            {
+            ],
+            ["ba2_frmt"] =
+            [
                 "\n# ❓ BA2 ARCHIVES HAVE INCORRECT FORMAT, SHOULD BE BTDX-GNRL OR BTDX-DX10 ❓\n",
                 "▶️ Any files with an incorrect file format will not work.\n",
                 "  Mod authors should convert these files to their proper game format.\n",
                 "  If possible, notify the original mod authors about these problems.\n\n"
-            }
+            ]
         };
 
         // Add found issues to message list
@@ -581,11 +578,11 @@ public class GameScanService : IGameScanService
         const string errorPrefix = "❌ ERROR :";
         const string adminSuggestion = "    TRY RUNNING CLASSIC.EXE IN ADMIN MODE TO RESOLVE THIS PROBLEM.\n";
 
-        var vr = _gameContextService.GetGameVr();
+        var vr = gameContextService.GetGameVr();
 
         // Get paths and settings
-        var gamePath = _settingsCache.GetSetting<string>(YamlStore.GameLocal, $"Game{vr}_Info.Root_Folder_Game");
-        var manageList = _settingsCache.GetSetting<List<string>>(YamlStore.Game, classicList) ?? new List<string>();
+        var gamePath = settingsCache.GetSetting<string>(YamlStore.GameLocal, $"Game{vr}_Info.Root_Folder_Game");
+        var manageList = settingsCache.GetSetting<List<string>>(YamlStore.Game, classicList) ?? [];
 
         // Validate game path
         if (string.IsNullOrEmpty(gamePath) || !Directory.Exists(gamePath))
@@ -596,13 +593,13 @@ public class GameScanService : IGameScanService
         Directory.CreateDirectory(backupPath);
 
         // Extract list name for display purposes
-        var listName = classicList.Split(new[] { ' ' }, 2).Length > 1
-            ? classicList.Split(new[] { ' ' }, 2)[1]
+        var listName = classicList.Split([' '], 2).Length > 1
+            ? classicList.Split([' '], 2)[1]
             : classicList;
 
         bool MatchesManagedFile(string fileName)
         {
-            return manageList.Any(item => fileName.ToLowerInvariant().Contains(item.ToLowerInvariant()));
+            return manageList.Any(item => fileName.Contains(item, StringComparison.InvariantCultureIgnoreCase));
         }
 
         void HandlePermissionError(string operation)
@@ -620,21 +617,19 @@ public class GameScanService : IGameScanService
                     foreach (var file in Directory.GetFileSystemEntries(gamePath))
                     {
                         var fileName = Path.GetFileName(file);
-                        if (MatchesManagedFile(fileName))
-                        {
-                            var destPath = Path.Combine(backupPath, fileName);
+                        if (!MatchesManagedFile(fileName)) continue;
+                        var destPath = Path.Combine(backupPath, fileName);
 
-                            if (File.Exists(file))
-                            {
-                                File.Copy(file, destPath, true);
-                            }
-                            else if (Directory.Exists(file))
-                            {
-                                if (Directory.Exists(destPath))
-                                    Directory.Delete(destPath, true);
-                                else if (File.Exists(destPath)) File.Delete(destPath);
-                                _fileService.CopyDirectory(file, destPath);
-                            }
+                        if (File.Exists(file))
+                        {
+                            File.Copy(file, destPath, true);
+                        }
+                        else if (Directory.Exists(file))
+                        {
+                            if (Directory.Exists(destPath))
+                                Directory.Delete(destPath, true);
+                            else if (File.Exists(destPath)) File.Delete(destPath);
+                            fileService.CopyDirectory(file, destPath);
                         }
                     }
 
@@ -646,20 +641,16 @@ public class GameScanService : IGameScanService
                     foreach (var file in Directory.GetFileSystemEntries(gamePath))
                     {
                         var fileName = Path.GetFileName(file);
-                        if (MatchesManagedFile(fileName))
-                        {
-                            var sourcePath = Path.Combine(backupPath, fileName);
-                            if (File.Exists(sourcePath) || Directory.Exists(sourcePath))
-                            {
-                                if (File.Exists(file))
-                                    File.Delete(file);
-                                else if (Directory.Exists(file)) Directory.Delete(file, true);
+                        if (!MatchesManagedFile(fileName)) continue;
+                        var sourcePath = Path.Combine(backupPath, fileName);
+                        if (!File.Exists(sourcePath) && !Directory.Exists(sourcePath)) continue;
+                        if (File.Exists(file))
+                            File.Delete(file);
+                        else if (Directory.Exists(file)) Directory.Delete(file, true);
 
-                                if (File.Exists(sourcePath))
-                                    File.Copy(sourcePath, file, true);
-                                else if (Directory.Exists(sourcePath)) _fileService.CopyDirectory(sourcePath, file);
-                            }
-                        }
+                        if (File.Exists(sourcePath))
+                            File.Copy(sourcePath, file, true);
+                        else if (Directory.Exists(sourcePath)) fileService.CopyDirectory(sourcePath, file);
                     }
 
                     Console.WriteLine($"{successPrefix} RESTORED {listName} FILES TO THE GAME FOLDER\n");
@@ -670,12 +661,10 @@ public class GameScanService : IGameScanService
                     foreach (var file in Directory.GetFileSystemEntries(gamePath))
                     {
                         var fileName = Path.GetFileName(file);
-                        if (MatchesManagedFile(fileName))
-                        {
-                            if (File.Exists(file))
-                                File.Delete(file);
-                            else if (Directory.Exists(file)) Directory.Delete(file, true);
-                        }
+                        if (!MatchesManagedFile(fileName)) continue;
+                        if (File.Exists(file))
+                            File.Delete(file);
+                        else if (Directory.Exists(file)) Directory.Delete(file, true);
                     }
 
                     Console.WriteLine($"{successPrefix} REMOVED {listName} FILES FROM THE GAME FOLDER\n");
@@ -699,18 +688,18 @@ public class GameScanService : IGameScanService
     /// <returns>A string summarizing the results of all performed checks and scans.</returns>
     public string GameCombinedResult()
     {
-        var vr = _gameContextService.GetGameVr();
-        var docsPath = _settingsCache.GetSetting<string>(YamlStore.GameLocal, $"Game{vr}_Info.Root_Folder_Docs");
-        var gamePath = _settingsCache.GetSetting<string>(YamlStore.GameLocal, $"Game{vr}_Info.Root_Folder_Game");
+        var vr = gameContextService.GetGameVr();
+        var docsPath = settingsCache.GetSetting<string>(YamlStore.GameLocal, $"Game{vr}_Info.Root_Folder_Docs");
+        var gamePath = settingsCache.GetSetting<string>(YamlStore.GameLocal, $"Game{vr}_Info.Root_Folder_Game");
 
         if (string.IsNullOrEmpty(gamePath) || string.IsNullOrEmpty(docsPath)) return string.Empty;
 
-        var checkXsePlugins = _gameContextService.CheckXsePlugins();
-        var checkCrashgenSettings = _gameContextService.CheckCrashgenSettings();
+        var checkXsePlugins = gameContextService.CheckXsePlugins();
+        var checkCrashgenSettings = gameContextService.CheckCrashgenSettings();
         var checkLogErrorsDocs = CheckLogErrors(docsPath);
         var checkLogErrorsGame = CheckLogErrors(gamePath);
-        var scanWryecheck = _gameContextService.ScanWryeCheck();
-        var scanModInis = _gameContextService.ScanModInis();
+        var scanWryecheck = gameContextService.ScanWryeCheck();
+        var scanModInis = gameContextService.ScanModInis();
 
         return string.Concat(
             checkXsePlugins,
@@ -749,7 +738,7 @@ public class GameScanService : IGameScanService
 
     private List<string> NormalizeList(List<string>? items)
     {
-        return items?.Select(item => item.ToLowerInvariant()).ToList() ?? new List<string>();
+        return items?.Select(item => item.ToLowerInvariant()).ToList() ?? [];
     }
 
     private string GetRelativePath(DirectoryInfo path, DirectoryInfo basePath)

@@ -22,8 +22,7 @@ public class PapyrusLogViewModel : ViewModelBase
     /// <param name="papyrusLogService">The Papyrus log service.</param>
     public PapyrusLogViewModel(IPapyrusLogService papyrusLogService)
     {
-        if (papyrusLogService == null)
-            throw new ArgumentNullException(nameof(papyrusLogService));
+        ArgumentNullException.ThrowIfNull(papyrusLogService);
 
         AnalyzeLogCommand = ReactiveCommand.CreateFromTask(async () =>
         {
