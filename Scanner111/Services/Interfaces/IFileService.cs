@@ -1,4 +1,4 @@
-namespace Scanner111.ClassicLib.ScanLog.Services.Interfaces;
+namespace Scanner111.Services.Interfaces;
 
 /// <summary>
 ///     Interface for file system operations.

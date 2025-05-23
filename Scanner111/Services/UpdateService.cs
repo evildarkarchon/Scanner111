@@ -9,7 +9,7 @@ using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 using NuGet.Versioning;
 using Scanner111.Models;
-using Scanner111.ClassicLib.ScanLog.Services.Interfaces;
+using Scanner111.Services.Interfaces;
 
 namespace Scanner111.Services
 {

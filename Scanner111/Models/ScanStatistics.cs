@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Scanner111.ClassicLib.ScanLog.Models;
+namespace Scanner111.Models;
 
 /// <summary>
 ///     Represents statistics collected during crash log scanning.

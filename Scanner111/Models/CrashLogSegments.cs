@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Scanner111.ClassicLib.ScanLog.Models;
+namespace Scanner111.Models;
 
 /// <summary>
 ///     Represents the different segments extracted from a crash log.

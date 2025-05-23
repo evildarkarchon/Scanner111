@@ -4,6 +4,7 @@ using System.Windows.Input;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
 using Scanner111.Services;
+using Scanner111.Services.Interfaces;
 
 namespace Scanner111.ViewModels
 {

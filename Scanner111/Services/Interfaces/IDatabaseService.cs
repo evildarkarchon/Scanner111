@@ -5,7 +5,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace Scanner111.ClassicLib.ScanLog.Services.Interfaces;
+namespace Scanner111.Services.Interfaces;
 
 /// <summary>
 ///     Service for database operations related to crash log scanning.

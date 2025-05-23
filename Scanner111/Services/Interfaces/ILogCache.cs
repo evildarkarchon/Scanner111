@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Scanner111.ClassicLib.ScanLog.Services.Interfaces;
+namespace Scanner111.Services.Interfaces;
 
 /// <summary>
 ///     Thread-safe in-memory cache for crash log files.

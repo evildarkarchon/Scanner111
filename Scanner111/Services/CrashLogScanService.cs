@@ -6,12 +6,10 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Scanner111.ClassicLib.ScanLog.Models;
-using Scanner111.ClassicLib.ScanLog.Services.Interfaces;
-using Scanner111.Services;
+using Scanner111.Models;
 using Scanner111.Services.Interfaces;
 
-namespace Scanner111.ClassicLib.ScanLog.Services;
+namespace Scanner111.Services;
 
 /// <summary>
 ///     Implementation of crash log scanning service.

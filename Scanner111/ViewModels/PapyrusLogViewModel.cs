@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia.Threading;
 using ReactiveUI;
-using Scanner111.ClassicLib.Papyrus.Services;
+using Scanner111.Services.Interfaces;
 
 namespace Scanner111.ViewModels;
 

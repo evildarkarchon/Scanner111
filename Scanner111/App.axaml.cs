@@ -28,10 +28,18 @@ public class App : Application
             // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
             // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
             DisableAvaloniaDataAnnotationValidation();
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = new MainWindowViewModel(),
-            };
+            
+            // Create main window
+            var mainWindow = new MainWindow();
+            
+            // Create dialog service
+            var dialogService = new Services.DialogService(mainWindow);
+            
+            // Create and set view model with dialog service
+            mainWindow.DataContext = new MainWindowViewModel(dialogService);
+            
+            // Set as main window
+            desktop.MainWindow = mainWindow;
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -50,3 +58,4 @@ public class App : Application
         }
     }
 }
+
