@@ -52,9 +52,9 @@ public class CrashLogFileService : ICrashLogFileService
 {
     private const string CrashLogPattern = "crash-*.log";
     private const string CrashAutoscanPattern = "crash-*-AUTOSCAN.md";
-    
-    private readonly IYamlSettingsCache _yamlSettingsCache;
     private readonly ILogger<CrashLogFileService>? _logger;
+
+    private readonly IYamlSettingsCache _yamlSettingsCache;
 
     /// <summary>
     ///     Creates a new instance of the CrashLogFileService class.

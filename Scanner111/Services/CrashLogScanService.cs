@@ -274,11 +274,8 @@ public partial class CrashLogScanService(
 
             // Analyze call stack if available
             if (segments.CallStackSegment.Count > 0)
-            {
                 reportBuilder.AddSection("Call Stack", "## Call Stack Analysis", "");
-                // TODO: Implement stack analysis
-            }
-
+            // TODO: Implement stack analysis
             try
             {
                 // Move unsolved logs if necessary
@@ -714,16 +711,14 @@ public partial class CrashLogScanService(
                  into formId
                  where !string.IsNullOrEmpty(formId)
                  select formId)
-        {
             // Try to find which plugin this FormID belongs to
-            foreach (var (plugin, _) in pluginsMap)
-            {
-                var entry = await databaseService.GetEntryAsync(formId, plugin);
-                if (string.IsNullOrEmpty(entry)) continue;
-                reportBuilder.AddToSection("FormID Analysis", $"🔍 FormID [{formId}] matched to {plugin}: {entry}");
-                formIdsFound = true;
-                break; // Found a match, no need to check other plugins
-            }
+        foreach (var (plugin, _) in pluginsMap)
+        {
+            var entry = await databaseService.GetEntryAsync(formId, plugin);
+            if (string.IsNullOrEmpty(entry)) continue;
+            reportBuilder.AddToSection("FormID Analysis", $"🔍 FormID [{formId}] matched to {plugin}: {entry}");
+            formIdsFound = true;
+            break; // Found a match, no need to check other plugins
         }
 
         if (!formIdsFound)

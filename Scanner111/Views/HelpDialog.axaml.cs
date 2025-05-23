@@ -3,26 +3,25 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Scanner111.ViewModels;
 
-namespace Scanner111.Views
+namespace Scanner111.Views;
+
+public class HelpDialog : Window
 {
-    public partial class HelpDialog : Window
+    public HelpDialog()
     {
-        public HelpDialog()
-        {
-            InitializeComponent();
+        InitializeComponent();
 #if DEBUG
-            this.AttachDevTools();
+        this.AttachDevTools();
 #endif
-        }
+    }
 
-        public HelpDialog(string title, string content) : this()
-        {
-            DataContext = new HelpDialogViewModel(this, title, content);
-        }
+    public HelpDialog(string title, string content) : this()
+    {
+        DataContext = new HelpDialogViewModel(this, title, content);
+    }
 
-        private void InitializeComponent()
-        {
-            AvaloniaXamlLoader.Load(this);
-        }
+    private void InitializeComponent()
+    {
+        AvaloniaXamlLoader.Load(this);
     }
 }

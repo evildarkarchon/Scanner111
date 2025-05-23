@@ -16,49 +16,56 @@
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE -->
-        <vm:AboutDialogViewModel/>
+        <vm:AboutDialogViewModel />
     </Design.DataContext>
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- App Title -->
         <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,20,0,10">
-            <TextBlock Text="Scanner111" FontSize="24" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
-            <TextBlock Text="C# Port of CLASSIC Scanner" FontSize="14" Foreground="#CCCCCC" HorizontalAlignment="Center" Margin="0,5,0,0"/>
-            <TextBlock Text="{Binding VersionInfo}" FontSize="12" Foreground="#AAAAAA" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+            <TextBlock Text="Scanner111" FontSize="24" FontWeight="Bold" Foreground="White"
+                       HorizontalAlignment="Center" />
+            <TextBlock Text="C# Port of CLASSIC Scanner" FontSize="14" Foreground="#CCCCCC"
+                       HorizontalAlignment="Center" Margin="0,5,0,0" />
+            <TextBlock Text="{Binding VersionInfo}" FontSize="12" Foreground="#AAAAAA" HorizontalAlignment="Center"
+                       Margin="0,5,0,0" />
         </StackPanel>
 
         <!-- Description -->
         <TextBlock Grid.Row="1" TextWrapping="Wrap" Margin="0,20,0,10" Foreground="White">
             Scanner111 is a utility tool for Bethesda games that scans log files, game files, and mods to identify and fix issues.
         </TextBlock>
-        
+
         <!-- Credits -->
         <StackPanel Grid.Row="2" Margin="0,10,0,10">
-            <TextBlock Text="Credits" FontWeight="Bold" Foreground="White" Margin="0,0,0,5"/>
+            <TextBlock Text="Credits" FontWeight="Bold" Foreground="White" Margin="0,0,0,5" />
             <TextBlock TextWrapping="Wrap" Foreground="#CCCCCC">
-                • Original CLASSIC tool by mrowrpurr<LineBreak/>
-                • C# port and Avalonia UI by the Scanner111 team<LineBreak/>
+                • Original CLASSIC tool by mrowrpurr<LineBreak />
+                • C# port and Avalonia UI by the Scanner111 team<LineBreak />
                 • Thanks to the Fallout and Skyrim modding communities
             </TextBlock>
         </StackPanel>
 
         <!-- Links -->
         <StackPanel Grid.Row="3" Margin="0,10,0,0">
-            <TextBlock Text="Links" FontWeight="Bold" Foreground="White" Margin="0,0,0,5"/>
-            <Button Content="GitHub Repository" Command="{Binding OpenGitHubCommand}" HorizontalAlignment="Left" Margin="0,5,0,0"/>
-            <Button Content="Nexus Mods Page" Command="{Binding OpenNexusCommand}" HorizontalAlignment="Left" Margin="0,5,0,0"/>
-            <Button Content="Report an Issue" Command="{Binding OpenIssueTrackerCommand}" HorizontalAlignment="Left" Margin="0,5,0,0"/>
+            <TextBlock Text="Links" FontWeight="Bold" Foreground="White" Margin="0,0,0,5" />
+            <Button Content="GitHub Repository" Command="{Binding OpenGitHubCommand}" HorizontalAlignment="Left"
+                    Margin="0,5,0,0" />
+            <Button Content="Nexus Mods Page" Command="{Binding OpenNexusCommand}" HorizontalAlignment="Left"
+                    Margin="0,5,0,0" />
+            <Button Content="Report an Issue" Command="{Binding OpenIssueTrackerCommand}" HorizontalAlignment="Left"
+                    Margin="0,5,0,0" />
         </StackPanel>
 
         <!-- Close Button -->
-        <Button Grid.Row="4" Content="Close" Command="{Binding CloseCommand}" HorizontalAlignment="Right" Margin="0,20,0,0"/>
+        <Button Grid.Row="4" Content="Close" Command="{Binding CloseCommand}" HorizontalAlignment="Right"
+                Margin="0,20,0,0" />
     </Grid>
 </Window>

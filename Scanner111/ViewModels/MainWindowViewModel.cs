@@ -10,7 +10,7 @@ using Scanner111.Services;
 
 namespace Scanner111.ViewModels;
 
-public partial class MainWindowViewModel : ViewModelBase
+public class MainWindowViewModel : ViewModelBase
 {
     private readonly DialogService _dialogService;
     private string _customScanPath = string.Empty;
@@ -205,7 +205,7 @@ public partial class MainWindowViewModel : ViewModelBase
     // Main tab command implementations
     private async Task ScanCrashLogsAsync()
     {
-        await RunTaskAsync("Scanning crash logs...", async (progress) =>
+        await RunTaskAsync("Scanning crash logs...", async progress =>
         {
             // Example implementation - this would be replaced with actual scan logic
             AppendToOutput("Starting crash log scan...");
@@ -229,7 +229,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task ScanGameFilesAsync()
     {
-        await RunTaskAsync("Scanning game files...", async (progress) =>
+        await RunTaskAsync("Scanning game files...", async progress =>
         {
             // Example implementation - this would be replaced with actual scan logic
             AppendToOutput("Starting game file scan...");
@@ -260,21 +260,17 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        await RunTaskAsync("Downloading from Pastebin...", async (progress) =>
+        await RunTaskAsync("Downloading from Pastebin...", async progress =>
         {
             // Format the URL if needed (handle both full URLs and just the paste ID)
-            string url = PastebinUrl.Trim();
+            var url = PastebinUrl.Trim();
             if (!url.StartsWith("http"))
             {
                 // If user only entered the ID, construct the full URL
                 if (!url.StartsWith("raw/"))
-                {
                     url = "https://pastebin.com/raw/" + url;
-                }
                 else
-                {
                     url = "https://pastebin.com/" + url;
-                }
             }
 
             AppendToOutput($"Downloading content from: {url}");
@@ -299,7 +295,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task CheckUpdatesAsync()
     {
-        await RunTaskAsync("Checking for updates...", async (progress) =>
+        await RunTaskAsync("Checking for updates...", async progress =>
         {
             AppendToOutput("Checking for updates...");
             await Task.Delay(1000); // Simulate work
@@ -336,7 +332,7 @@ public partial class MainWindowViewModel : ViewModelBase
             await Task.Delay(500); // Simulate dialog opening
 
             // Simulate a folder selection
-            string selectedPath = $"C:\\Users\\Username\\Documents\\{title}";
+            var selectedPath = $"C:\\Users\\Username\\Documents\\{title}";
             AppendToOutput($"Selected folder: {selectedPath}");
 
             return selectedPath;
@@ -350,34 +346,25 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task BrowseIniPathAsync()
     {
-        string path = await BrowseFolderAsync("INI Files");
-        if (!string.IsNullOrEmpty(path))
-        {
-            IniFilesPath = path;
-        }
+        var path = await BrowseFolderAsync("INI Files");
+        if (!string.IsNullOrEmpty(path)) IniFilesPath = path;
     }
 
     private async Task BrowseModsPathAsync()
     {
-        string path = await BrowseFolderAsync("Mods Folder");
-        if (!string.IsNullOrEmpty(path))
-        {
-            ModsFolderPath = path;
-        }
+        var path = await BrowseFolderAsync("Mods Folder");
+        if (!string.IsNullOrEmpty(path)) ModsFolderPath = path;
     }
 
     private async Task BrowseCustomScanPathAsync()
     {
-        string path = await BrowseFolderAsync("Custom Scan Path");
-        if (!string.IsNullOrEmpty(path))
-        {
-            CustomScanPath = path;
-        }
+        var path = await BrowseFolderAsync("Custom Scan Path");
+        if (!string.IsNullOrEmpty(path)) CustomScanPath = path;
     }
 
     private async Task ClearBackupFilesAsync()
     {
-        await RunTaskAsync("Clearing backup files...", async (progress) =>
+        await RunTaskAsync("Clearing backup files...", async progress =>
         {
             AppendToOutput("Clearing backup files...");
             await Task.Delay(1000); // Simulate work
@@ -423,7 +410,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
-            if (articleUrls.TryGetValue(articleId, out string url))
+            if (articleUrls.TryGetValue(articleId, out var url))
             {
                 AppendToOutput($"Opening article: {articleId}");
                 OpenUrl(url);
@@ -480,14 +467,14 @@ public partial class MainWindowViewModel : ViewModelBase
     // Backups tab command implementations
     private async Task BackupFilesAsync(string componentType)
     {
-        await RunTaskAsync($"Backing up {componentType} files...", async (progress) =>
+        await RunTaskAsync($"Backing up {componentType} files...", async progress =>
         {
             AppendToOutput($"Backing up {componentType} files...");
             await Task.Delay(500); // Simulate work
             progress.Report(50);
 
             // In a real implementation, this would copy files to the backup folder
-            AppendToOutput($"Files identified for backup: 5");
+            AppendToOutput("Files identified for backup: 5");
             await Task.Delay(500); // Simulate work
             progress.Report(75);
 
@@ -499,14 +486,14 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task RestoreFilesAsync(string componentType)
     {
-        await RunTaskAsync($"Restoring {componentType} files...", async (progress) =>
+        await RunTaskAsync($"Restoring {componentType} files...", async progress =>
         {
             AppendToOutput($"Restoring {componentType} files from backup...");
             await Task.Delay(500); // Simulate work
             progress.Report(50);
 
             // In a real implementation, this would copy files from the backup folder
-            AppendToOutput($"Files identified for restore: 5");
+            AppendToOutput("Files identified for restore: 5");
             await Task.Delay(500); // Simulate work
             progress.Report(75);
 
@@ -518,14 +505,14 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task RemoveFilesAsync(string componentType)
     {
-        await RunTaskAsync($"Removing {componentType} files...", async (progress) =>
+        await RunTaskAsync($"Removing {componentType} files...", async progress =>
         {
             AppendToOutput($"Removing {componentType} files...");
             await Task.Delay(500); // Simulate work
             progress.Report(50);
 
             // In a real implementation, this would delete files
-            AppendToOutput($"Files identified for removal: 5");
+            AppendToOutput("Files identified for removal: 5");
             await Task.Delay(500); // Simulate work
             progress.Report(75);
 
@@ -546,28 +533,17 @@ public partial class MainWindowViewModel : ViewModelBase
             AppendToOutput($"Opening backups folder: {backupsFolderPath}");
 
             // Create the directory if it doesn't exist
-            if (!Directory.Exists(backupsFolderPath))
-            {
-                Directory.CreateDirectory(backupsFolderPath);
-            }
+            if (!Directory.Exists(backupsFolderPath)) Directory.CreateDirectory(backupsFolderPath);
 
             // Open the folder in the default file explorer
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
                 Process.Start("explorer.exe", backupsFolderPath);
-            }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
                 Process.Start("xdg-open", backupsFolderPath);
-            }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
                 Process.Start("open", backupsFolderPath);
-            }
             else
-            {
                 throw new PlatformNotSupportedException("Platform not supported for opening folders");
-            }
 
             StatusText = "Opened backups folder";
         }
@@ -582,20 +558,16 @@ public partial class MainWindowViewModel : ViewModelBase
     private async Task ShowAboutAsync()
     {
         if (_dialogService != null)
-        {
             await _dialogService.ShowAboutDialogAsync();
-        }
         else
-        {
             AppendToOutput("Dialog service not available.");
-        }
     }
 
     private async Task ShowHelpAsync()
     {
         if (_dialogService != null)
         {
-            string helpContent = @"Scanner111 Help
+            var helpContent = @"Scanner111 Help
 
 Scanner111 is a utility tool for Bethesda games that helps diagnose and fix common issues.
 
@@ -635,7 +607,7 @@ For more detailed help on specific features, please visit the Articles tab where
             var progress = new Progress<double>(value => TaskProgress = value);
 
             // Run the task
-            string result = await task(progress);
+            var result = await task(progress);
 
             // Update status
             StatusText = result;

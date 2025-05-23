@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Markup.Xaml;
 using Avalonia.Data.Core.Plugins;
-using System.Linq;
+using Avalonia.Markup.Xaml;
+using Scanner111.Services;
 using Scanner111.ViewModels;
 using Scanner111.Views;
 
@@ -28,16 +29,16 @@ public class App : Application
             // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
             // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
             DisableAvaloniaDataAnnotationValidation();
-            
+
             // Create main window
             var mainWindow = new MainWindow();
-            
+
             // Create dialog service
-            var dialogService = new Services.DialogService(mainWindow);
-            
+            var dialogService = new DialogService(mainWindow);
+
             // Create and set view model with dialog service
             mainWindow.DataContext = new MainWindowViewModel(dialogService);
-            
+
             // Set as main window
             desktop.MainWindow = mainWindow;
         }
@@ -52,10 +53,6 @@ public class App : Application
             BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
 
         // remove each entry found
-        foreach (var plugin in dataValidationPluginsToRemove)
-        {
-            BindingPlugins.DataValidators.Remove(plugin);
-        }
+        foreach (var plugin in dataValidationPluginsToRemove) BindingPlugins.DataValidators.Remove(plugin);
     }
 }
-
