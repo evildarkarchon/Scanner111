@@ -22,17 +22,22 @@ This document outlines the tasks required to port the CLASSIC application from P
         ~~*   ScanModInis.py for mod INI file analysis.~~
         ~~*   WryeCheck.py for Wrye Bash report analysis.~~
     ~~*   Implement the file management features (Backup, Restore, Remove) from CLASSIC_ScanGame.py (function `game_files_manage`) as a C# service.~~
-    *   Port the update checking mechanism from Update.py to a C# service using `HttpClient` for fetching data from GitHub and Nexus.
+    ~~*   Port the update checking mechanism from Update.py to a C# service using `HttpClient` for fetching data from GitHub and Nexus.~~
     ~~*   Implement the Papyrus log monitoring functionality, including parsing stats and handling errors, as seen in CLASSIC_Interface.py and Papyrus.py. This will likely involve asynchronous file watching and parsing.~~
     ~~*   If the FormID database management from formid_db_manager.py is to be integrated, port the SQLite database interaction logic.~~
 
 3.  **UI Implementation (Views & ViewModels):**
-    *   Design the main window View (`MainWindow.axaml`) based on the structure in CLASSIC_Interface.py, including tabs for main functions and backups. This new UI will be based on modern UI principles and Avalonia's capabilities.
+    *   Design the main window View (`MainWindow.axaml`) based on the structure in CLASSIC_Interface.py, including tabs for main functions, backups and more. This new UI will be based on modern UI principles and Avalonia's capabilities.
     *   Implement the main window layout using Avalonia's XAML syntax, ensuring it is responsive and user-friendly.
     *   ~~Create a `MainWindowViewModel.cs` to handle the logic and data for the main window.~~
+    *   Use data binding extensively between Views and ViewModels.
+    *   Implement commands in ViewModels for button actions.
+    *   Use `ObservableCollection` for dynamic lists if any are needed.
+    *   Handle asynchronous operations (scans, update checks, Papyrus monitoring) in ViewModels using `async/await` and `Task` to keep the UI responsive, updating properties that Views are bound to.
     *   **Main Tab:**
-        *   Implement ViewModels and View components for the main action buttons ("Scan Crash Logs", "Scan Game Files").
+        *   Implement ViewModels and View components for the main action buttons ("Scan Crash Logs", "Scan Game Files") as well as the pastebin download feature.
         *   Implement the output text box for displaying logs and scan results.
+        *   Implement Progress indicators for long-running tasks (e.g., scanning, updating).
         **Settings Tab:**
         *   Implement ViewModels and View components for folder selection sections (INI, Mods, Custom Scan Path) with "Browse" functionality.
         *   Implement ViewModels and View components for checkboxes (FCX Mode, Simplify Logs, Update Check, VR Mode, etc.).
@@ -49,30 +54,24 @@ This document outlines the tasks required to port the CLASSIC application from P
         *   Implement a "Help" popup mechanism.
         *   Use Avalonia's built-in dialogs or create custom ones for file/folder selection and message boxes/notifications (e.g., for update results, errors).
 
-4.  **MVVM Implementation:**
-    *   Use data binding extensively between Views and ViewModels.
-    *   Implement commands in ViewModels for button actions.
-    *   Use `ObservableCollection` for dynamic lists if any are needed.
-    *   Handle asynchronous operations (scans, update checks, Papyrus monitoring) in ViewModels using `async/await` and `Task` to keep the UI responsive, updating properties that Views are bound to.
-
-5.  **Application Lifecycle & Utilities:**
+4.  **Application Lifecycle & Utilities:**
     *   Set up logging to a file (similar to `CLASSIC Journal.log`).
     *   Manage application data folders (e.g., `CLASSIC Data/`, `CLASSIC Backup/`).
     *   Handle application exit.
 
-6.  **Build and Deployment:**
+5.  **Build and Deployment:**
     *   Configure the C# project to build a standalone executable.
     *   Consider Avalonia's cross-platform capabilities if targeting multiple operating systems.
 
-7.  **Testing:**
+6.  **Testing:**
     *   Write unit tests for ViewModels and services.
     *   Perform manual UI testing to ensure all features work as expected.
 
-8. **Suggestions for Future Enhancements:**
+7. **Suggestions for Future Enhancements:**
     *   Consider implementing a plugin system for future extensibility.
     *   Explore Avalonia's theming capabilities for a more modern look and feel.
     *   Investigate the possibility of integrating with other modding tools or communities.
-    *   Fix the unit tests to match the xUnit testing framework.
+    *   Create unit tests to match the xUnit testing framework.
     *   Add more advanced parsing options for the Papyrus log.
     *   Add filtering capabilities for the Papyrus log entries.
     *   Add the ability to export Papyrus log analysis to a file.
