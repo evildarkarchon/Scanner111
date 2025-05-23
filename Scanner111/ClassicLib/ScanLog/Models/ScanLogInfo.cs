@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Scanner111.ClassicLib.ScanLog.Services.Interfaces;
 using Scanner111.Services;
+using Scanner111.Services.Interfaces;
 
 namespace Scanner111.ClassicLib.ScanLog.Models;
 

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Scanner111.Services;
+using Scanner111.Services.Interfaces;
 
 namespace Scanner111.ClassicLib.ScanLog.Services.Interfaces;
 

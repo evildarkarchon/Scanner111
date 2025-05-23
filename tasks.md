@@ -13,15 +13,15 @@ This document outlines the tasks required to port the CLASSIC application from P
         ~~*   Implement the `ScanGameFiles` service to handle game file scanning.~~
         ~~*   Implement the `ScanMods` service to handle mod file scanning.~~
         ~~*   Implement the `ScanPapyrusLog` service to handle Papyrus log analysis.~~
-    *   Port the game and mod scanning functionalities from CLASSIC_ScanGame.py.
-        *   Implement logic for scanning unpacked mod files (similar to `scan_mods_unpacked`).
-        *   Implement logic for scanning archived mod files (`.ba2`), including interaction with `BSArch.exe` using `System.Diagnostics.Process` (similar to `scan_mods_archived`).
-    *   Port the specific check modules:
-        *   CheckCrashgen.py for Buffout/Crashgen settings.
-        *   CheckXsePlugins.py for XSE plugin and Address Library checks.
-        *   ScanModInis.py for mod INI file analysis.
-        *   WryeCheck.py for Wrye Bash report analysis.
-    *   Implement the file management features (Backup, Restore, Remove) from CLASSIC_ScanGame.py (function `game_files_manage`) as a C# service.
+    ~~*   Port the game and mod scanning functionalities from CLASSIC_ScanGame.py.~~
+        ~~*   Implement logic for scanning unpacked mod files (similar to `scan_mods_unpacked`).~~
+        ~~*   Implement logic for scanning archived mod files (`.ba2`), including interaction with `BSArch.exe` using `System.Diagnostics.Process` (similar to `scan_mods_archived`).~~
+    ~~*   Port the specific check modules:~~
+        ~~*   CheckCrashgen.py for Buffout/Crashgen settings.~~
+        ~~*   CheckXsePlugins.py for XSE plugin and Address Library checks.~~
+        ~~*   ScanModInis.py for mod INI file analysis.~~
+        ~~*   WryeCheck.py for Wrye Bash report analysis.~~
+    ~~*   Implement the file management features (Backup, Restore, Remove) from CLASSIC_ScanGame.py (function `game_files_manage`) as a C# service.~~
     *   Port the update checking mechanism from Update.py to a C# service using `HttpClient` for fetching data from GitHub and Nexus.
     ~~*   Implement the Papyrus log monitoring functionality, including parsing stats and handling errors, as seen in CLASSIC_Interface.py and Papyrus.py. This will likely involve asynchronous file watching and parsing.~~
     ~~*   If the FormID database management from formid_db_manager.py is to be integrated, port the SQLite database interaction logic.~~

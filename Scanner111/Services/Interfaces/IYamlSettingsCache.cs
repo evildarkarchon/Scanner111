@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Scanner111.Services;
+namespace Scanner111.Services.Interfaces;
 
 /// <summary>
 ///     Interface for the YAML settings cache service.
