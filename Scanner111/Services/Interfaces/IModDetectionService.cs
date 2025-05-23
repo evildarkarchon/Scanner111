@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Scanner111.ClassicLib.ScanLog.Services.Interfaces;
+namespace Scanner111.Services.Interfaces;
 
 /// <summary>
 ///     Service for detecting mods in crash logs.

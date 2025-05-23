@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace Scanner111.Services
+namespace Scanner111.Services.Interfaces
 {
     /// <summary>
     /// Interface for the update checking service that verifies if the current version

@@ -1,4 +1,4 @@
-namespace Scanner111.ClassicLib.Papyrus.Services;
+namespace Scanner111.Services.Interfaces;
 
 /// <summary>
 ///     Interface for analyzing Papyrus log files and extracting statistics.

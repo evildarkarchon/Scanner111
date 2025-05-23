@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace Scanner111.Services
+namespace Scanner111.Services.Interfaces
 {
     /// <summary>
     /// Interface for displaying dialogs to the user

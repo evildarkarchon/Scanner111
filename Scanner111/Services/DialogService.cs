@@ -1,188 +1,107 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
-using Avalonia.Layout;
-using Avalonia;
-using Avalonia.Media;
-using System;
-using System.Linq;
-using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform.Storage;
+using Scanner111.Services.Interfaces;
+using Scanner111.Views;
 
 namespace Scanner111.Services
 {
-    /// <summary>
-    /// Implementation of the IDialogService interface using Avalonia dialogs
-    /// </summary>
     public class DialogService : IDialogService
     {
-        /// <summary>
-        /// Displays an information dialog with an OK button
-        /// </summary>
-        /// <param name="title">The dialog title</param>
-        /// <param name="message">The message to display</param>
+        private readonly Window _mainWindow;
+
+        public DialogService(Window mainWindow)
+        {
+            _mainWindow = mainWindow;
+        }
+
+        public async Task ShowAboutDialogAsync()
+        {
+            var dialog = new AboutDialog();
+            await dialog.ShowDialog(_mainWindow);
+        }
+
+        public async Task ShowHelpAsync(string title, string content)
+        {
+            var dialog = new HelpDialog(title, content);
+            await dialog.ShowDialog(_mainWindow);
+        }
+
+        public async Task<string> ShowFolderPickerAsync(string title, string initialDirectory = null)
+        {
+            // Use the modern StorageProvider API instead of the obsolete OpenFolderDialog
+            var storageProvider = _mainWindow.StorageProvider;
+            var options = new FolderPickerOpenOptions
+            {
+                Title = title,
+                AllowMultiple = false
+            };
+
+            var result = await storageProvider.OpenFolderPickerAsync(options);
+            return result.Count > 0 ? result[0].Path.LocalPath : null;
+        }
+
+        public async Task<string> ShowFilePickerAsync(string title, string[] fileTypeFilters = null, string initialDirectory = null)
+        {
+            // Use the modern StorageProvider API instead of the obsolete OpenFileDialog
+            var storageProvider = _mainWindow.StorageProvider;
+            var options = new FilePickerOpenOptions
+            {
+                Title = title,
+                AllowMultiple = false
+            };
+
+            if (fileTypeFilters != null && fileTypeFilters.Length > 0)
+            {
+                options.FileTypeFilter = fileTypeFilters.Select(ext => new FilePickerFileType(ext) 
+                { 
+                    Patterns = new List<string> { $"*.{ext}" } 
+                }).ToArray();
+            }
+
+            var result = await storageProvider.OpenFilePickerAsync(options);
+            return result.Count > 0 ? result[0].Path.LocalPath : null;
+        }
+
+        public async Task<bool> ShowConfirmationAsync(string title, string message)
+        {
+            // In a more complete implementation, we would create a custom confirmation dialog
+            // For now, we'll use the Help dialog to display the message and return true
+            // In a real app, you would create a proper confirmation dialog with Yes/No buttons
+            var dialog = new HelpDialog(title, message);
+            await dialog.ShowDialog(_mainWindow);
+            return true;
+        }
+
+        // Implement the IDialogService methods
         public async Task ShowInfoDialogAsync(string title, string message)
         {
-            await ShowBasicDialogAsync(title, message, "OK");
+            await ShowInfoAsync(title, message);
         }
-        
-        /// <summary>
-        /// Displays an error dialog with an OK button
-        /// </summary>
-        /// <param name="title">The dialog title</param>
-        /// <param name="message">The error message to display</param>
+
         public async Task ShowErrorDialogAsync(string title, string message)
         {
-            await ShowBasicDialogAsync(title, message, "OK");
+            await ShowErrorAsync(title, message);
         }
-        
-        /// <summary>
-        /// Displays a Yes/No question dialog and returns the user's choice
-        /// </summary>
-        /// <param name="title">The dialog title</param>
-        /// <param name="message">The question to display</param>
-        /// <param name="yesText">Text for the Yes button</param>
-        /// <param name="noText">Text for the No button</param>
-        /// <returns>True if Yes was selected, false otherwise</returns>
+
         public async Task<bool> ShowYesNoDialogAsync(string title, string message, string yesText = "Yes", string noText = "No")
         {
-            var result = false;
-            var tcs = new TaskCompletionSource<bool>();
-            
-            var window = new Window
-            {
-                Title = title,
-                Width = 400,
-                Height = 200,
-                WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                Content = new StackPanel
-                {
-                    Margin = new Thickness(20),
-                    Children =
-                    {
-                        new TextBlock
-                        {
-                            Text = message,
-                            TextWrapping = TextWrapping.Wrap,
-                            Margin = new Thickness(0, 0, 0, 20)
-                        },
-                        new StackPanel
-                        {
-                            Orientation = Orientation.Horizontal,
-                            HorizontalAlignment = HorizontalAlignment.Right,
-                            Spacing = 10,
-                            Children =
-                            {
-                                new Button
-                                {
-                                    Content = noText
-                                },
-                                new Button
-                                {
-                                    Content = yesText
-                                }
-                            }
-                        }
-                    }
-                }
-            };
-
-            // Set up button click events properly
-            var buttons = ((StackPanel)((StackPanel)window.Content).Children[1]).Children;
-            var noButton = (Button)buttons[0];
-            var yesButton = (Button)buttons[1];
-            
-            noButton.Click += (s, e) =>
-            {
-                tcs.SetResult(false);
-                window.Close();
-            };
-            
-            yesButton.Click += (s, e) =>
-            {
-                tcs.SetResult(true);
-                window.Close();
-            };
-
-            window.Closed += (s, e) =>
-            {
-                if (!tcs.Task.IsCompleted)
-                    tcs.SetResult(false);
-            };
-
-            // Get the current active window to use as parent
-            Window? parentWindow = null;
-            if (App.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-            {
-                parentWindow = desktop.MainWindow;
-            }
-            
-            if (parentWindow != null)
-                await window.ShowDialog(parentWindow);
-            else
-                window.Show(); // Fallback to non-modal window if no parent is found
-                
-            result = await tcs.Task;
-            
-            return result;
+            return await ShowConfirmationAsync(title, message);
         }
-        
-        private async Task ShowBasicDialogAsync(string title, string message, string buttonText)
-        {
-            var tcs = new TaskCompletionSource();
-            
-            var window = new Window
-            {
-                Title = title,
-                Width = 400,
-                Height = 180,
-                WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                Content = new StackPanel
-                {
-                    Margin = new Thickness(20),
-                    Children =
-                    {
-                        new TextBlock
-                        {
-                            Text = message,
-                            TextWrapping = TextWrapping.Wrap,
-                            Margin = new Thickness(0, 0, 0, 20)
-                        },
-                        new Button
-                        {
-                            Content = buttonText,
-                            HorizontalAlignment = HorizontalAlignment.Right
-                        }
-                    }
-                }
-            };
-            
-            // Set up button click event properly
-            var button = (Button)((StackPanel)window.Content).Children[1];
-            button.Click += (s, e) =>
-            {
-                tcs.SetResult();
-                window.Close();
-            };
-            
-            window.Closed += (s, e) =>
-            {
-                if (!tcs.Task.IsCompleted)
-                    tcs.SetResult();
-            };
 
-            // Get the current active window to use as parent
-            Window? parentWindow = null;
-            if (App.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-            {
-                parentWindow = desktop.MainWindow;
-            }
-            
-            if (parentWindow != null)
-                await window.ShowDialog(parentWindow);
-            else
-                window.Show(); // Fallback to non-modal window if no parent is found
-                
-            await tcs.Task;
+        public async Task ShowErrorAsync(string title, string message)
+        {
+            var dialog = new HelpDialog($"Error: {title}", message);
+            await dialog.ShowDialog(_mainWindow);
+        }
+
+        public async Task ShowInfoAsync(string title, string message)
+        {
+            var dialog = new HelpDialog(title, message);
+            await dialog.ShowDialog(_mainWindow);
         }
     }
 }

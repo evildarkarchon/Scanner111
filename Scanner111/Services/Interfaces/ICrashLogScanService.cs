@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Scanner111.ClassicLib.ScanLog.Models;
+using Scanner111.Models;
 
-namespace Scanner111.ClassicLib.ScanLog.Services.Interfaces;
+namespace Scanner111.Services.Interfaces;
 
 /// <summary>
 ///     Main service for scanning crash logs.

@@ -1,6 +1,4 @@
-using System;
-
-namespace Scanner111.Services
+namespace Scanner111.Services.Interfaces
 {
     /// <summary>
     /// Interface for accessing and manipulating YAML settings

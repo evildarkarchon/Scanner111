@@ -35,9 +35,13 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool _isDebugModeEnabled;
     private bool _isBackupBeforeChangesEnabled = true;
 
+    private readonly DialogService _dialogService;
+    
     // Services would be injected here
-    public MainWindowViewModel()
+    public MainWindowViewModel(DialogService dialogService = null)
     {
+        _dialogService = dialogService;
+        
         // Initialize commands for Main tab
         ScanCrashLogsCommand = ReactiveCommand.CreateFromTask(ScanCrashLogsAsync);
         ScanGameFilesCommand = ReactiveCommand.CreateFromTask(ScanGameFilesAsync);
@@ -59,6 +63,10 @@ public partial class MainWindowViewModel : ViewModelBase
         RestoreFilesCommand = ReactiveCommand.CreateFromTask<string>(RestoreFilesAsync);
         RemoveFilesCommand = ReactiveCommand.CreateFromTask<string>(RemoveFilesAsync);
         OpenBackupsFolderCommand = ReactiveCommand.Create(OpenBackupsFolder);
+        
+        // Initialize commands for menu/toolbar actions
+        ShowAboutCommand = ReactiveCommand.CreateFromTask(ShowAboutAsync);
+        ShowHelpCommand = ReactiveCommand.CreateFromTask(ShowHelpAsync);
     }
 
     // Main tab properties
@@ -192,6 +200,10 @@ public partial class MainWindowViewModel : ViewModelBase
     public ICommand RestoreFilesCommand { get; }
     public ICommand RemoveFilesCommand { get; }
     public ICommand OpenBackupsFolderCommand { get; }
+
+    // Menu/toolbar commands
+    public ICommand ShowAboutCommand { get; }
+    public ICommand ShowHelpCommand { get; }
 
     // Main tab command implementations
     private async Task ScanCrashLogsAsync()
@@ -565,6 +577,43 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             AppendToOutput($"Error opening backups folder: {ex.Message}");
             StatusText = "Error opening backups folder";
+        }
+    }
+
+    // Dialog command implementations
+    private async Task ShowAboutAsync()
+    {
+        if (_dialogService != null)
+        {
+            await _dialogService.ShowAboutDialogAsync();
+        }
+        else
+        {
+            AppendToOutput("Dialog service not available.");
+        }
+    }
+
+    private async Task ShowHelpAsync()
+    {
+        if (_dialogService != null)
+        {
+            string helpContent = @"Scanner111 Help
+
+Scanner111 is a utility tool for Bethesda games that helps diagnose and fix common issues.
+
+Main Features:
+- Scan crash logs to identify the cause of crashes
+- Scan game files for potential issues
+- Download and process logs from Pastebin
+- Manage game components like XSE, Reshade, Vulkan, and ENB files
+
+For more detailed help on specific features, please visit the Articles tab where you can find links to comprehensive guides.";
+
+            await _dialogService.ShowHelpAsync("Scanner111 Help", helpContent);
+        }
+        else
+        {
+            AppendToOutput("Dialog service not available.");
         }
     }
 

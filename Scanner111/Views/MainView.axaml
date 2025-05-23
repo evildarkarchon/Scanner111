@@ -388,13 +388,36 @@
         
         <!-- Status Bar -->
         <Border Grid.Row="1" Background="#2D2D30" Padding="10" HorizontalAlignment="Stretch">
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <Button Content="Check Updates" Command="{Binding CheckUpdatesCommand}" />
-                <ToggleButton Content="Papyrus Monitoring" 
-                              IsChecked="{Binding IsPapyrusMonitoringEnabled}" 
-                              Command="{Binding TogglePapyrusMonitoringCommand}" />
-                <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" Margin="10,0,0,0" />
-            </StackPanel>
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <!-- Left Side -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                    <Button Content="Check Updates" Command="{Binding CheckUpdatesCommand}" />
+                    <ToggleButton Content="Papyrus Monitoring" 
+                                  IsChecked="{Binding IsPapyrusMonitoringEnabled}" 
+                                  Command="{Binding TogglePapyrusMonitoringCommand}" />
+                </StackPanel>
+                
+                <!-- Center - Status Text -->
+                <TextBlock Grid.Column="1" Text="{Binding StatusText}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                
+                <!-- Right Side - Action Buttons -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10">
+                    <Button Content="?" 
+                            ToolTip.Tip="Help"
+                            Command="{Binding ShowHelpCommand}"
+                            Width="30" Height="30"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            FontWeight="Bold" />
+                    <Button Content="ⓘ" 
+                            ToolTip.Tip="About Scanner111"
+                            Command="{Binding ShowAboutCommand}"
+                            Width="30" Height="30" 
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            FontWeight="Bold" />
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

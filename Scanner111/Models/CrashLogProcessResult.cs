@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Scanner111.ClassicLib.ScanLog.Models;
+namespace Scanner111.Models;
 
 /// <summary>
 ///     Represents the result of processing a single crash log.
