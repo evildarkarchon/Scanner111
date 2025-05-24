@@ -1,0 +1,59 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Scanner111.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
+        x:Class="Scanner111.Views.ConfirmationDialog"
+        x:DataType="vm:ConfirmationDialogViewModel"
+        Title="Confirmation"
+        Width="400" Height="200"
+        WindowStartupLocation="CenterOwner"
+        Background="#1E1E1E"
+        CanResize="False"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="SystemChrome">
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE -->
+        <vm:ConfirmationDialogViewModel />
+    </Design.DataContext>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0"
+                   Text="{Binding Title}"
+                   FontSize="20"
+                   FontWeight="Bold"
+                   Foreground="White"
+                   Margin="0,10,0,15" />
+
+        <!-- Message -->
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <TextBlock Text="{Binding Message}"
+                       TextWrapping="Wrap"
+                       Foreground="White"
+                       VerticalAlignment="Center" />
+        </ScrollViewer>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,15,0,0"
+                    Spacing="10">
+            <Button Content="{Binding NoButtonText}"
+                    Command="{Binding NoCommand}"
+                    Width="80" />
+            <Button Content="{Binding YesButtonText}"
+                    Command="{Binding YesCommand}"
+                    Width="80" />
+        </StackPanel>
+    </Grid>
+</Window>

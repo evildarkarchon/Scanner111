@@ -24,7 +24,8 @@ public class DialogService(Window mainWindow) : IDialogService
     public async Task<bool> ShowYesNoDialogAsync(string title, string message, string yesText = "Yes",
         string noText = "No")
     {
-        return await ShowConfirmationAsync(title, message);
+        var dialog = new ConfirmationDialog(title, message, yesText, noText);
+        return await dialog.ShowDialog<bool>(mainWindow);
     }
 
     public async Task ShowAboutDialogAsync()
@@ -76,12 +77,8 @@ public class DialogService(Window mainWindow) : IDialogService
 
     public async Task<bool> ShowConfirmationAsync(string title, string message)
     {
-        // In a more complete implementation, we would create a custom confirmation dialog
-        // For now, we'll use the Help dialog to display the message and return true
-        // In a real app, you would create a proper confirmation dialog with Yes/No buttons
-        var dialog = new HelpDialog(title, message);
-        await dialog.ShowDialog(mainWindow);
-        return true;
+        var dialog = new ConfirmationDialog(title, message);
+        return await dialog.ShowDialog<bool>(mainWindow);
     }
 
     public async Task ShowErrorAsync(string title, string message)
