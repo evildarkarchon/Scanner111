@@ -14,10 +14,13 @@ namespace Scanner111.ViewModels;
 /// </summary>
 public class UpdateViewModel : ViewModelBase
 {
+    // Extracted constants
+    private const string DownloadUrl = "https://www.nexusmods.com/fallout4/mods/56255";
+    private const string AppName = "CLASSIC";
+    private const string NewVersionAvailableMessage = "new version is available";
     private readonly IDialogService _dialogService;
     private readonly ILogger _logger;
     private readonly IUpdateService _updateService;
-
     private bool _isCheckingForUpdates;
 
     public UpdateViewModel(IUpdateService updateService, IDialogService dialogService, ILogger logger)
@@ -37,7 +40,7 @@ public class UpdateViewModel : ViewModelBase
     /// <summary>
     ///     Indicates if an update check is in progress
     /// </summary>
-    private bool IsCheckingForUpdates
+    public bool IsCheckingForUpdates // Changed from private to public for better accessibility
     {
         get => _isCheckingForUpdates;
         set => this.RaiseAndSetIfChanged(ref _isCheckingForUpdates, value);
@@ -56,40 +59,23 @@ public class UpdateViewModel : ViewModelBase
             IsCheckingForUpdates = true;
             _logger.Info("Checking for updates...");
 
-            // Set quiet=true to avoid console output in GUI context
+            // Using the original parameter style
             await _updateService.IsLatestVersionAsync(true);
 
             // If we get here, there are no updates (exceptions are thrown if updates available)
-            await _dialogService.ShowInfoDialogAsync("Update Check", "You have the latest version of CLASSIC!");
+            await _dialogService.ShowInfoDialogAsync("Update Check", $"You have the latest version of {AppName}!");
         }
-        catch (UpdateCheckException ex) when (ex.Message.Contains("new version is available"))
+        catch (UpdateCheckException ex) when (ex.Message.Contains(NewVersionAvailableMessage))
         {
             var openBrowser = await _dialogService.ShowYesNoDialogAsync(
                 "Update Available",
-                "A new version of CLASSIC is available. Would you like to open the download page?");
+                $"A new version of {AppName} is available. Would you like to open the download page?");
 
-            if (openBrowser)
-            {
-                // Open browser to the download page
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "https://www.nexusmods.com/fallout4/mods/56255",
-                    UseShellExecute = true
-                };
-                Process.Start(psi);
-            }
-        }
-        catch (UpdateCheckException ex)
-        {
-            _logger.Error($"Update check failed: {ex.Message}");
-            await _dialogService.ShowErrorDialogAsync("Update Check Failed",
-                $"Could not check for updates: {ex.Message}");
+            if (openBrowser) OpenDownloadPage();
         }
         catch (Exception ex)
         {
-            _logger.Error($"Unexpected error during update check: {ex.Message}", ex);
-            await _dialogService.ShowErrorDialogAsync("Update Check Error",
-                "An unexpected error occurred while checking for updates.");
+            await HandleUpdateException(ex, false);
         }
         finally
         {
@@ -108,14 +94,47 @@ public class UpdateViewModel : ViewModelBase
             await _updateService.IsLatestVersionAsync(true, false);
             // No UI feedback needed for startup check if up to date
         }
-        catch (UpdateCheckException ex) when (ex.Message.Contains("new version is available"))
+        catch (UpdateCheckException ex) when (ex.Message.Contains(NewVersionAvailableMessage))
         {
             await _dialogService.ShowInfoDialogAsync("Update Available",
-                "A new version of CLASSIC is available. Check the updates button for details.");
+                $"A new version of {AppName} is available. Check the updates button for details.");
         }
         catch (Exception ex)
         {
-            _logger.Error($"Startup update check failed: {ex.Message}");
+            await HandleUpdateException(ex, true);
+        }
+    }
+
+    // Extracted method for opening download page
+    private void OpenDownloadPage()
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = DownloadUrl,
+            UseShellExecute = true
+        };
+        Process.Start(psi);
+    }
+
+    // Extracted method for handling update exceptions
+    private async Task HandleUpdateException(Exception ex, bool isStartupCheck)
+    {
+        if (ex is UpdateCheckException updateEx)
+        {
+            _logger.Error($"Update check failed: {updateEx.Message}");
+
+            if (!isStartupCheck)
+                await _dialogService.ShowErrorDialogAsync("Update Check Failed",
+                    $"Could not check for updates: {updateEx.Message}");
+        }
+        else
+        {
+            _logger.Error($"{(isStartupCheck ? "Startup " : "")}Unexpected error during update check: {ex.Message}",
+                ex);
+
+            if (!isStartupCheck)
+                await _dialogService.ShowErrorDialogAsync("Update Check Error",
+                    "An unexpected error occurred while checking for updates.");
             // Silently fail on startup, don't show error dialog
         }
     }

@@ -370,8 +370,8 @@ public partial class CrashLogScanService(
         if (!string.IsNullOrEmpty(segments.MainError))
             suspectFound = ScanSuspectMainError(reportBuilder, segments.MainError);
 
-        var callStackText = string.Join("\n", segments.CallStackSegment);
-        var suspectStackFound = ScanSuspectStack(segments.MainError, callStackText, reportBuilder);
+        var suspectStackFound =
+            ScanSuspectStack(segments.MainError, string.Join("\n", segments.CallStackSegment), reportBuilder);
         suspectFound = suspectFound || suspectStackFound;
 
         if (!suspectFound)
@@ -818,9 +818,6 @@ public partial class CrashLogScanService(
     {
         if (callStackSegment.Count == 0)
             return;
-
-        // Convert callstack to single string for regex patterns
-        var callStackText = string.Join("\n", callStackSegment);
 
         // 1. Plugin matching
         await AnalyzePluginsInCallStackAsync(callStackSegment, pluginsMap, reportBuilder);
