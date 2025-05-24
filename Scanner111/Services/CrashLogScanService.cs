@@ -115,7 +115,7 @@ public partial class CrashLogScanService(
         logger.LogInformation("Starting crash log processing");
         var stopwatch = Stopwatch.StartNew();
 
-        var logFiles = _crashLogs.GetLogNames();
+        var logFiles = _crashLogs?.GetLogNames();
         _statistics = new ScanStatistics();
 
         // Process all logs in parallel
@@ -313,12 +313,13 @@ public partial class CrashLogScanService(
     /// A task representing the asynchronous operation, containing a list of <see cref="CrashLogProcessResult"/>
     /// for each processed log file.
     /// </returns>
-    private async Task<List<CrashLogProcessResult>> ProcessLogsInParallelAsync(IEnumerable<string> logFiles)
+    private async Task<List<CrashLogProcessResult>> ProcessLogsInParallelAsync(IEnumerable<string>? logFiles)
     {
         var maxConcurrency = Environment.ProcessorCount;
         var throttler = new SemaphoreSlim(maxConcurrency, maxConcurrency);
 
-        var processingTasks = logFiles.Select(async logFile =>
+        // ReSharper disable once UseCollectionExpression
+        var processingTasks = (logFiles ?? Array.Empty<string>()).Select(async logFile =>
         {
             await throttler.WaitAsync();
             try
