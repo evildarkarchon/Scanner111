@@ -37,10 +37,11 @@ public class YamlSettingsAdapter : IYamlSettingsService
         var yamlStore = MapSectionToYamlStore(section);
 
         // If the section is "CLASSIC", use GetClassicSetting
-        if (section == "CLASSIC") return YamlSettings.GetClassicSetting<bool>(key);
-
-        // Otherwise, use Get with the mapped YamlStore
-        return YamlSettings.Get<bool>(yamlStore, key);
+        return section == "CLASSIC"
+            ? YamlSettings.GetClassicSetting<bool>(key)
+            :
+            // Otherwise, use Get with the mapped YamlStore
+            YamlSettings.Get<bool>(yamlStore, key);
     }
 
     /// <inheritdoc />

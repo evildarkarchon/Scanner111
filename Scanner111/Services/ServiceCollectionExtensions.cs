@@ -1,5 +1,8 @@
+using System;
 using System.Net.Http;
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Scanner111.Services.Interfaces;
 using Scanner111.ViewModels;
 
@@ -15,22 +18,6 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
-        // Add update services
-        services.AddUpdateServices();
-
-        // Register other application services here
-        services.AddSingleton<IDialogService, DialogService>();
-        services.AddSingleton<IFileService, FileService>();
-        services.AddSingleton<IGameScanService, GameScanService>();
-
-        return services;
-    }
-
-    /// <summary>
-    ///     Adds the update service and related components to the service collection
-    /// </summary>
-    public static IServiceCollection AddUpdateServices(this IServiceCollection services)
-    {
         // Register the YamlSettingsAdapter as implementation of IYamlSettingsService
         services.AddSingleton<IYamlSettingsService, YamlSettingsAdapter>();
 
@@ -45,6 +32,32 @@ public static class ServiceCollectionExtensions
 
         // Register a shared HttpClient for the service
         services.AddSingleton<HttpClient>();
+
+        // Register other application services here
+        services.AddSingleton<IDialogService, DialogService>();
+        services.AddSingleton<IFileService, FileService>();
+        services.AddSingleton<IGameScanService, GameScanService>();
+
+        // Register YamlSettingsCache as a singleton
+        services.AddSingleton<IYamlSettingsCache>(sp =>
+        {
+            var logger = sp.GetRequiredService<ILogger<YamlSettingsCache>>();
+            var gameContextService = sp.GetRequiredService<IGameContextService>();
+
+            // Create the singleton instance using reflection since the constructor is private
+            var instance = Activator.CreateInstance(
+                typeof(YamlSettingsCache),
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                [logger, gameContextService],
+                null) as YamlSettingsCache;
+
+            // Set the singleton instance
+            if (instance != null)
+                YamlSettingsCache.SetInstance(instance);
+
+            return instance!;
+        });
 
         return services;
     }

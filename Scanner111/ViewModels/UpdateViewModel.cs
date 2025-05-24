@@ -37,10 +37,10 @@ public class UpdateViewModel : ViewModelBase
     /// <summary>
     ///     Indicates if an update check is in progress
     /// </summary>
-    public bool IsCheckingForUpdates
+    private bool IsCheckingForUpdates
     {
         get => _isCheckingForUpdates;
-        private set => this.RaiseAndSetIfChanged(ref _isCheckingForUpdates, value);
+        set => this.RaiseAndSetIfChanged(ref _isCheckingForUpdates, value);
     }
 
     /// <summary>

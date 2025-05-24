@@ -5,7 +5,7 @@ using Scanner111.ViewModels;
 
 namespace Scanner111.Views;
 
-public class ConfirmationDialog : Window
+public partial class ConfirmationDialog : Window
 {
     public ConfirmationDialog()
     {

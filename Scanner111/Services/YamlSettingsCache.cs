@@ -54,12 +54,8 @@ public class YamlSettingsCache : IYamlSettingsCache
         get
         {
             if (_instance == null)
-                lock (LockObject)
-                {
-                    if (_instance == null)
-                        throw new InvalidOperationException(
-                            "YamlSettingsCache not initialized. Call Initialize() first.");
-                }
+                throw new InvalidOperationException(
+                    "YamlSettingsCache not initialized. Use dependency injection to get an instance.");
 
             return _instance;
         }
@@ -257,18 +253,14 @@ public class YamlSettingsCache : IYamlSettingsCache
     }
 
     /// <summary>
-    ///     Initializes the singleton instance with required dependencies.
+    /// Internal method to set the singleton instance when resolved through dependency injection.
     /// </summary>
-    /// <param name="logger">The logger.</param>
-    /// <param name="gameContextService">The game context service.</param>
-    /// <returns>The singleton instance.</returns>
-    public static YamlSettingsCache Initialize(ILogger<YamlSettingsCache> logger,
-        IGameContextService gameContextService)
+    /// <param name="instance">The YamlSettingsCache instance</param>
+    internal static void SetInstance(YamlSettingsCache instance)
     {
         lock (LockObject)
         {
-            _instance ??= new YamlSettingsCache(logger, gameContextService);
-            return _instance;
+            _instance ??= instance;
         }
     }
 }

@@ -35,7 +35,7 @@ public class MainWindowViewModel : ViewModelBase
     private double _taskProgress;
 
     // Services would be injected here
-    public MainWindowViewModel(DialogService dialogService = null)
+    public MainWindowViewModel(DialogService dialogService = null!)
     {
         _dialogService = dialogService;
 
@@ -565,9 +565,8 @@ public class MainWindowViewModel : ViewModelBase
 
     private async Task ShowHelpAsync()
     {
-        if (_dialogService != null)
         {
-            var helpContent = @"Scanner111 Help
+            const string helpContent = @"Scanner111 Help
 
 Scanner111 is a utility tool for Bethesda games that helps diagnose and fix common issues.
 
@@ -580,10 +579,6 @@ Main Features:
 For more detailed help on specific features, please visit the Articles tab where you can find links to comprehensive guides.";
 
             await _dialogService.ShowHelpAsync("Scanner111 Help", helpContent);
-        }
-        else
-        {
-            AppendToOutput("Dialog service not available.");
         }
     }
 

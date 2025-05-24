@@ -52,87 +52,97 @@ public partial class UpdateService(
     {
         _logger.Debug("- - - INITIATED UPDATE CHECK");
 
+        // Validate settings and early returns
+        if (!ValidateUpdateSettings(quiet, guiRequest))
+            return false;
+
+        // Parse local version
+        var versionLocal = ParseLocalVersion();
+
+        if (!quiet) DisplayUpdateCheckStartMessage();
+
+        // Determine which update sources to use
+        var updateSource = _settingsService.GetStringSetting("Update Source") ?? "Both";
+        var useGithub = updateSource is "Both" or "GitHub";
+        var useNexus = updateSource is "Both" or "Nexus" &&
+                       !_settingsService.GetBoolSetting("CLASSIC_Info.is_prerelease", "Main");
+
+        // Fetch remote versions
+        var (githubVersion, nexusVersion) =
+            await FetchRemoteVersionsAsync(useGithub, useNexus, quiet, guiRequest);
+
+        // Check if local version is outdated
+        var isOutdated = IsVersionOutdated(versionLocal, githubVersion, nexusVersion);
+
+        if (isOutdated) return HandleOutdatedVersion(quiet, guiRequest);
+
+        // Display up-to-date message if not in quiet mode
+        if (!quiet) DisplayUpToDateMessage(versionLocal, useGithub, githubVersion, useNexus, nexusVersion);
+
+        return true;
+    }
+
+    private bool ValidateUpdateSettings(bool quiet, bool guiRequest)
+    {
         // Check if update check is enabled in settings
         if (!guiRequest && !_settingsService.GetBoolSetting("Update Check"))
         {
-            if (quiet) return false; // False because it's not the "latest" if checks are off (unless for GUI)
+            if (quiet) return false;
+
             Console.WriteLine("\n❌ NOTICE: UPDATE CHECK IS DISABLED IN CLASSIC Settings.yaml \n");
             Console.WriteLine("\n===============================================================================");
-            return false; // False because it's not the "latest" if checks are off (unless for GUI)
+            return false;
         }
 
         // Get update source from settings
         var updateSource = _settingsService.GetStringSetting("Update Source") ?? "Both";
         if (!SourceArray.Contains(updateSource))
         {
-            if (quiet) return false; // Invalid source, cannot determine if latest
+            if (quiet) return false;
+
             Console.WriteLine("\n❌ NOTICE: INVALID VALUE FOR UPDATE SOURCE IN CLASSIC Settings.yaml \n");
             Console.WriteLine("\n===============================================================================");
-            return false; // Invalid source, cannot determine if latest
+            return false;
         }
 
-        // Parse local version
+        return true;
+    }
+
+    private SemanticVersion? ParseLocalVersion()
+    {
         var classicLocalStr = _settingsService.GetStringSetting("CLASSIC_Info.version", "Main");
-        SemanticVersion? versionLocal = null;
+        if (string.IsNullOrEmpty(classicLocalStr))
+            return null;
 
-        if (!string.IsNullOrEmpty(classicLocalStr))
-        {
-            var parts = classicLocalStr.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length > 0)
-            {
-                var parsedLocalVersionStr = parts[^1]; // Last element, equivalent to parts[-1] in Python
-                if (parsedLocalVersionStr.StartsWith("v")) parsedLocalVersionStr = parsedLocalVersionStr[1..];
+        var parts = classicLocalStr.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0)
+            return null;
 
-                SemanticVersion.TryParse(parsedLocalVersionStr, out versionLocal);
-            }
-        }
+        var parsedLocalVersionStr = parts[^1]; // Last element
+        if (parsedLocalVersionStr.StartsWith("v"))
+            parsedLocalVersionStr = parsedLocalVersionStr[1..];
 
-        if (!quiet)
-        {
-            Console.WriteLine("❓ (Needs internet connection) CHECKING FOR NEW CLASSIC VERSIONS...");
-            Console.WriteLine("   (You can disable this check in the EXE or CLASSIC Settings.yaml) \n");
-        }
+        SemanticVersion.TryParse(parsedLocalVersionStr, out var versionLocal);
+        return versionLocal;
+    }
 
-        var useGithub = updateSource is "Both" or "GitHub";
-        var useNexus = updateSource is "Both" or "Nexus" &&
-                       !_settingsService.GetBoolSetting("CLASSIC_Info.is_prerelease", "Main");
+    private void DisplayUpdateCheckStartMessage()
+    {
+        Console.WriteLine("❓ (Needs internet connection) CHECKING FOR NEW CLASSIC VERSIONS...");
+        Console.WriteLine("   (You can disable this check in the EXE or CLASSIC Settings.yaml) \n");
+    }
 
+    private async Task<(SemanticVersion? GithubVersion, SemanticVersion? NexusVersion)> FetchRemoteVersionsAsync(
+        bool useGithub, bool useNexus, bool quiet, bool guiRequest)
+    {
         SemanticVersion? versionGithubToCompare = null;
         SemanticVersion? versionNexusToCompare = null;
 
         try
         {
-            if (useGithub)
-            {
-                _logger.Debug($"Fetching GitHub release details for {RepoOwner}/{RepoName}");
-                var githubDetails = await GetLatestAndTopReleaseDetailsAsync(RepoOwner, RepoName);
+            if (useGithub) versionGithubToCompare = await FetchGithubVersionAsync();
 
-                {
-                    var candidateStableVersions = new List<SemanticVersion?>();
-
-                    if (githubDetails.LatestEndpointRelease?.Version != null &&
-                        !githubDetails.LatestEndpointRelease.IsPreRelease)
-                        candidateStableVersions.Add(githubDetails.LatestEndpointRelease.Version);
-
-                    if (githubDetails.TopOfListRelease?.Version != null &&
-                        !githubDetails.TopOfListRelease.IsPreRelease)
-                        candidateStableVersions.Add(githubDetails.TopOfListRelease.Version);
-
-                    if (candidateStableVersions.Count > 0)
-                    {
-                        versionGithubToCompare = candidateStableVersions.Max();
-                        _logger.Info($"Determined latest stable GitHub version: {versionGithubToCompare}");
-                    }
-                }
-            }
-
-            if (useNexus)
-            {
-                _logger.Debug("Fetching Nexus version");
-                versionNexusToCompare = await GetNexusVersionAsync();
-
-                _logger.Info($"Determined Nexus version: {versionNexusToCompare}");
-            }
+            if (useNexus) versionNexusToCompare = await FetchNexusVersionAsync();
 
             var nexusSourceFailed = useNexus && versionNexusToCompare == null;
             var githubSourceFailed = useGithub && versionGithubToCompare == null;
@@ -140,221 +150,139 @@ public partial class UpdateService(
             // Check if sources failed and raise appropriate exception if needed
             CheckSourceFailuresAndRaise(useGithub, useNexus, githubSourceFailed, nexusSourceFailed);
         }
-        catch (HttpRequestException ex)
-        {
-            _logger.Error($"Update check failed during version fetching: {ex.Message}");
-
-            if (!quiet)
-            {
-                Console.WriteLine(ex.Message);
-                var unableMsg = _settingsService.GetStringSetting(
-                    $"CLASSIC_Interface.update_unable_{_gameContextService.GetCurrentGame()}", "Main");
-                Console.WriteLine(unableMsg);
-            }
-
-            if (guiRequest) throw new UpdateCheckException(ex.Message, ex);
-
-            return false;
-        }
-        catch (UpdateCheckException ex)
-        {
-            _logger.Error($"Update check failed: {ex.Message}");
-
-            if (!quiet)
-            {
-                Console.WriteLine(ex.Message);
-                var unableMsg = _settingsService.GetStringSetting(
-                    $"CLASSIC_Interface.update_unable_{_gameContextService.GetCurrentGame()}", "Main");
-                Console.WriteLine(unableMsg);
-            }
-
-            if (guiRequest) throw;
-
-            return false;
-        }
         catch (Exception ex)
         {
-            _logger.Error($"Unexpected error during update check: {ex.Message}", ex);
-
-            if (guiRequest) throw new UpdateCheckException($"An unexpected error occurred: {ex.Message}", ex);
-
-            return false;
+            HandleUpdateCheckException(ex, quiet, guiRequest);
         }
 
-        var isOutdated = false;
+        return (versionGithubToCompare, versionNexusToCompare);
+    }
 
+    private async Task<SemanticVersion?> FetchNexusVersionAsync()
+    {
+        _logger.Debug("Fetching Nexus version");
+        var nexusVersion = await GetNexusVersionAsync();
+
+        if (nexusVersion != null) _logger.Info($"Determined Nexus version: {nexusVersion}");
+
+        return nexusVersion;
+    }
+
+    private async Task<SemanticVersion?> FetchGithubVersionAsync()
+    {
+        _logger.Debug($"Fetching GitHub release details for {RepoOwner}/{RepoName}");
+        var githubDetails = await GetLatestAndTopReleaseDetailsAsync(RepoOwner, RepoName);
+
+        var candidateStableVersions = new List<SemanticVersion?>();
+
+        if (githubDetails?.LatestEndpointRelease?.Version != null &&
+            !githubDetails.LatestEndpointRelease.IsPreRelease)
+            candidateStableVersions.Add(githubDetails.LatestEndpointRelease.Version);
+
+        if (githubDetails?.TopOfListRelease?.Version != null &&
+            !githubDetails.TopOfListRelease.IsPreRelease)
+            candidateStableVersions.Add(githubDetails.TopOfListRelease.Version);
+
+        if (candidateStableVersions.Count <= 0) return null;
+        var version = candidateStableVersions.Max();
+        _logger.Info($"Determined latest stable GitHub version: {version}");
+        return version;
+    }
+
+    private void HandleUpdateCheckException(Exception ex, bool quiet, bool guiRequest)
+    {
+        string errorMessage;
+        Exception exceptionToThrow;
+
+        switch (ex)
+        {
+            case HttpRequestException httpEx:
+                errorMessage = $"Update check failed during version fetching: {httpEx.Message}";
+                exceptionToThrow = new UpdateCheckException(httpEx.Message, httpEx);
+                _logger.Error(errorMessage);
+                break;
+            case UpdateCheckException updateEx:
+                errorMessage = $"Update check failed: {updateEx.Message}";
+                exceptionToThrow = updateEx;
+                _logger.Error(errorMessage);
+                break;
+            default:
+                errorMessage = $"Unexpected error during update check: {ex.Message}";
+                exceptionToThrow = new UpdateCheckException($"An unexpected error occurred: {ex.Message}", ex);
+                _logger.Error(errorMessage, ex);
+                break;
+        }
+
+        if (!quiet)
+        {
+            Console.WriteLine(ex.Message);
+            var unableMsg = _settingsService.GetStringSetting(
+                $"CLASSIC_Interface.update_unable_{_gameContextService.GetCurrentGame()}", "Main");
+            Console.WriteLine(unableMsg);
+        }
+
+        if (guiRequest) throw exceptionToThrow;
+    }
+
+    private bool IsVersionOutdated(
+        SemanticVersion? versionLocal,
+        SemanticVersion? githubVersion,
+        SemanticVersion? nexusVersion)
+    {
         if (versionLocal == null)
         {
-            _logger.Warning("Local version is unknown. Assuming update is needed or there's an issue.");
-
-            // For safety, if local version is unknown, and remote versions exist, consider it outdated
-            if (versionGithubToCompare != null || versionNexusToCompare != null) isOutdated = true;
+            _logger.Warning("Local version is unknown. Assuming update is needed if remote versions exist.");
+            return githubVersion != null || nexusVersion != null;
         }
-        else
+
+        if (githubVersion != null && versionLocal < githubVersion)
         {
-            if (versionGithubToCompare != null && versionLocal < versionGithubToCompare)
-            {
-                _logger.Info(
-                    $"Local version {versionLocal} is older than GitHub version {versionGithubToCompare}.");
-                isOutdated = true;
-            }
-
-            if (!isOutdated && versionNexusToCompare != null && versionLocal < versionNexusToCompare)
-            {
-                _logger.Info($"Local version {versionLocal} is older than Nexus version {versionNexusToCompare}.");
-                isOutdated = true;
-            }
+            _logger.Info($"Local version {versionLocal} is older than GitHub version {githubVersion}.");
+            return true;
         }
 
-        if (isOutdated)
-        {
-            if (!quiet)
-            {
-                var warningMsg =
-                    _settingsService.GetStringSetting(
-                        $"CLASSIC_Interface.update_warning_{_gameContextService.GetCurrentGame()}", "Main") ??
-                    "A new version of CLASSIC is available!";
-                Console.WriteLine(warningMsg);
-            }
-
-            if (guiRequest)
-                // GUI catches this to indicate an update is available
-                throw new UpdateCheckException("A new version is available.");
-
-            return false; // Outdated
-        }
-
-        // If not outdated
-        if (quiet) return true;
-        Console.Write($"Your CLASSIC Version: {versionLocal?.ToString() ?? "Unknown"}");
-
-        if (useGithub)
-            Console.Write(versionGithubToCompare != null
-                ? $"\nLatest GitHub Version: {versionGithubToCompare}"
-                : "\nLatest GitHub Version: Not found/checked");
-
-        if (useNexus)
-            Console.Write(versionNexusToCompare != null
-                ? $"\nLatest Nexus Version: {versionNexusToCompare}"
-                : "\nLatest Nexus Version: Not found/checked");
-
-        Console.WriteLine("\n\n✔️ You have the latest version of CLASSIC!\n");
-
+        if (nexusVersion == null || versionLocal >= nexusVersion) return false;
+        _logger.Info($"Local version {versionLocal} is older than Nexus version {nexusVersion}.");
         return true;
     }
 
-    #region Helper Methods
-
-    /// <summary>
-    ///     Attempts to parse a version string into a SemanticVersion object
-    /// </summary>
-    private SemanticVersion? TryParseVersion(string? versionStr)
+    private bool HandleOutdatedVersion(bool quiet, bool guiRequest)
     {
-        if (string.IsNullOrEmpty(versionStr)) return null;
-
-        // Extract the last part after a space, common for "Name v1.2.3"
-        var potentialVersionPart = versionStr.Split(' ').Last();
-
-        // Try with the potential version part first
-        if (potentialVersionPart.StartsWith("v") && potentialVersionPart.Length > 1)
-            potentialVersionPart = potentialVersionPart.Substring(1);
-
-        if (SemanticVersion.TryParse(potentialVersionPart, out var version)) return version;
-
-        // If that fails and we split the string, try with the original string
-        if (versionStr != potentialVersionPart)
+        if (!quiet)
         {
-            var originalVersion = versionStr;
-            if (originalVersion.StartsWith("v") && originalVersion.Length > 1)
-                originalVersion = originalVersion.Substring(1);
-
-            if (SemanticVersion.TryParse(originalVersion, out version)) return version;
+            var warningMsg = _settingsService.GetStringSetting(
+                                 $"CLASSIC_Interface.update_warning_{_gameContextService.GetCurrentGame()}", "Main")
+                             ?? "A new version of CLASSIC is available!";
+            Console.WriteLine(warningMsg);
         }
 
-        _logger.Debug($"Could not parse version from GitHub release name: {versionStr}");
-        return null;
+        if (guiRequest)
+            // GUI catches this to indicate an update is available
+            throw new UpdateCheckException("A new version is available.");
+
+        return false; // Outdated
     }
 
-    /// <summary>
-    ///     Fetches the latest stable release version from a GitHub repository
-    /// </summary>
-    private async Task<SemanticVersion?> GetGithubLatestStableVersionFromEndpointAsync(string owner, string repo)
+    private void DisplayUpToDateMessage(
+        SemanticVersion? versionLocal,
+        bool useGithub,
+        SemanticVersion? githubVersion,
+        bool useNexus,
+        SemanticVersion? nexusVersion)
     {
-        var url = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
+        Console.Write($"Your CLASSIC Version: {versionLocal?.ToString() ?? "Unknown"}");
 
-        try
-        {
-            var response = await _httpClient.GetAsync(url);
+        if (useGithub)
+            Console.Write(githubVersion != null
+                ? $"\nLatest GitHub Version: {githubVersion}"
+                : "\nLatest GitHub Version: Not found/checked");
 
-            if (response.StatusCode == HttpStatusCode.NotFound)
-            {
-                _logger.Info($"No '/releases/latest' found for {owner}/{repo} (status 404).");
-                return null;
-            }
+        if (useNexus)
+            Console.Write(nexusVersion != null
+                ? $"\nLatest Nexus Version: {nexusVersion}"
+                : "\nLatest Nexus Version: Not found/checked");
 
-            response.EnsureSuccessStatusCode();
-            var responseJson = await response.Content.ReadAsStringAsync();
-            var releaseData = JsonSerializer.Deserialize<JsonElement>(responseJson);
-
-            if (releaseData.TryGetProperty("prerelease", out var prereleaseElement) &&
-                prereleaseElement.ValueKind == JsonValueKind.True)
-            {
-                _logger.Warning($"{url} returned a prerelease. Expected a stable release.");
-                return null;
-            }
-
-            if (releaseData.TryGetProperty("name", out var nameElement) &&
-                nameElement.ValueKind == JsonValueKind.String)
-            {
-                var releaseName = nameElement.GetString();
-                return TryParseVersion(releaseName);
-            }
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.Error($"Error fetching latest stable release from {url}: {ex.Message}");
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    ///     Fetches the latest prerelease version from a GitHub repository's releases list
-    /// </summary>
-    private async Task<SemanticVersion?> GetGithubLatestPrereleaseVersionFromListAsync(string owner, string repo)
-    {
-        var url = $"https://api.github.com/repos/{owner}/{repo}/releases";
-
-        try
-        {
-            var response = await _httpClient.GetAsync(url);
-            response.EnsureSuccessStatusCode();
-            var responseJson = await response.Content.ReadAsStringAsync();
-            var releasesData = JsonSerializer.Deserialize<JsonElement[]>(responseJson);
-
-            if (releasesData == null)
-            {
-                _logger.Warning($"Expected a list of releases from {url}, got null");
-                return null;
-            }
-
-            foreach (var releaseData in releasesData) // Iterates from newest to oldest
-            {
-                if (!releaseData.TryGetProperty("prerelease", out var prereleaseElement) ||
-                    prereleaseElement.ValueKind != JsonValueKind.True) continue;
-                if (!releaseData.TryGetProperty("name", out var nameElement) ||
-                    nameElement.ValueKind != JsonValueKind.String) continue;
-                var prereleaseName = nameElement.GetString();
-                var parsedVersion = TryParseVersion(prereleaseName);
-                return parsedVersion;
-            }
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.Error($"Error fetching releases list from {url}: {ex.Message}");
-        }
-
-        return null;
+        Console.WriteLine("\n\n✔️ You have the latest version of CLASSIC!\n");
     }
 
     /// <summary>
@@ -561,6 +489,8 @@ public partial class UpdateService(
         return null;
     }
 
+    #region Helper Methods
+
     /// <summary>
     ///     Safely retrieves an attribute from an HTML node, with error handling
     /// </summary>
@@ -582,7 +512,7 @@ public partial class UpdateService(
     /// <summary>
     ///     Sanitizes a version string to remove potentially harmful or unexpected characters
     /// </summary>
-    private string? SanitizeVersionString(string? versionStr)
+    private static string SanitizeVersionString(string? versionStr)
     {
         if (string.IsNullOrEmpty(versionStr)) return string.Empty;
 
@@ -612,6 +542,36 @@ public partial class UpdateService(
 
         if (useGithub && useNexus && githubFailed && nexusFailed)
             throw new UpdateCheckException("Unable to fetch version information from both GitHub and Nexus.");
+    }
+
+    /// <summary>
+    ///     Attempts to parse a version string into a SemanticVersion object
+    /// </summary>
+    private SemanticVersion? TryParseVersion(string? versionStr)
+    {
+        if (string.IsNullOrEmpty(versionStr)) return null;
+
+        // Extract the last part after a space, common for "Name v1.2.3"
+        var potentialVersionPart = versionStr.Split(' ').Last();
+
+        // Try with the potential version part first
+        if (potentialVersionPart.StartsWith("v") && potentialVersionPart.Length > 1)
+            potentialVersionPart = potentialVersionPart.Substring(1);
+
+        if (SemanticVersion.TryParse(potentialVersionPart, out var version)) return version;
+
+        // If that fails and we split the string, try with the original string
+        if (versionStr != potentialVersionPart)
+        {
+            var originalVersion = versionStr;
+            if (originalVersion.StartsWith("v") && originalVersion.Length > 1)
+                originalVersion = originalVersion.Substring(1);
+
+            if (SemanticVersion.TryParse(originalVersion, out version)) return version;
+        }
+
+        _logger.Debug($"Could not parse version from GitHub release name: {versionStr}");
+        return null;
     }
 
     [GeneratedRegex(@"[^a-zA-Z0-9.\-+]")]
