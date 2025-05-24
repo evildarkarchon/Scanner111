@@ -5,7 +5,7 @@ using Scanner111.ViewModels;
 
 namespace Scanner111.Views;
 
-public class AboutDialog : Window
+public partial class AboutDialog : Window
 {
     public AboutDialog()
     {

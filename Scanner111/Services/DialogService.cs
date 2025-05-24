@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using Scanner111.Services.Interfaces;
+using Scanner111.Views;
 
 namespace Scanner111.Services;
 
@@ -63,7 +64,7 @@ public class DialogService(Window mainWindow) : IDialogService
             AllowMultiple = false
         };
 
-        if (fileTypeFilters != null && fileTypeFilters.Length > 0)
+        if (fileTypeFilters is { Length: > 0 })
             options.FileTypeFilter = fileTypeFilters.Select(ext => new FilePickerFileType(ext)
             {
                 Patterns = new List<string> { $"*.{ext}" }

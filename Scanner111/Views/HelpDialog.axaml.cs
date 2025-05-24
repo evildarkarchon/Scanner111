@@ -5,7 +5,7 @@ using Scanner111.ViewModels;
 
 namespace Scanner111.Views;
 
-public class HelpDialog : Window
+public partial class HelpDialog : Window
 {
     public HelpDialog()
     {
