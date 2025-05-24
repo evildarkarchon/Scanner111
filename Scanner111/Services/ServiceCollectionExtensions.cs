@@ -33,6 +33,15 @@ public static class ServiceCollectionExtensions
         // Register a shared HttpClient for the service
         services.AddSingleton<HttpClient>();
 
+        // Register services with appropriate lifetimes
+        services.AddSingleton<ICrashLogFileService, CrashLogFileService>();
+        services.AddSingleton<IDatabaseService, DatabaseService>();
+        services.AddSingleton<IModDetectionService, ModDetectionService>();
+        services.AddSingleton<IReportWriterService, ReportWriterService>();
+
+        // Register the main scan service with its dependencies
+        services.AddSingleton<ICrashLogScanService, CrashLogScanService>();
+
         // Register other application services here
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IFileService, FileService>();

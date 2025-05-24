@@ -9,8 +9,8 @@ using Scanner111.Services.Interfaces;
 namespace Scanner111.Services;
 
 /// <summary>
-///     Service for scanning game files and mods for issues.
-///     Port of the CLASSIC_ScanGame.py file from the original Python implementation.
+/// Service for scanning and managing game files and mods, while providing utility functions
+/// for analyzing log files and generating consolidated results. Implements the IGameScanService interface.
 /// </summary>
 public class GameScanService(
     IYamlSettingsCache settingsCache,
@@ -24,10 +24,10 @@ public class GameScanService(
     private const bool TestMode = false; // Set to true for testing
 
     /// <summary>
-    ///     Inspects log files within a specified folder for recorded errors.
+    /// Inspects log files located within a specified directory for any recorded errors.
     /// </summary>
-    /// <param name="folderPath">Path to the folder containing log files for error inspection.</param>
-    /// <returns>A detailed report of all detected errors in the relevant log files, if any.</returns>
+    /// <param name="folderPath">The path to the directory containing log files to be analyzed for errors.</param>
+    /// <returns>A string with a report of all detected errors found in the relevant log files, or an empty string if none are found.</returns>
     public string CheckLogErrors(string folderPath)
     {
         if (string.IsNullOrEmpty(folderPath) || !Directory.Exists(folderPath))

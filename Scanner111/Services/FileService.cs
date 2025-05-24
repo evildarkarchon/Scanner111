@@ -9,10 +9,10 @@ namespace Scanner111.Services;
 public class FileService : IFileService
 {
     /// <summary>
-    ///     Copies a directory and all its contents to another location.
+    /// Copies a directory and all its contents to another location.
     /// </summary>
-    /// <param name="sourceDir">The source directory path.</param>
-    /// <param name="destDir">The destination directory path.</param>
+    /// <param name="sourceDir">The path of the source directory to be copied.</param>
+    /// <param name="destDir">The path of the destination directory where the content should be copied.</param>
     public void CopyDirectory(string sourceDir, string destDir)
     {
         // Create the destination directory

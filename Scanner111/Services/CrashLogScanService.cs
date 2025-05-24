@@ -56,8 +56,12 @@ public partial class CrashLogScanService(
     // Initialize regex pattern for plugin search
 
     /// <summary>
-    ///     Initializes the scan service with settings and file cache.
+    /// Asynchronously initializes the crash log scan service by loading settings, retrieving and reformatting
+    /// crash log files, and populating the log cache.
     /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous initialization operation.
+    /// </returns>
     public async Task InitializeAsync()
     {
         await _initializationSemaphore.WaitAsync();
@@ -93,8 +97,13 @@ public partial class CrashLogScanService(
     }
 
     /// <summary>
-    ///     Processes all crash logs and returns results.
+    /// Processes all available crash logs asynchronously and gathers the corresponding
+    /// processing results alongside statistical summaries detailing the scan process.
     /// </summary>
+    /// <returns>
+    /// A task that resolves to a tuple containing a list of crash log processing results
+    /// and an object representing the aggregated scan statistics.
+    /// </returns>
     public async Task<(List<CrashLogProcessResult> Results, ScanStatistics Statistics)> ProcessAllCrashLogsAsync()
     {
         if (!await CheckAndInitializeAsync())
@@ -125,8 +134,14 @@ public partial class CrashLogScanService(
     }
 
     /// <summary>
-    ///     Processes a single crash log file.
+    /// Processes a single crash log file and analyzes its content to generate a result.
     /// </summary>
+    /// <param name="logFileName">
+    /// The file path of the crash log to be processed.
+    /// </param>
+    /// <returns>
+    /// A <see cref="CrashLogProcessResult"/> containing the results of the crash log analysis.
+    /// </returns>
     public async Task<CrashLogProcessResult> ProcessSingleCrashLogAsync(string logFileName)
     {
         try
@@ -185,6 +200,12 @@ public partial class CrashLogScanService(
         }
     }
 
+    /// <summary>
+    /// Analyzes crash log data and identifies specific segments based on the provided crash generation name.
+    /// </summary>
+    /// <param name="crashData">A list of strings representing the lines of the crash log data.</param>
+    /// <param name="crashgenName">The name of the crash generation section to aid in segmentation.</param>
+    /// <returns>A task representing the asynchronous operation, with a result of <see cref="CrashLogSegments"/> containing the parsed segments of the crash log.</returns>
     public Task<CrashLogSegments> FindSegmentsAsync(List<string> crashData, string crashgenName)
     {
         return Task.Run(() =>
@@ -199,12 +220,9 @@ public partial class CrashLogScanService(
             var xseModulesSegment = new List<string>();
             var pluginsSegment = new List<string>();
 
-            foreach (var line in crashData)
+            foreach (var line in crashData.Where(line => !TryProcessControlLine(line, crashgenName, ref segments,
+                         ref currentState)))
             {
-                if (TryProcessControlLine(line, crashgenName, ref segments,
-                        ref currentState))
-                    continue; // Control line processed, or header identified; move to the next line
-
                 // If not a control line, add it to the current segment's content list
                 switch (currentState)
                 {
@@ -244,8 +262,11 @@ public partial class CrashLogScanService(
     }
 
     /// <summary>
-    ///     Gets the current scan statistics.
+    /// Retrieves the current scan statistics, providing insights into the ongoing or completed crash log scanning process.
     /// </summary>
+    /// <returns>
+    /// The current scan statistics as a <see cref="ScanStatistics"/> object.
+    /// </returns>
     public ScanStatistics GetStatistics()
     {
         return _statistics;
@@ -266,6 +287,14 @@ public partial class CrashLogScanService(
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// Asynchronously checks the initialization state of the crash log scanning service
+    /// and performs initialization if it has not been completed.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous check and initialization operation, returning a boolean value
+    /// indicating whether the service is successfully initialized.
+    /// </returns>
     private async Task<bool> CheckAndInitializeAsync()
     {
         if (!_initialized || _yamlData == null || _crashLogs == null) await InitializeAsync();
@@ -273,6 +302,17 @@ public partial class CrashLogScanService(
         return _crashLogs != null && _yamlData != null;
     }
 
+    /// <summary>
+    /// Processes a collection of crash log files in parallel, allowing for a maximum concurrency level
+    /// based on the number of available processors, and returns the results for each processed log.
+    /// </summary>
+    /// <param name="logFiles">
+    /// A collection of names of crash log files to be processed.
+    /// </param>
+    /// <returns>
+    /// A task representing the asynchronous operation, containing a list of <see cref="CrashLogProcessResult"/>
+    /// for each processed log file.
+    /// </returns>
     private async Task<List<CrashLogProcessResult>> ProcessLogsInParallelAsync(IEnumerable<string> logFiles)
     {
         var maxConcurrency = Environment.ProcessorCount;
@@ -295,6 +335,13 @@ public partial class CrashLogScanService(
         return results.ToList();
     }
 
+    /// <summary>
+    /// Updates the scan statistics based on the results of crash log processing.
+    /// </summary>
+    /// <param name="results">
+    /// A list of <see cref="CrashLogProcessResult"/> objects representing the results
+    /// of crash log processing.
+    /// </param>
     private void UpdateStatistics(List<CrashLogProcessResult> results)
     {
         _statistics.Scanned = results.Count;
@@ -303,6 +350,13 @@ public partial class CrashLogScanService(
         _statistics.FailedFiles.AddRange(results.Where(r => r.ScanFailed).Select(r => r.LogFileName));
     }
 
+    /// <summary>
+    /// Ensures that the crash log scan service is initialized by verifying the internal state
+    /// and invoking the initialization process if needed.
+    /// </summary>
+    /// <returns>
+    /// A task representing the completion of the initialization verification operation.
+    /// </returns>
     private async Task EnsureInitializedAsync()
     {
         if (!_initialized || _yamlData == null || _crashLogs == null)
@@ -312,6 +366,16 @@ public partial class CrashLogScanService(
             throw new InvalidOperationException("Log cache is not initialized");
     }
 
+    /// <summary>
+    /// Reads the crash log data from the specified log file and updates the provided report builder
+    /// with error information if the log file is empty or inaccessible.
+    /// </summary>
+    /// <param name="logFileName">The name of the crash log file to be read.</param>
+    /// <param name="reportBuilder">The report builder used to log scan results and statistics.</param>
+    /// <returns>
+    /// A task representing the asynchronous operation, containing the list of strings
+    /// representing the content of the crash log file.
+    /// </returns>
     private async Task<List<string>> ReadCrashLogDataAsync(string logFileName, CrashReportBuilder reportBuilder)
     {
         var crashData = await _crashLogs!.ReadLogAsync(logFileName);
@@ -324,6 +388,11 @@ public partial class CrashLogScanService(
         return crashData;
     }
 
+    /// <summary>
+    /// Adds a header section to the crash report, including the log file name, autoscan report message, and supplementary information.
+    /// </summary>
+    /// <param name="reportBuilder">The instance of <see cref="CrashReportBuilder"/> used to build the crash report.</param>
+    /// <param name="logFileName">The name of the crash log file being processed.</param>
     private void AddReportHeader(CrashReportBuilder reportBuilder, string logFileName)
     {
         var headerText =
@@ -337,6 +406,21 @@ public partial class CrashLogScanService(
             "====================================================");
     }
 
+    /// <summary>
+    /// Validates the completeness of the crash log by checking for the presence of essential segments
+    /// and the overall length of the log data. Updates the report builder with warnings and statistics
+    /// if the crash log lacks necessary information.
+    /// </summary>
+    /// <param name="reportBuilder">
+    /// The report builder instance used for aggregating results and adding warnings or statistics
+    /// about the completeness of the crash log.
+    /// </param>
+    /// <param name="segments">
+    /// The extracted segments of the crash log, containing information such as plugins and call stack segments.
+    /// </param>
+    /// <param name="crashData">
+    /// The raw crash log content represented as a list of strings.
+    /// </param>
     private void ValidateLogCompleteness(CrashReportBuilder reportBuilder, CrashLogSegments segments,
         List<string> crashData)
     {
@@ -351,6 +435,16 @@ public partial class CrashLogScanService(
         reportBuilder.AddStatistic("incomplete", 1);
     }
 
+    /// <summary>
+    /// Asynchronously processes the FCX (Fault Context eXtraction) mode by checking the settings,
+    /// performing necessary validations, and updating the crash report with relevant FCX results.
+    /// </summary>
+    /// <param name="reportBuilder">
+    /// The crash report builder instance used to update report sections with FCX processing results.
+    /// </param>
+    /// <returns>
+    /// A task representing the asynchronous FCX mode processing operation.
+    /// </returns>
     private async Task ProcessFcxModeAsync(CrashReportBuilder reportBuilder)
     {
         var fcxMode = yamlSettings.GetSetting<bool?>(YamlStore.Main, "FCX Mode");
@@ -363,6 +457,16 @@ public partial class CrashLogScanService(
             reportBuilder.AddToSection("FCX Results", _gameFilesResult);
     }
 
+    /// <summary>
+    /// Processes errors within the crash log, identifies potential suspects based on error patterns
+    /// and call stacks, and updates the crash report with findings.
+    /// </summary>
+    /// <param name="reportBuilder">
+    /// An instance of CrashReportBuilder used to record findings and generate the crash report.
+    /// </param>
+    /// <param name="segments">
+    /// An instance of CrashLogSegments containing parsed segments of the crash log, such as main errors and call stack data.
+    /// </param>
     private void ProcessErrorsAndDetectSuspects(CrashReportBuilder reportBuilder, CrashLogSegments segments)
     {
         var suspectFound = false;
@@ -379,6 +483,16 @@ public partial class CrashLogScanService(
                 "# ℹ️ No suspect patterns found in main error or call stack # \n-----\n");
     }
 
+    /// <summary>
+    /// Asynchronously analyzes FormIDs in the call stack segment if enabled in the settings
+    /// and the database exists.
+    /// </summary>
+    /// <param name="callStackSegment">The list of strings representing the call stack segment to be analyzed.</param>
+    /// <param name="pluginsMap">A dictionary mapping plugin names to their corresponding master files or identifiers.</param>
+    /// <param name="reportBuilder">The crash report builder used to record analysis results and report data.</param>
+    /// <returns>
+    /// A task representing the asynchronous FormID analysis operation.
+    /// </returns>
     private async Task AnalyzeFormIdsIfEnabledAsync(List<string> callStackSegment,
         Dictionary<string, string> pluginsMap, CrashReportBuilder reportBuilder)
     {
@@ -387,6 +501,14 @@ public partial class CrashLogScanService(
             await AnalyzeFormIdsAsync(callStackSegment, pluginsMap, reportBuilder);
     }
 
+    /// <summary>
+    /// Detects known problematic mods, conflicting mod combinations, and important mods
+    /// based on provided data and adds the findings to the crash report.
+    /// </summary>
+    /// <param name="reportBuilder">The report builder used for constructing the crash report.</param>
+    /// <param name="pluginsMap">A dictionary mapping plugin names to their respective file paths.</param>
+    /// <param name="segments">Segments extracted from the crash log, containing various system and crash-related details.</param>
+    /// <param name="yamlData">Data loaded from the YAML settings cache, specifying known mods and configurations.</param>
     private void DetectProblematicMods(CrashReportBuilder reportBuilder, Dictionary<string, string> pluginsMap,
         CrashLogSegments segments, ScanLogInfo yamlData)
     {
@@ -410,6 +532,13 @@ public partial class CrashLogScanService(
             reportBuilder.AddToSection("Problematic Mods", "# ℹ️ No known problematic mods detected #");
     }
 
+    /// <summary>
+    /// Extracts GPU information from the provided system segment data.
+    /// </summary>
+    /// <param name="systemSegment">The list of system-related information extracted from the crash log.</param>
+    /// <returns>
+    /// A string indicating the detected GPU type ("nvidia", "amd", or an empty string if no matching GPU information was found).
+    /// </returns>
     private string ExtractGpuInfo(List<string> systemSegment)
     {
         var gpuInfo = systemSegment.FirstOrDefault(line =>
@@ -425,6 +554,15 @@ public partial class CrashLogScanService(
         return string.Empty;
     }
 
+    /// <summary>
+    /// Adds version information to the crash report based on the detected crash log metadata and the predefined settings.
+    /// </summary>
+    /// <param name="reportBuilder">
+    /// The builder instance used to construct the crash report.
+    /// </param>
+    /// <param name="segments">
+    /// The parsed segments of the crash log containing metadata such as the detected version and main error.
+    /// </param>
     private void AddVersionInformation(CrashReportBuilder reportBuilder, CrashLogSegments segments)
     {
         var versionCurrent = ParseVersion(segments.Crashgen);
@@ -441,6 +579,16 @@ public partial class CrashLogScanService(
             versionStatus);
     }
 
+    /// <summary>
+    /// Analyzes the call stack segment if available and appends the analysis results to the crash report.
+    /// </summary>
+    /// <param name="callStackSegment">A list of strings representing the call stack segment of the crash log.</param>
+    /// <param name="pluginsMap">A dictionary mapping plugin names to their versions or sources.</param>
+    /// <param name="reportBuilder">The builder responsible for constructing the crash report.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation of analyzing the call stack,
+    /// which updates the provided report builder with analysis results, if applicable.
+    /// </returns>
     private async Task AnalyzeCallStackIfAvailableAsync(List<string> callStackSegment,
         Dictionary<string, string> pluginsMap, CrashReportBuilder reportBuilder)
     {
@@ -451,6 +599,15 @@ public partial class CrashLogScanService(
         }
     }
 
+    /// <summary>
+    /// Finalizes the scanning process for a given crash log by performing final steps such as moving unsolved logs
+    /// and appending a summary report section. Updates scan statistics as well.
+    /// </summary>
+    /// <param name="logFileName">The name of the crash log file being processed.</param>
+    /// <param name="reportBuilder">The report builder containing information and results of the scan process.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation of finalizing the scanning process.
+    /// </returns>
     private async Task FinalizeScanAsync(string logFileName, CrashReportBuilder reportBuilder)
     {
         try
@@ -474,6 +631,15 @@ public partial class CrashLogScanService(
         }
     }
 
+    /// <summary>
+    /// Handles exceptions that occur during the processing of a crash log, logs them, and generates a failure report.
+    /// </summary>
+    /// <param name="logFileName">The name of the log file being processed when the exception occurred.</param>
+    /// <param name="ex">The exception encountered during the crash log processing.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result contains a <see cref="CrashLogProcessResult"/>
+    /// with details of the processed crash log, including the failure information.
+    /// </returns>
     private async Task<CrashLogProcessResult> HandleProcessingExceptionAsync(string logFileName, Exception ex)
     {
         logger.LogError(ex, "Error processing crash log {LogFile}", logFileName);
@@ -493,6 +659,22 @@ public partial class CrashLogScanService(
         return result;
     }
 
+    /// <summary>
+    /// Attempts to process a control line from the crash log to determine if it matches specific known headers or
+    /// markers, updating the current parsing state and crash log segments accordingly.
+    /// </summary>
+    /// <param name="line">The current line being processed from the crash log.</param>
+    /// <param name="crashgenName">The identifier indicating the crash generation section of the log.</param>
+    /// <param name="segments">
+    /// A reference to the crash log segments object, which is updated with extracted data if the line is successfully processed.
+    /// </param>
+    /// <param name="currentState">
+    /// A reference to the current parser state, which is updated based on the processing of the control line.
+    /// </param>
+    /// <returns>
+    /// A boolean value indicating whether the line was identified and processed as a control line.
+    /// Returns true if the line was consumed as a valid control line, otherwise false.
+    /// </returns>
     private bool TryProcessControlLine(
         string line,
         string crashgenName,
@@ -543,6 +725,15 @@ public partial class CrashLogScanService(
         return true; // Line consumed
     }
 
+    /// <summary>
+    /// Extracts plugin names and their corresponding load orders from a specified segment of crash log data.
+    /// </summary>
+    /// <param name="pluginSegment">
+    /// A list of strings representing the segment of the crash log that contains plugin information.
+    /// </param>
+    /// <returns>
+    /// A dictionary where the keys are plugin names and the values are their respective load orders.
+    /// </returns>
     private Dictionary<string, string> ExtractPluginsFromSegment(List<string> pluginSegment)
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -563,6 +754,12 @@ public partial class CrashLogScanService(
         return result;
     }
 
+    /// <summary>
+    /// Extracts the load order value enclosed in square brackets from the provided log line.
+    /// If no valid load order is found, returns a default value.
+    /// </summary>
+    /// <param name="line">The log line from which to extract the load order value.</param>
+    /// <returns>The extracted load order as a string, or a default value if none is found.</returns>
     private string ExtractLoadOrder(string line)
     {
         var bracketStart = line.IndexOf('[');
@@ -575,8 +772,15 @@ public partial class CrashLogScanService(
     }
 
     /// <summary>
-    ///     Parses a version string into a Version object.
+    /// Parses a version string into a Version object.
     /// </summary>
+    /// <param name="versionString">
+    /// The version string to parse, which should follow a pattern like "v1.2.3.4".
+    /// </param>
+    /// <returns>
+    /// A Version object representing the parsed version. If the input string is null, empty,
+    /// or does not match the expected pattern, a default version (0.0.0.0) is returned.
+    /// </returns>
     private static Version ParseVersion(string versionString)
     {
         if (string.IsNullOrEmpty(versionString))
@@ -590,16 +794,31 @@ public partial class CrashLogScanService(
     }
 
     /// <summary>
-    ///     Checks if the current version is the latest.
+    /// Determines if the current version is the latest available version, considering multiple latest version criteria.
     /// </summary>
+    /// <param name="current">The current version being checked.</param>
+    /// <param name="latest">The main latest version to compare against.</param>
+    /// <param name="latestVr">An alternative latest version to compare against.</param>
+    /// <returns>
+    /// A boolean value indicating whether the current version is the latest.
+    /// Returns true if the current version is greater than or equal to either the main or alternative latest versions; otherwise, false.
+    /// </returns>
     private static bool IsLatestVersion(Version current, Version latest, Version latestVr)
     {
         return current >= latest || current >= latestVr;
     }
 
     /// <summary>
-    ///     Checks if a suspect stack signal matches the given error and callstack.
+    /// Processes a suspect stack signal to determine whether it matches specific error and call stack information.
+    /// Updates the match status with relevant details about the processing result.
     /// </summary>
+    /// <param name="signal">The suspect signal to process, which may include modifiers.</param>
+    /// <param name="crashlogMainError">The main error from the crash log being analyzed.</param>
+    /// <param name="callStack">The call stack from the crash log being analyzed.</param>
+    /// <param name="matchStatus">A dictionary containing flags that indicate matching results for different processing criteria.</param>
+    /// <returns>
+    /// A boolean value indicating whether the signal processing should skip the current error.
+    /// </returns>
     private bool ProcessSuspectStackSignals(string signal, string crashlogMainError, string callStack,
         Dictionary<string, bool> matchStatus)
     {
@@ -648,8 +867,12 @@ public partial class CrashLogScanService(
     }
 
     /// <summary>
-    ///     Determines if a suspect match is valid based on match conditions.
+    /// Determines whether the suspect stack matches the defined conditions based on match status flags.
     /// </summary>
+    /// <param name="matchStatus">A dictionary containing boolean values for various conditions such as presence of required items, stack match, and optional error match.</param>
+    /// <returns>
+    /// True if the match conditions are met; otherwise, false.
+    /// </returns>
     private bool IsSuspectStackMatch(Dictionary<string, bool> matchStatus)
     {
         // If there are required items, they must be found
@@ -660,8 +883,20 @@ public partial class CrashLogScanService(
     }
 
     /// <summary>
-    ///     Scans for suspect errors in the callstack.
+    /// Scans the call stack for suspect errors potentially linked to a crash.
     /// </summary>
+    /// <param name="crashlogMainError">
+    /// The main error message extracted from the crash log, used to identify potential issues.
+    /// </param>
+    /// <param name="callStack">
+    /// The call stack extracted from the crash log, which is analyzed for suspect patterns.
+    /// </param>
+    /// <param name="reportBuilder">
+    /// The <see cref="CrashReportBuilder"/> used to append findings about any detected suspects.
+    /// </param>
+    /// <returns>
+    /// A boolean indicating whether any suspect errors were found in the call stack.
+    /// </returns>
     private bool ScanSuspectStack(string crashlogMainError, string callStack, CrashReportBuilder reportBuilder)
     {
         if (_yamlData == null || string.IsNullOrEmpty(crashlogMainError) || string.IsNullOrEmpty(callStack))
@@ -708,8 +943,17 @@ public partial class CrashLogScanService(
     }
 
     /// <summary>
-    ///     Scans for main errors in the crash log.
+    /// Scans the crash log's main error for suspect patterns and updates the report builder accordingly.
     /// </summary>
+    /// <param name="reportBuilder">
+    /// The instance of <see cref="CrashReportBuilder"/> used to document the discovered suspects.
+    /// </param>
+    /// <param name="crashlogMainError">
+    /// The main error string extracted from the crash log for analysis.
+    /// </param>
+    /// <returns>
+    /// A boolean indicating whether any suspect patterns were found in the main error string.
+    /// </returns>
     private bool ScanSuspectMainError(CrashReportBuilder reportBuilder, string crashlogMainError)
     {
         if (_yamlData == null || string.IsNullOrEmpty(crashlogMainError)) return false;
@@ -742,8 +986,11 @@ public partial class CrashLogScanService(
     }
 
     /// <summary>
-    ///     Checks for FCX mode and performs game file checks.
+    /// Asynchronously checks if FCX mode is enabled and performs related game file checks. Results of the checks
+    /// are stored for further processing or reporting purposes.
     /// </summary>
+    /// <param name="fcxMode">A boolean indicating whether FCX mode is enabled.</param>
+    /// <returns>A task representing the asynchronous operation of checking FCX mode and performing game file checks.</returns>
     private async Task CheckFcxModeAsync(bool fcxMode)
     {
         // Use a lock to ensure thread safety
@@ -773,8 +1020,15 @@ public partial class CrashLogScanService(
     }
 
     /// <summary>
-    ///     Analyzes FormIDs in crash log callstack for matching.
+    /// Asynchronously analyzes FormIDs found in a crash log's call stack for matches against the database,
+    /// identifying their associated plugins and supplementing the crash report with the results.
     /// </summary>
+    /// <param name="callStackSegment">The segment of the crash log call stack containing potential FormIDs.</param>
+    /// <param name="pluginsMap">A dictionary mapping plugin names to their respective identifiers.</param>
+    /// <param name="reportBuilder">An instance of <see cref="CrashReportBuilder"/> used to augment the crash report with FormID analysis data.</param>
+    /// <returns>
+    /// A task representing the asynchronous FormID analysis operation.
+    /// </returns>
     private async Task AnalyzeFormIdsAsync(List<string> callStackSegment, Dictionary<string, string> pluginsMap,
         CrashReportBuilder reportBuilder)
     {
@@ -811,8 +1065,15 @@ public partial class CrashLogScanService(
     }
 
     /// <summary>
-    ///     Analyzes call stack for plugins and named records.
+    /// Asynchronously analyzes the call stack for relevant plugins and named records,
+    /// and adds the results to the specified crash report builder.
     /// </summary>
+    /// <param name="callStackSegment">A list of call stack entries to be analyzed.</param>
+    /// <param name="pluginsMap">A dictionary mapping plugin identifiers to their associated metadata.</param>
+    /// <param name="reportBuilder">The report builder instance used to document the analysis results.</param>
+    /// <returns>
+    /// A task representing the asynchronous call stack analysis operation.
+    /// </returns>
     private async Task AnalyzeCallStackAsync(List<string> callStackSegment, Dictionary<string, string> pluginsMap,
         CrashReportBuilder reportBuilder)
     {
@@ -827,8 +1088,15 @@ public partial class CrashLogScanService(
     }
 
     /// <summary>
-    ///     Analyzes plugins found in the call stack.
+    /// Analyzes the plugins referenced within a given call stack segment and updates the crash report
+    /// with insights about potential plugin-related issues that could contribute to crashes.
     /// </summary>
+    /// <param name="callStackSegment">A list of strings representing individual lines of a call stack segment.</param>
+    /// <param name="pluginsMap">A dictionary mapping plugin names to associated metadata.</param>
+    /// <param name="reportBuilder">An instance of CrashReportBuilder used to update the crash report with findings.</param>
+    /// <returns>
+    /// A task representing the asynchronous plugin analysis operation within the call stack.
+    /// </returns>
     private Task AnalyzePluginsInCallStackAsync(List<string> callStackSegment, Dictionary<string, string> pluginsMap,
         CrashReportBuilder reportBuilder)
     {
@@ -882,8 +1150,13 @@ public partial class CrashLogScanService(
     }
 
     /// <summary>
-    ///     Analyzes named records in the call stack.
+    /// Analyzes named records within the provided call stack segment and appends findings to the crash report.
     /// </summary>
+    /// <param name="callStackSegment">A list of strings representing the call stack segment to analyze.</param>
+    /// <param name="reportBuilder">The crash report builder used to record the analysis results.</param>
+    /// <returns>
+    /// A task representing the asynchronous operation of analyzing named records.
+    /// </returns>
     private Task AnalyzeNamedRecordsAsync(List<string> callStackSegment, CrashReportBuilder reportBuilder)
     {
         if (callStackSegment.Count == 0 || _yamlData == null)
@@ -948,13 +1221,18 @@ public partial class CrashLogScanService(
     }
 
     /// <summary>
-    ///     Handles moving unsolved logs to a separate folder for further analysis.
+    /// Asynchronously moves unsolved crash logs to a designated folder for further review and analysis.
     /// </summary>
+    /// <param name="logFileName">The full path to the crash log file to be moved.</param>
+    /// <param name="autoscanReport">The list of analysis results for the crash log used to determine whether it is solved.</param>
+    /// <returns>
+    /// A task representing the asynchronous operation of moving the unsolved logs.
+    /// </returns>
     private async Task MoveUnsolvedLogsAsync(string logFileName, List<string> autoscanReport)
     {
         if (_yamlData == null) return;
 
-        var moveUnsolved = yamlSettings.GetSetting<bool?>(YamlStore.Main, "Move Unsolved Logs") ?? false;
+        var moveUnsolved = yamlSettings.GetSetting<bool?>(YamlStore.Settings, "Move Unsolved Logs") ?? false;
         if (!moveUnsolved) return;
 
         // Determine if this log is "unsolved" based on specific keywords or patterns
