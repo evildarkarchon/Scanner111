@@ -23,7 +23,7 @@ public partial class App : Application
         var services = new ServiceCollection();
         ConfigureServices(services);
         _serviceProvider = services.BuildServiceProvider();
-        
+
         // Initialize the dependency injection static provider
         DependencyInjection.DependencyInjection.Initialize(_serviceProvider);
 
@@ -45,7 +45,7 @@ public partial class App : Application
     {
         // Add all required services
         services.AddScanner111Services();
-        
+
         // Register view models
         services.AddTransient<MainViewModel>();
     }
