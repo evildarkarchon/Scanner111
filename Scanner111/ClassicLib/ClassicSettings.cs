@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Microsoft.Extensions.Logging;
+using Scanner111.Logging;
 
 namespace Scanner111.ClassicLib;
 
@@ -11,6 +12,7 @@ public class ClassicSettings
 {
     private readonly IFileSystem _fileSystem;
     private readonly ILogger<ClassicSettings> _logger;
+    private readonly ILoggingService _loggingService;
     private readonly YamlSettings _yamlSettings;
 
     /// <summary>
@@ -18,15 +20,16 @@ public class ClassicSettings
     /// </summary>
     /// <param name="yamlSettings">The YAML settings service.</param>
     /// <param name="fileSystem">The file system service.</param>
-    /// <param name="logger">The logger.</param>
+    /// <param name="loggingService">The logging service.</param>
     public ClassicSettings(
         YamlSettings yamlSettings,
         IFileSystem fileSystem,
-        ILogger<ClassicSettings> logger)
+        ILoggingService loggingService)
     {
         _yamlSettings = yamlSettings ?? throw new ArgumentNullException(nameof(yamlSettings));
         _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _loggingService = loggingService ?? throw new ArgumentNullException(nameof(loggingService));
+        _logger = _loggingService.GetLogger<ClassicSettings>();
 
         EnsureSettingsFileExists();
     }
@@ -68,7 +71,7 @@ public class ClassicSettings
 
         if (!_fileSystem.FileExists(settingsPath))
         {
-            _logger.LogInformation("Creating default CLASSIC Settings.yaml file");
+            _loggingService.Information("Creating default CLASSIC Settings.yaml file");
 
             // Get default settings from Main YAML
             var defaultSettings = _yamlSettings.GetSetting<string>(
@@ -76,7 +79,7 @@ public class ClassicSettings
 
             if (string.IsNullOrEmpty(defaultSettings))
             {
-                _logger.LogError("Invalid Default Settings in 'CLASSIC Main.yaml'");
+                _loggingService.Error("Invalid Default Settings in 'CLASSIC Main.yaml'");
                 throw new InvalidOperationException("Invalid Default Settings in 'CLASSIC Main.yaml'");
             }
 

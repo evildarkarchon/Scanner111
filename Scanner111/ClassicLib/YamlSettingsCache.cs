@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Scanner111.Logging;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -35,6 +36,7 @@ public class YamlSettingsCache
     private readonly IFileSystem _fileSystem;
     private readonly IGameRegistry _gameRegistry;
     private readonly ILogger<YamlSettingsCache> _logger;
+    private readonly ILoggingService _loggingService;
 
     // Cache of file paths by YAML store type
     private readonly Dictionary<YamlStoreType, string> _pathCache = new();
@@ -46,11 +48,12 @@ public class YamlSettingsCache
     /// Initializes a new instance of the <see cref="YamlSettingsCache"/> class.
     /// </summary>
     public YamlSettingsCache(
-        ILogger<YamlSettingsCache> logger,
+        ILoggingService loggingService,
         IGameRegistry gameRegistry,
         IFileSystem fileSystem)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _loggingService = loggingService ?? throw new ArgumentNullException(nameof(loggingService));
+        _logger = loggingService.GetLogger<YamlSettingsCache>();
         _gameRegistry = gameRegistry ?? throw new ArgumentNullException(nameof(gameRegistry));
         _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
     }
@@ -240,8 +243,9 @@ public class YamlSettingsCache
                 _logger.LogError(ex, "Failed to convert value for {KeyPath} to type {Type}", keyPath, typeof(T).Name);
                 return default;
             }
-        else if (!Constants.SettingsIgnoreNone.Contains(settingKey))
-            Console.WriteLine($"❌ ERROR (yaml_settings) : Trying to grab a null value for : '{keyPath}'");
+
+        if (!Constants.SettingsIgnoreNone.Contains(settingKey))
+            _loggingService.Warning($"Trying to grab a null value for: '{keyPath}'");
 
         return default;
     }

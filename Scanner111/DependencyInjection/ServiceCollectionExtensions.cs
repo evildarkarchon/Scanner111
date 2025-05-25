@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Scanner111.ClassicLib;
+using Scanner111.Logging;
 
 namespace Scanner111.DependencyInjection;
 
@@ -15,6 +16,9 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddScanner111Services(this IServiceCollection services)
     {
+        // Configure logging first
+        services.ConfigureLogging();
+
         // Register core services
         RegisterCoreServices(services);
 

@@ -4,8 +4,8 @@ This document outlines the tasks required to port the CLASSIC application from P
 1.  **Project Setup & Core Architecture:**
     *   ~~Create a new Avalonia MVVM project in C#.~~
     *   ~~Define the project structure (e.g., `ViewModels`, `Views`, `Models`, `Services`, `Converters`).~~
-    *   Implement a C# equivalent for the settings management currently handled by YAML files (e.g., `CLASSIC Settings.yaml`). Consider using a library like `YamlDotNet` for YAML parsing and a dedicated settings service.
-    *   Re-architect the `GlobalRegistry` concept. Consider using Dependency Injection (DI) for services or a static service locator pattern if appropriate for C#.
+    ~~*   Implement a C# equivalent for the settings management currently handled by YAML files (e.g., `CLASSIC Settings.yaml`). Consider using a library like `YamlDotNet` for YAML parsing and a dedicated settings service.~~
+    ~~*   Re-architect the `GlobalRegistry` concept. Consider using Dependency Injection (DI) for services or a static service locator pattern if appropriate for C#.~~
 
 2. **UI Implementation (Views & ViewModels):**
     *  Design the main window View (`MainWindow.axaml`) based on the structure in CLASSIC_Interface.py, including tabs for main functions, backups and more. This new UI will be based on modern UI principles and Avalonia's capabilities.
@@ -40,7 +40,8 @@ This document outlines the tasks required to port the CLASSIC application from P
            * Use Avalonia's built-in dialogs or create custom ones for file/folder selection and message boxes/notifications (e.g., for update results, errors).
     *   Implement a custom dialog for displaying the "About" information, including version and credits, based on the CustomAboutDialog class in CLASSIC_Interface.py.
     *  Implement a custom dialog for displaying help information, similar to the "Help" popup in CLASSIC_Interface.py.
-3. **Porting Core Logic (Services & Models):**
+
+4. **Porting Core Logic (Services & Models):**
     *   Translate the core scanning logic from CLASSIC_ScanLogs.py into a C# service. This includes parsing crash logs and identifying issues.
         *   Implement the `ScanCrashLogs` service to handle crash log analysis.
         *   Implement the `ScanGameFiles` service to handle game file scanning.
