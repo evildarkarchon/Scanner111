@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Scanner111.ClassicLib;
 
 namespace Scanner111.DependencyInjection;
 
@@ -20,7 +21,7 @@ public static class ServiceCollectionExtensions
         // Register view models
         RegisterViewModels(services);
 
-        // Register services
+        // Register application services
         RegisterApplicationServices(services);
 
         return services;
@@ -28,8 +29,19 @@ public static class ServiceCollectionExtensions
 
     private static void RegisterCoreServices(IServiceCollection services)
     {
-        // TODO: Add core service registrations
-        // Example: services.AddSingleton<ILogger, FileLogger>();
+        // Register ClassicLib services
+        services.AddSingleton<IFileSystem, FileSystem>();
+        services.AddSingleton<IGameRegistry, GameRegistry>();
+        services.AddSingleton<YamlSettingsCache>();
+        services.AddSingleton<YamlSettings>();
+        services.AddSingleton<ClassicSettings>();
+
+        // Configure game options
+        services.Configure<GameOptions>(options =>
+        {
+            options.Game = "Fallout4"; // Default game
+            options.VR = ""; // Default VR setting
+        });
     }
 
     private static void RegisterViewModels(IServiceCollection services)
