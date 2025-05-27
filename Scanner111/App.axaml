@@ -6,5 +6,58 @@
 
     <Application.Styles>
         <FluentTheme />
+        
+        <!-- Custom Styles -->
+        <Style Selector="Button.primary-button">
+            <Setter Property="Background" Value="DodgerBlue" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="DarkBlue" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="5" />
+        </Style>
+        
+        <Style Selector="Button.primary-button:pointerover">
+            <Setter Property="Background" Value="RoyalBlue" />
+        </Style>
+        
+        <Style Selector="Button.primary-button:pressed">
+            <Setter Property="Background" Value="MidnightBlue" />
+        </Style>
+        
+        <Style Selector="Button.primary-button:disabled">
+            <Setter Property="Background" Value="Gray" />
+            <Setter Property="Foreground" Value="DarkGray" />
+            <Setter Property="BorderBrush" Value="DarkGray" />
+        </Style>
+        
+        <!-- Tab styling -->
+        <Style Selector="TabItem">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="12,8" />
+        </Style>
+        
+        <Style Selector="TabItem:selected">
+            <Setter Property="Background" Value="LightBlue" />
+        </Style>
+        
+        <!-- TextBox styling for readonly -->
+        <Style Selector="TextBox:readonly">
+            <Setter Property="Background" Value="LightGray" />
+        </Style>
+        
+        <!-- Console-style textbox -->
+        <Style Selector="TextBox.console">
+            <Setter Property="Background" Value="Black" />
+            <Setter Property="Foreground" Value="LightGreen" />
+            <Setter Property="FontFamily" Value="Consolas,Monaco,monospace" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
     </Application.Styles>
+    
+    
+    <Application.Resources>
+        <!-- Simple bool to visibility converter -->
+        <x:Boolean x:Key="True">True</x:Boolean>
+        <x:Boolean x:Key="False">False</x:Boolean>
+    </Application.Resources>
 </Application>

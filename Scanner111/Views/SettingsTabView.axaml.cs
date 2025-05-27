@@ -2,9 +2,9 @@
 
 namespace Scanner111.Views;
 
-public partial class MainView : UserControl
+public partial class SettingsTabView : UserControl
 {
-    public MainView()
+    public SettingsTabView()
     {
         InitializeComponent();
     }
