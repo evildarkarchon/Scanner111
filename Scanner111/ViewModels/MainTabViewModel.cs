@@ -19,7 +19,7 @@ public class MainTabViewModel : ViewModelBase
         // Initialize commands
         ScanCrashLogsCommand = ReactiveCommand.CreateFromTask(ScanCrashLogsAsync, this.WhenAnyValue(x => x.CanScan));
         ScanGameFilesCommand = ReactiveCommand.CreateFromTask(ScanGameFilesAsync, this.WhenAnyValue(x => x.CanScan));
-        FetchPastebinCommand = ReactiveCommand.CreateFromTask(FetchPastebinAsync, 
+        FetchPastebinCommand = ReactiveCommand.CreateFromTask(FetchPastebinAsync,
             this.WhenAnyValue(x => x.PastebinUrl, url => !string.IsNullOrWhiteSpace(url) && CanScan));
         ClearOutputCommand = ReactiveCommand.Create(ClearOutput);
 
@@ -77,7 +77,7 @@ public class MainTabViewModel : ViewModelBase
     {
         IsScanningCrashLogs = true;
         AppendOutput("=== Starting Crash Logs Scan ===");
-        
+
         try
         {
             // TODO: Implement actual crash log scanning logic
@@ -99,7 +99,7 @@ public class MainTabViewModel : ViewModelBase
     {
         IsScanningGameFiles = true;
         AppendOutput("=== Starting Game Files Scan ===");
-        
+
         try
         {
             // TODO: Implement actual game files scanning logic
@@ -120,7 +120,7 @@ public class MainTabViewModel : ViewModelBase
     private async Task FetchPastebinAsync()
     {
         AppendOutput($"=== Fetching Pastebin: {PastebinUrl} ===");
-        
+
         try
         {
             // TODO: Implement actual Pastebin fetching logic
@@ -154,16 +154,16 @@ public class MainTabViewModel : ViewModelBase
     private static string GetWelcomeMessage()
     {
         return """
-            === Scanner 111 - Vault-Tec Diagnostic Tool ===
-            
-            Welcome to Scanner 111! Your comprehensive tool for diagnosing and fixing 
-            issues with Bethesda RPGs.
-            
-            🔍 SCAN CRASH LOGS - Analyze crash logs to identify issues
-            🎮 SCAN GAME FILES - Check game integrity and mod conflicts
-            📋 PASTEBIN - Fetch crash logs from Pastebin URLs
-            
-            Ready for diagnostic operations...
-            """;
+               === Scanner 111 - Vault-Tec Diagnostic Tool ===
+
+               Welcome to Scanner 111! Your comprehensive tool for diagnosing and fixing 
+               issues with Bethesda RPGs.
+
+               🔍 SCAN CRASH LOGS - Analyze crash logs to identify issues
+               🎮 SCAN GAME FILES - Check game integrity and mod conflicts
+               📋 PASTEBIN - Fetch crash logs from Pastebin URLs
+
+               Ready for diagnostic operations...
+               """;
     }
 }

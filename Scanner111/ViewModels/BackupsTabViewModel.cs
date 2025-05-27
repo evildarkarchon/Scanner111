@@ -36,32 +36,41 @@ public class BackupsTabViewModel : ViewModelBase
         // Initialize backup categories
         Categories = new ObservableCollection<BackupCategory>
         {
-            new() {
+            new()
+            {
                 Name = "XSE",
                 DisplayName = "Script Extender (F4SE)",
-                FilePatterns = new() { "f4se_*.exe", "f4se_*.dll", "f4se", "src", "CustomControlMap.txt" }
+                FilePatterns = new List<string> { "f4se_*.exe", "f4se_*.dll", "f4se", "src", "CustomControlMap.txt" }
             },
-            new() {
+            new()
+            {
                 Name = "RESHADE",
                 DisplayName = "ReShade",
-                FilePatterns = new() { "ReShade.ini", "ReShadePreset.ini", "reshade-shaders", "dxgi.dll", "d3d11.dll" }
+                FilePatterns = new List<string>
+                    { "ReShade.ini", "ReShadePreset.ini", "reshade-shaders", "dxgi.dll", "d3d11.dll" }
             },
-            new() {
+            new()
+            {
                 Name = "VULKAN",
                 DisplayName = "Vulkan Renderer",
-                FilePatterns = new() { "vulkan_d3d11.dll", "d3d11_vulkan.dll", "dxvk.conf", "vulkan-1.dll", "VulkanRT" }
+                FilePatterns = new List<string>
+                    { "vulkan_d3d11.dll", "d3d11_vulkan.dll", "dxvk.conf", "vulkan-1.dll", "VulkanRT" }
             },
-            new() {
+            new()
+            {
                 Name = "ENB",
                 DisplayName = "ENB Series",
-                FilePatterns = new() { "enbseries", "d3d11.dll", "enblocal.ini", "enbseries.ini", "enb*.fx" }
+                FilePatterns = new List<string> { "enbseries", "d3d11.dll", "enblocal.ini", "enbseries.ini", "enb*.fx" }
             }
         };
 
         // Initialize commands
-        BackupCommand = ReactiveCommand.CreateFromTask<BackupCategory>(async category => await PerformBackupOperationAsync(category, BackupOperation.Backup));
-        RestoreCommand = ReactiveCommand.CreateFromTask<BackupCategory>(async category => await PerformBackupOperationAsync(category, BackupOperation.Restore));
-        RemoveCommand = ReactiveCommand.CreateFromTask<BackupCategory>(async category => await PerformBackupOperationAsync(category, BackupOperation.Remove));
+        BackupCommand = ReactiveCommand.CreateFromTask<BackupCategory>(async category =>
+            await PerformBackupOperationAsync(category, BackupOperation.Backup));
+        RestoreCommand = ReactiveCommand.CreateFromTask<BackupCategory>(async category =>
+            await PerformBackupOperationAsync(category, BackupOperation.Restore));
+        RemoveCommand = ReactiveCommand.CreateFromTask<BackupCategory>(async category =>
+            await PerformBackupOperationAsync(category, BackupOperation.Remove));
         OpenBackupsFolderCommand = ReactiveCommand.Create(OpenBackupsFolder);
 
         // Check for existing backups
@@ -93,12 +102,12 @@ public class BackupsTabViewModel : ViewModelBase
     private async Task PerformBackupOperationAsync(BackupCategory category, BackupOperation operation)
     {
         StatusMessage = $"Performing {operation} operation for {category.DisplayName}...";
-        
+
         try
         {
             // TODO: Implement actual backup/restore/remove logic
             await Task.Delay(1000); // Simulate work
-            
+
             switch (operation)
             {
                 case BackupOperation.Backup:
@@ -106,11 +115,11 @@ public class BackupsTabViewModel : ViewModelBase
                     category.LastBackupDate = DateTime.Now;
                     StatusMessage = $"✅ {category.DisplayName} backed up successfully";
                     break;
-                    
+
                 case BackupOperation.Restore:
                     StatusMessage = $"✅ {category.DisplayName} restored successfully";
                     break;
-                    
+
                 case BackupOperation.Remove:
                     StatusMessage = $"✅ {category.DisplayName} files removed successfully";
                     break;
@@ -127,17 +136,17 @@ public class BackupsTabViewModel : ViewModelBase
         try
         {
             var backupPath = Path.Combine(Environment.CurrentDirectory, "Vault Backups", "Game Files");
-            
+
             // Create directory if it doesn't exist
             Directory.CreateDirectory(backupPath);
-            
+
             // Open in file explorer
             Process.Start(new ProcessStartInfo
             {
                 FileName = backupPath,
                 UseShellExecute = true
             });
-            
+
             StatusMessage = "Opened Vault Backups folder";
         }
         catch (Exception ex)
@@ -151,21 +160,21 @@ public class BackupsTabViewModel : ViewModelBase
         try
         {
             var backupPath = Path.Combine(Environment.CurrentDirectory, "Vault Backups", "Game Files");
-            
+
             foreach (var category in Categories)
             {
                 var categoryBackupPath = Path.Combine(backupPath, $"Backup {category.Name}");
-                
+
                 if (Directory.Exists(categoryBackupPath) && Directory.GetFiles(categoryBackupPath).Length > 0)
                 {
                     category.HasBackup = true;
-                    
+
                     // Get the last write time of the most recent file
                     var mostRecentFile = Directory.GetFiles(categoryBackupPath)
                         .Select(f => new FileInfo(f))
                         .OrderByDescending(f => f.LastWriteTime)
                         .FirstOrDefault();
-                    
+
                     category.LastBackupDate = mostRecentFile?.LastWriteTime;
                 }
             }
@@ -180,8 +189,8 @@ public class BackupsTabViewModel : ViewModelBase
     public string BackupDescription => "Backup files from the game folder into the Vault Backups folder.";
     public string RestoreDescription => "Restore file backup from the Vault Backups folder into the game folder.";
     public string RemoveDescription => "Remove files only from the game folder without removing existing backups.";
-    
-    public string TabDescription => 
+
+    public string TabDescription =>
         "Manage backups of important game modification files. Create backups before making changes, " +
         "restore previous configurations, or remove mod files while keeping backups safe.";
 }

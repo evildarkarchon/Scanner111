@@ -8,215 +8,221 @@
              x:Class="Scanner111.Views.BackupsTabView"
              x:DataType="vm:BackupsTabViewModel">
 
-  <UserControl.Resources>
-    <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-  </UserControl.Resources>
+    <UserControl.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
 
-  <Design.DataContext>
-    <vm:BackupsTabViewModel />
-  </Design.DataContext>
+    <Design.DataContext>
+        <vm:BackupsTabViewModel />
+    </Design.DataContext>
 
-  <ScrollViewer>
-    <StackPanel Margin="20" Spacing="20">
+    <ScrollViewer>
+        <StackPanel Margin="20" Spacing="20">
 
-      <!-- Header Section -->
-      <Border BorderBrush="DarkGreen" 
-              BorderThickness="2" 
-              CornerRadius="8" 
-              Padding="20"
-              Background="LightGreen">
-        <StackPanel>
-          <TextBlock Text="💾 VAULT BACKUP SYSTEM" 
-                     FontWeight="Bold" 
-                     FontSize="18"
-                     HorizontalAlignment="Center"
-                     Margin="0,0,0,10" />
-          
-          <TextBlock Text="{Binding TabDescription}"
-                     TextWrapping="Wrap"
-                     FontSize="14"
-                     HorizontalAlignment="Center"
-                     TextAlignment="Center" />
-        </StackPanel>
-      </Border>
+            <!-- Header Section -->
+            <Border BorderBrush="DarkGreen"
+                    BorderThickness="2"
+                    CornerRadius="8"
+                    Padding="20"
+                    Background="LightGreen">
+                <StackPanel>
+                    <TextBlock Text="💾 VAULT BACKUP SYSTEM"
+                               FontWeight="Bold"
+                               FontSize="18"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,10" />
 
-      <!-- Instructions -->
-      <Border BorderBrush="Orange" 
-              BorderThickness="1" 
-              CornerRadius="5" 
-              Padding="15"
-              Background="PapayaWhip">
-        <StackPanel Spacing="5">
-          <TextBlock Text="📋 INSTRUCTIONS" 
-                     FontWeight="Bold" 
-                     FontSize="14" />
-          
-          <Grid>
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="Auto" />
-              <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-              <RowDefinition Height="Auto" />
-              <RowDefinition Height="Auto" />
-              <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="💾 BACKUP" FontWeight="Bold" Margin="0,0,10,0" />
-            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding BackupDescription}" TextWrapping="Wrap" />
-            
-            <TextBlock Grid.Row="1" Grid.Column="0" Text="🔄 RESTORE" FontWeight="Bold" Margin="0,5,10,0" />
-            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RestoreDescription}" TextWrapping="Wrap" Margin="0,5,0,0" />
-            
-            <TextBlock Grid.Row="2" Grid.Column="0" Text="🗑️ REMOVE" FontWeight="Bold" Margin="0,5,10,0" />
-            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding RemoveDescription}" TextWrapping="Wrap" Margin="0,5,0,0" />
-          </Grid>
-        </StackPanel>
-      </Border>
+                    <TextBlock Text="{Binding TabDescription}"
+                               TextWrapping="Wrap"
+                               FontSize="14"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center" />
+                </StackPanel>
+            </Border>
 
-      <!-- Backup Categories -->
-      <ItemsControl ItemsSource="{Binding Categories}">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate>
-            <Border Margin="0,0,0,15" 
-                    BorderBrush="Gray" 
-                    BorderThickness="1" 
+            <!-- Instructions -->
+            <Border BorderBrush="Orange"
+                    BorderThickness="1"
                     CornerRadius="5"
                     Padding="15"
-                    Background="AliceBlue">
-              <StackPanel Spacing="10">
-                
-                <!-- Category Header -->
-                <Grid>
-                  <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                  </Grid.ColumnDefinitions>
-                  
-                  <TextBlock Grid.Column="0"
-                             Text="{Binding DisplayName}" 
-                             FontWeight="Bold" 
-                             FontSize="16"
-                             VerticalAlignment="Center" />
-                  
-                  <StackPanel Grid.Column="1" 
-                              Orientation="Horizontal"
-                              Spacing="5">
-                    <TextBlock Text="✅" 
-                               IsVisible="{Binding HasBackup}"
-                               VerticalAlignment="Center"
-                               FontSize="16" />
-                    <TextBlock Text="{Binding LastBackupDate, StringFormat='Last: {0:MM/dd/yyyy HH:mm}'}" 
-                               IsVisible="{Binding HasBackup}"
-                               FontSize="11"
-                               Foreground="Gray"
-                               VerticalAlignment="Center" />
-                  </StackPanel>
-                </Grid>
+                    Background="PapayaWhip">
+                <StackPanel Spacing="5">
+                    <TextBlock Text="📋 INSTRUCTIONS"
+                               FontWeight="Bold"
+                               FontSize="14" />
 
-                <!-- Action Buttons -->
-                <StackPanel Orientation="Horizontal" 
-                            Spacing="10"
-                            HorizontalAlignment="Center">
-                  
-                  <Button Content="💾 BACKUP"
-                          Command="{Binding $parent[UserControl].((vm:BackupsTabViewModel)DataContext).BackupCommand}"
-                          CommandParameter="{Binding}"
-                          Padding="15,5"
-                          FontWeight="SemiBold"
-                          Background="LightBlue">
-                    <ToolTip.Tip>
-                      <TextBlock Text="{Binding $parent[UserControl].((vm:BackupsTabViewModel)DataContext).BackupDescription}" />
-                    </ToolTip.Tip>
-                  </Button>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-                  <Button Content="🔄 RESTORE"
-                          Command="{Binding $parent[UserControl].((vm:BackupsTabViewModel)DataContext).RestoreCommand}"
-                          CommandParameter="{Binding}"
-                          IsEnabled="{Binding HasBackup}"
-                          Padding="15,5"
-                          FontWeight="SemiBold"
-                          Background="LightYellow">
-                    <ToolTip.Tip>
-                      <TextBlock Text="{Binding $parent[UserControl].((vm:BackupsTabViewModel)DataContext).RestoreDescription}" />
-                    </ToolTip.Tip>
-                  </Button>
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="💾 BACKUP" FontWeight="Bold" Margin="0,0,10,0" />
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding BackupDescription}" TextWrapping="Wrap" />
 
-                  <Button Content="🗑️ REMOVE"
-                          Command="{Binding $parent[UserControl].((vm:BackupsTabViewModel)DataContext).RemoveCommand}"
-                          CommandParameter="{Binding}"
-                          Padding="15,5"
-                          FontWeight="SemiBold"
-                          Background="LightCoral">
-                    <ToolTip.Tip>
-                      <TextBlock Text="{Binding $parent[UserControl].((vm:BackupsTabViewModel)DataContext).RemoveDescription}" />
-                    </ToolTip.Tip>
-                  </Button>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="🔄 RESTORE" FontWeight="Bold" Margin="0,5,10,0" />
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RestoreDescription}" TextWrapping="Wrap"
+                                   Margin="0,5,0,0" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="🗑️ REMOVE" FontWeight="Bold" Margin="0,5,10,0" />
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding RemoveDescription}" TextWrapping="Wrap"
+                                   Margin="0,5,0,0" />
+                    </Grid>
                 </StackPanel>
-
-                <!-- File Patterns Info -->
-                <Expander Header="View File Patterns" 
-                          IsExpanded="False"
-                          Margin="0,5,0,0">
-                  <ItemsControl ItemsSource="{Binding FilePatterns}" 
-                                Margin="10,5,0,0">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate>
-                        <TextBlock Text="{Binding}" 
-                                   FontFamily="Consolas,Monaco,monospace"
-                                   FontSize="11"
-                                   Foreground="DarkBlue"
-                                   Margin="0,1" />
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </Expander>
-
-              </StackPanel>
             </Border>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
 
-      <!-- Footer Actions -->
-      <Border BorderBrush="DarkBlue" 
-              BorderThickness="1" 
-              CornerRadius="5" 
-              Padding="15"
-              Background="LightSteelBlue">
-        <StackPanel>
-          <TextBlock Text="🛠️ VAULT MANAGEMENT" 
-                     FontWeight="Bold" 
-                     FontSize="14"
-                     HorizontalAlignment="Center"
-                     Margin="0,0,0,10" />
-          
-          <StackPanel Orientation="Horizontal" 
-                      Spacing="15"
-                      HorizontalAlignment="Center">
-            <Button Content="📁 Open Vault Backups Folder"
-                    Command="{Binding OpenBackupsFolderCommand}"
-                    Padding="20,8"
-                    FontWeight="SemiBold">
-              <ToolTip.Tip>Open the folder containing all backup files</ToolTip.Tip>
-            </Button>
-          </StackPanel>
+            <!-- Backup Categories -->
+            <ItemsControl ItemsSource="{Binding Categories}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,0,15"
+                                BorderBrush="Gray"
+                                BorderThickness="1"
+                                CornerRadius="5"
+                                Padding="15"
+                                Background="AliceBlue">
+                            <StackPanel Spacing="10">
+
+                                <!-- Category Header -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding DisplayName}"
+                                               FontWeight="Bold"
+                                               FontSize="16"
+                                               VerticalAlignment="Center" />
+
+                                    <StackPanel Grid.Column="1"
+                                                Orientation="Horizontal"
+                                                Spacing="5">
+                                        <TextBlock Text="✅"
+                                                   IsVisible="{Binding HasBackup}"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="16" />
+                                        <TextBlock
+                                            Text="{Binding LastBackupDate, StringFormat='Last: {0:MM/dd/yyyy HH:mm}'}"
+                                            IsVisible="{Binding HasBackup}"
+                                            FontSize="11"
+                                            Foreground="Gray"
+                                            VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Action Buttons -->
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="10"
+                                            HorizontalAlignment="Center">
+
+                                    <Button Content="💾 BACKUP"
+                                            Command="{Binding $parent[UserControl].((vm:BackupsTabViewModel)DataContext).BackupCommand}"
+                                            CommandParameter="{Binding}"
+                                            Padding="15,5"
+                                            FontWeight="SemiBold"
+                                            Background="LightBlue">
+                                        <ToolTip.Tip>
+                                            <TextBlock
+                                                Text="{Binding $parent[UserControl].((vm:BackupsTabViewModel)DataContext).BackupDescription}" />
+                                        </ToolTip.Tip>
+                                    </Button>
+
+                                    <Button Content="🔄 RESTORE"
+                                            Command="{Binding $parent[UserControl].((vm:BackupsTabViewModel)DataContext).RestoreCommand}"
+                                            CommandParameter="{Binding}"
+                                            IsEnabled="{Binding HasBackup}"
+                                            Padding="15,5"
+                                            FontWeight="SemiBold"
+                                            Background="LightYellow">
+                                        <ToolTip.Tip>
+                                            <TextBlock
+                                                Text="{Binding $parent[UserControl].((vm:BackupsTabViewModel)DataContext).RestoreDescription}" />
+                                        </ToolTip.Tip>
+                                    </Button>
+
+                                    <Button Content="🗑️ REMOVE"
+                                            Command="{Binding $parent[UserControl].((vm:BackupsTabViewModel)DataContext).RemoveCommand}"
+                                            CommandParameter="{Binding}"
+                                            Padding="15,5"
+                                            FontWeight="SemiBold"
+                                            Background="LightCoral">
+                                        <ToolTip.Tip>
+                                            <TextBlock
+                                                Text="{Binding $parent[UserControl].((vm:BackupsTabViewModel)DataContext).RemoveDescription}" />
+                                        </ToolTip.Tip>
+                                    </Button>
+                                </StackPanel>
+
+                                <!-- File Patterns Info -->
+                                <Expander Header="View File Patterns"
+                                          IsExpanded="False"
+                                          Margin="0,5,0,0">
+                                    <ItemsControl ItemsSource="{Binding FilePatterns}"
+                                                  Margin="10,5,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}"
+                                                           FontFamily="Consolas,Monaco,monospace"
+                                                           FontSize="11"
+                                                           Foreground="DarkBlue"
+                                                           Margin="0,1" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Expander>
+
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Footer Actions -->
+            <Border BorderBrush="DarkBlue"
+                    BorderThickness="1"
+                    CornerRadius="5"
+                    Padding="15"
+                    Background="LightSteelBlue">
+                <StackPanel>
+                    <TextBlock Text="🛠️ VAULT MANAGEMENT"
+                               FontWeight="Bold"
+                               FontSize="14"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,10" />
+
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="15"
+                                HorizontalAlignment="Center">
+                        <Button Content="📁 Open Vault Backups Folder"
+                                Command="{Binding OpenBackupsFolderCommand}"
+                                Padding="20,8"
+                                FontWeight="SemiBold">
+                            <ToolTip.Tip>Open the folder containing all backup files</ToolTip.Tip>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Status Message -->
+            <Border BorderBrush="Gray"
+                    BorderThickness="1"
+                    CornerRadius="3"
+                    Padding="10"
+                    Background="WhiteSmoke"
+                    IsVisible="{Binding StatusMessage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Text="{Binding StatusMessage}"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center" />
+            </Border>
+
         </StackPanel>
-      </Border>
-
-      <!-- Status Message -->
-      <Border BorderBrush="Gray" 
-              BorderThickness="1" 
-              CornerRadius="3" 
-              Padding="10"
-              Background="WhiteSmoke"
-              IsVisible="{Binding StatusMessage, Converter={StaticResource BooleanToVisibilityConverter}}">
-        <TextBlock Text="{Binding StatusMessage}" 
-                   FontWeight="SemiBold"
-                   HorizontalAlignment="Center" />
-      </Border>
-
-    </StackPanel>
-  </ScrollViewer>
+    </ScrollViewer>
 
 </UserControl>

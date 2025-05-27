@@ -67,7 +67,7 @@ public class MainWindowViewModel : ViewModelBase
     private void Exit()
     {
         // TODO: Implement proper exit logic
-        System.Environment.Exit(0);
+        Environment.Exit(0);
     }
 
     // Application title and version

@@ -7,193 +7,193 @@
              x:Class="Scanner111.Views.MainTabView"
              x:DataType="vm:MainTabViewModel">
 
-  <Design.DataContext>
-    <vm:MainTabViewModel />
-  </Design.DataContext>
+    <Design.DataContext>
+        <vm:MainTabViewModel />
+    </Design.DataContext>
 
-  <ScrollViewer>
-    <Grid Margin="20">
-      <Grid.RowDefinitions>
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="*" />
-      </Grid.RowDefinitions>
+    <ScrollViewer>
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-      <!-- Main Action Buttons -->
-      <Grid Grid.Row="0" Margin="0,0,0,20">
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="20" />
-          <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+            <!-- Main Action Buttons -->
+            <Grid Grid.Row="0" Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-        <!-- Scan Crash Logs Button -->
-        <Button Grid.Column="0"
-                Content="🔍 SCAN CRASH LOGS"
-                Command="{Binding ScanCrashLogsCommand}"
-                IsEnabled="{Binding !IsScanningCrashLogs}"
-                Height="60"
-                FontSize="16"
-                FontWeight="Bold"
-                HorizontalContentAlignment="Center"
-                Classes="primary-button">
-          <ToolTip.Tip>Analyze crash logs to identify issues and potential solutions</ToolTip.Tip>
-        </Button>
+                <!-- Scan Crash Logs Button -->
+                <Button Grid.Column="0"
+                        Content="🔍 SCAN CRASH LOGS"
+                        Command="{Binding ScanCrashLogsCommand}"
+                        IsEnabled="{Binding !IsScanningCrashLogs}"
+                        Height="60"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        HorizontalContentAlignment="Center"
+                        Classes="primary-button">
+                    <ToolTip.Tip>Analyze crash logs to identify issues and potential solutions</ToolTip.Tip>
+                </Button>
 
-        <!-- Scan Game Files Button -->
-        <Button Grid.Column="2"
-                Content="🎮 SCAN GAME FILES"
-                Command="{Binding ScanGameFilesCommand}"
-                IsEnabled="{Binding !IsScanningGameFiles}"
-                Height="60"
-                FontSize="16"
-                FontWeight="Bold"
-                HorizontalContentAlignment="Center"
-                Classes="primary-button">
-          <ToolTip.Tip>Check game integrity, mod conflicts, and file issues</ToolTip.Tip>
-        </Button>
-      </Grid>
+                <!-- Scan Game Files Button -->
+                <Button Grid.Column="2"
+                        Content="🎮 SCAN GAME FILES"
+                        Command="{Binding ScanGameFilesCommand}"
+                        IsEnabled="{Binding !IsScanningGameFiles}"
+                        Height="60"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        HorizontalContentAlignment="Center"
+                        Classes="primary-button">
+                    <ToolTip.Tip>Check game integrity, mod conflicts, and file issues</ToolTip.Tip>
+                </Button>
+            </Grid>
 
-      <!-- Progress Indicators -->
-      <Grid Grid.Row="1" Margin="0,0,0,20">
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="20" />
-          <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+            <!-- Progress Indicators -->
+            <Grid Grid.Row="1" Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-        <!-- Crash Logs Progress -->
-        <StackPanel Grid.Column="0" 
-                    IsVisible="{Binding IsScanningCrashLogs}"
-                    HorizontalAlignment="Center">
-          <ProgressBar IsIndeterminate="True" Width="200" Height="4" />
-          <TextBlock Text="Scanning crash logs..." 
-                     HorizontalAlignment="Center" 
-                     Margin="0,5,0,0"
-                     FontStyle="Italic" />
-        </StackPanel>
+                <!-- Crash Logs Progress -->
+                <StackPanel Grid.Column="0"
+                            IsVisible="{Binding IsScanningCrashLogs}"
+                            HorizontalAlignment="Center">
+                    <ProgressBar IsIndeterminate="True" Width="200" Height="4" />
+                    <TextBlock Text="Scanning crash logs..."
+                               HorizontalAlignment="Center"
+                               Margin="0,5,0,0"
+                               FontStyle="Italic" />
+                </StackPanel>
 
-        <!-- Game Files Progress -->
-        <StackPanel Grid.Column="2" 
-                    IsVisible="{Binding IsScanningGameFiles}"
-                    HorizontalAlignment="Center">
-          <ProgressBar IsIndeterminate="True" Width="200" Height="4" />
-          <TextBlock Text="Scanning game files..." 
-                     HorizontalAlignment="Center" 
-                     Margin="0,5,0,0"
-                     FontStyle="Italic" />
-        </StackPanel>
-      </Grid>
+                <!-- Game Files Progress -->
+                <StackPanel Grid.Column="2"
+                            IsVisible="{Binding IsScanningGameFiles}"
+                            HorizontalAlignment="Center">
+                    <ProgressBar IsIndeterminate="True" Width="200" Height="4" />
+                    <TextBlock Text="Scanning game files..."
+                               HorizontalAlignment="Center"
+                               Margin="0,5,0,0"
+                               FontStyle="Italic" />
+                </StackPanel>
+            </Grid>
 
-      <!-- Pastebin Section -->
-      <Border Grid.Row="2" 
-              BorderBrush="Gray" 
-              BorderThickness="1" 
-              CornerRadius="5" 
-              Padding="15"
-              Margin="0,0,0,20"
-              Background="AliceBlue">
-        <Grid>
-          <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-          </Grid.RowDefinitions>
+            <!-- Pastebin Section -->
+            <Border Grid.Row="2"
+                    BorderBrush="Gray"
+                    BorderThickness="1"
+                    CornerRadius="5"
+                    Padding="15"
+                    Margin="0,0,0,20"
+                    Background="AliceBlue">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-          <!-- Pastebin Header -->
-          <TextBlock Grid.Row="0" 
-                     Text="📋 PASTEBIN LOG FETCH" 
-                     FontWeight="Bold" 
-                     FontSize="14"
-                     Margin="0,0,0,10" />
+                    <!-- Pastebin Header -->
+                    <TextBlock Grid.Row="0"
+                               Text="📋 PASTEBIN LOG FETCH"
+                               FontWeight="Bold"
+                               FontSize="14"
+                               Margin="0,0,0,10" />
 
-          <!-- Pastebin Input -->
-          <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="10" />
-              <ColumnDefinition Width="Auto" />
-              <ColumnDefinition Width="10" />
-              <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+                    <!-- Pastebin Input -->
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
 
-            <TextBox Grid.Column="0"
-                     Text="{Binding PastebinUrl}"
-                     Watermark="Enter Pastebin URL or ID (e.g., https://pastebin.com/abc123 or abc123)"
-                     Height="35" />
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding PastebinUrl}"
+                                 Watermark="Enter Pastebin URL or ID (e.g., https://pastebin.com/abc123 or abc123)"
+                                 Height="35" />
 
-            <Button Grid.Column="2"
-                    Content="Fetch Log"
-                    Command="{Binding FetchPastebinCommand}"
-                    Height="35"
-                    Padding="15,0">
-              <ToolTip.Tip>Fetch crash log from Pastebin URL or ID</ToolTip.Tip>
-            </Button>
+                        <Button Grid.Column="2"
+                                Content="Fetch Log"
+                                Command="{Binding FetchPastebinCommand}"
+                                Height="35"
+                                Padding="15,0">
+                            <ToolTip.Tip>Fetch crash log from Pastebin URL or ID</ToolTip.Tip>
+                        </Button>
 
-            <Button Grid.Column="4"
-                    Content="Clear"
-                    Click="ClearPastebinUrl_Click"
-                    Height="35"
-                    Padding="10,0" />
-          </Grid>
+                        <Button Grid.Column="4"
+                                Content="Clear"
+                                Click="ClearPastebinUrl_Click"
+                                Height="35"
+                                Padding="10,0" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- Output Text Area -->
+            <Grid Grid.Row="3">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Output Header -->
+                <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="📋 DIAGNOSTIC OUTPUT"
+                               FontWeight="Bold"
+                               FontSize="14" />
+
+                    <Button Grid.Column="1"
+                            Content="Clear Output"
+                            Command="{Binding ClearOutputCommand}"
+                            Padding="10,2" />
+                </Grid>
+
+                <!-- Output TextBox -->
+                <Border Grid.Row="1"
+                        BorderBrush="Gray"
+                        BorderThickness="1"
+                        CornerRadius="3">
+                    <TextBox Text="{Binding OutputText, Mode=TwoWay}"
+                             IsReadOnly="True"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             FontFamily="Consolas,Monaco,monospace"
+                             FontSize="12"
+                             MinHeight="300"
+                             Background="Black"
+                             Foreground="LightGreen"
+                             Padding="10" />
+                </Border>
+
+                <!-- Output Footer -->
+                <TextBlock Grid.Row="2"
+                           Text="Tip: Use Ctrl+A to select all text, Ctrl+C to copy output to clipboard"
+                           FontSize="11"
+                           FontStyle="Italic"
+                           Foreground="Gray"
+                           Margin="0,5,0,0" />
+            </Grid>
+
         </Grid>
-      </Border>
-
-      <!-- Output Text Area -->
-      <Grid Grid.Row="3">
-        <Grid.RowDefinitions>
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="*" />
-          <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-
-        <!-- Output Header -->
-        <Grid Grid.Row="0" Margin="0,0,0,10">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-          </Grid.ColumnDefinitions>
-
-          <TextBlock Grid.Column="0" 
-                     Text="📋 DIAGNOSTIC OUTPUT" 
-                     FontWeight="Bold" 
-                     FontSize="14" />
-
-          <Button Grid.Column="1"
-                  Content="Clear Output"
-                  Command="{Binding ClearOutputCommand}"
-                  Padding="10,2" />
-        </Grid>
-
-        <!-- Output TextBox -->
-        <Border Grid.Row="1" 
-                BorderBrush="Gray" 
-                BorderThickness="1" 
-                CornerRadius="3">
-          <TextBox Text="{Binding OutputText, Mode=TwoWay}"
-                   IsReadOnly="True"
-                   TextWrapping="Wrap"
-                   AcceptsReturn="True"
-                   ScrollViewer.VerticalScrollBarVisibility="Auto"
-                   ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                   FontFamily="Consolas,Monaco,monospace"
-                   FontSize="12"
-                   MinHeight="300"
-                   Background="Black"
-                   Foreground="LightGreen"
-                   Padding="10" />
-        </Border>
-
-        <!-- Output Footer -->
-        <TextBlock Grid.Row="2" 
-                   Text="Tip: Use Ctrl+A to select all text, Ctrl+C to copy output to clipboard"
-                   FontSize="11"
-                   FontStyle="Italic"
-                   Foreground="Gray"
-                   Margin="0,5,0,0" />
-      </Grid>
-
-    </Grid>
-  </ScrollViewer>
+    </ScrollViewer>
 
 </UserControl>

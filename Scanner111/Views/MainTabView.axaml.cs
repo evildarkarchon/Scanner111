@@ -13,9 +13,6 @@ public partial class MainTabView : UserControl
 
     private void ClearPastebinUrl_Click(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is MainTabViewModel viewModel)
-        {
-            viewModel.PastebinUrl = "";
-        }
+        if (DataContext is MainTabViewModel viewModel) viewModel.PastebinUrl = "";
     }
 }
