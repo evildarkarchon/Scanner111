@@ -46,6 +46,10 @@ public class DialogService : IDialogService
         if (_parentWindow == null)
             return;
 
+        var parentWindow = _parentWindow as Window;
+        if (parentWindow == null)
+            return;
+
         var messageBox = new Window
         {
             Title = title,
@@ -79,12 +83,12 @@ public class DialogService : IDialogService
 
         messageBox.Content = panel;
 
-        await messageBox.ShowDialog(_parentWindow as Window);
+        await messageBox.ShowDialog(parentWindow);
     }
 
     public async Task<bool> ShowConfirmationAsync(string title, string message)
     {
-        if (_parentWindow == null)
+        if (_parentWindow is not Window parentWindow)
             return false;
 
         var result = false;
@@ -146,7 +150,7 @@ public class DialogService : IDialogService
 
         messageBox.Content = panel;
 
-        await messageBox.ShowDialog(_parentWindow as Window);
+        await messageBox.ShowDialog(parentWindow);
         return result;
     }
 }
