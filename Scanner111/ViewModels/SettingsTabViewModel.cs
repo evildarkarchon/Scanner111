@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using ReactiveUI;
 using System.Reactive;
+using System.Threading.Tasks;
 
 namespace Scanner111.ViewModels.Tabs;
 
