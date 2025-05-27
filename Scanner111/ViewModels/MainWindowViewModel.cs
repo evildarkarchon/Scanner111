@@ -2,6 +2,7 @@
 using ReactiveUI;
 using Scanner111.ViewModels.Tabs;
 using System.Reactive;
+using Scanner111.Services;
 
 namespace Scanner111.ViewModels;
 
@@ -13,9 +14,12 @@ public class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel()
     {
+        // Create dialog service
+        DialogService = new EnhancedDialogService();
+
         // Initialize tab ViewModels
         MainTabViewModel = new MainTabViewModel();
-        SettingsTabViewModel = new SettingsTabViewModel();
+        SettingsTabViewModel = new SettingsTabViewModel(DialogService);
         ArticlesTabViewModel = new ArticlesTabViewModel();
         BackupsTabViewModel = new BackupsTabViewModel();
 
@@ -27,6 +31,9 @@ public class MainWindowViewModel : ViewModelBase
         this.WhenAnyValue(x => x.IsScanning)
             .Subscribe(isScanning => StatusMessage = isScanning ? "Scanning..." : "Ready");
     }
+
+    // Dialog service
+    public IDialogService DialogService { get; }
 
     // Tab ViewModels
     public MainTabViewModel MainTabViewModel { get; }

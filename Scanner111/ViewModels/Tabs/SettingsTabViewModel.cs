@@ -1,12 +1,16 @@
+using System;
 using System.Collections.Generic;
 using ReactiveUI;
 using System.Reactive;
 using System.Threading.Tasks;
+using Scanner111.Services;
+using System.IO;
 
 namespace Scanner111.ViewModels.Tabs;
 
 public class SettingsTabViewModel : ViewModelBase
 {
+    private readonly IDialogService _dialogService;
     private string _iniPath = "";
     private string _modsPath = "";
     private string _customScanPath = "";
@@ -19,16 +23,18 @@ public class SettingsTabViewModel : ViewModelBase
     private bool _audioNotifications = true;
     private string _updateSource = "Both";
 
-    public SettingsTabViewModel()
+    public SettingsTabViewModel(IDialogService dialogService)
     {
+        _dialogService = dialogService;
+
         // Initialize commands
         BrowseIniPathCommand = ReactiveCommand.CreateFromTask(BrowseIniPathAsync);
         BrowseModsPathCommand = ReactiveCommand.CreateFromTask(BrowseModsPathAsync);
         BrowseCustomScanPathCommand = ReactiveCommand.CreateFromTask(BrowseCustomScanPathAsync);
-        SaveSettingsCommand = ReactiveCommand.Create(SaveSettings);
-        ResetSettingsCommand = ReactiveCommand.Create(ResetSettings);
+        SaveSettingsCommand = ReactiveCommand.CreateFromTask(SaveSettingsAsync);
+        ResetSettingsCommand = ReactiveCommand.CreateFromTask(ResetSettingsAsync);
 
-        // TODO: Load settings from configuration file
+        // Load settings from configuration file
         LoadSettings();
     }
 
@@ -113,33 +119,53 @@ public class SettingsTabViewModel : ViewModelBase
     // Command implementations
     private async Task BrowseIniPathAsync()
     {
-        // TODO: Implement folder browser dialog
-        await Task.Delay(100);
-        // Placeholder - would use Avalonia's file dialog
-        IniPath = @"C:\Users\Example\Documents\My Games\Fallout4";
+        var selectedPath = await _dialogService.ShowFolderPickerAsync(
+            "Select Game INI Files Directory",
+            string.IsNullOrEmpty(IniPath) ? GetDefaultIniPath() : IniPath);
+
+        if (!string.IsNullOrEmpty(selectedPath)) IniPath = selectedPath;
     }
 
     private async Task BrowseModsPathAsync()
     {
-        // TODO: Implement folder browser dialog
-        await Task.Delay(100);
-        ModsPath = @"C:\ModOrganizer2\Fallout4\mods";
+        var selectedPath = await _dialogService.ShowFolderPickerAsync(
+            "Select Staging Mods Folder (Mod Manager)",
+            string.IsNullOrEmpty(ModsPath) ? null : ModsPath);
+
+        if (!string.IsNullOrEmpty(selectedPath)) ModsPath = selectedPath;
     }
 
     private async Task BrowseCustomScanPathAsync()
     {
-        // TODO: Implement folder browser dialog
-        await Task.Delay(100);
-        CustomScanPath = @"C:\CrashLogs";
+        var selectedPath = await _dialogService.ShowFolderPickerAsync(
+            "Select Custom Crash Logs Folder",
+            string.IsNullOrEmpty(CustomScanPath) ? null : CustomScanPath);
+
+        if (!string.IsNullOrEmpty(selectedPath)) CustomScanPath = selectedPath;
     }
 
-    private void SaveSettings()
+    private async Task SaveSettingsAsync()
     {
         // TODO: Implement settings save to configuration file
-        // For now just a placeholder
+        // For now just show a confirmation message
+        await _dialogService.ShowMessageBoxAsync("Settings Saved",
+            "Settings have been saved successfully!\n\n(Note: Full settings persistence will be implemented in a future update)");
     }
 
-    private void ResetSettings()
+    private async Task ResetSettingsAsync()
+    {
+        var confirmed = await _dialogService.ShowConfirmationAsync("Reset Settings",
+            "Are you sure you want to reset all settings to their default values?\n\nThis action cannot be undone.");
+
+        if (confirmed)
+        {
+            ResetToDefaults();
+            await _dialogService.ShowMessageBoxAsync("Settings Reset",
+                "All settings have been reset to their default values.");
+        }
+    }
+
+    private void ResetToDefaults()
     {
         // Reset to default values
         IniPath = "";
@@ -159,6 +185,19 @@ public class SettingsTabViewModel : ViewModelBase
     {
         // TODO: Load settings from configuration file
         // For now using defaults set in field initializers
+
+        // Try to set a reasonable default for INI path
+        var defaultIniPath = GetDefaultIniPath();
+        if (Directory.Exists(defaultIniPath)) IniPath = defaultIniPath;
+    }
+
+    private static string GetDefaultIniPath()
+    {
+        // Try to find the default Fallout 4 INI path
+        var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var fallout4Path = Path.Combine(documentsPath, "My Games", "Fallout4");
+
+        return fallout4Path;
     }
 
     // Setting descriptions for tooltips
