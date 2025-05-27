@@ -1,7 +1,7 @@
 ﻿**Tasks for Porting CLASSIC to C# with Avalonia**
 
 This document outlines the tasks required to port the CLASSIC application from Python/Qt to C# using Avalonia for the UI framework. The goal is to maintain the functionality of the original application while leveraging C# and Avalonia's capabilities.
-1.  **Project Setup & Core Architecture:**
+1. **Project Setup & Core Architecture:**
     *   ~~Create a new Avalonia MVVM project in C#.~~
     *   ~~Define the project structure (e.g., `ViewModels`, `Views`, `Models`, `Services`, `Converters`).~~
     ~~*   Implement a C# equivalent for the settings management currently handled by YAML files (e.g., `CLASSIC Settings.yaml`). Consider using a library like `YamlDotNet` for YAML parsing and a dedicated settings service.~~
@@ -9,7 +9,6 @@ This document outlines the tasks required to port the CLASSIC application from P
 
 2. **UI Implementation (Views & ViewModels):**
     *  Design the main window View (`MainWindow.axaml`) based on the structure in CLASSIC_Interface.py, including tabs for main functions, backups and more. This new UI will be based on modern UI principles and Avalonia's capabilities.
-    *  Implement the tabbed interface using Avalonia's `TabControl` and `UserControl` for each tab.
     *  Implement the main window ViewModel (`MainWindowViewModel.cs`) to handle the logic and data for the main window.
     *  Use data binding extensively between Views and ViewModels to ensure a responsive UI.
     *  Implement commands in ViewModels for button actions, utilizing Avalonia's command binding features.
@@ -29,19 +28,20 @@ This document outlines the tasks required to port the CLASSIC application from P
         * Implement ViewModels and View components for the articles section, including buttons linking to URLs.
 
     **Backups Tab:**
-           * Implement ViewModels and View components for backup/restore/remove sections (XSE, Reshade, Vulkan, ENB).
-           * Implement the "OPEN CLASSIC BACKUPS" button (Change name to "Open Vault Backups").
-           * **Bottom Buttons/Status Bar:**
-           * Implement ViewModels and View components for utility buttons (Check Updates, Papyrus Monitoring).
-           * The Papyrus monitoring button will need to be checkable and update its style based on state.
+        * Implement ViewModels and View components for backup/restore/remove sections (XSE, Reshade, Vulkan, ENB).
+        * Implement the "OPEN CLASSIC BACKUPS" button (Change name to "Open Vault Backups").
+    
+    **Bottom Buttons/Status Bar:**
+        * Implement ViewModels and View components for utility buttons (Check Updates, Papyrus Monitoring).
+        * The Papyrus monitoring button will need to be checkable and update its style based on state.
+   
     **Dialogs:**
-           * Create an "About" dialog View and ViewModel.
-           * Implement a "Help" popup mechanism.
-           * Use Avalonia's built-in dialogs or create custom ones for file/folder selection and message boxes/notifications (e.g., for update results, errors).
-    *   Implement a custom dialog for displaying the "About" information, including version and credits, based on the CustomAboutDialog class in CLASSIC_Interface.py.
+        * Create an "About" dialog View and ViewModel.
+        * Implement a "Help" popup mechanism.
+        * Use Avalonia's built-in dialogs or create custom ones for file/folder selection and message boxes/notifications (e.g., for update results, errors).
+    *  Implement a custom dialog for displaying the "About" information, including version and credits, based on the CustomAboutDialog class in CLASSIC_Interface.py.
     *  Implement a custom dialog for displaying help information, similar to the "Help" popup in CLASSIC_Interface.py.
-
-4. **Porting Core Logic (Services & Models):**
+3. **Porting Core Logic (Services & Models):**
     *   Translate the core scanning logic from CLASSIC_ScanLogs.py into a C# service. This includes parsing crash logs and identifying issues.
         *   Implement the `ScanCrashLogs` service to handle crash log analysis.
         *   Implement the `ScanGameFiles` service to handle game file scanning.
@@ -60,16 +60,16 @@ This document outlines the tasks required to port the CLASSIC application from P
     *   Implement the Papyrus log monitoring functionality, including parsing stats and handling errors, as seen in CLASSIC_Interface.py and Papyrus.py. This will likely involve asynchronous file watching and parsing.
     *   If the FormID database management from formid_db_manager.py is to be integrated, port the SQLite database interaction logic.
 
-4.  **Application Lifecycle & Utilities:**
+4. **Application Lifecycle & Utilities:**
     *   Set up logging to a file (similar to `CLASSIC Journal.log`).
     *   Manage application data folders (e.g., `CLASSIC Data/`, `CLASSIC Backup/`).
     *   Handle application exit.
 
-5.  **Build and Deployment:**
+5. **Build and Deployment:**
     *   Configure the C# project to build a standalone executable.
     *   Consider Avalonia's cross-platform capabilities if targeting multiple operating systems.
 
-6.  **Testing:**
+6. **Testing:**
     *   Write unit tests for ViewModels and services.
     *   Perform manual UI testing to ensure all features work as expected.
 
