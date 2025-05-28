@@ -13,8 +13,21 @@ public class ArticleItem
     public string Description { get; set; } = "";
 }
 
+/// <summary>
+/// Represents the view model for the Articles tab in the application.
+/// This class provides functionality to manage and display a collection of
+/// useful articles, resources, and links for modding Fallout 4 or troubleshooting issues.
+/// </summary>
 public class ArticlesTabViewModel : ViewModelBase
 {
+    /// <summary>
+    /// Represents the view model for the Articles tab in the application.
+    /// </summary>
+    /// <remarks>
+    /// This view model manages a collection of articles, resources, and links related to modding Fallout 4 and troubleshooting common issues.
+    /// It provides functionality for displaying the articles and opening their associated URLs in the default browser.
+    /// The Articles property contains a predefined list of useful resources with titles, descriptions, and URLs.
+    /// </remarks>
     public ArticlesTabViewModel()
     {
         // Initialize the articles collection
@@ -87,6 +100,10 @@ public class ArticlesTabViewModel : ViewModelBase
     public ReactiveCommand<string, Unit> OpenUrlCommand { get; }
 
     // Command implementations
+    /// <summary>
+    /// Opens the specified URL in the default web browser.
+    /// </summary>
+    /// <param name="url">The URL to be opened. Must be a valid and non-empty string.</param>
     private void OpenUrl(string url)
     {
         try

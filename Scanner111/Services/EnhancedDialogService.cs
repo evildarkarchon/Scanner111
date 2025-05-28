@@ -20,18 +20,42 @@ public interface IEnhancedDialogService : IDialogService
 }
 
 // Enhanced implementation
+/// <summary>
+/// The EnhancedDialogService provides advanced dialog functionalities for file selection,
+/// file saving, and input dialogs. It extends the base DialogService and implements the
+/// IEnhancedDialogService interface. This service is intended to enhance user interaction
+/// with dialogs within an Avalonia application.
+/// </summary>
 public class EnhancedDialogService : DialogService, IEnhancedDialogService
 {
     // Store a reference to the parent window when it's set
     private Window? _parentWindowReference;
 
     // Override SetParentWindow to keep a reference to the window
+    /// <summary>
+    /// Sets the parent window for the dialog service. This method establishes
+    /// a reference to the provided <see cref="TopLevel"/> object, which allows the dialog
+    /// service to interact with the specified window as the parent for dialog operations.
+    /// </summary>
+    /// <param name="parentWindow">The <see cref="TopLevel"/> object representing the parent window
+    /// for the dialog service. Typically, this is the main application window.</param>
     public override void SetParentWindow(TopLevel parentWindow)
     {
         base.SetParentWindow(parentWindow);
         _parentWindowReference = parentWindow as Window;
     }
 
+    /// <summary>
+    /// Displays a file picker dialog to allow the user to select a single file. The available file types
+    /// and other dialog options can be customized through parameters. Returns the file path of the selected file,
+    /// or null if no file is selected.
+    /// </summary>
+    /// <param name="title">The title of the file picker dialog.</param>
+    /// <param name="fileTypes">An optional list of <see cref="FilePickerFileType"/> to filter the selectable file types.
+    /// If null, the dialog will not apply any file type filter.</param>
+    /// <param name="initialDirectory">An optional initial directory path for the file picker. If null or not valid,
+    /// the dialog will use the default directory.</param>
+    /// <returns>A string representing the selected file's path, or null if no file is selected.</returns>
     public async Task<string?> ShowFilePickerAsync(string title, IReadOnlyList<FilePickerFileType>? fileTypes = null,
         string? initialDirectory = null)
     {
@@ -63,6 +87,18 @@ public class EnhancedDialogService : DialogService, IEnhancedDialogService
         return result.Count > 0 ? result[0].Path.LocalPath : null;
     }
 
+    /// <summary>
+    /// Displays a save file picker dialog to the user, allowing them to select a location and file name
+    /// for saving a file. Includes customization options such as the dialog title, default file name,
+    /// supported file types, and an initial directory.
+    /// </summary>
+    /// <param name="title">The title of the save file picker dialog.</param>
+    /// <param name="defaultFileName">The default file name suggested to the user. This can be null if no default is provided.</param>
+    /// <param name="fileTypes">A collection of <see cref="FilePickerFileType"/> objects defining the types of files
+    /// the user can save. This can be null to allow all file types.</param>
+    /// <param name="initialDirectory">The initial directory displayed in the save file picker.
+    /// This can be null if no specific directory is required.</param>
+    /// <returns>Returns the full path of the file selected by the user, or null if the dialog is canceled or fails to open.</returns>
     public async Task<string?> ShowSaveFilePickerAsync(string title, string? defaultFileName = null,
         IReadOnlyList<FilePickerFileType>? fileTypes = null, string? initialDirectory = null)
     {
@@ -94,6 +130,14 @@ public class EnhancedDialogService : DialogService, IEnhancedDialogService
         return result?.Path.LocalPath;
     }
 
+    /// <summary>
+    /// Displays an input dialog to the user, allowing them to provide a text input. The dialog
+    /// includes a title, a message, and an optional default value for the input field.
+    /// </summary>
+    /// <param name="title">The title of the input dialog.</param>
+    /// <param name="message">The message displayed within the dialog to guide the user.</param>
+    /// <param name="defaultValue">An optional default value that pre-fills the input box. If not provided, the input box will be empty by default.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the user's input as a string if the dialog is confirmed, or null if canceled.</returns>
     public async Task<string?> ShowInputDialogAsync(string title, string message, string? defaultValue = null)
     {
         if (_parentWindowReference == null)
@@ -176,6 +220,11 @@ public class EnhancedDialogService : DialogService, IEnhancedDialogService
 }
 
 // Common file type filters for convenience
+/// <summary>
+/// The FileTypeFilters class provides pre-defined file type filters for use in file dialogs.
+/// It includes common filters such as YAML files, log files, configuration files, and a generic
+/// "All Files" option. These filters help streamline file selection functionality within the application.
+/// </summary>
 public static class FileTypeFilters
 {
     public static readonly FilePickerFileType YamlFiles = new("YAML Files")

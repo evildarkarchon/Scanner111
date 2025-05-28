@@ -9,10 +9,18 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        var viewModel = new MainWindowViewModel();
+        // DataContext will be set via DI in App.axaml.cs
+    }
+
+    // Method to set up the view model and services after DI
+    public void Initialize(MainWindowViewModel viewModel)
+    {
         DataContext = viewModel;
 
         // Set up the dialog service with the window reference
         if (viewModel.DialogService is DialogService dialogService) dialogService.SetParentWindow(this);
+
+        if (viewModel.DialogService is EnhancedDialogService enhancedDialogService)
+            enhancedDialogService.SetParentWindow(this);
     }
 }

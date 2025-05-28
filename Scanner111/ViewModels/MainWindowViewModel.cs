@@ -3,33 +3,66 @@ using ReactiveUI;
 using Scanner111.ViewModels.Tabs;
 using System.Reactive;
 using Scanner111.Services;
+using Scanner111.Services.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Scanner111.ViewModels;
 
+/// <summary>
+/// Serves as the view model for the main window of the Scanner 111 application.
+/// </summary>
+/// <remarks>
+/// Provides core functionality for managing the main application window, including:
+/// - Coordination of multiple tab view models such as Main, Settings, Articles, and Backups.
+/// - Handling user interactions, command execution, and status updates.
+/// - Integration with logging, configuration, and dialog services.
+/// Encapsulates the UI logic and ensures seamless communication between the UI and backend services.
+/// </remarks>
 public class MainWindowViewModel : ViewModelBase
 {
+    private readonly ILogger<MainWindowViewModel> _logger;
+    private readonly IConfigurationService _config;
     private int _selectedTabIndex;
     private string _statusMessage = "Ready";
     private bool _isScanning;
 
-    public MainWindowViewModel()
+    /// <summary>
+    /// Represents the main view model for the application's main window.
+    /// </summary>
+    /// <remarks>
+    /// This view model serves as the central point for coordinating UI functionality in the main window.
+    /// It manages application tabs, dialog services, commands, and reactive properties for UI interactions.
+    /// </remarks>
+    public MainWindowViewModel(
+        ILogger<MainWindowViewModel> logger,
+        IConfigurationService config,
+        IEnhancedDialogService dialogService,
+        MainTabViewModel mainTabViewModel,
+        SettingsTabViewModel settingsTabViewModel,
+        ArticlesTabViewModel articlesTabViewModel,
+        BackupsTabViewModel backupsTabViewModel)
     {
-        // Create dialog service
-        DialogService = new EnhancedDialogService();
+        _logger = logger;
+        _config = config;
 
-        // Initialize tab ViewModels
-        MainTabViewModel = new MainTabViewModel();
-        SettingsTabViewModel = new SettingsTabViewModel(DialogService);
-        ArticlesTabViewModel = new ArticlesTabViewModel();
-        BackupsTabViewModel = new BackupsTabViewModel();
+        // Set dialog service reference
+        DialogService = dialogService;
+
+        // Initialize tab ViewModels (injected)
+        MainTabViewModel = mainTabViewModel;
+        SettingsTabViewModel = settingsTabViewModel;
+        ArticlesTabViewModel = articlesTabViewModel;
+        BackupsTabViewModel = backupsTabViewModel;
 
         // Initialize commands
         ShowAboutCommand = ReactiveCommand.Create(ShowAbout);
         ExitCommand = ReactiveCommand.Create(Exit);
 
-        // Set up property change subscriptions if needed
+        // Set up property change subscriptions
         this.WhenAnyValue(x => x.IsScanning)
             .Subscribe(isScanning => StatusMessage = isScanning ? "Scanning..." : "Ready");
+
+        _logger.LogInformation("Main window view model initialized");
     }
 
     // Dialog service
@@ -65,16 +98,48 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> ExitCommand { get; }
 
     // Command implementations
-    private void ShowAbout()
+    /// <summary>
+    /// Displays the "About" dialog with application information.
+    /// </summary>
+    /// <remarks>
+    /// This method provides details about the application including its name, version,
+    /// the game being managed, and a brief description of its functionality.
+    /// It uses the dialog service to show the information in a message box.
+    /// If an error occurs while attempting to display the dialog, an error message is logged
+    /// and an error dialog is displayed.
+    /// </remarks>
+    private async void ShowAbout()
     {
-        // TODO: Implement about dialog
-        StatusMessage = "About dialog - TODO";
+        try
+        {
+            var version = Version;
+            var managedGame = _config.GetSetting("Managed Game", "Fallout 4");
+
+            await DialogService.ShowMessageBoxAsync("About Scanner 111",
+                $"Scanner 111 - Vault-Tec Diagnostic Tool\n\n" +
+                $"Version: {version}\n" +
+                $"Managed Game: {managedGame}\n\n" +
+                $"A comprehensive tool for diagnosing and fixing issues with Bethesda RPGs.\n\n" +
+                $"Based on the CLASSIC framework.\n" +
+                $"Built with Avalonia and C#.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error showing about dialog");
+            await DialogService.ShowMessageBoxAsync("Error", "Failed to show about information.");
+        }
     }
 
     private void Exit()
     {
-        // TODO: Implement proper exit logic
-        Environment.Exit(0);
+        try
+        {
+            Environment.Exit(0);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during application exit");
+        }
     }
 
     // Application title and version

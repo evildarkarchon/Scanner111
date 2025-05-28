@@ -26,11 +26,39 @@ public class BackupCategory
     public List<string> FilePatterns { get; set; } = new();
 }
 
+/// <summary>
+/// Represents the ViewModel for managing game modification file backups within the application's backup tab.
+/// Provides functionality to create, restore, and remove backups of game files, as well as navigate to the backup folder.
+/// </summary>
 public class BackupsTabViewModel : ViewModelBase
 {
     private BackupCategory? _selectedCategory;
     private string _statusMessage = "Ready";
-
+    /// <summary>
+    /// Represents the ViewModel for managing backup operations in the application.
+    /// Provides functionality for creating, restoring, and removing backups of game modification files
+    /// categorized by predefined file patterns.
+    /// This ViewModel initializes a collection of backup categories, each representing a group of
+    /// files relevant to a specific type of game modification, such as "ENB Series" or "ReShade."
+    /// It also provides commands to execute backup operations, navigate to the backup folder,
+    /// and manage existing backups.
+    /// </summary>
+    /// <remarks>
+    /// Properties:<br/>
+    /// - `Categories` contains all predefined backup categories that can be managed.<br/>
+    /// - `SelectedCategory` represents the currently selected category in the user interface.<br/>
+    /// - `StatusMessage` provides a status message about the most recent operation or action.<br/><br/>
+    /// Commands:<br/>
+    /// - `BackupCommand` executes a backup operation for the selected category.<br/>
+    /// - `RestoreCommand` restores files from a backup for the selected category.<br/>
+    /// - `RemoveCommand` removes files from the game folder without affecting the backup.<br/>
+    /// - `OpenBackupsFolderCommand` opens the folder where backups are stored.<br/><br/>
+    /// Descriptions:<br/>
+    /// - `BackupDescription` describes backup functionality.<br/>
+    /// - `RestoreDescription` describes restore functionality.<br/>
+    /// - `RemoveDescription` describes file removal functionality.<br/>
+    /// - `TabDescription` provides an overview of the backup management functionality for display in the UI.<br/>
+    /// </remarks>
     public BackupsTabViewModel()
     {
         // Initialize backup categories
@@ -99,6 +127,15 @@ public class BackupsTabViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> OpenBackupsFolderCommand { get; }
 
     // Command implementations
+    /// Performs a specific backup-related operation (e.g., backup, restore, or remove) for a given category of files.
+    /// This method updates the `StatusMessage` property to reflect the result of the operation and provides feedback
+    /// on success or failure.
+    /// <param name="category">The backup category to perform the operation on. This represents a specific
+    /// group of files categorized by defined patterns relevant to the application.</param>
+    /// <param name="operation">The type of operation to perform. Supported operations are defined in the
+    /// `BackupOperation` enum, such as Backup, Restore, or Remove.</param>
+    /// <returns>A task representing the asynchronous operation. The result completion reflects the success or
+    /// failure of the specified operation.
     private async Task PerformBackupOperationAsync(BackupCategory category, BackupOperation operation)
     {
         StatusMessage = $"Performing {operation} operation for {category.DisplayName}...";
@@ -131,6 +168,14 @@ public class BackupsTabViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Opens the folder where backup files are stored in the file explorer.
+    /// This method constructs the path to the "Vault Backups/Game Files" directory,
+    /// ensures the directory exists by creating it if necessary, and then opens the
+    /// folder in the default file explorer application. If the operation is successful,
+    /// it updates the StatusMessage to indicate the folder was opened. If an error
+    /// occurs during this process, the StatusMessage is updated with an error message.
+    /// </summary>
     private void OpenBackupsFolder()
     {
         try

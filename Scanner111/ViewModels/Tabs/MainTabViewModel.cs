@@ -6,6 +6,14 @@ using System.Threading.Tasks;
 
 namespace Scanner111.ViewModels.Tabs;
 
+/// <summary>
+/// Represents the view model for the main tab in the application.
+/// </summary>
+/// <remarks>
+/// The MainTabViewModel is responsible for handling operations and commands
+/// related to scanning crash logs, game files, and retrieving information from a Pastebin URL.
+/// It also manages the output text and the availability of scanning actions.
+/// </remarks>
 public class MainTabViewModel : ViewModelBase
 {
     private string _outputText = "";
