@@ -29,36 +29,13 @@ public class SettingsTabViewModel : ViewModelBase
     private bool _audioNotifications = true;
     private string _updateSource = "Both";
 
-    /// Represents the ViewModel for the Settings tab, providing data-binding logic,
-    /// settings management, and command-handling for user actions.
-    /// This class implements the logic required for configuring and maintaining application
-    /// settings such as paths, user preferences, and feature toggles. It interacts with
-    /// services to persist and retrieve settings while providing user interaction
-    /// through commands for browsing paths, saving, and resetting configurations.
-    /// Dependencies:
-    /// - IEnhancedDialogService: Used for displaying enhanced dialogs.
-    /// - IConfigurationService: Service for managing application configurations.
-    /// - GameConfigurationHelper: Helper for managing game-related configurations.
-    /// - ILogger: Used to log information, warnings, and errors.
-    /// Commands:
-    /// - BrowseIniPathCommand: Command to browse and set the INI file path.
-    /// - BrowseModsPathCommand: Command to browse and set the Mods folder path.
-    /// - BrowseCustomScanPathCommand: Command to browse and set the custom scan folder path.
-    /// - SaveSettingsCommand: Command to save the current settings.
-    /// - ResetSettingsCommand: Command to reset settings to default values.
-    /// Properties:
-    /// - IniPath: The path to the INI file.
-    /// - ModsPath: The path to the Mods directory.
-    /// - CustomScanPath: The path to the custom scan directory.
-    /// - FcxMode: Whether FCX mode is enabled.
-    /// - SimplifyLogs: Whether logs are simplified.
-    /// - UpdateCheck: Whether update checking is enabled.
-    /// - VrMode: Whether VR mode is enabled.
-    /// - ShowFormIdValues: Whether to display Form ID values.
-    /// - MoveUnsolvedLogs: Whether to move unsolved logs.
-    /// - AudioNotifications: Whether audio notifications are enabled.
-    /// - UpdateSource: The selected source for updates.
-    /// - UpdateSourceOptions: The available options for update sources.
+    /// <summary>
+    /// Provides the ViewModel logic for the Settings tab, enabling configuration of application settings
+    /// such as file paths, preferences, and operational modes. This class manages user interaction
+    /// through reactive commands for tasks like browsing directories, saving configurations, and resetting values.
+    /// It utilizes relevant services for dialog interactions, configuration management, and logging,
+    /// ensuring proper functionality and persistence of settings.
+    /// </summary>
     public SettingsTabViewModel(
         IEnhancedDialogService dialogService,
         IConfigurationService config,
@@ -160,13 +137,16 @@ public class SettingsTabViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> ResetSettingsCommand { get; }
 
     // Command implementations
+    ///<summary>
     /// Asynchronously handles browsing for the INI file directory by presenting
     /// a folder selection dialog to the user. If a valid selection is made, the
     /// selected path is assigned to the IniPath property and logged. In case of
     /// an error during the process, it logs the error and displays an error message
     /// dialog to the user.
-    /// Returns:
+    /// </summary>
+    /// <returns>
     /// A Task representing the asynchronous operation.
+    /// </returns>
     private async Task BrowseIniPathAsync()
     {
         try
@@ -188,13 +168,16 @@ public class SettingsTabViewModel : ViewModelBase
         }
     }
 
+    ///<summary>
     /// Handles the asynchronous logic to browse for the Mods folder path, allowing the user
     /// to select a directory through a dialog interface. Updates the `ModsPath` property
     /// if a valid path is selected and logs the change for debugging purposes. Displays
     /// an error message if an exception occurs during the operation.
-    /// Returns:
+    /// </summary>
+    /// <returns>
     /// A Task representing the asynchronous operation, which completes once the browsing
     /// process has ended and the `ModsPath` is updated or an error is handled.
+    /// </returns>
     private async Task BrowseModsPathAsync()
     {
         try
@@ -216,18 +199,21 @@ public class SettingsTabViewModel : ViewModelBase
         }
     }
 
+    ///<summary>
     /// Asynchronously allows the user to browse and select a custom scan folder path.
     /// This method utilizes a folder picker dialog to let the user choose a directory
     /// for custom crash logs and updates the corresponding property. Logging is performed
     /// to capture updates or any errors encountered during the folder browsing process.
     /// Internally, this method interacts with the enhanced dialog service to show the
     /// folder picker and handles potential exceptions that might occur during the operation.
-    /// Dependencies:
-    /// - `IEnhancedDialogService`: Used to display the folder picker dialog.
+    /// </summary>
+    /// <remarks>Dependencies:<br/>
+    /// - `IEnhancedDialogService`: Used to display the folder picker dialog.<br/>
     /// - `ILogger`: Used to log debug or error information during execution.
-    /// <return>
+    /// </remarks>
+    /// <returns>
     /// A `Task` representing the asynchronous operation.
-    /// </return>
+    /// </returns>
     private async Task BrowseCustomScanPathAsync()
     {
         try
@@ -249,11 +235,13 @@ public class SettingsTabViewModel : ViewModelBase
         }
     }
 
+    ///<summary>
     /// Asynchronously saves the current application settings to the configuration service.
     /// This method persists both folder paths and various feature toggles to the application's
     /// configuration storage. It provides user feedback through the dialog service and logs the
     /// operation's outcome. In case of an error during the save process, it logs detailed information
     /// and informs the user of the failure.
+    /// </summary>
     /// <return>Returns a Task representing the asynchronous save operation.</return>
     private async Task SaveSettingsAsync()
     {
@@ -287,15 +275,19 @@ public class SettingsTabViewModel : ViewModelBase
         }
     }
 
+    ///<summary>
     /// Resets the application settings to their default values asynchronously.
     /// This method displays a confirmation dialog to the user. If confirmed, it resets
     /// all configurable settings to their predefined defaults, persists these changes,
     /// and logs an informational message. If an error occurs during the process, it
     /// logs the error and shows an error message dialog.
-    /// Dependencies:
-    /// - IEnhancedDialogService: Used to display confirmation and error dialogs.
-    /// - ILogger: Used to log actions, such as resets and errors.
+    /// </summary>
+    ///<remarks>
+    /// Dependencies:<br/>
+    /// - IEnhancedDialogService: Used to display confirmation and error dialogs.<br/>
+    /// - ILogger: Used to log actions, such as resets and errors.<br/>
     /// - SaveSettingsAsync: Called to persist default settings.
+    /// </remarks>
     /// <return> A task that represents the asynchronous operation of resetting settings.</return>
     private async Task ResetSettingsAsync()
     {
@@ -320,23 +312,27 @@ public class SettingsTabViewModel : ViewModelBase
         }
     }
 
+    ///<summary>
     /// Resets all application settings and configurations to their default values.
     /// This method is used to initialize or revert settings to a predefined state,
     /// matching the application's defaults. It modifies relevant properties such as
     /// file paths, application modes, log settings, update preferences, and UI-related
     /// options to ensure consistent default behavior.
-    /// Properties reset include:
-    /// - IniPath: Resets to an empty string.
-    /// - ModsPath: Resets to an empty string.
-    /// - CustomScanPath: Resets to an empty string.
-    /// - FcxMode: Resets to false.
-    /// - SimplifyLogs: Resets to false.
-    /// - UpdateCheck: Resets to true.
-    /// - VrMode: Resets to false.
-    /// - ShowFormIdValues: Resets to true.
-    /// - MoveUnsolvedLogs: Resets to true.
-    /// - AudioNotifications: Resets to true.
-    /// - UpdateSource: Resets to "Both".
+    /// </summary>
+    /// <remarks>
+    /// Properties reset include:<br/>
+    /// - IniPath: Resets to an empty string.<br/>
+    /// - ModsPath: Resets to an empty string.<br/>
+    /// - CustomScanPath: Resets to an empty string.<br/>
+    /// - FcxMode: Resets to false.<br/>
+    /// - SimplifyLogs: Resets to false.<br/>
+    /// - UpdateCheck: Resets to true.<br/>
+    /// - VrMode: Resets to false.<br/>
+    /// - ShowFormIdValues: Resets to true.<br/>
+    /// - MoveUnsolvedLogs: Resets to true.<br/>
+    /// - AudioNotifications: Resets to true.<br/>
+    /// - UpdateSource: Resets to "Both".<br/>
+    /// </remarks>
     private void ResetToDefaults()
     {
         // Reset to default values matching the Python version
@@ -353,6 +349,7 @@ public class SettingsTabViewModel : ViewModelBase
         UpdateSource = "Both";
     }
 
+    ///<summary>
     /// Loads the application settings for the ViewModel, initializing properties
     /// with values retrieved from the configuration services and applying default
     /// values where necessary.
@@ -362,9 +359,12 @@ public class SettingsTabViewModel : ViewModelBase
     /// also separately handles VR mode as it may impact other settings.
     /// Errors during the loading process are logged, and the settings are reset to defaults
     /// in case of a failure.
-    /// Dependencies:
-    /// - GameConfigurationHelper: Used to retrieve user paths and scanner settings.
+    /// </summary>
+    /// <remarks>
+    /// Dependencies:<br/>
+    /// - GameConfigurationHelper: Used to retrieve user paths and scanner settings.<br/>
     /// - ILogger: Logs debug and error information related to the loading process.
+    /// </remarks>
     private void LoadSettings()
     {
         try
@@ -404,10 +404,12 @@ public class SettingsTabViewModel : ViewModelBase
         }
     }
 
+    ///<summary>
     /// Determines the default path to the Fallout 4 INI files, located in
     /// the "My Games" directory within the user's documents folder.
     /// The returned path is constructed based on the system environment
     /// and adheres to the standard file structure for Fallout 4 settings.
+    /// </summary>
     /// <return>
     /// A string representing the default path to the Fallout 4 INI files.
     /// </return>

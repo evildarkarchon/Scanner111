@@ -34,6 +34,7 @@ public class BackupsTabViewModel : ViewModelBase
 {
     private BackupCategory? _selectedCategory;
     private string _statusMessage = "Ready";
+
     /// <summary>
     /// Represents the ViewModel for managing backup operations in the application.
     /// Provides functionality for creating, restoring, and removing backups of game modification files
