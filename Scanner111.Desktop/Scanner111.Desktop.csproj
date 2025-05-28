@@ -11,14 +11,15 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="11.3.0"/>
-        <PackageReference Include="Avalonia.Desktop" Version="11.3.0"/>
-        <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.5"/>
-        <PackageReference Include="System.Data.SQLite" Version="1.0.119"/>
-        <PackageReference Include="YamlDotNet" Version="16.3.0"/>
+        <PackageReference Include="Avalonia" Version="11.3.0" />
+        <PackageReference Include="Avalonia.Desktop" Version="11.3.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.5" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.5" />
+        <PackageReference Include="System.Data.SQLite" Version="1.0.119" />
+        <PackageReference Include="YamlDotNet" Version="16.3.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Scanner111\Scanner111.csproj"/>
+        <ProjectReference Include="..\Scanner111\Scanner111.csproj" />
     </ItemGroup>
 </Project>
