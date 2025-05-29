@@ -8,7 +8,9 @@ using Scanner111.Views;
 using Scanner111.Services;
 using Scanner111.Services.Configuration;
 using System;
+using Scanner111.Services.CrashLog;
 using Scanner111.ViewModels.Tabs;
+using System.Threading.Tasks;
 
 namespace Scanner111;
 
@@ -21,41 +23,57 @@ public partial class App : Application
         AvaloniaXamlLoader.Load(this);
     }
 
-    public override async void OnFrameworkInitializationCompleted()
+    public override void OnFrameworkInitializationCompleted()
     {
-        // Set up dependency injection
-        var services = new ServiceCollection();
-        ConfigureServices(services);
-        _serviceProvider = services.BuildServiceProvider();
-
-        // Initialize configuration service
         try
         {
-            await _serviceProvider.InitializeConfigurationAsync();
+            // Set up dependency injection
+            var services = new ServiceCollection();
+            ConfigureServices(services);
+            _serviceProvider = services.BuildServiceProvider();
+
+            // Initialize configuration service in a safe way - we can use Task.Run to prevent deadlocks
+            InitializeConfigurationSafe().ConfigureAwait(false);
+
+            // Create main window with dependency injection
+            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+                desktop.MainWindow = mainWindow;
+
+                // Handle application exit
+                desktop.ShutdownRequested += OnShutdownRequested;
+            }
+            else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
+            {
+                var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+                singleViewPlatform.MainView = mainWindow;
+            }
+
+            base.OnFrameworkInitializationCompleted();
+        }
+        catch (Exception ex)
+        {
+            // Log any exceptions that occur during initialization
+            var logger = _serviceProvider?.GetService<ILogger<App>>();
+            logger?.LogError(ex, "Unhandled exception in OnFrameworkInitializationCompleted");
+            // Still call base to ensure the app can continue if possible
+            base.OnFrameworkInitializationCompleted();
+        }
+    }
+
+    private async Task InitializeConfigurationSafe()
+    {
+        try
+        {
+            await _serviceProvider!.InitializeConfigurationAsync();
         }
         catch (Exception ex)
         {
             // Log error but continue - app can still run with defaults
-            var logger = _serviceProvider.GetService<ILogger<App>>();
+            var logger = _serviceProvider?.GetService<ILogger<App>>();
             logger?.LogError(ex, "Failed to initialize configuration service");
         }
-
-        // Create main window with dependency injection
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-        {
-            var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-            desktop.MainWindow = mainWindow;
-
-            // Handle application exit
-            desktop.ShutdownRequested += OnShutdownRequested;
-        }
-        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
-        {
-            var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-            singleViewPlatform.MainView = mainWindow;
-        }
-
-        base.OnFrameworkInitializationCompleted();
     }
 
     private void OnShutdownRequested(object? sender, ShutdownRequestedEventArgs e)
@@ -91,6 +109,7 @@ public partial class App : Application
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IEnhancedDialogService, EnhancedDialogService>();
         services.AddSingleton<GameConfigurationHelper>();
+        services.AddSingleton<ICrashLogValidationService, CrashLogValidationService>();
 
         // Add ViewModels
         services.AddTransient<MainWindowViewModel>();
