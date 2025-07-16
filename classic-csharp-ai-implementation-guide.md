@@ -17,35 +17,37 @@ Scanner111/
 ## Phase 1: Core Library Foundation ✅
 
 ### Checklist: Project Setup
-- [ ] Create solution: `dotnet new sln -n Scanner111`
-- [ ] Create projects:
+- [x] Create solution: `dotnet new sln -n Scanner111`
+- [x] Create projects:
   ```bash
   dotnet new classlib -n Scanner111.Core -f net8.0
   dotnet new avalonia.mvvm -n Scanner111.GUI -f net8.0
   dotnet new console -n Scanner111.CLI -f net8.0
   dotnet new xunit -n Scanner111.Tests -f net8.0
   ```
-- [ ] Add project references:
+- [x] Add project references:
   ```bash
   dotnet add Scanner111.GUI reference Scanner111.Core
   dotnet add Scanner111.CLI reference Scanner111.Core
   dotnet add Scanner111.Tests reference Scanner111.Core
   ```
-- [ ] Install NuGet packages:
+- [x] Install NuGet packages:
   ```xml
   <!-- Scanner111.Core.csproj -->
   <PackageReference Include="YamlDotNet" Version="13.7.1" />
   <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
   <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+  <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
   
   <!-- Scanner111.GUI.csproj -->
   <PackageReference Include="Avalonia" Version="11.0.6" />
   <PackageReference Include="Avalonia.Desktop" Version="11.0.6" />
   <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.6" />
   <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.6" />
+  <PackageReference Include="MessageBox.Avalonia" Version="3.1.5" />
   
   <!-- Scanner111.CLI.csproj -->
-  <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+  <PackageReference Include="CommandLineParser" Version="2.9.1" />
   <PackageReference Include="Spectre.Console" Version="0.48.0" />
   ```
 
@@ -880,7 +882,7 @@ public class GuiMessageService : IMessageHandler
 #### Task: Create CLI Program
 **File**: `Scanner111.CLI/Program.cs`
 ```csharp
-using System.CommandLine;
+using CommandLine;
 using Spectre.Console;
 
 namespace Scanner111.CLI;
@@ -892,50 +894,61 @@ class Program
         // Initialize CLI message handler
         MessageHandler.Initialize(new CliMessageService());
         
-        var rootCommand = new RootCommand("Scanner 111 - Crash Log Auto Scanner & Setup Integrity Checker");
-        
-        // Scan command
-        var scanCommand = new Command("scan", "Scan crash logs");
-        
-        var fcxOption = new Option<bool?>("--fcx-mode", "Enable FCX mode");
-        var noFcxOption = new Option<bool>("--no-fcx-mode", "Disable FCX mode");
-        var asyncOption = new Option<bool>("--use-async", "Force async pipeline");
-        var folderOption = new Option<string>("--folder", "Custom crash log folder");
-        
-        scanCommand.AddOption(fcxOption);
-        scanCommand.AddOption(noFcxOption);
-        scanCommand.AddOption(asyncOption);
-        scanCommand.AddOption(folderOption);
-        
-        scanCommand.SetHandler(async (bool? fcx, bool noFcx, bool useAsync, string? folder) =>
-        {
-            await RunScan(fcx, noFcx, useAsync, folder);
-        }, fcxOption, noFcxOption, asyncOption, folderOption);
-        
-        rootCommand.AddCommand(scanCommand);
-        
-        // Add other commands (config, etc.)
-        
-        return await rootCommand.InvokeAsync(args);
+        return await Parser.Default.ParseArguments<ScanOptions, ConfigOptions>(args)
+            .MapResult(
+                (ScanOptions opts) => RunScan(opts),
+                (ConfigOptions opts) => RunConfig(opts),
+                errs => Task.FromResult(1)
+            );
     }
     
-    static async Task RunScan(bool? fcxMode, bool noFcx, bool useAsync, string? folder)
+    static async Task<int> RunScan(ScanOptions options)
     {
         AnsiConsole.Write(new FigletText("Scanner 111").Color(Color.Blue));
         AnsiConsole.WriteLine();
         
         var scanner = new ClassicScanLogs
         {
-            FcxMode = noFcx ? false : fcxMode,
-            UseAsyncPipeline = useAsync,
-            CustomFolder = folder
+            FcxMode = options.NoFcxMode ? false : options.FcxMode,
+            CustomFolder = options.Folder
         };
         
         await scanner.CrashLogsScanAsync();
+        return 0;
+    }
+    
+    static async Task<int> RunConfig(ConfigOptions options)
+    {
+        // Handle config command
+        AnsiConsole.WriteLine("Config command not implemented yet");
+        return 0;
     }
 }
+
+[Verb("scan", HelpText = "Scan crash logs")]
+public class ScanOptions
+{
+    [Option("fcx-mode", Required = false, HelpText = "Enable FCX mode")]
+    public bool? FcxMode { get; set; }
+    
+    [Option("no-fcx-mode", Required = false, HelpText = "Disable FCX mode")]
+    public bool NoFcxMode { get; set; }
+    
+    [Option("folder", Required = false, HelpText = "Custom crash log folder")]
+    public string? Folder { get; set; }
+}
+
+[Verb("config", HelpText = "Configure application settings")]
+public class ConfigOptions
+{
+    [Option("set", Required = false, HelpText = "Set a configuration value")]
+    public string? SetValue { get; set; }
+    
+    [Option("get", Required = false, HelpText = "Get a configuration value")]
+    public string? GetValue { get; set; }
+}
 ```
-- [ ] Set up System.CommandLine
+- [ ] Set up CommandLineParser
 - [ ] Add all command-line options
 - [ ] Use Spectre.Console for styling
 - [ ] Match Python's CLI interface
@@ -1015,7 +1028,6 @@ public class ClassicScanLogs
     private readonly Dictionary<string, int> _crashLogStats;
     
     public bool? FcxMode { get; set; }
-    public bool UseAsyncPipeline { get; set; }
     public string? CustomFolder { get; set; }
     
     public ClassicScanLogs()
@@ -1028,9 +1040,6 @@ public class ClassicScanLogs
             ["incomplete"] = 0,
             ["failed"] = 0
         };
-        
-        // Determine if async pipeline should be used
-        UseAsyncPipeline = DetermineAsyncPipeline();
     }
     
     public async Task CrashLogsScanAsync()
@@ -1048,15 +1057,8 @@ public class ClassicScanLogs
         }
         
         MessageHandler.MsgInfo($"Found {_crashLogList.Count} crash logs to scan.");
-        
-        if (UseAsyncPipeline)
-        {
-            await CrashLogsScanAsyncPipeline();
-        }
-        else
-        {
-            await CrashLogsScanThreaded();
-        }
+
+        await ScanLogsAsync();
     }
 }
 ```
@@ -1208,6 +1210,18 @@ public class FormIdAnalyzerTests
 - Sample logs: `/sample_logs/` directory  
 - YAML files: `/Code to Port/CLASSIC Data/databases/`
 - Test data: Use actual crash logs for testing
+
+## Project Name Mapping
+
+- Solution: `Scanner111.sln`
+- Core Library: `Scanner111.Core`
+- GUI Application: `Scanner111.GUI`  
+- CLI Application: `Scanner111.CLI`
+- Test Project: `Scanner111.Tests`
+- Window Title: "Scanner 111 - Crash Log Auto Scanner"
+- CLI Display: "Scanner 111" in FigletText
+
+Keep all other references (class names, YAML keys, report text) as "CLASSIC" to maintain compatibility with configuration files and user expectations.
 
 ## Project Name Mapping
 
