@@ -373,39 +373,39 @@ public class FormIdAnalyzer : IAnalyzer
     }
 }
 ```
-- [ ] Implement FormIdAnalyzer class
-- [ ] Port ExtractFormIds method exactly
-- [ ] Port FormIdMatch method exactly
-- [ ] Add database lookup support
-- [ ] Create unit tests with sample data
+- [x] Implement FormIdAnalyzer class
+- [x] Port ExtractFormIds method exactly
+- [x] Port FormIdMatch method exactly
+- [x] Add database lookup support
+- [x] Create unit tests with sample data
 
 ### Checklist: Other Analyzers
 
 #### Task: Implement PluginAnalyzer
 **File**: `Scanner111.Core/Analyzers/PluginAnalyzer.cs`
-- [ ] Create PluginAnalyzer class
-- [ ] Port plugin_match method
-- [ ] Handle ignore list
-- [ ] Format output exactly like Python
+- [x] Create PluginAnalyzer class
+- [x] Port plugin_match method
+- [x] Handle ignore list
+- [x] Format output exactly like Python
 
 #### Task: Implement SuspectScanner
 **File**: `Scanner111.Core/Analyzers/SuspectScanner.cs`
-- [ ] Create SuspectScanner class
-- [ ] Port suspect_scan_mainerror method
-- [ ] Port suspect_scan_stack method
-- [ ] Load patterns from YAML
+- [x] Create SuspectScanner class
+- [x] Port suspect_scan_mainerror method
+- [x] Port suspect_scan_stack method
+- [x] Load patterns from YAML
 
 #### Task: Implement SettingsScanner
 **File**: `Scanner111.Core/Analyzers/SettingsScanner.cs`
-- [ ] Create SettingsScanner class
-- [ ] Port all validation methods
-- [ ] Handle FCX mode checks
+- [x] Create SettingsScanner class
+- [x] Port all validation methods
+- [x] Handle FCX mode checks
 
 #### Task: Implement RecordScanner
 **File**: `Scanner111.Core/Analyzers/RecordScanner.cs`
-- [ ] Create RecordScanner class
-- [ ] Port scan_named_records method
-- [ ] Handle type-specific patterns
+- [x] Create RecordScanner class
+- [x] Port scan_named_records method
+- [x] Handle type-specific patterns
 
 # Phase 3: C# Native Orchestrator Pattern ✅
 
@@ -1681,11 +1681,11 @@ public class FormIdAnalyzerTests
 - [x] Unit tests pass for infrastructure
 
 ### Phase 2 Complete When:
-- [ ] All analyzers implement IAnalyzer interface
-- [ ] FormID extraction matches Python output exactly
-- [ ] Plugin matching works with ignore list
-- [ ] All analyzers have unit tests
-- [ ] Report formatting matches Python
+- [x] All analyzers implement IAnalyzer interface
+- [x] FormID extraction matches Python output exactly
+- [x] Plugin matching works with ignore list
+- [x] All analyzers have unit tests
+- [x] Report formatting matches Python
 
 ### Phase 3 Complete When:
 - [ ] Pipeline processes crash logs end-to-end with async/await

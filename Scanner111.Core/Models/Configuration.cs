@@ -33,9 +33,9 @@ public class ClassicScanLogsInfo
     public Dictionary<string, string> SuspectsErrorList { get; set; } = new();
     
     /// <summary>
-    /// Suspect patterns for stack traces: pattern -> description
+    /// Suspect patterns for stack traces: pattern -> list of signals
     /// </summary>
-    public Dictionary<string, string> SuspectsStackList { get; set; } = new();
+    public Dictionary<string, List<string>> SuspectsStackList { get; set; } = new();
     
     /// <summary>
     /// List of plugin names to ignore during analysis
