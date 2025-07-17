@@ -407,114 +407,645 @@ public class FormIdAnalyzer : IAnalyzer
 - [ ] Port scan_named_records method
 - [ ] Handle type-specific patterns
 
-## Phase 3: Orchestrator Pattern ✅
+# Phase 3: C# Native Orchestrator Pattern ✅
 
-### Checklist: Orchestrator Implementation
+## Overview
+Replace Python's sync/async dual implementation with a unified C# async pipeline that leverages:
+- Native async/await without GIL limitations
+- Task Parallel Library (TPL) for efficient parallelism
+- Channels for producer/consumer patterns
+- IAsyncEnumerable for streaming results
+- Built-in cancellation and progress reporting
 
-#### Task: Create IScanOrchestrator Interface
-**File**: `Scanner111.Core/Pipeline/IScanOrchestrator.cs`
+## Checklist: Core Pipeline Components
+
+### Task: Create IScanPipeline Interface
+**File**: `Scanner111.Core/Pipeline/IScanPipeline.cs`
 ```csharp
 namespace Scanner111.Core.Pipeline;
 
-public interface IScanOrchestrator : IDisposable
+public interface IScanPipeline : IAsyncDisposable
 {
-    Task<ScanResult> ProcessCrashLogAsync(string logPath, CancellationToken cancellationToken = default);
-    Task<List<ScanResult>> ProcessBatchAsync(List<string> logPaths, IProgress<ProgressInfo>? progress = null, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Process a single crash log file
+    /// </summary>
+    Task<ScanResult> ProcessSingleAsync(string logPath, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Process multiple crash logs with parallelism
+    /// </summary>
+    IAsyncEnumerable<ScanResult> ProcessBatchAsync(
+        IEnumerable<string> logPaths,
+        ScanOptions? options = null,
+        IProgress<BatchProgress>? progress = null,
+        CancellationToken cancellationToken = default);
+}
+
+public class ScanOptions
+{
+    public int MaxConcurrency { get; init; } = Environment.ProcessorCount;
+    public bool PreserveOrder { get; init; } = false;
+    public int? MaxDegreeOfParallelism { get; init; }
+    public bool EnableCaching { get; init; } = true;
+    public TimeSpan? Timeout { get; init; }
+}
+
+public class BatchProgress
+{
+    public int TotalFiles { get; init; }
+    public int ProcessedFiles { get; init; }
+    public int SuccessfulScans { get; init; }
+    public int FailedScans { get; init; }
+    public int IncompleteScans { get; init; }
+    public string CurrentFile { get; init; } = string.Empty;
+    public double ProgressPercentage => TotalFiles > 0 ? (ProcessedFiles * 100.0) / TotalFiles : 0;
+    public TimeSpan ElapsedTime { get; init; }
+    public TimeSpan? EstimatedTimeRemaining { get; init; }
 }
 ```
+- [ ] Define async-first interface
+- [ ] Add streaming support with IAsyncEnumerable
+- [ ] Include comprehensive options
+- [ ] Design rich progress reporting
 
-#### Task: Implement ScanOrchestrator
-**File**: `Scanner111.Core/Pipeline/ScanOrchestrator.cs`
+### Task: Implement ScanPipeline
+**File**: `Scanner111.Core/Pipeline/ScanPipeline.cs`
 ```csharp
 namespace Scanner111.Core.Pipeline;
 
-public class ScanOrchestrator : IScanOrchestrator
+public class ScanPipeline : IScanPipeline
 {
     private readonly ClassicScanLogsInfo _config;
-    private readonly List<IAnalyzer> _analyzers;
-    private readonly ReportGenerator _reportGenerator;
-    private readonly CrashLogParser _parser;
+    private readonly IAnalyzerFactory _analyzerFactory;
+    private readonly IReportGenerator _reportGenerator;
+    private readonly ICrashLogParser _parser;
+    private readonly IMemoryCache _cache;
+    private readonly ILogger<ScanPipeline> _logger;
+    private readonly SemaphoreSlim _semaphore;
     
-    public ScanOrchestrator(ClassicScanLogsInfo config, bool? fcxMode, bool? showFormIdValues, bool formIdDbExists)
+    public ScanPipeline(
+        ClassicScanLogsInfo config,
+        IAnalyzerFactory analyzerFactory,
+        IReportGenerator reportGenerator,
+        ICrashLogParser parser,
+        IMemoryCache cache,
+        ILogger<ScanPipeline> logger)
     {
         _config = config;
-        _parser = new CrashLogParser();
-        _reportGenerator = new ReportGenerator(config);
-        
-        // Initialize analyzers in order
-        _analyzers = new List<IAnalyzer>
+        _analyzerFactory = analyzerFactory;
+        _reportGenerator = reportGenerator;
+        _parser = parser;
+        _cache = cache;
+        _logger = logger;
+        _semaphore = new SemaphoreSlim(Environment.ProcessorCount);
+    }
+    
+    public async Task<ScanResult> ProcessSingleAsync(string logPath, CancellationToken cancellationToken = default)
+    {
+        // Check cache first
+        if (_cache.TryGetValue<ScanResult>(logPath, out var cached))
         {
-            new PluginAnalyzer(config),
-            new FormIdAnalyzer(config, showFormIdValues ?? false, formIdDbExists),
-            new SuspectScanner(config),
-            new RecordScanner(config),
-            new SettingsScanner(config)
+            _logger.LogDebug("Returning cached result for {LogPath}", logPath);
+            return cached;
+        }
+        
+        try
+        {
+            // Parse crash log
+            var crashLog = await _parser.ParseAsync(logPath, cancellationToken);
+            
+            // Run analyzers in parallel where possible
+            var analyzers = _analyzerFactory.CreateAnalyzers(_config);
+            var analysisResults = await RunAnalyzersAsync(crashLog, analyzers, cancellationToken);
+            
+            // Generate report
+            var report = await _reportGenerator.GenerateReportAsync(crashLog, analysisResults, cancellationToken);
+            
+            // Create result
+            var result = new ScanResult
+            {
+                LogPath = logPath,
+                Report = report.Lines,
+                Failed = report.HasFailures,
+                Statistics = CalculateStatistics(crashLog, analysisResults)
+            };
+            
+            // Cache result
+            _cache.Set(logPath, result, TimeSpan.FromMinutes(10));
+            
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to process {LogPath}", logPath);
+            return new ScanResult
+            {
+                LogPath = logPath,
+                Failed = true,
+                Report = new List<string> { $"Error processing log: {ex.Message}" }
+            };
+        }
+    }
+    
+    public async IAsyncEnumerable<ScanResult> ProcessBatchAsync(
+        IEnumerable<string> logPaths,
+        ScanOptions? options = null,
+        IProgress<BatchProgress>? progress = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        options ??= new ScanOptions();
+        var paths = logPaths.ToList();
+        var stats = new ConcurrentDictionary<string, int>();
+        stats["processed"] = 0;
+        stats["successful"] = 0;
+        stats["failed"] = 0;
+        stats["incomplete"] = 0;
+        
+        var startTime = DateTime.UtcNow;
+        
+        // Create processing channel
+        var channel = Channel.CreateUnbounded<ScanResult>(new UnboundedChannelOptions
+        {
+            SingleReader = true,
+            SingleWriter = false
+        });
+        
+        // Producer task
+        var producer = Task.Run(async () =>
+        {
+            try
+            {
+                await Parallel.ForEachAsync(
+                    paths,
+                    new ParallelOptions
+                    {
+                        MaxDegreeOfParallelism = options.MaxConcurrency,
+                        CancellationToken = cancellationToken
+                    },
+                    async (logPath, ct) =>
+                    {
+                        await _semaphore.WaitAsync(ct);
+                        try
+                        {
+                            var result = await ProcessSingleAsync(logPath, ct);
+                            
+                            // Update statistics
+                            Interlocked.Increment(ref stats["processed"]);
+                            if (result.Failed)
+                                Interlocked.Increment(ref stats["failed"]);
+                            else if (result.Statistics["incomplete"] > 0)
+                                Interlocked.Increment(ref stats["incomplete"]);
+                            else
+                                Interlocked.Increment(ref stats["successful"]);
+                            
+                            // Report progress
+                            progress?.Report(new BatchProgress
+                            {
+                                TotalFiles = paths.Count,
+                                ProcessedFiles = stats["processed"],
+                                SuccessfulScans = stats["successful"],
+                                FailedScans = stats["failed"],
+                                IncompleteScans = stats["incomplete"],
+                                CurrentFile = Path.GetFileName(logPath),
+                                ElapsedTime = DateTime.UtcNow - startTime,
+                                EstimatedTimeRemaining = CalculateETA(stats["processed"], paths.Count, startTime)
+                            });
+                            
+                            await channel.Writer.WriteAsync(result, ct);
+                        }
+                        finally
+                        {
+                            _semaphore.Release();
+                        }
+                    });
+            }
+            finally
+            {
+                channel.Writer.Complete();
+            }
+        }, cancellationToken);
+        
+        // Consumer - yield results as they become available
+        await foreach (var result in channel.Reader.ReadAllAsync(cancellationToken))
+        {
+            yield return result;
+        }
+        
+        await producer;
+    }
+    
+    private async Task<List<AnalysisResult>> RunAnalyzersAsync(
+        CrashLog crashLog, 
+        IReadOnlyList<IAnalyzer> analyzers,
+        CancellationToken cancellationToken)
+    {
+        // Some analyzers can run in parallel, others must run sequentially
+        var parallelAnalyzers = analyzers.Where(a => a.CanRunInParallel).ToList();
+        var sequentialAnalyzers = analyzers.Where(a => !a.CanRunInParallel).ToList();
+        
+        var results = new List<AnalysisResult>();
+        
+        // Run parallel analyzers
+        if (parallelAnalyzers.Any())
+        {
+            var parallelTasks = parallelAnalyzers
+                .Select(analyzer => analyzer.AnalyzeAsync(crashLog, cancellationToken))
+                .ToList();
+            
+            var parallelResults = await Task.WhenAll(parallelTasks);
+            results.AddRange(parallelResults);
+        }
+        
+        // Run sequential analyzers
+        foreach (var analyzer in sequentialAnalyzers)
+        {
+            var result = await analyzer.AnalyzeAsync(crashLog, cancellationToken);
+            results.Add(result);
+        }
+        
+        return results;
+    }
+    
+    private static TimeSpan? CalculateETA(int processed, int total, DateTime startTime)
+    {
+        if (processed == 0) return null;
+        
+        var elapsed = DateTime.UtcNow - startTime;
+        var averageTime = elapsed.TotalSeconds / processed;
+        var remaining = total - processed;
+        
+        return TimeSpan.FromSeconds(averageTime * remaining);
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        _semaphore?.Dispose();
+        await Task.CompletedTask;
+    }
+}
+```
+- [ ] Implement async-first pipeline
+- [ ] Use Parallel.ForEachAsync for batch processing
+- [ ] Implement producer/consumer with Channels
+- [ ] Add memory caching for performance
+- [ ] Include proper error handling and logging
+- [ ] Support cancellation throughout
+- [ ] Calculate and report ETA
+
+### Task: Create Analyzer Factory
+**File**: `Scanner111.Core/Pipeline/IAnalyzerFactory.cs`
+```csharp
+namespace Scanner111.Core.Pipeline;
+
+public interface IAnalyzerFactory
+{
+    IReadOnlyList<IAnalyzer> CreateAnalyzers(ClassicScanLogsInfo config);
+}
+
+public class AnalyzerFactory : IAnalyzerFactory
+{
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IOptions<ScanSettings> _settings;
+    
+    public AnalyzerFactory(IServiceProvider serviceProvider, IOptions<ScanSettings> settings)
+    {
+        _serviceProvider = serviceProvider;
+        _settings = settings;
+    }
+    
+    public IReadOnlyList<IAnalyzer> CreateAnalyzers(ClassicScanLogsInfo config)
+    {
+        var analyzers = new List<IAnalyzer>();
+        
+        // Create analyzers based on settings
+        if (_settings.Value.EnablePluginAnalysis)
+        {
+            analyzers.Add(new PluginAnalyzer(config));
+        }
+        
+        if (_settings.Value.EnableFormIdAnalysis)
+        {
+            var formIdDb = _serviceProvider.GetService<IFormIdDatabase>();
+            analyzers.Add(new FormIdAnalyzer(config, _settings.Value.ShowFormIdValues, formIdDb != null));
+        }
+        
+        if (_settings.Value.EnableSuspectScanning)
+        {
+            analyzers.Add(new SuspectScanner(config));
+        }
+        
+        if (_settings.Value.EnableRecordScanning)
+        {
+            analyzers.Add(new RecordScanner(config));
+        }
+        
+        if (_settings.Value.EnableSettingsValidation)
+        {
+            analyzers.Add(new SettingsScanner(config));
+        }
+        
+        return analyzers;
+    }
+}
+```
+- [ ] Create factory pattern for analyzers
+- [ ] Support dependency injection
+- [ ] Allow dynamic analyzer configuration
+- [ ] Support analyzer ordering
+
+### Task: Update IAnalyzer Interface
+**File**: `Scanner111.Core/Analyzers/IAnalyzer.cs`
+```csharp
+namespace Scanner111.Core.Analyzers;
+
+public interface IAnalyzer
+{
+    string Name { get; }
+    bool CanRunInParallel { get; }
+    int Priority { get; } // Lower numbers run first
+    
+    Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default);
+}
+
+public abstract class BaseAnalyzer : IAnalyzer
+{
+    public abstract string Name { get; }
+    public virtual bool CanRunInParallel => true;
+    public virtual int Priority => 100;
+    
+    public abstract Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default);
+    
+    protected static async Task<T> RunWithTimeoutAsync<T>(
+        Func<CancellationToken, Task<T>> operation,
+        TimeSpan timeout,
+        CancellationToken cancellationToken = default)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(timeout);
+        
+        try
+        {
+            return await operation(cts.Token);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException($"Operation timed out after {timeout}");
+        }
+    }
+}
+```
+- [ ] Add parallelization hints
+- [ ] Add priority for execution order
+- [ ] Create base class with common functionality
+- [ ] Add timeout support
+
+### Task: Implement Pipeline Builder
+**File**: `Scanner111.Core/Pipeline/ScanPipelineBuilder.cs`
+```csharp
+namespace Scanner111.Core.Pipeline;
+
+public interface IScanPipelineBuilder
+{
+    IScanPipelineBuilder WithAnalyzer<TAnalyzer>() where TAnalyzer : IAnalyzer;
+    IScanPipelineBuilder WithAnalyzer(IAnalyzer analyzer);
+    IScanPipelineBuilder WithAnalyzer(Func<IServiceProvider, IAnalyzer> factory);
+    IScanPipelineBuilder WithCache(IMemoryCache cache);
+    IScanPipelineBuilder WithOptions(Action<ScanOptions> configure);
+    IScanPipelineBuilder WithReportGenerator(IReportGenerator generator);
+    IScanPipelineBuilder WithParser(ICrashLogParser parser);
+    IScanPipeline Build();
+}
+
+public class ScanPipelineBuilder : IScanPipelineBuilder
+{
+    private readonly IServiceProvider _serviceProvider;
+    private readonly List<Func<IServiceProvider, IAnalyzer>> _analyzerFactories = new();
+    private IMemoryCache? _cache;
+    private IReportGenerator? _reportGenerator;
+    private ICrashLogParser? _parser;
+    private readonly ScanOptions _options = new();
+    
+    public ScanPipelineBuilder(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+    }
+    
+    public IScanPipelineBuilder WithAnalyzer<TAnalyzer>() where TAnalyzer : IAnalyzer
+    {
+        _analyzerFactories.Add(sp => ActivatorUtilities.CreateInstance<TAnalyzer>(sp));
+        return this;
+    }
+    
+    public IScanPipelineBuilder WithAnalyzer(IAnalyzer analyzer)
+    {
+        _analyzerFactories.Add(_ => analyzer);
+        return this;
+    }
+    
+    public IScanPipelineBuilder WithAnalyzer(Func<IServiceProvider, IAnalyzer> factory)
+    {
+        _analyzerFactories.Add(factory);
+        return this;
+    }
+    
+    public IScanPipelineBuilder WithCache(IMemoryCache cache)
+    {
+        _cache = cache;
+        return this;
+    }
+    
+    public IScanPipelineBuilder WithOptions(Action<ScanOptions> configure)
+    {
+        configure(_options);
+        return this;
+    }
+    
+    public IScanPipelineBuilder WithReportGenerator(IReportGenerator generator)
+    {
+        _reportGenerator = generator;
+        return this;
+    }
+    
+    public IScanPipelineBuilder WithParser(ICrashLogParser parser)
+    {
+        _parser = parser;
+        return this;
+    }
+    
+    public IScanPipeline Build()
+    {
+        var cache = _cache ?? _serviceProvider.GetRequiredService<IMemoryCache>();
+        var reportGenerator = _reportGenerator ?? _serviceProvider.GetRequiredService<IReportGenerator>();
+        var parser = _parser ?? _serviceProvider.GetRequiredService<ICrashLogParser>();
+        var logger = _serviceProvider.GetRequiredService<ILogger<ScanPipeline>>();
+        var config = _serviceProvider.GetRequiredService<ClassicScanLogsInfo>();
+        
+        var analyzerFactory = new CustomAnalyzerFactory(_analyzerFactories, _serviceProvider);
+        
+        return new ScanPipeline(config, analyzerFactory, reportGenerator, parser, cache, logger);
+    }
+    
+    private class CustomAnalyzerFactory : IAnalyzerFactory
+    {
+        private readonly List<Func<IServiceProvider, IAnalyzer>> _factories;
+        private readonly IServiceProvider _serviceProvider;
+        
+        public CustomAnalyzerFactory(List<Func<IServiceProvider, IAnalyzer>> factories, IServiceProvider serviceProvider)
+        {
+            _factories = factories;
+            _serviceProvider = serviceProvider;
+        }
+        
+        public IReadOnlyList<IAnalyzer> CreateAnalyzers(ClassicScanLogsInfo config)
+        {
+            return _factories
+                .Select(f => f(_serviceProvider))
+                .OrderBy(a => a.Priority)
+                .ToList();
+        }
+    }
+}
+```
+- [ ] Implement fluent builder pattern
+- [ ] Support dependency injection
+- [ ] Allow custom analyzer registration
+- [ ] Configure pipeline options
+
+### Task: Create Concurrent Collections Helper
+**File**: `Scanner111.Core/Pipeline/ConcurrentResultsCollector.cs`
+```csharp
+namespace Scanner111.Core.Pipeline;
+
+public class ConcurrentResultsCollector
+{
+    private readonly ConcurrentBag<ScanResult> _results = new();
+    private readonly ConcurrentDictionary<string, int> _statistics = new();
+    private long _totalProcessed;
+    private long _totalBytes;
+    
+    public void AddResult(ScanResult result)
+    {
+        _results.Add(result);
+        Interlocked.Increment(ref _totalProcessed);
+        
+        foreach (var (key, value) in result.Statistics)
+        {
+            _statistics.AddOrUpdate(key, value, (_, existing) => existing + value);
+        }
+    }
+    
+    public void AddBytes(long bytes)
+    {
+        Interlocked.Add(ref _totalBytes, bytes);
+    }
+    
+    public ScanSummary GetSummary()
+    {
+        return new ScanSummary
+        {
+            Results = _results.ToList(),
+            TotalProcessed = _totalProcessed,
+            TotalBytes = _totalBytes,
+            Statistics = new Dictionary<string, int>(_statistics),
+            SuccessRate = CalculateSuccessRate()
         };
     }
     
-    public async Task<ScanResult> ProcessCrashLogAsync(string logPath, CancellationToken cancellationToken = default)
+    private double CalculateSuccessRate()
     {
-        // 1. Parse crash log
-        var crashLog = await _parser.ParseAsync(logPath, cancellationToken);
+        if (_totalProcessed == 0) return 0;
         
-        // 2. Create report
-        var report = new List<string>();
-        _reportGenerator.GenerateHeader(crashLog.FileName, report);
+        var successful = _statistics.GetValueOrDefault("scanned", 0);
+        return (successful * 100.0) / _totalProcessed;
+    }
+}
+
+public class ScanSummary
+{
+    public List<ScanResult> Results { get; init; } = new();
+    public long TotalProcessed { get; init; }
+    public long TotalBytes { get; init; }
+    public Dictionary<string, int> Statistics { get; init; } = new();
+    public double SuccessRate { get; init; }
+}
+```
+- [ ] Create thread-safe results collector
+- [ ] Calculate aggregate statistics
+- [ ] Support concurrent updates
+- [ ] Generate summary reports
+
+### Task: Add Performance Monitoring
+**File**: `Scanner111.Core/Pipeline/PerformanceMonitor.cs`
+```csharp
+namespace Scanner111.Core.Pipeline;
+
+public interface IPerformanceMonitor
+{
+    void RecordFileProcessed(string fileName, TimeSpan duration, long fileSize);
+    void RecordAnalyzerExecution(string analyzerName, TimeSpan duration);
+    PerformanceReport GenerateReport();
+}
+
+public class PerformanceMonitor : IPerformanceMonitor
+{
+    private readonly ConcurrentBag<FileMetrics> _fileMetrics = new();
+    private readonly ConcurrentBag<AnalyzerMetrics> _analyzerMetrics = new();
+    private readonly Stopwatch _totalTime = Stopwatch.StartNew();
+    
+    public void RecordFileProcessed(string fileName, TimeSpan duration, long fileSize)
+    {
+        _fileMetrics.Add(new FileMetrics
+        {
+            FileName = fileName,
+            Duration = duration,
+            FileSize = fileSize,
+            Timestamp = DateTime.UtcNow
+        });
+    }
+    
+    public void RecordAnalyzerExecution(string analyzerName, TimeSpan duration)
+    {
+        _analyzerMetrics.Add(new AnalyzerMetrics
+        {
+            AnalyzerName = analyzerName,
+            Duration = duration,
+            Timestamp = DateTime.UtcNow
+        });
+    }
+    
+    public PerformanceReport GenerateReport()
+    {
+        var fileMetricsList = _fileMetrics.ToList();
+        var analyzerMetricsList = _analyzerMetrics.ToList();
         
-        // 3. Check for errors
-        if (!string.IsNullOrEmpty(crashLog.MainError))
+        return new PerformanceReport
         {
-            _reportGenerator.GenerateErrorSection(crashLog, report);
-        }
-        
-        // 4. Run each analyzer
-        foreach (var analyzer in _analyzers)
-        {
-            var result = await analyzer.AnalyzeAsync(crashLog, cancellationToken);
-            _reportGenerator.AddAnalysisResult(result, report);
-        }
-        
-        // 5. Generate footer
-        _reportGenerator.GenerateFooter(report);
-        
-        // 6. Determine statistics
-        var stats = new ScanStatistics();
-        if (!crashLog.IsComplete)
-        {
-            stats["incomplete"] = 1;
-        }
-        else if (report.Any(line => line.Contains("SUSPECT FOUND")))
-        {
-            stats["failed"] = 1;
-        }
-        else
-        {
-            stats["scanned"] = 1;
-        }
-        
-        return new ScanResult
-        {
-            LogPath = logPath,
-            Report = report,
-            Failed = stats["failed"] > 0,
-            Statistics = stats
+            TotalDuration = _totalTime.Elapsed,
+            FilesProcessed = fileMetricsList.Count,
+            TotalBytesProcessed = fileMetricsList.Sum(f => f.FileSize),
+            AverageFileProcessingTime = fileMetricsList.Any() 
+                ? TimeSpan.FromMilliseconds(fileMetricsList.Average(f => f.Duration.TotalMilliseconds))
+                : TimeSpan.Zero,
+            FilesPerSecond = fileMetricsList.Count / _totalTime.Elapsed.TotalSeconds,
+            AnalyzerPerformance = analyzerMetricsList
+                .GroupBy(a => a.AnalyzerName)
+                .Select(g => new AnalyzerPerformance
+                {
+                    AnalyzerName = g.Key,
+                    TotalExecutions = g.Count(),
+                    AverageExecutionTime = TimeSpan.FromMilliseconds(g.Average(a => a.Duration.TotalMilliseconds)),
+                    TotalTime = TimeSpan.FromMilliseconds(g.Sum(a => a.Duration.TotalMilliseconds))
+                })
+                .OrderByDescending(a => a.TotalTime)
+                .ToList()
         };
     }
 }
 ```
-- [ ] Implement synchronous orchestrator
-- [ ] Initialize all analyzers in correct order
-- [ ] Handle report generation flow
-- [ ] Calculate statistics correctly
-- [ ] Add error handling
-
-#### Task: Implement AsyncScanOrchestrator
-**File**: `Scanner111.Core/Pipeline/AsyncScanOrchestrator.cs`
-- [ ] Extend ScanOrchestrator
-- [ ] Add async FormID database support
-- [ ] Implement batch processing with parallelism
-- [ ] Add progress reporting
-- [ ] Implement semaphore for throttling
+- [ ] Track file processing metrics
+- [ ] Monitor analyzer performance
+- [ ] Calculate throughput statistics
+- [ ] Generate performance reports
 
 ## Phase 4: GUI Implementation ✅
 
@@ -1160,9 +1691,18 @@ public class FormIdAnalyzerTests
 - [ ] Pipeline processes crash logs end-to-end with async/await
 - [ ] Reports are generated correctly matching Python format
 - [ ] Statistics are calculated properly
-- [ ] Concurrent batch processing works efficiently
-- [ ] Memory caching improves performance for repeated scans
-- [ ] Can process sample crash logs with proper concurrency control
+- [ ] Fully async pipeline without sync/async split
+- [ ] Efficient parallelism using TPL and Channels
+- [ ] Streaming results with IAsyncEnumerable
+- [ ] Built-in caching and performance monitoring
+- [ ] Proper cancellation support throughout
+- [ ] Rich progress reporting with ETA
+- [ ] Thread-safe concurrent processing
+- [ ] Memory-efficient for large batches
+- [ ] Configurable concurrency limits
+- [ ] Performance metrics collection
+- [ ] No blocking operations in async code
+- [ ] Proper exception handling and logging
 
 ### Phase 4 Complete When:
 - [ ] GUI launches and displays correctly

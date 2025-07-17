@@ -1,134 +1,137 @@
 # Scanner111 Copilot Instructions
 
-## Architecture Overview
+## Project Architecture
 
-This is a C# port of a Python crash log analyzer for Bethesda games (Fallout 4, Skyrim). The solution uses a **modular analyzer pattern** with orchestration pipeline for processing crash logs from Buffout 4/Crash Logger.
+**Scanner111** is a C# port of a Python crash log analyzer for Bethesda games. The solution uses a layered architecture with async-first design patterns.
 
-### Project Structure
-- **Scanner111.Core**: Main library with analyzers, models, and infrastructure
-- **Scanner111.GUI**: Avalonia MVVM desktop application
-- **Scanner111.CLI**: Console application with CommandLineParser
+### Core Components
+
+- **Scanner111.Core**: Business logic with async pipeline pattern using TPL, Channels, and IAsyncEnumerable
+- **Scanner111.GUI**: Avalonia MVVM application with ReactiveUI 
+- **Scanner111.CLI**: Console app using CommandLineParser and Spectre.Console
 - **Scanner111.Tests**: xUnit test project
 
-### Key Architecture Patterns
+### Key Design Patterns
 
-**Analyzer Chain Pattern**: Each analyzer implements `IAnalyzer` interface for processing crash logs:
+**Async Pipeline Architecture**: Replace Python's sync/async dual implementation with unified C# async pipeline:
+```csharp
+// Use IScanPipeline with IAsyncEnumerable for streaming results
+public async IAsyncEnumerable<ScanResult> ProcessBatchAsync(
+    IEnumerable<string> logPaths,
+    [EnumeratorCancellation] CancellationToken cancellationToken = default)
+{
+    // Producer/consumer pattern with Channels
+    var channel = Channel.CreateUnbounded<ScanResult>();
+    await Parallel.ForEachAsync(paths, new ParallelOptions { MaxDegreeOfParallelism = options.MaxConcurrency });
+}
+```
+
+**Analyzer Factory Pattern**: Dynamic analyzer creation with dependency injection:
 ```csharp
 public interface IAnalyzer
 {
     string Name { get; }
+    bool CanRunInParallel { get; } // Enables parallel/sequential execution
+    int Priority { get; } // Lower numbers run first
     Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default);
 }
 ```
 
-**Orchestrator Pattern**: `ScanOrchestrator` coordinates analyzer execution and report generation in a specific order (Plugin → FormID → Suspect → Record → Settings).
-
-**Message Handler Pattern**: Static `MessageHandler` class provides unified messaging across GUI/CLI with `MessageTarget` enum for routing.
-
-**Configuration Injection Pattern**: `ClassicScanLogsInfo` configuration objects are passed through constructor parameters instead of using global state.
-
-**YAML Configuration**: Uses `YamlSettingsCache` for loading settings from `CLASSIC Data/databases/*.yaml` files with dot notation key paths.
-
-## Critical Implementation Details
-
-### Python Compatibility Requirements
-- **Exact Output Matching**: C# reports must match Python output character-for-character
-- **CLASSIC Naming**: Keep "CLASSIC" in internal strings/classes for config compatibility
-- **UTF-8 Encoding**: Always use UTF-8 with error handling for file operations
-- **FormID Pattern**: Use regex `^\s*Form ID:\s*0x([0-9A-F]{8})` for extraction
-
-### Key Data Structures
+**Message Handler Pattern**: Abstract UI communication across GUI/CLI:
 ```csharp
-// Primary crash log model
-public class CrashLog
-{
-    public List<string> OriginalLines { get; init; } = new();
-    public Dictionary<string, string> Plugins { get; set; } = new(); // filename -> loadOrder
-    public List<string> CallStack { get; set; } = new();
-    public string MainError { get; set; } = string.Empty;
-}
-
-// Configuration loaded from YAML
-public class ClassicScanLogsInfo
-{
-    public Dictionary<string, string> SuspectsErrorList { get; set; } = new();
-    public Dictionary<string, string> SuspectsStackList { get; set; } = new();
-    public List<string> IgnorePluginsList { get; set; } = new();
-}
+MessageHandler.Initialize(new GuiMessageService()); // or CliMessageService
+MessageHandler.MsgInfo("Processing...", MessageTarget.GuiOnly);
 ```
 
-### Threading & Performance
+## Critical Implementation Requirements
+
+### Python Reference Code
+- **Python code in `Code to Port/` is for reference only** - not used in production
+- **Preserve "CLASSIC" in all internal strings** - only change project/namespace names to "Scanner111"
+- **Match output format exactly** - reports must be identical to reference Python version
+- **Keep ClassicScanLogsInfo class name** - referenced throughout codebase
+- **Handle file encoding as UTF-8 with ignore errors** like reference implementation
+
+### Async/Await Best Practices
 - Use `ConfigureAwait(false)` in library code
-- Implement semaphore-based concurrency control for batch processing
-- Thread-safe log cache with `ThreadSafeLogCache` pattern
-- Async/await throughout pipeline with cancellation token support
+- No blocking operations in async methods
+- Support cancellation tokens throughout
+- Use `Parallel.ForEachAsync` for batch processing
+- Implement proper async disposal with `IAsyncDisposable`
+
+### Project Structure Conventions
+```
+Scanner111.Core/
+├── Models/           # CrashLog, ScanResult, Configuration
+├── Analyzers/        # IAnalyzer implementations (FormIdAnalyzer, PluginAnalyzer, etc.)
+├── Pipeline/         # IScanPipeline, ScanPipelineBuilder, PerformanceMonitor
+├── Infrastructure/   # YamlSettingsCache, MessageHandler, GlobalRegistry
+```
 
 ## Development Workflows
 
 ### Build & Test
 ```bash
-dotnet build Scanner111.sln
-dotnet test Scanner111.Tests/
+dotnet build                          # Build solution
+dotnet test                          # Run tests
+dotnet run --project Scanner111.CLI -- scan  # Test CLI
 ```
 
-### Running Applications
-```bash
-# GUI
-dotnet run --project Scanner111.GUI
+### Adding New Analyzers
+1. Implement `IAnalyzer` interface in `Scanner111.Core/Analyzers/`
+2. Set `CanRunInParallel` and `Priority` properties appropriately
+3. Add to `AnalyzerFactory.CreateAnalyzers()` method
+4. Create corresponding unit tests
 
-# CLI
-dotnet run --project Scanner111.CLI -- scan
+### GUI Development (Avalonia)
+- Use ReactiveUI patterns: `this.WhenAnyValue(x => x.Property).Subscribe()`
+- Implement `INotifyPropertyChanged` via `ReactiveObject`
+- Commands: `ReactiveCommand.CreateFromTask()`
+- Dark theme with specific color scheme (#2d2d30 background, #0e639c primary)
+
+### CLI Development (Spectre.Console)
+- Use `CommandLineParser` with `[Verb]` attributes
+- Implement progress with `AnsiConsole.Progress()`
+- Color output: `[green]INFO:[/]`, `[yellow]WARNING:[/]`, `[red]ERROR:[/]`
+
+## Key External Dependencies
+
+- **YamlDotNet**: Configuration loading from `CLASSIC Data/databases/*.yaml`
+- **System.Data.SQLite**: FormID database lookups
+- **Microsoft.Extensions.Caching.Memory**: Result caching
+- **ReactiveUI**: MVVM for GUI
+- **Spectre.Console**: Rich CLI output
+- **CommandLineParser**: CLI argument parsing
+
+## Testing Patterns
+
+Use real crash logs from `sample_logs/` directory for integration tests:
+```csharp
+[TestMethod]
+public async Task ExtractFormIds_ValidFormIds_ReturnsMatches()
+{
+    var crashLog = new CrashLog
+    {
+        CallStack = new List<string> { "  Form ID: 0x0001A332" }
+    };
+    var result = await _analyzer.AnalyzeAsync(crashLog);
+    Assert.IsTrue(result.HasFindings);
+}
 ```
-
-### Key Files to Reference
-- `classic-csharp-ai-implementation-guide.md`: Complete porting guide with exact implementation requirements
-- `Code to Port/ClassicLib/ScanLog/`: Original Python analyzers for reference
-- `sample_logs/`: Real crash logs for testing analyzer accuracy
-
-## Project-Specific Conventions
-
-### Naming Conventions
-- **External**: Use "Scanner111" in namespaces, project names, window titles
-- **Internal**: Keep "CLASSIC" in class names, YAML keys, and report text for compatibility
-- **Files**: Use Pascal case for C# files, match Python names for ported components
-
-### Error Handling
-- Port Python try/except blocks exactly - don't add new error handling
-- Use `MessageHandler.MsgError()` for user-facing errors
-- Preserve all original error messages for user familiarity
-
-### Configuration Management
-- YAML files are the source of truth for all settings
-- Use `YamlSettingsCache.YamlSettings<T>()` for loading with caching
-- Settings changes must be persisted back to YAML files
-
-### Testing Strategy
-- Use real crash logs from `sample_logs/` for integration tests
-- Test each analyzer independently with known input/output pairs
-- Verify report formatting matches Python output exactly
-
-## Integration Points
-
-### External Dependencies
-- **YamlDotNet**: For YAML configuration parsing
-- **System.Data.SQLite**: For FormID database lookups
-- **Avalonia**: For cross-platform GUI
-- **CommandLineParser**: For CLI argument parsing
-
-### Cross-Component Communication
-- **MessageHandler**: Unified logging/progress reporting
-- **Configuration Injection**: `ClassicScanLogsInfo` objects passed through constructors
-- **YamlSettingsCache**: Configuration access layer
-
-### Data Flow
-1. **File Discovery**: Find crash logs in configured directories
-2. **Parsing**: Extract structured data from log text
-3. **Analysis**: Run analyzer chain (Plugin → FormID → Suspect → Record → Settings)
-4. **Report Generation**: Create markdown reports matching Python format
-5. **Output**: Save to `.md` files with the pattern `<original_filename_without_extension>-REPORT.md`
 
 ## Performance Considerations
-- Implement async pipeline for large batch processing
-- Use memory caching for repeated configuration access
-- Throttle concurrent operations to prevent resource exhaustion
-- Cache FormID database lookups for better performance
+
+- Use `SemaphoreSlim` to limit concurrent operations
+- Implement result caching with `IMemoryCache`
+- Monitor performance with `IPerformanceMonitor`
+- Use `ConcurrentBag` and `ConcurrentDictionary` for thread-safe collections
+- Calculate ETA for long-running operations
+
+## Common Pitfalls to Avoid
+
+1. **Don't change report formatting** - must match reference Python output exactly
+2. **Don't skip cancellation tokens** in async methods
+3. **Don't use blocking I/O** in async code
+4. **Don't forget `ConfigureAwait(false)`** in library code
+5. **Always dispose resources** with `using` statements
+6. **Preserve reference error messages** - users expect same text format
