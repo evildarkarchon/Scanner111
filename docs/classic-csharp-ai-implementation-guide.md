@@ -77,9 +77,9 @@ public class CrashLog
     public bool HasError => !string.IsNullOrEmpty(MainError);
 }
 ```
-- [ ] Implement CrashLog class
-- [ ] Add XML documentation
-- [ ] Create unit tests in `Scanner111.Tests/Models/CrashLogTests.cs`
+- [x] Implement CrashLog class
+- [x] Add XML documentation
+- [x] Create unit tests in `Scanner111.Tests/Models/CrashLogTests.cs`
 
 #### Task: Create ScanResult.cs
 **File**: `Scanner111.Core/Models/ScanResult.cs`
@@ -107,9 +107,9 @@ public class ScanStatistics : Dictionary<string, int>
     }
 }
 ```
-- [ ] Implement ScanResult class
-- [ ] Implement ScanStatistics with proper initialization
-- [ ] Add convenience methods for statistics
+- [x] Implement ScanResult class
+- [x] Implement ScanStatistics with proper initialization
+- [x] Add convenience methods for statistics
 
 #### Task: Create Configuration Models
 **File**: `Scanner111.Core/Models/Configuration.cs`
@@ -132,8 +132,8 @@ public class ClassicScanLogsInfo
     public Dictionary<string, List<string>> NamedRecordsType { get; set; } = new();
 }
 ```
-- [ ] Create all configuration model classes
-- [ ] Match Python dataclass structure exactly
+- [x] Create all configuration model classes
+- [x] Match Python dataclass structure exactly
 
 ### Checklist: Infrastructure Implementation
 
@@ -183,11 +183,11 @@ public static class YamlSettingsCache
     }
 }
 ```
-- [ ] Implement YAML loading with YamlDotNet
-- [ ] Implement key path navigation (dot notation)
-- [ ] Add caching mechanism
-- [ ] Create unit tests for various data types
-- [ ] Handle missing files gracefully
+- [x] Implement YAML loading with YamlDotNet
+- [x] Implement key path navigation (dot notation)
+- [x] Add caching mechanism
+- [x] Create unit tests for various data types
+- [x] Handle missing files gracefully
 
 #### Task: Implement MessageHandler
 **File**: `Scanner111.Core/Infrastructure/MessageHandler.cs`
@@ -246,11 +246,11 @@ public static class MessageHandler
     }
 }
 ```
-- [ ] Create IMessageHandler interface
-- [ ] Implement static MessageHandler class
-- [ ] Add all message types (Info, Warning, Error, Progress)
-- [ ] Include MessageTarget enum
-- [ ] Create NullProgress implementation for safety
+- [x] Create IMessageHandler interface
+- [x] Implement static MessageHandler class
+- [x] Add all message types (Info, Warning, Error, Progress)
+- [x] Include MessageTarget enum
+- [x] Create NullProgress implementation for safety
 
 #### Task: Implement GlobalRegistry
 **File**: `Scanner111.Core/Infrastructure/GlobalRegistry.cs`
@@ -277,9 +277,9 @@ public static class GlobalRegistry
     public static string LocalDir => Get<string>("LocalDir") ?? AppDomain.CurrentDomain.BaseDirectory;
 }
 ```
-- [ ] Implement generic registry pattern
-- [ ] Add convenience properties for common values
-- [ ] Thread-safe implementation if needed
+- [x] Implement generic registry pattern
+- [x] Add convenience properties for common values
+- [x] Thread-safe implementation if needed
 
 ## Phase 2: Analyzer Implementation ✅
 
@@ -303,9 +303,9 @@ public abstract class AnalysisResult
     public List<string> ReportLines { get; init; } = new();
 }
 ```
-- [ ] Create base analyzer interface
-- [ ] Create AnalysisResult base class
-- [ ] Add cancellation token support
+- [x] Create base analyzer interface
+- [x] Create AnalysisResult base class
+- [x] Add cancellation token support
 
 #### Task: Implement FormIdAnalyzer
 **File**: `Scanner111.Core/Analyzers/FormIdAnalyzer.cs`
@@ -1674,11 +1674,11 @@ public class FormIdAnalyzerTests
 ## Acceptance Criteria for Each Phase
 
 ### Phase 1 Complete When:
-- [ ] All models compile without errors
-- [ ] YamlSettingsCache can load and parse YAML files
-- [ ] MessageHandler routes messages correctly
-- [ ] GlobalRegistry stores and retrieves values
-- [ ] Unit tests pass for infrastructure
+- [x] All models compile without errors
+- [x] YamlSettingsCache can load and parse YAML files
+- [x] MessageHandler routes messages correctly
+- [x] GlobalRegistry stores and retrieves values
+- [x] Unit tests pass for infrastructure
 
 ### Phase 2 Complete When:
 - [ ] All analyzers implement IAnalyzer interface
