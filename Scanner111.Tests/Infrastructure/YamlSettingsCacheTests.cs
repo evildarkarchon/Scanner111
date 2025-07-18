@@ -1,12 +1,16 @@
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
 using Xunit;
 
 namespace Scanner111.Tests.Infrastructure;
 
-public class YamlSettingsCacheTests
+public class YamlSettingsCacheTests : IDisposable
 {
     private readonly string _testYamlPath;
     private readonly string _classicDataPath;
+    private readonly IYamlSettingsProvider _yamlSettingsService;
+    private readonly IMemoryCache _memoryCache;
     
     public YamlSettingsCacheTests()
     {
@@ -36,6 +40,25 @@ Test_Section:
 ";
         
         File.WriteAllText(_testYamlPath, testYamlContent);
+        
+        // Initialize the service components
+        _memoryCache = new MemoryCache(new MemoryCacheOptions());
+        var cacheManager = new CacheManager(_memoryCache, NullLogger<CacheManager>.Instance);
+        _yamlSettingsService = new YamlSettingsService(cacheManager);
+        
+        // Initialize the static cache with our service
+        YamlSettingsCache.Initialize(_yamlSettingsService);
+    }
+    
+    public void Dispose()
+    {
+        _memoryCache?.Dispose();
+        
+        // Clean up test file
+        if (File.Exists(_testYamlPath))
+        {
+            File.Delete(_testYamlPath);
+        }
     }
     
     [Fact]

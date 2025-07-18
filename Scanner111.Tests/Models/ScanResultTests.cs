@@ -100,9 +100,9 @@ public class ScanResultTests
         {
             LogPath = Path.Combine(_sampleLogsPath, "crash-2024-01-11-08-19-43.log"),
             Report = new List<string> { "Error analysis:\n", "- Issue found\n" },
-            Failed = true,
             Statistics = stats
         };
+        result.Status = ScanStatus.Failed;
         
         Assert.True(result.Failed);
         Assert.Equal("Error analysis:\n- Issue found\n", result.ReportText);

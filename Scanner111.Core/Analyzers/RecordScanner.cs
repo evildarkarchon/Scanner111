@@ -15,6 +15,16 @@ public class RecordScanner : IAnalyzer
     /// Name of the analyzer
     /// </summary>
     public string Name => "Record Scanner";
+    
+    /// <summary>
+    /// Priority of the analyzer (lower values run first)
+    /// </summary>
+    public int Priority => 30;
+    
+    /// <summary>
+    /// Whether this analyzer can be run in parallel with others
+    /// </summary>
+    public bool CanRunInParallel => true;
 
     /// <summary>
     /// Initialize the record scanner

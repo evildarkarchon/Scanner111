@@ -13,6 +13,16 @@ public class SettingsScanner : IAnalyzer
     /// Name of the analyzer
     /// </summary>
     public string Name => "Settings Scanner";
+    
+    /// <summary>
+    /// Priority of the analyzer (lower values run first)
+    /// </summary>
+    public int Priority => 5;
+    
+    /// <summary>
+    /// Whether this analyzer can be run in parallel with others
+    /// </summary>
+    public bool CanRunInParallel => false;
 
     /// <summary>
     /// Initialize the settings scanner

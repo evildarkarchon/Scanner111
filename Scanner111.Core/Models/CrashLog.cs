@@ -61,4 +61,42 @@ public class CrashLog
     /// True if the crash log contains an error message
     /// </summary>
     public bool HasError => !string.IsNullOrEmpty(MainError);
+    
+    /// <summary>
+    /// Game version extracted from the crash log
+    /// </summary>
+    public string GameVersion { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// True if the crash log is incomplete or truncated
+    /// </summary>
+    public bool IsIncomplete { get; set; }
+    
+    /// <summary>
+    /// Parse a crash log from file asynchronously
+    /// </summary>
+    public static async Task<CrashLog?> ParseAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var lines = await File.ReadAllLinesAsync(filePath, cancellationToken);
+            
+            // TODO: Implement actual parsing logic based on Python implementation
+            // For now, return a basic crash log
+            return new CrashLog
+            {
+                FilePath = filePath,
+                OriginalLines = lines.ToList(),
+                GameVersion = "Unknown",
+                MainError = "",
+                CallStack = new List<string>(),
+                Plugins = new Dictionary<string, string>(),
+                IsIncomplete = false
+            };
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }

@@ -19,6 +19,16 @@ public class FormIdAnalyzer : IAnalyzer
     /// Name of the analyzer
     /// </summary>
     public string Name => "FormID Analyzer";
+    
+    /// <summary>
+    /// Priority of the analyzer (lower values run first)
+    /// </summary>
+    public int Priority => 10;
+    
+    /// <summary>
+    /// Whether this analyzer can be run in parallel with others
+    /// </summary>
+    public bool CanRunInParallel => true;
 
     /// <summary>
     /// Initialize the FormID analyzer

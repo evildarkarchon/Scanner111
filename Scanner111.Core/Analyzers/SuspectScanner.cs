@@ -13,6 +13,16 @@ public class SuspectScanner : IAnalyzer
     /// Name of the analyzer
     /// </summary>
     public string Name => "Suspect Scanner";
+    
+    /// <summary>
+    /// Priority of the analyzer (lower values run first)
+    /// </summary>
+    public int Priority => 40;
+    
+    /// <summary>
+    /// Whether this analyzer can be run in parallel with others
+    /// </summary>
+    public bool CanRunInParallel => true;
 
     /// <summary>
     /// Initialize the suspect scanner
