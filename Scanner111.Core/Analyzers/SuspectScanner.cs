@@ -1,4 +1,5 @@
 using Scanner111.Core.Models;
+using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Core.Analyzers;
 
@@ -7,7 +8,7 @@ namespace Scanner111.Core.Analyzers;
 /// </summary>
 public class SuspectScanner : IAnalyzer
 {
-    private readonly ClassicScanLogsInfo _yamlData;
+    private readonly IYamlSettingsProvider _yamlSettings;
 
     /// <summary>
     /// Name of the analyzer
@@ -27,10 +28,10 @@ public class SuspectScanner : IAnalyzer
     /// <summary>
     /// Initialize the suspect scanner
     /// </summary>
-    /// <param name="yamlData">Configuration data containing suspect patterns</param>
-    public SuspectScanner(ClassicScanLogsInfo yamlData)
+    /// <param name="yamlSettings">YAML settings provider for configuration</param>
+    public SuspectScanner(IYamlSettingsProvider yamlSettings)
     {
-        _yamlData = yamlData;
+        _yamlSettings = yamlSettings;
     }
 
     /// <summary>
@@ -91,7 +92,8 @@ public class SuspectScanner : IAnalyzer
     {
         var foundSuspect = false;
 
-        foreach (var (errorKey, signal) in _yamlData.SuspectsErrorList)
+        var suspectsErrorList = _yamlSettings.GetSetting<Dictionary<string, string>>("Game", "Crashlog_Error_Check", new Dictionary<string, string>());
+        foreach (var (errorKey, signal) in suspectsErrorList)
         {
             // Skip checking if signal not in crash log
             if (!crashlogMainError.Contains(signal))
@@ -133,7 +135,8 @@ public class SuspectScanner : IAnalyzer
     {
         var anySuspectFound = false;
 
-        foreach (var (errorKey, signalList) in _yamlData.SuspectsStackList)
+        var suspectsStackList = _yamlSettings.GetSetting<Dictionary<string, List<string>>>("Game", "Crashlog_Stack_Check", new Dictionary<string, List<string>>());
+        foreach (var (errorKey, signalList) in suspectsStackList)
         {
             // Parse error information
             var parts = errorKey.Split(" | ", 2, StringSplitOptions.None);

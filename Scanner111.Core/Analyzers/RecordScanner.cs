@@ -1,4 +1,5 @@
 using Scanner111.Core.Models;
+using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Core.Analyzers;
 
@@ -7,9 +8,7 @@ namespace Scanner111.Core.Analyzers;
 /// </summary>
 public class RecordScanner : IAnalyzer
 {
-    private readonly ClassicScanLogsInfo _yamlData;
-    private readonly HashSet<string> _lowerRecords;
-    private readonly HashSet<string> _lowerIgnore;
+    private readonly IYamlSettingsProvider _yamlSettings;
 
     /// <summary>
     /// Name of the analyzer
@@ -29,15 +28,10 @@ public class RecordScanner : IAnalyzer
     /// <summary>
     /// Initialize the record scanner
     /// </summary>
-    /// <param name="yamlData">Configuration data containing record patterns</param>
-    public RecordScanner(ClassicScanLogsInfo yamlData)
+    /// <param name="yamlSettings">YAML settings provider for configuration</param>
+    public RecordScanner(IYamlSettingsProvider yamlSettings)
     {
-        _yamlData = yamlData;
-        
-        // Note: Using empty sets if the lists are not available in the configuration
-        // The actual lists would need to be loaded from YAML configuration
-        _lowerRecords = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        _lowerIgnore = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        _yamlSettings = yamlSettings;
     }
 
     /// <summary>
@@ -109,13 +103,18 @@ public class RecordScanner : IAnalyzer
     /// <param name="rspOffset">An integer representing the character offset from rsp_marker used to determine where to begin extracting record content</param>
     private void FindMatchingRecords(List<string> segmentCallstack, List<string> recordsMatches, string rspMarker, int rspOffset)
     {
+        var lowerRecords = _yamlSettings.GetSetting<List<string>>("Main", "catch_log_records", new List<string>())
+            .Select(r => r.ToLower()).ToHashSet();
+        var lowerIgnore = _yamlSettings.GetSetting<List<string>>("Game", "Crashlog_Records_Exclude", new List<string>())
+            .Select(r => r.ToLower()).ToHashSet();
+
         foreach (var line in segmentCallstack)
         {
             var lowerLine = line.ToLower();
 
             // Check if line contains any target record and doesn't contain any ignored terms
-            if (_lowerRecords.Any(item => lowerLine.Contains(item)) && 
-                !_lowerIgnore.Any(record => lowerLine.Contains(record)))
+            if (lowerRecords.Any(item => lowerLine.Contains(item)) && 
+                !lowerIgnore.Any(record => lowerLine.Contains(record)))
             {
                 // Extract the relevant part of the line based on format
                 if (line.Contains(rspMarker))
@@ -157,7 +156,7 @@ public class RecordScanner : IAnalyzer
         var explanatoryNotes = new[]
         {
             "\n[Last number counts how many times each Named Record shows up in the crash log.]\n",
-            $"These records were caught by {_yamlData.CrashgenName} and some of them might be related to this crash.\n",
+            $"These records were caught by {_yamlSettings.GetSetting("Game", "Game_Info.CRASHGEN_LogName", "Crash Logger")} and some of them might be related to this crash.\n",
             "Named records should give extra info on involved game objects, record types or mod files.\n\n"
         };
         autoscanReport.AddRange(explanatoryNotes);

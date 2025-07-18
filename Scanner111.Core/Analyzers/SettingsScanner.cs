@@ -1,4 +1,5 @@
 using Scanner111.Core.Models;
+using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Core.Analyzers;
 
@@ -7,7 +8,7 @@ namespace Scanner111.Core.Analyzers;
 /// </summary>
 public class SettingsScanner : IAnalyzer
 {
-    private readonly ClassicScanLogsInfo _yamlData;
+    private readonly IYamlSettingsProvider _yamlSettings;
 
     /// <summary>
     /// Name of the analyzer
@@ -27,10 +28,10 @@ public class SettingsScanner : IAnalyzer
     /// <summary>
     /// Initialize the settings scanner
     /// </summary>
-    /// <param name="yamlData">Configuration data</param>
-    public SettingsScanner(ClassicScanLogsInfo yamlData)
+    /// <param name="yamlSettings">YAML settings provider for configuration</param>
+    public SettingsScanner(IYamlSettingsProvider yamlSettings)
     {
-        _yamlData = yamlData;
+        _yamlSettings = yamlSettings;
     }
 
     /// <summary>
@@ -88,12 +89,12 @@ public class SettingsScanner : IAnalyzer
             autoscanReport.AddRange(new[]
             {
                 "# ❌ CAUTION : The Achievements Mod and/or Unlimited Survival Mode is installed, but Achievements is set to TRUE # \n",
-                $" FIX: Open {_yamlData.CrashgenName}'s TOML file and change Achievements to FALSE, this prevents conflicts with {_yamlData.CrashgenName}.\n-----\n"
+                $" FIX: Open {_yamlSettings.GetSetting("Game", "Game_Info.CRASHGEN_LogName", "Crash Logger")}'s TOML file and change Achievements to FALSE, this prevents conflicts with {_yamlSettings.GetSetting("Game", "Game_Info.CRASHGEN_LogName", "Crash Logger")}.\n-----\n"
             });
         }
         else
         {
-            autoscanReport.Add($"✔️ Achievements parameter is correctly configured in your {_yamlData.CrashgenName} settings! \n-----\n");
+            autoscanReport.Add($"✔️ Achievements parameter is correctly configured in your {_yamlSettings.GetSetting("Game", "Game_Info.CRASHGEN_LogName", "Crash Logger")} settings! \n-----\n");
         }
     }
 
@@ -112,7 +113,7 @@ public class SettingsScanner : IAnalyzer
         const string successPrefix = "✔️ ";
         const string warningPrefix = "# ❌ CAUTION : ";
         const string fixPrefix = " FIX: ";
-        var crashgenName = _yamlData.CrashgenName;
+        var crashgenName = _yamlSettings.GetSetting("Game", "Game_Info.CRASHGEN_LogName", "Crash Logger");
 
         void AddSuccessMessage(string message)
         {
@@ -213,12 +214,12 @@ public class SettingsScanner : IAnalyzer
             autoscanReport.AddRange(new[]
             {
                 "# ❌ CAUTION : ArchiveLimit is set to TRUE, this setting is known to cause instability. # \n",
-                $" FIX: Open {_yamlData.CrashgenName}'s TOML file and change ArchiveLimit to FALSE.\n-----\n"
+                $" FIX: Open {_yamlSettings.GetSetting("Game", "Game_Info.CRASHGEN_LogName", "Crash Logger")}'s TOML file and change ArchiveLimit to FALSE.\n-----\n"
             });
         }
         else
         {
-            autoscanReport.Add($"✔️ ArchiveLimit parameter is correctly configured in your {_yamlData.CrashgenName} settings! \n-----\n");
+            autoscanReport.Add($"✔️ ArchiveLimit parameter is correctly configured in your {_yamlSettings.GetSetting("Game", "Game_Info.CRASHGEN_LogName", "Crash Logger")} settings! \n-----\n");
         }
     }
 
@@ -239,12 +240,12 @@ public class SettingsScanner : IAnalyzer
                 autoscanReport.AddRange(new[]
                 {
                     "# ❌ CAUTION : Looks Menu is installed, but F4EE parameter under [Compatibility] is set to FALSE # \n",
-                    $" FIX: Open {_yamlData.CrashgenName}'s TOML file and change F4EE to TRUE, this prevents bugs and crashes from Looks Menu.\n-----\n"
+                    $" FIX: Open {_yamlSettings.GetSetting("Game", "Game_Info.CRASHGEN_LogName", "Crash Logger")}'s TOML file and change F4EE to TRUE, this prevents bugs and crashes from Looks Menu.\n-----\n"
                 });
             }
             else
             {
-                autoscanReport.Add($"✔️ F4EE (Looks Menu) parameter is correctly configured in your {_yamlData.CrashgenName} settings! \n-----\n");
+                autoscanReport.Add($"✔️ F4EE (Looks Menu) parameter is correctly configured in your {_yamlSettings.GetSetting("Game", "Game_Info.CRASHGEN_LogName", "Crash Logger")} settings! \n-----\n");
             }
         }
     }
@@ -264,7 +265,7 @@ public class SettingsScanner : IAnalyzer
             {
                 if (settingValue is false && !crashgenIgnore.Contains(settingName))
                 {
-                    autoscanReport.Add($"* NOTICE : {settingName} is disabled in your {_yamlData.CrashgenName} settings, is this intentional? * \n-----\n");
+                    autoscanReport.Add($"* NOTICE : {settingName} is disabled in your {_yamlSettings.GetSetting("Game", "Game_Info.CRASHGEN_LogName", "Crash Logger")} settings, is this intentional? * \n-----\n");
                 }
             }
         }

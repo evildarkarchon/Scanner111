@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using Scanner111.Core.Models;
+using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Core.Analyzers;
 
@@ -10,9 +11,7 @@ namespace Scanner111.Core.Analyzers;
 public class FormIdAnalyzer : IAnalyzer
 {
     private static readonly ConcurrentDictionary<string, Regex> PatternCache = new();
-    private readonly ClassicScanLogsInfo _yamlData;
-    private readonly bool _showFormIdValues;
-    private readonly bool _formIdDbExists;
+    private readonly IYamlSettingsProvider _yamlSettings;
     private readonly Regex _formIdPattern;
 
     /// <summary>
@@ -33,14 +32,10 @@ public class FormIdAnalyzer : IAnalyzer
     /// <summary>
     /// Initialize the FormID analyzer
     /// </summary>
-    /// <param name="yamlData">Configuration data</param>
-    /// <param name="showFormIdValues">Whether to show FormID values</param>
-    /// <param name="formIdDbExists">Whether FormID database exists</param>
-    public FormIdAnalyzer(ClassicScanLogsInfo yamlData, bool showFormIdValues, bool formIdDbExists)
+    /// <param name="yamlSettings">YAML settings provider for configuration</param>
+    public FormIdAnalyzer(IYamlSettingsProvider yamlSettings)
     {
-        _yamlData = yamlData;
-        _showFormIdValues = showFormIdValues;
-        _formIdDbExists = formIdDbExists;
+        _yamlSettings = yamlSettings;
 
         // Pattern to match FormID format in crash logs (cached)
         const string patternKey = "formid_pattern";
@@ -63,7 +58,11 @@ public class FormIdAnalyzer : IAnalyzer
         var formIds = ExtractFormIds(crashLog.CallStack);
         var reportLines = new List<string>();
 
-        GenerateFormIdReport(formIds, crashLog.Plugins, reportLines);
+        // Load settings on-demand with caching
+        var showFormIdValues = _yamlSettings.GetSetting("Main", "CLASSIC_Settings.Show FormID Values", false);
+        var formIdDbExists = false; // TODO: Implement FormID database detection
+
+        GenerateFormIdReport(formIds, crashLog.Plugins, reportLines, showFormIdValues, formIdDbExists);
 
         return new FormIdAnalysisResult
         {
@@ -113,7 +112,9 @@ public class FormIdAnalyzer : IAnalyzer
     /// <param name="formIdsMatches">A list of Form ID matches extracted from the crash log</param>
     /// <param name="crashlogPlugins">A dictionary mapping plugin filenames to plugin IDs found in the crash log</param>
     /// <param name="autoscanReport">A mutable list to which the generated or default report will be appended</param>
-    private void GenerateFormIdReport(List<string> formIdsMatches, Dictionary<string, string> crashlogPlugins, List<string> autoscanReport)
+    /// <param name="showFormIdValues">Whether to show FormID values</param>
+    /// <param name="formIdDbExists">Whether FormID database exists</param>
+    private void GenerateFormIdReport(List<string> formIdsMatches, Dictionary<string, string> crashlogPlugins, List<string> autoscanReport, bool showFormIdValues, bool formIdDbExists)
     {
         if (formIdsMatches.Count > 0)
         {
@@ -138,7 +139,7 @@ public class FormIdAnalyzer : IAnalyzer
                         continue;
                     }
 
-                    if (_showFormIdValues && _formIdDbExists)
+                    if (showFormIdValues && formIdDbExists)
                     {
                         var report = LookupFormIdValue(formIdSplit[1][2..], plugin);
                         if (!string.IsNullOrEmpty(report))
@@ -158,7 +159,7 @@ public class FormIdAnalyzer : IAnalyzer
             autoscanReport.AddRange(new[]
             {
                 "\n[Last number counts how many times each Form ID shows up in the crash log.]\n",
-                $"These Form IDs were caught by {_yamlData.CrashgenName} and some of them might be related to this crash.\n",
+                $"These Form IDs were caught by {_yamlSettings.GetSetting("Game", "Game_Info.CRASHGEN_LogName", "Crash Logger")} and some of them might be related to this crash.\n",
                 "You can try searching any listed Form IDs in xEdit and see if they lead to relevant records.\n\n"
             });
         }
@@ -177,7 +178,8 @@ public class FormIdAnalyzer : IAnalyzer
     /// <returns>A string containing the value associated with the form ID and plugin if found in the database, or null if the database does not exist or the value is not found</returns>
     private string? LookupFormIdValue(string formId, string plugin)
     {
-        if (!_formIdDbExists)
+        // FormID database functionality not yet implemented
+        if (true) // TODO: Implement FormID database detection
         {
             return null;
         }

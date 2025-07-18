@@ -188,6 +188,8 @@ public class ScanPipelineBuilder
         
         // Add default message handler if not provided
         _services.TryAddSingleton<IMessageHandler, NullMessageHandler>();
+        
+        // ClassicScanLogsInfo removed - using IYamlSettingsProvider directly
     }
 }
 

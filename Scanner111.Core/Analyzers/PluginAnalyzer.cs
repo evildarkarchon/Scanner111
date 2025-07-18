@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using Scanner111.Core.Models;
+using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Core.Analyzers;
 
@@ -9,10 +10,8 @@ namespace Scanner111.Core.Analyzers;
 /// </summary>
 public class PluginAnalyzer : IAnalyzer
 {
-    private readonly ClassicScanLogsInfo _yamlData;
+    private readonly IYamlSettingsProvider _yamlSettings;
     private readonly Regex _pluginSearch;
-    private readonly HashSet<string> _lowerPluginsIgnore;
-    private readonly HashSet<string> _ignorePluginsList;
 
     /// <summary>
     /// Name of the analyzer
@@ -32,18 +31,16 @@ public class PluginAnalyzer : IAnalyzer
     /// <summary>
     /// Initialize the plugin analyzer
     /// </summary>
-    /// <param name="yamlData">Configuration data containing plugin-related settings</param>
-    public PluginAnalyzer(ClassicScanLogsInfo yamlData)
+    /// <param name="yamlSettings">YAML settings provider for configuration</param>
+    public PluginAnalyzer(IYamlSettingsProvider yamlSettings)
     {
-        _yamlData = yamlData;
+        _yamlSettings = yamlSettings;
         _pluginSearch = new Regex(
             @"\s*\[(FE:([0-9A-F]{3})|[0-9A-F]{2})\]\s*(.+?(?:\.es[pml])+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled
         );
         
-        // Initialize ignore lists (using empty sets if null)
-        _lowerPluginsIgnore = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        _ignorePluginsList = _yamlData.IgnorePluginsList?.Select(item => item.ToLower()).ToHashSet() ?? new HashSet<string>();
+        // Regex for plugin matching initialized
     }
 
     /// <summary>
@@ -181,11 +178,8 @@ public class PluginAnalyzer : IAnalyzer
         {
             foreach (var plugin in crashlogPluginsLower)
             {
-                // Skip plugins that are in the ignore list
-                if (_lowerPluginsIgnore.Contains(plugin))
-                {
-                    continue;
-                }
+                // TODO: Implement plugin ignore list from YAML settings
+                // Skipping ignore list check for now
 
                 if (line.Contains(plugin))
                 {
@@ -207,7 +201,7 @@ public class PluginAnalyzer : IAnalyzer
             autoscanReport.AddRange(new[]
             {
                 "\n[Last number counts how many times each Plugin Suspect shows up in the crash log.]\n",
-                $"These Plugins were caught by {_yamlData.CrashgenName} and some of them might be responsible for this crash.\n",
+                $"These Plugins were caught by {_yamlSettings.GetSetting("Game", "Game_Info.CRASHGEN_LogName", "Crash Logger")} and some of them might be responsible for this crash.\n",
                 "You can try disabling these plugins and check if the game still crashes, though this method can be unreliable.\n\n"
             });
         }
@@ -225,18 +219,21 @@ public class PluginAnalyzer : IAnalyzer
     /// <returns>A dictionary of crash log plugins with the ignored plugins removed</returns>
     private Dictionary<string, string> FilterIgnoredPlugins(Dictionary<string, string> crashlogPlugins)
     {
-        if (_ignorePluginsList.Count == 0)
+        var ignorePluginsList = _yamlSettings.GetSetting<List<string>>("Game", "Crashlog_Plugins_Exclude", new List<string>());
+        
+        if (ignorePluginsList.Count == 0)
         {
             return crashlogPlugins;
         }
 
         // Create lowercase version for comparison
         var crashlogPluginsLower = crashlogPlugins.Keys.ToDictionary(k => k.ToLower(), k => k);
+        var ignorePluginsLower = ignorePluginsList.Select(p => p.ToLower()).ToHashSet();
 
         // Remove ignored plugins
         var filteredPlugins = new Dictionary<string, string>(crashlogPlugins);
         
-        foreach (var signal in _ignorePluginsList)
+        foreach (var signal in ignorePluginsLower)
         {
             if (crashlogPluginsLower.TryGetValue(signal, out var originalKey))
             {
