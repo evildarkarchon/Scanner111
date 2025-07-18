@@ -3,6 +3,8 @@ using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
 using Scanner111.Core.Infrastructure;
 using Scanner111.GUI.Models;
+using Scanner111.GUI.Services;
+using Scanner111.GUI.Views;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -14,6 +16,7 @@ using System.IO;
 using System;
 using System.Linq;
 using Avalonia.Threading;
+using Avalonia.Controls;
 
 namespace Scanner111.GUI.ViewModels;
 
@@ -147,12 +150,18 @@ public partial class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> ScanCommand { get; }
     public ReactiveCommand<Unit, Unit> CancelScanCommand { get; }
     public ReactiveCommand<Unit, Unit> ClearResultsCommand { get; }
+    public ReactiveCommand<Unit, Unit> OpenSettingsCommand { get; }
 
     private IScanPipeline? _scanPipeline;
     private IMessageHandler? _messageHandler;
+    private readonly ISettingsService _settingsService;
+    private UserSettings _currentSettings;
 
     public MainWindowViewModel()
     {
+        _settingsService = new SettingsService();
+        _currentSettings = new UserSettings();
+        
         // Initialize commands first - defer pipeline creation to avoid threading issues
         SelectLogFileCommand = ReactiveCommand.CreateFromTask(SelectLogFile);
         SelectGamePathCommand = ReactiveCommand.CreateFromTask(SelectGamePath);
@@ -160,8 +169,12 @@ public partial class MainWindowViewModel : ViewModelBase
         ScanCommand = ReactiveCommand.CreateFromTask(ExecuteScan);
         CancelScanCommand = ReactiveCommand.Create(CancelScan);
         ClearResultsCommand = ReactiveCommand.Create(ClearResults);
+        OpenSettingsCommand = ReactiveCommand.CreateFromTask(OpenSettings);
 
         StatusText = "Ready - Select a crash log file to begin";
+        
+        // Load settings asynchronously
+        _ = LoadSettingsAsync();
     }
 
     private void EnsurePipelineInitialized()
@@ -192,6 +205,7 @@ public partial class MainWindowViewModel : ViewModelBase
                     SelectedLogPath = result;
                     StatusText = $"Selected: {Path.GetFileName(result)}";
                     AddLogMessage($"Selected crash log: {result}");
+                    _ = SaveCurrentPathsToSettings();
                 }
             }
         }
@@ -213,6 +227,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 {
                     SelectedGamePath = result;
                     AddLogMessage($"Selected game path: {result}");
+                    _ = SaveCurrentPathsToSettings();
                 }
             }
         }
@@ -233,6 +248,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 {
                     SelectedScanDirectory = result;
                     AddLogMessage($"Selected scan directory: {result}");
+                    _ = SaveCurrentPathsToSettings();
                 }
             }
         }
@@ -487,9 +503,81 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    private async Task LoadSettingsAsync()
+    {
+        try
+        {
+            _currentSettings = await _settingsService.LoadSettingsAsync();
+            
+            // Apply default paths from settings if current paths are empty
+            if (string.IsNullOrEmpty(SelectedLogPath) && !string.IsNullOrEmpty(_currentSettings.DefaultLogPath))
+                SelectedLogPath = _currentSettings.DefaultLogPath;
+                
+            if (string.IsNullOrEmpty(SelectedGamePath) && !string.IsNullOrEmpty(_currentSettings.DefaultGamePath))
+                SelectedGamePath = _currentSettings.DefaultGamePath;
+                
+            if (string.IsNullOrEmpty(SelectedScanDirectory) && !string.IsNullOrEmpty(_currentSettings.DefaultScanDirectory))
+                SelectedScanDirectory = _currentSettings.DefaultScanDirectory;
+        }
+        catch (Exception ex)
+        {
+            AddLogMessage($"Error loading settings: {ex.Message}");
+        }
+    }
+
+    private async Task SaveCurrentPathsToSettings()
+    {
+        try
+        {
+            // Update recent paths
+            if (!string.IsNullOrEmpty(SelectedLogPath))
+                _currentSettings.AddRecentLogFile(SelectedLogPath);
+                
+            if (!string.IsNullOrEmpty(SelectedGamePath))
+                _currentSettings.AddRecentGamePath(SelectedGamePath);
+                
+            if (!string.IsNullOrEmpty(SelectedScanDirectory))
+                _currentSettings.AddRecentScanDirectory(SelectedScanDirectory);
+
+            await _settingsService.SaveSettingsAsync(_currentSettings);
+        }
+        catch (Exception ex)
+        {
+            AddLogMessage($"Error saving settings: {ex.Message}");
+        }
+    }
+
+    private async Task OpenSettings()
+    {
+        try
+        {
+            var settingsWindow = new SettingsWindow
+            {
+                DataContext = new SettingsWindowViewModel(_settingsService)
+            };
+            
+            if (settingsWindow.DataContext is SettingsWindowViewModel viewModel)
+            {
+                viewModel.CloseWindow = () => settingsWindow.Close();
+            }
+
+            // Show as dialog and reload settings after closing
+            if (TopLevel != null)
+            {
+                await settingsWindow.ShowDialog(TopLevel);
+                await LoadSettingsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            AddLogMessage($"Error opening settings: {ex.Message}");
+        }
+    }
+
     // File picker delegates - set by the View
     public Func<string, string, Task<string>>? ShowFilePickerAsync { get; set; }
     public Func<string, Task<string>>? ShowFolderPickerAsync { get; set; }
+    public Window? TopLevel { get; set; }
 }
 
 public class GuiMessageHandler : IMessageHandler
@@ -503,17 +591,57 @@ public class GuiMessageHandler : IMessageHandler
 
     public void ShowInfo(string message, MessageTarget target = MessageTarget.All)
     {
-        Dispatcher.UIThread.InvokeAsync(() => _viewModel.AddLogMessage($"INFO: {message}"));
+        if (target == MessageTarget.CliOnly) return;
+        Dispatcher.UIThread.InvokeAsync(() => _viewModel.AddLogMessage($"ℹ️ INFO: {message}"));
     }
 
-    public void ShowWarning(string message)
+    public void ShowWarning(string message, MessageTarget target = MessageTarget.All)
     {
-        Dispatcher.UIThread.InvokeAsync(() => _viewModel.AddLogMessage($"WARNING: {message}"));
+        if (target == MessageTarget.CliOnly) return;
+        Dispatcher.UIThread.InvokeAsync(() => _viewModel.AddLogMessage($"⚠️ WARNING: {message}"));
     }
 
-    public void ShowError(string message)
+    public void ShowError(string message, MessageTarget target = MessageTarget.All)
     {
-        Dispatcher.UIThread.InvokeAsync(() => _viewModel.AddLogMessage($"ERROR: {message}"));
+        if (target == MessageTarget.CliOnly) return;
+        Dispatcher.UIThread.InvokeAsync(() => _viewModel.AddLogMessage($"❌ ERROR: {message}"));
+    }
+
+    public void ShowSuccess(string message, MessageTarget target = MessageTarget.All)
+    {
+        if (target == MessageTarget.CliOnly) return;
+        Dispatcher.UIThread.InvokeAsync(() => _viewModel.AddLogMessage($"✅ SUCCESS: {message}"));
+    }
+
+    public void ShowDebug(string message, MessageTarget target = MessageTarget.All)
+    {
+        if (target == MessageTarget.CliOnly) return;
+        Dispatcher.UIThread.InvokeAsync(() => _viewModel.AddLogMessage($"🔍 DEBUG: {message}"));
+    }
+
+    public void ShowCritical(string message, MessageTarget target = MessageTarget.All)
+    {
+        if (target == MessageTarget.CliOnly) return;
+        Dispatcher.UIThread.InvokeAsync(() => _viewModel.AddLogMessage($"🚨 CRITICAL: {message}"));
+    }
+
+    public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info, MessageTarget target = MessageTarget.All)
+    {
+        if (target == MessageTarget.CliOnly) return;
+        
+        var prefix = messageType switch
+        {
+            MessageType.Info => "ℹ️ INFO",
+            MessageType.Warning => "⚠️ WARNING",
+            MessageType.Error => "❌ ERROR",
+            MessageType.Success => "✅ SUCCESS",
+            MessageType.Debug => "🔍 DEBUG",
+            MessageType.Critical => "🚨 CRITICAL",
+            _ => "INFO"
+        };
+        
+        var fullMessage = details != null ? $"{message}\nDetails: {details}" : message;
+        Dispatcher.UIThread.InvokeAsync(() => _viewModel.AddLogMessage($"{prefix}: {fullMessage}"));
     }
 
     public IProgress<ProgressInfo> ShowProgress(string title, int totalItems)
@@ -523,6 +651,11 @@ public class GuiMessageHandler : IMessageHandler
             _viewModel.ProgressVisible = true;
         });
         return new GuiProgress(_viewModel, totalItems);
+    }
+
+    public IProgressContext CreateProgressContext(string title, int totalItems)
+    {
+        return new GuiProgressContext(_viewModel, title, totalItems);
     }
 }
 
@@ -542,6 +675,68 @@ public class GuiProgress : IProgress<ProgressInfo>
         Dispatcher.UIThread.InvokeAsync(() => {
             _viewModel.ProgressText = value.Message;
             _viewModel.ProgressValue = value.Percentage;
+        });
+    }
+}
+
+public class GuiProgressContext : IProgressContext
+{
+    private readonly MainWindowViewModel _viewModel;
+    private readonly string _title;
+    private readonly int _totalItems;
+    private bool _disposed;
+
+    public GuiProgressContext(MainWindowViewModel viewModel, string title, int totalItems)
+    {
+        _viewModel = viewModel;
+        _title = title;
+        _totalItems = totalItems;
+        
+        Dispatcher.UIThread.InvokeAsync(() => {
+            _viewModel.ProgressText = title;
+            _viewModel.ProgressVisible = true;
+            _viewModel.ProgressValue = 0;
+        });
+    }
+
+    public void Update(int current, string message)
+    {
+        if (_disposed) return;
+        
+        var percentage = _totalItems > 0 ? (current * 100.0) / _totalItems : 0;
+        Dispatcher.UIThread.InvokeAsync(() => {
+            _viewModel.ProgressText = message;
+            _viewModel.ProgressValue = percentage;
+        });
+    }
+
+    public void Complete()
+    {
+        if (_disposed) return;
+        
+        Dispatcher.UIThread.InvokeAsync(() => {
+            _viewModel.ProgressValue = 100;
+            _viewModel.ProgressText = "Complete";
+        });
+    }
+
+    public void Report(ProgressInfo value)
+    {
+        if (_disposed) return;
+        
+        Dispatcher.UIThread.InvokeAsync(() => {
+            _viewModel.ProgressText = value.Message;
+            _viewModel.ProgressValue = value.Percentage;
+        });
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        
+        Dispatcher.UIThread.InvokeAsync(() => {
+            _viewModel.ProgressVisible = false;
         });
     }
 }

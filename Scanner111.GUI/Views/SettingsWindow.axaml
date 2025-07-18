@@ -1,0 +1,181 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Scanner111.GUI.ViewModels"
+        x:Class="Scanner111.GUI.Views.SettingsWindow"
+        x:DataType="vm:SettingsWindowViewModel"
+        Title="Settings - Scanner111"
+        Width="600"
+        Height="700"
+        MinWidth="500"
+        MinHeight="600"
+        WindowStartupLocation="CenterOwner"
+        Background="#2d2d30"
+        Foreground="White">
+
+  <Design.DataContext>
+    <vm:SettingsWindowViewModel />
+  </Design.DataContext>
+
+  <Grid Margin="20">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <ScrollViewer Grid.Row="0">
+      <StackPanel Spacing="20">
+        
+        <!-- Default Paths Section -->
+        <Border Background="#3c3c3c" CornerRadius="5" Padding="15">
+          <StackPanel Spacing="15">
+            <TextBlock Text="Default Paths" FontSize="16" FontWeight="Bold" Foreground="#0e639c" />
+            
+            <!-- Default Log Path -->
+            <StackPanel Spacing="5">
+              <TextBlock Text="Default Log File Path:" />
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBox Grid.Column="0" Text="{Binding DefaultLogPath}" 
+                         Watermark="Select default crash log file..." />
+                <Button Grid.Column="1" Content="Browse" Margin="5,0,0,0" Width="80"
+                        Command="{Binding BrowseLogPathCommand}" />
+              </Grid>
+            </StackPanel>
+
+            <!-- Default Game Path -->
+            <StackPanel Spacing="5">
+              <TextBlock Text="Default Game Installation Path:" />
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBox Grid.Column="0" Text="{Binding DefaultGamePath}" 
+                         Watermark="Select game installation directory..." />
+                <Button Grid.Column="1" Content="Browse" Margin="5,0,0,0" Width="80"
+                        Command="{Binding BrowseGamePathCommand}" />
+              </Grid>
+            </StackPanel>
+
+            <!-- Default Scan Directory -->
+            <StackPanel Spacing="5">
+              <TextBlock Text="Default Scan Directory:" />
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBox Grid.Column="0" Text="{Binding DefaultScanDirectory}" 
+                         Watermark="Select directory to scan for crash logs..." />
+                <Button Grid.Column="1" Content="Browse" Margin="5,0,0,0" Width="80"
+                        Command="{Binding BrowseScanDirectoryCommand}" />
+              </Grid>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- General Options Section -->
+        <Border Background="#3c3c3c" CornerRadius="5" Padding="15">
+          <StackPanel Spacing="15">
+            <TextBlock Text="General Options" FontSize="16" FontWeight="Bold" Foreground="#0e639c" />
+            
+            <CheckBox Content="Auto-load F4SE crash logs" IsChecked="{Binding AutoLoadF4SELogs}" />
+            <CheckBox Content="Enable progress notifications" IsChecked="{Binding EnableProgressNotifications}" />
+            <CheckBox Content="Auto-save scan results" IsChecked="{Binding AutoSaveResults}" />
+            <CheckBox Content="Enable debug logging" IsChecked="{Binding EnableDebugLogging}" />
+            <CheckBox Content="Remember window size and position" IsChecked="{Binding RememberWindowSize}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Interface Settings Section -->
+        <Border Background="#3c3c3c" CornerRadius="5" Padding="15">
+          <StackPanel Spacing="15">
+            <TextBlock Text="Interface Settings" FontSize="16" FontWeight="Bold" Foreground="#0e639c" />
+            
+            <!-- Max Log Messages -->
+            <StackPanel Spacing="5">
+              <TextBlock Text="Maximum Log Messages:" />
+              <NumericUpDown Value="{Binding MaxLogMessages}" Minimum="50" Maximum="1000" 
+                           Increment="50" Width="120" HorizontalAlignment="Left" />
+            </StackPanel>
+
+            <!-- Max Recent Items -->
+            <StackPanel Spacing="5">
+              <TextBlock Text="Maximum Recent Items:" />
+              <NumericUpDown Value="{Binding MaxRecentItems}" Minimum="5" Maximum="50" 
+                           Increment="5" Width="120" HorizontalAlignment="Left" />
+            </StackPanel>
+
+            <!-- Default Output Format -->
+            <StackPanel Spacing="5">
+              <TextBlock Text="Default Output Format:" />
+              <ComboBox SelectedItem="{Binding DefaultOutputFormat}" Width="150" HorizontalAlignment="Left">
+                <ComboBoxItem Content="text" />
+                <ComboBoxItem Content="json" />
+                <ComboBoxItem Content="xml" />
+              </ComboBox>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- Window Settings Section -->
+        <Border Background="#3c3c3c" CornerRadius="5" Padding="15" 
+                IsVisible="{Binding RememberWindowSize}">
+          <StackPanel Spacing="15">
+            <TextBlock Text="Window Settings" FontSize="16" FontWeight="Bold" Foreground="#0e639c" />
+            
+            <!-- Window Width -->
+            <StackPanel Spacing="5">
+              <TextBlock Text="Default Window Width:" />
+              <NumericUpDown Value="{Binding WindowWidth}" Minimum="800" Maximum="3840" 
+                           Increment="50" Width="120" HorizontalAlignment="Left" />
+            </StackPanel>
+
+            <!-- Window Height -->
+            <StackPanel Spacing="5">
+              <TextBlock Text="Default Window Height:" />
+              <NumericUpDown Value="{Binding WindowHeight}" Minimum="600" Maximum="2160" 
+                           Increment="50" Width="120" HorizontalAlignment="Left" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- Recent Files Section -->
+        <Border Background="#3c3c3c" CornerRadius="5" Padding="15">
+          <StackPanel Spacing="15">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0" Text="Recent Files" FontSize="16" FontWeight="Bold" Foreground="#0e639c" />
+              <Button Grid.Column="1" Content="Clear All" 
+                      Command="{Binding ClearRecentFilesCommand}" />
+            </Grid>
+            
+            <!-- Recent Log Files -->
+            <StackPanel Spacing="5" IsVisible="{Binding HasRecentLogFiles}">
+              <TextBlock Text="Recent Log Files:" FontWeight="SemiBold" />
+              <ListBox ItemsSource="{Binding RecentLogFiles}" Height="100" Background="#2d2d30" />
+            </StackPanel>
+
+            <!-- Recent Game Paths -->
+            <StackPanel Spacing="5" IsVisible="{Binding HasRecentGamePaths}">
+              <TextBlock Text="Recent Game Paths:" FontWeight="SemiBold" />
+              <ListBox ItemsSource="{Binding RecentGamePaths}" Height="100" Background="#2d2d30" />
+            </StackPanel>
+
+            <!-- Recent Scan Directories -->
+            <StackPanel Spacing="5" IsVisible="{Binding HasRecentScanDirectories}">
+              <TextBlock Text="Recent Scan Directories:" FontWeight="SemiBold" />
+              <ListBox ItemsSource="{Binding RecentScanDirectories}" Height="100" Background="#2d2d30" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- Buttons -->
+    <Grid Grid.Row="1" Margin="0,20,0,0" ColumnDefinitions="*,Auto,Auto,Auto">
+      <Button Grid.Column="1" Content="Reset to Defaults" 
+              Command="{Binding ResetToDefaultsCommand}" 
+              Margin="0,0,10,0" />
+      <Button Grid.Column="2" Content="Cancel" 
+              Command="{Binding CancelCommand}" 
+              Margin="0,0,10,0" />
+      <Button Grid.Column="3" Content="Save" 
+              Command="{Binding SaveCommand}" 
+              Background="#0e639c" 
+              Classes="accent" />
+    </Grid>
+  </Grid>
+
+</Window>

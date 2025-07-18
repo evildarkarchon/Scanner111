@@ -26,6 +26,7 @@ public partial class MainWindow : Window
         // Set up file picker delegates
         viewModel.ShowFilePickerAsync = ShowFilePickerAsync;
         viewModel.ShowFolderPickerAsync = ShowFolderPickerAsync;
+        viewModel.TopLevel = this;
         
         // Set DataContext
         DataContext = viewModel;

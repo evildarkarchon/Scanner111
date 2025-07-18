@@ -14,6 +14,23 @@
         MinWidth="800" MinHeight="600"
         WindowStartupLocation="CenterScreen">
 
+    <NativeMenu.Menu>
+        <NativeMenu>
+            <NativeMenuItem Header="_File">
+                <NativeMenu>
+                    <NativeMenuItem Header="_Settings..." Command="{Binding OpenSettingsCommand}" />
+                    <NativeMenuItemSeparator />
+                    <NativeMenuItem Header="E_xit" />
+                </NativeMenu>
+            </NativeMenuItem>
+            <NativeMenuItem Header="_Help">
+                <NativeMenu>
+                    <NativeMenuItem Header="_About" />
+                </NativeMenu>
+            </NativeMenuItem>
+        </NativeMenu>
+    </NativeMenu.Menu>
+
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
@@ -30,19 +47,21 @@
         <Border Grid.Row="0" Background="#FF0e639c" Padding="15">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*" MinWidth="200"/>
+                    <ColumnDefinition Width="Auto" MinWidth="350"/>
                 </Grid.ColumnDefinitions>
                 
                 <StackPanel Grid.Column="0" Orientation="Vertical">
                     <TextBlock Text="CLASSIC Crash Log Analyzer" 
                               FontSize="20" FontWeight="Bold" 
-                              Foreground="White" Margin="0,0,0,5"/>
+                              Foreground="White" Margin="0,0,0,5"
+                              TextWrapping="Wrap"/>
                     <TextBlock Text="Analyze Bethesda game crash logs to identify problematic modifications" 
-                              FontSize="12" Foreground="#FFE0E0E0"/>
+                              FontSize="12" Foreground="#FFE0E0E0"
+                              TextWrapping="Wrap"/>
                 </StackPanel>
                 
-                <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="8">
+                <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="8" MinWidth="350">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -50,7 +69,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBox Grid.Column="0" Text="{Binding SelectedLogPath}" 
                                 Watermark="Select crash log file..." 
-                                IsReadOnly="True" MinWidth="300" Margin="0,0,5,0"/>
+                                IsReadOnly="True" Margin="0,0,5,0"/>
                         <Button Grid.Column="1" Content="Browse..." 
                                Command="{Binding SelectLogFileCommand}"
                                Background="#FF444444" Foreground="White"/>
@@ -119,9 +138,9 @@
                     <!-- Results List and Detail View -->
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="400"/>
+                            <ColumnDefinition Width="0.4*" MinWidth="300" MaxWidth="600"/>
                             <ColumnDefinition Width="5"/>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="0.6*" MinWidth="400"/>
                         </Grid.ColumnDefinitions>
                         
                         <!-- Results List -->
