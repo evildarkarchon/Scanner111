@@ -43,8 +43,8 @@ public class SettingsService : ISettingsService
             WindowHeight = 800,
             EnableDebugLogging = false,
             MaxRecentItems = 10,
-            AutoSaveResults = false,
-            DefaultOutputFormat = "text"
+            AutoSaveResults = true,
+            DefaultOutputFormat = "detailed"
         };
     }
 

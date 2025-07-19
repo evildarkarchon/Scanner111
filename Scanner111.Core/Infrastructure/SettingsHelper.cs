@@ -65,7 +65,7 @@ public static class SettingsHelper
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading settings from {filePath}: {ex.Message}");
+            MessageHandler.MsgDebug($"Error loading settings from {filePath}: {ex.Message}");
             return defaultFactory();
         }
     }
@@ -88,7 +88,7 @@ public static class SettingsHelper
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving settings to {filePath}: {ex.Message}");
+            MessageHandler.MsgDebug($"Error saving settings to {filePath}: {ex.Message}");
             throw;
         }
     }

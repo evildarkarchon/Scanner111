@@ -52,10 +52,10 @@ public class UserSettings
     public List<string> LastUsedAnalyzers { get; set; } = new();
 
     [JsonPropertyName("autoSaveResults")]
-    public bool AutoSaveResults { get; set; } = false;
+    public bool AutoSaveResults { get; set; } = true;
 
     [JsonPropertyName("defaultOutputFormat")]
-    public string DefaultOutputFormat { get; set; } = "text";
+    public string DefaultOutputFormat { get; set; } = "detailed";
 
     [JsonPropertyName("crashLogsDirectory")]
     public string CrashLogsDirectory { get; set; } = "";

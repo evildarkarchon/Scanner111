@@ -41,7 +41,6 @@ public class YamlSettingsService : IYamlSettingsProvider
     {
         _cacheManager = cacheManager;
         _deserializer = new DeserializerBuilder()
-            .WithNamingConvention(UnderscoredNamingConvention.Instance)
             .Build();
     }
     
@@ -78,13 +77,13 @@ public class YamlSettingsService : IYamlSettingsProvider
         try
         {
             var yamlPath = Path.Combine("Data", $"{yamlFile}.yaml");
-            System.Console.WriteLine($"DEBUG: Looking for YAML file: {yamlPath} (yamlFile='{yamlFile}', keyPath='{keyPath}')");
+            MessageHandler.MsgDebug($"Looking for YAML file: {yamlPath} (yamlFile='{yamlFile}', keyPath='{keyPath}')");
             if (!File.Exists(yamlPath))
             {
-                System.Console.WriteLine($"DEBUG: YAML file not found: {yamlPath}");
+                MessageHandler.MsgDebug($"YAML file not found: {yamlPath}");
                 return defaultValue;
             }
-            System.Console.WriteLine($"DEBUG: YAML file found: {yamlPath}");
+            MessageHandler.MsgDebug($"YAML file found: {yamlPath}");
             
             var yaml = File.ReadAllText(yamlPath, System.Text.Encoding.UTF8);
             var data = _deserializer.Deserialize<Dictionary<string, object>>(yaml);
@@ -145,6 +144,13 @@ public class YamlSettingsService : IYamlSettingsProvider
     {
         if (value is T directValue)
             return directValue;
+        
+        // Handle List<object> to List<string> conversion
+        if (typeof(T) == typeof(List<string>) && value is List<object> objList)
+        {
+            var stringList = objList.Select(o => o?.ToString()).Where(s => s != null).ToList();
+            return (T)(object)stringList!;
+        }
         
         if (typeof(T) == typeof(bool) && value is string strValue)
         {

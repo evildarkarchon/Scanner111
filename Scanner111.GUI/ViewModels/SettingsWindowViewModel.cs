@@ -23,8 +23,8 @@ public class SettingsWindowViewModel : ViewModelBase
     private double _windowHeight = 800;
     private bool _enableDebugLogging = false;
     private int _maxRecentItems = 10;
-    private bool _autoSaveResults = false;
-    private string _defaultOutputFormat = "text";
+    private bool _autoSaveResults = true;
+    private string _defaultOutputFormat = "detailed";
 
     public string DefaultLogPath
     {
@@ -155,7 +155,6 @@ public class SettingsWindowViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading settings: {ex.Message}");
             ResetToDefaults();
         }
     }
@@ -287,7 +286,7 @@ public class SettingsWindowViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving settings: {ex.Message}");
+            // Settings save failed - ignore silently for GUI
         }
     }
 

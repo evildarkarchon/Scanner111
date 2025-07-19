@@ -17,6 +17,7 @@ using System;
 using System.Linq;
 using Avalonia.Threading;
 using Avalonia.Controls;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Scanner111.GUI.ViewModels;
 
@@ -151,9 +152,12 @@ public partial class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> CancelScanCommand { get; }
     public ReactiveCommand<Unit, Unit> ClearResultsCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenSettingsCommand { get; }
+    public ReactiveCommand<Unit, Unit> ExportSelectedReportCommand { get; }
+    public ReactiveCommand<Unit, Unit> ExportAllReportsCommand { get; }
 
     private IScanPipeline? _scanPipeline;
     private IMessageHandler? _messageHandler;
+    private IReportWriter? _reportWriter;
     private readonly ISettingsService _settingsService;
     private UserSettings _currentSettings;
 
@@ -170,6 +174,8 @@ public partial class MainWindowViewModel : ViewModelBase
         CancelScanCommand = ReactiveCommand.Create(CancelScan);
         ClearResultsCommand = ReactiveCommand.Create(ClearResults);
         OpenSettingsCommand = ReactiveCommand.CreateFromTask(OpenSettings);
+        ExportSelectedReportCommand = ReactiveCommand.CreateFromTask(ExportSelectedReport, this.WhenAnyValue(x => x.SelectedResult).Select(x => x != null));
+        ExportAllReportsCommand = ReactiveCommand.CreateFromTask(ExportAllReports, this.WhenAnyValue(x => x.ScanResults.Count).Select(x => x > 0));
 
         StatusText = "Ready - Select a crash log file to begin";
         
@@ -190,6 +196,9 @@ public partial class MainWindowViewModel : ViewModelBase
                 .WithEnhancedErrorHandling(true)
                 .WithLogging(builder => builder.AddConsole())
                 .Build();
+                
+            // Initialize report writer with null logger (GUI doesn't need console logging)
+            _reportWriter = new ReportWriter(Microsoft.Extensions.Logging.Abstractions.NullLogger<ReportWriter>.Instance);
         }
     }
 
@@ -295,6 +304,9 @@ public partial class MainWindowViewModel : ViewModelBase
                 {
                     ScanResults.Add(new ScanResultViewModel(result));
                     AddLogMessage($"Scan status: {result.Status}, Found {result.AnalysisResults.Count} analysis results");
+                    
+                    // Auto-save if enabled
+                    await AutoSaveResult(result);
                 }
             }
             else
@@ -310,6 +322,9 @@ public partial class MainWindowViewModel : ViewModelBase
                         ProgressValue = (double)resultCount / filesToScan.Count * 100;
                         ProgressText = $"Processed {resultCount}/{filesToScan.Count} files";
                         AddLogMessage($"Processed {Path.GetFileName(result.LogPath)}: {result.Status}, {result.AnalysisResults.Count} analysis results");
+                        
+                        // Auto-save if enabled
+                        await AutoSaveResult(result);
                     }
                 }
             }
@@ -588,6 +603,93 @@ public partial class MainWindowViewModel : ViewModelBase
         catch (Exception ex)
         {
             AddLogMessage($"Error opening settings: {ex.Message}");
+        }
+    }
+
+    private async Task AutoSaveResult(ScanResult result)
+    {
+        if (_reportWriter == null || !_currentSettings.AutoSaveResults) return;
+
+        try
+        {
+            var success = await _reportWriter.WriteReportAsync(result);
+            if (success)
+            {
+                AddLogMessage($"Report auto-saved: {Path.GetFileName(result.OutputPath)}");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddLogMessage($"Auto-save failed for {Path.GetFileName(result.LogPath)}: {ex.Message}");
+        }
+    }
+
+    private async Task ExportSelectedReport()
+    {
+        if (SelectedResult?.ScanResult == null || _reportWriter == null) return;
+
+        try
+        {
+            var success = await _reportWriter.WriteReportAsync(SelectedResult.ScanResult);
+            if (success)
+            {
+                AddLogMessage($"Report exported to: {SelectedResult.ScanResult.OutputPath}");
+            }
+            else
+            {
+                AddLogMessage("Failed to export report");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddLogMessage($"Error exporting report: {ex.Message}");
+        }
+    }
+
+    private async Task ExportAllReports()
+    {
+        if (_reportWriter == null || ScanResults.Count == 0) return;
+
+        try
+        {
+            var exportedCount = 0;
+            var failedCount = 0;
+
+            ProgressVisible = true;
+            ProgressText = "Exporting reports...";
+            ProgressValue = 0;
+
+            for (int i = 0; i < ScanResults.Count; i++)
+            {
+                var result = ScanResults[i];
+                try
+                {
+                    var success = await _reportWriter.WriteReportAsync(result.ScanResult);
+                    if (success)
+                    {
+                        exportedCount++;
+                    }
+                    else
+                    {
+                        failedCount++;
+                    }
+                }
+                catch
+                {
+                    failedCount++;
+                }
+
+                ProgressValue = ((i + 1) * 100.0) / ScanResults.Count;
+                ProgressText = $"Exported {exportedCount}/{ScanResults.Count} reports...";
+            }
+
+            ProgressVisible = false;
+            AddLogMessage($"Batch export complete: {exportedCount} exported, {failedCount} failed");
+        }
+        catch (Exception ex)
+        {
+            ProgressVisible = false;
+            AddLogMessage($"Error during batch export: {ex.Message}");
         }
     }
 

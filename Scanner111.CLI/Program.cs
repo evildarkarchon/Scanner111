@@ -6,6 +6,19 @@ using System.Text;
 using Scanner111.Core.Models;
 using Scanner111.CLI.Services;
 using Scanner111.CLI.Models;
+using Microsoft.Extensions.DependencyInjection;
+
+// Helper functions
+static IReportWriter GetReportWriterFromPipeline(ScanPipelineBuilder pipelineBuilder)
+{
+    // Create a temporary service provider to get the report writer
+    var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+    services.AddLogging(builder => builder.AddConsole());
+    services.AddSingleton<IReportWriter, ReportWriter>();
+    
+    var serviceProvider = services.BuildServiceProvider();
+    return serviceProvider.GetRequiredService<IReportWriter>();
+}
 
 // Ensure UTF-8 encoding for Windows console
 if (OperatingSystem.IsWindows())
@@ -71,8 +84,12 @@ async Task<int> RunScan(ScanOptions options, CliSettingsService settingsService,
         
         var pipeline = pipelineBuilder.Build();
         
-        // Collect files to scan
-        var filesToScan = CollectFilesToScan(options);
+        // Get report writer service from the pipeline's service provider
+        var reportWriter = GetReportWriterFromPipeline(pipelineBuilder);
+        
+        // Collect files to scan and track which ones were copied from XSE
+        var xseCopiedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var filesToScan = CollectFilesToScan(options, xseCopiedFiles);
         
         if (filesToScan.Count == 0)
         {
@@ -102,8 +119,11 @@ async Task<int> RunScan(ScanOptions options, CliSettingsService settingsService,
                     
                     if (result != null)
                     {
+                        // Set XSE flag if this file was copied from XSE directory
+                        result.WasCopiedFromXSE = xseCopiedFiles.Contains(result.LogPath);
+                        
                         scanResults.Add(result);
-                        ProcessScanResult(result, options);
+                        await ProcessScanResult(result, options, reportWriter, xseCopiedFiles);
                     }
                 }
             }).Wait();
@@ -319,12 +339,12 @@ void ApplyCommandLineSettings(ScanOptions options, CliSettings settings)
     }
 }
 
-List<string> CollectFilesToScan(ScanOptions options)
+List<string> CollectFilesToScan(ScanOptions options, HashSet<string> xseCopiedFiles)
 {
     var filesToScan = new List<string>();
     
     // Auto-copy XSE crash logs first (F4SE and SKSE, similar to GUI functionality)
-    CopyXSELogs(filesToScan, options);
+    CopyXSELogs(filesToScan, options, xseCopiedFiles);
     
     // Add specific log file if provided
     if (!string.IsNullOrEmpty(options.LogFile) && File.Exists(options.LogFile))
@@ -366,7 +386,7 @@ List<string> CollectFilesToScan(ScanOptions options)
     return filesToScan.Distinct().ToList();
 }
 
-void CopyXSELogs(List<string> filesToScan, ScanOptions options)
+void CopyXSELogs(List<string> filesToScan, ScanOptions options, HashSet<string> xseCopiedFiles)
 {
     // Skip XSE copy if user disabled it
     if (options.SkipXSECopy)
@@ -415,12 +435,13 @@ void CopyXSELogs(List<string> filesToScan, ScanOptions options)
                     var targetPath = CrashLogDirectoryManager.CopyCrashLog(logFile, crashLogsBaseDir, gameType, overwrite: true);
                     
                     var xseType = xsePath.Contains("F4SE") ? "F4SE" : "SKSE";
-                    MessageHandler.MsgInfo($"Copied {xseType} {gameType} crash log: {Path.GetFileName(logFile)} -> {Path.GetDirectoryName(targetPath)}");
+                    MessageHandler.MsgDebug($"Copied {xseType} {gameType} crash log: {Path.GetFileName(logFile)} -> {Path.GetDirectoryName(targetPath)}");
                     copiedCount++;
                     
                     if (!filesToScan.Contains(targetPath))
                     {
                         filesToScan.Add(targetPath);
+                        xseCopiedFiles.Add(targetPath);
                     }
                 }
             }
@@ -428,7 +449,7 @@ void CopyXSELogs(List<string> filesToScan, ScanOptions options)
 
         if (copiedCount > 0)
         {
-            MessageHandler.MsgSuccess($"Auto-copied {copiedCount} XSE crash logs to {crashLogsBaseDir}");
+            MessageHandler.MsgSuccess($"Auto-copied {copiedCount} XSE crash logs");
         }
         else if (xsePaths.Length == 0)
         {
@@ -445,13 +466,8 @@ void CopyXSELogs(List<string> filesToScan, ScanOptions options)
     }
 }
 
-void ProcessScanResult(ScanResult result, ScanOptions options)
+async Task ProcessScanResult(ScanResult result, ScanOptions options, IReportWriter reportWriter, HashSet<string> xseCopiedFiles)
 {
-    if (options.OutputFormat == "json")
-    {
-        // TODO: Implement JSON output
-        return;
-    }
     
     if (options.OutputFormat == "summary")
     {
@@ -459,21 +475,44 @@ void ProcessScanResult(ScanResult result, ScanOptions options)
         return;
     }
     
-    // Detailed output (default)
-    MessageHandler.MsgInfo($"\nScan result for {Path.GetFileName(result.LogPath)}: {result.Status}");
-    
+    // Show scan status without printing full report (reports are auto-saved to files)
     if (result.AnalysisResults.Any(r => r.HasFindings))
     {
         MessageHandler.MsgWarning($"Found {result.AnalysisResults.Count(r => r.HasFindings)} issues in {Path.GetFileName(result.LogPath)}");
-        
-        if (options.Verbose || options.OutputFormat == "detailed")
-        {
-            Console.WriteLine("\n" + result.ReportText);
-        }
     }
     else
     {
         MessageHandler.MsgSuccess($"No issues found in {Path.GetFileName(result.LogPath)}");
+    }
+    
+    // Auto-save report to file (unless disabled by setting)
+    var autoSaveReports = GlobalRegistry.GetValueType<bool>("AutoSaveResults", true);
+    if (autoSaveReports && !string.IsNullOrEmpty(result.ReportText))
+    {
+        try
+        {
+            string outputPath;
+            if (result.WasCopiedFromXSE)
+            {
+                // For XSE copied files, use the default OutputPath (alongside the copied log)
+                outputPath = result.OutputPath;
+            }
+            else
+            {
+                // For non-XSE files (directly scanned), write report alongside the source log
+                outputPath = Path.ChangeExtension(result.LogPath, null) + "-AUTOSCAN.md";
+            }
+            
+            var success = await reportWriter.WriteReportAsync(result, outputPath);
+            if (!success)
+            {
+                MessageHandler.MsgWarning($"Failed to save report for {Path.GetFileName(result.LogPath)}");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageHandler.MsgError($"Error saving report: {ex.Message}");
+        }
     }
 }
 
@@ -536,7 +575,7 @@ public class ScanOptions
     [Option("disable-colors", HelpText = "Disable colored output")]
     public bool DisableColors { get; set; }
     
-    [Option('o', "output-format", Default = "detailed", HelpText = "Output format: detailed, summary, or json")]
+    [Option('o', "output-format", Default = "detailed", HelpText = "Output format: detailed or summary")]
     public string OutputFormat { get; set; } = "detailed";
 }
 
@@ -560,6 +599,7 @@ public class ConfigOptions
     [Option("show-path", HelpText = "Show configuration file path")]
     public bool ShowPath { get; set; }
 }
+
 
 [Verb("about", HelpText = "Show version and about information")]
 public class AboutOptions

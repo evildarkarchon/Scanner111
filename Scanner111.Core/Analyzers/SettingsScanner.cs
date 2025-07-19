@@ -49,7 +49,9 @@ public class SettingsScanner : IAnalyzer
         // Extract XSE modules and crashgen settings from crash log
         var xseModules = crashLog.XseModules;
         var crashgenSettings = crashLog.CrashgenSettings;
-        var crashgenIgnore = new HashSet<string>(_yamlSettings.GetSetting<List<string>>("CLASSIC Fallout4", "Game_Info.CRASHGEN_Ignore", new List<string>()) ?? new List<string>());
+        
+        var crashgenIgnoreList = _yamlSettings.GetSetting<List<string>>("CLASSIC Fallout4", "Game_Info.CRASHGEN_Ignore", new List<string>()) ?? new List<string>();
+        var crashgenIgnore = new HashSet<string>(crashgenIgnoreList, StringComparer.OrdinalIgnoreCase);
 
         // Check for X-Cell and Baka ScrapHeap (matching Python implementation)
         var hasXCell = xseModules.Contains("x-cell-fo4.dll") || 
@@ -266,9 +268,14 @@ public class SettingsScanner : IAnalyzer
         {
             foreach (var (settingName, settingValue) in crashgen)
             {
-                if (settingValue is false && !crashgenIgnore.Contains(settingName))
+                if (settingValue is false)
                 {
-                    autoscanReport.Add($"* NOTICE : {settingName} is disabled in your {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")} settings, is this intentional? * \n-----\n");
+                    var isIgnored = crashgenIgnore.Contains(settingName);
+                    
+                    if (!isIgnored)
+                    {
+                        autoscanReport.Add($"* NOTICE : {settingName} is disabled in your {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")} settings, is this intentional? * \n-----\n");
+                    }
                 }
             }
         }

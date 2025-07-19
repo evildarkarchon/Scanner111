@@ -98,7 +98,7 @@ public class FormIdDatabaseService : IFormIdDatabaseService
             catch (Exception ex)
             {
                 // Log error but continue to next database
-                Console.WriteLine($"Error accessing FormID database {dbPath}: {ex.Message}");
+                MessageHandler.MsgDebug($"Error accessing FormID database {dbPath}: {ex.Message}");
             }
         }
         

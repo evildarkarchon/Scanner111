@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Scanner111.Core\Scanner111.Core.csproj" />
+    <ProjectReference Include="..\Scanner111.GUI\Scanner111.GUI.csproj" />
   </ItemGroup>
 
 </Project>

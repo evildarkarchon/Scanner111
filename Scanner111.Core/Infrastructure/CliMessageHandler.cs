@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace Scanner111.Core.Infrastructure;
@@ -9,10 +11,26 @@ namespace Scanner111.Core.Infrastructure;
 public class CliMessageHandler : IMessageHandler
 {
     private readonly bool _useColors;
+    private readonly string _logDirectory;
+    private readonly string _currentLogFile;
 
     public CliMessageHandler(bool useColors = true)
     {
         _useColors = useColors && SupportsColors();
+        
+        // Set up debug log directory
+        _logDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Scanner111", "DebugLogs");
+        
+        Directory.CreateDirectory(_logDirectory);
+        
+        // Create current log file with timestamp
+        var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+        _currentLogFile = Path.Combine(_logDirectory, $"scanner111-debug-{timestamp}.log");
+        
+        // Clean up old log files (keep only 10)
+        CleanupOldLogFiles();
     }
 
     public void ShowInfo(string message, MessageTarget target = MessageTarget.All)
@@ -42,7 +60,7 @@ public class CliMessageHandler : IMessageHandler
     public void ShowDebug(string message, MessageTarget target = MessageTarget.All)
     {
         if (target == MessageTarget.GuiOnly) return;
-        WriteColoredMessage("🔍 DEBUG", message, ConsoleColor.Gray);
+        WriteDebugToFile(message);
     }
 
     public void ShowCritical(string message, MessageTarget target = MessageTarget.All)
@@ -55,13 +73,20 @@ public class CliMessageHandler : IMessageHandler
     {
         if (target == MessageTarget.GuiOnly) return;
 
+        // Handle debug messages separately - write to file instead of console
+        if (messageType == MessageType.Debug)
+        {
+            var debugMessage = details != null ? $"{message} - {details}" : message;
+            WriteDebugToFile(debugMessage);
+            return;
+        }
+
         var (prefix, color) = messageType switch
         {
             MessageType.Info => ("ℹ️ INFO", ConsoleColor.Cyan),
             MessageType.Warning => ("⚠️ WARNING", ConsoleColor.Yellow),
             MessageType.Error => ("❌ ERROR", ConsoleColor.Red),
             MessageType.Success => ("✅ SUCCESS", ConsoleColor.Green),
-            MessageType.Debug => ("🔍 DEBUG", ConsoleColor.Gray),
             MessageType.Critical => ("🚨 CRITICAL", ConsoleColor.Magenta),
             _ => ("INFO", ConsoleColor.Cyan)
         };
@@ -133,6 +158,47 @@ public class CliMessageHandler : IMessageHandler
         catch
         {
             return false;
+        }
+    }
+
+    private void WriteDebugToFile(string message)
+    {
+        try
+        {
+            var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            var logEntry = $"[{timestamp}] DEBUG: {message}{Environment.NewLine}";
+            File.AppendAllText(_currentLogFile, logEntry);
+        }
+        catch
+        {
+            // Silently ignore file write errors to avoid disrupting the CLI
+        }
+    }
+
+    private void CleanupOldLogFiles()
+    {
+        try
+        {
+            var logFiles = Directory.GetFiles(_logDirectory, "scanner111-debug-*.log")
+                .OrderByDescending(f => File.GetCreationTime(f))
+                .ToArray();
+
+            // Keep only the 10 most recent files
+            for (int i = 10; i < logFiles.Length; i++)
+            {
+                try
+                {
+                    File.Delete(logFiles[i]);
+                }
+                catch
+                {
+                    // Ignore deletion errors
+                }
+            }
+        }
+        catch
+        {
+            // Ignore cleanup errors
         }
     }
 }

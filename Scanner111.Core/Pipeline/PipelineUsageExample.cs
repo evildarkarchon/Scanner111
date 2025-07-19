@@ -115,9 +115,8 @@ public static class PipelineUsageExample
 
         if (pipeline is EnhancedScanPipeline enhancedPipeline)
         {
-            // Access would need to be added to expose cache manager
-            // This is just for demonstration
-            Console.WriteLine("Enhanced pipeline created with caching enabled");
+            // Enhanced pipeline created with caching enabled
+            MessageHandler.MsgDebug("Enhanced pipeline created with caching enabled");
         }
 
         await pipeline.DisposeAsync();
