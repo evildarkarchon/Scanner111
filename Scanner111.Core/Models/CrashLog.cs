@@ -1,3 +1,5 @@
+using Scanner111.Core.Infrastructure;
+
 namespace Scanner111.Core.Models;
 
 /// <summary>
@@ -77,26 +79,6 @@ public class CrashLog
     /// </summary>
     public static async Task<CrashLog?> ParseAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var lines = await File.ReadAllLinesAsync(filePath, cancellationToken);
-            
-            // TODO: Implement actual parsing logic based on Python implementation
-            // For now, return a basic crash log
-            return new CrashLog
-            {
-                FilePath = filePath,
-                OriginalLines = lines.ToList(),
-                GameVersion = "Unknown",
-                MainError = "",
-                CallStack = new List<string>(),
-                Plugins = new Dictionary<string, string>(),
-                IsIncomplete = false
-            };
-        }
-        catch
-        {
-            return null;
-        }
+        return await CrashLogParser.ParseAsync(filePath, cancellationToken);
     }
 }

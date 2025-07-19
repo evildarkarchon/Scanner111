@@ -1,5 +1,6 @@
 using Scanner111.Core.Models;
 using System.Linq;
+using System.IO;
 
 namespace Scanner111.GUI.Models;
 
@@ -16,11 +17,9 @@ public class ScanResultViewModel
     }
     
     /// <summary>
-    /// Main description for the UI
+    /// Main description for the UI - shows filename
     /// </summary>
-    public string Description => !string.IsNullOrEmpty(ScanResult.ReportText) 
-        ? GetFirstReportLine() 
-        : $"Scan {ScanResult.Status} - {ScanResult.AnalysisResults.Count} analysis results";
+    public string Description => Path.GetFileName(ScanResult.LogPath);
     
     /// <summary>
     /// Detailed information for the UI

@@ -77,9 +77,14 @@ public class YamlSettingsService : IYamlSettingsProvider
     {
         try
         {
-            var yamlPath = Path.Combine("CLASSIC Data", "databases", $"{yamlFile}.yaml");
+            var yamlPath = Path.Combine("Data", $"{yamlFile}.yaml");
+            System.Console.WriteLine($"DEBUG: Looking for YAML file: {yamlPath} (yamlFile='{yamlFile}', keyPath='{keyPath}')");
             if (!File.Exists(yamlPath))
+            {
+                System.Console.WriteLine($"DEBUG: YAML file not found: {yamlPath}");
                 return defaultValue;
+            }
+            System.Console.WriteLine($"DEBUG: YAML file found: {yamlPath}");
             
             var yaml = File.ReadAllText(yamlPath, System.Text.Encoding.UTF8);
             var data = _deserializer.Deserialize<Dictionary<string, object>>(yaml);
@@ -97,7 +102,7 @@ public class YamlSettingsService : IYamlSettingsProvider
     {
         try
         {
-            var yamlPath = Path.Combine("CLASSIC Data", "databases", $"{yamlFile}.yaml");
+            var yamlPath = Path.Combine("Data", $"{yamlFile}.yaml");
             if (!File.Exists(yamlPath))
                 return null;
             

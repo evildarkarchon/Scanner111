@@ -4,6 +4,8 @@ using Scanner111.Core.Pipeline;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using Scanner111.Core.Models;
+using Scanner111.CLI.Services;
+using Scanner111.CLI.Models;
 
 // Ensure UTF-8 encoding for Windows console
 if (OperatingSystem.IsWindows())
@@ -12,27 +14,42 @@ if (OperatingSystem.IsWindows())
     Console.InputEncoding = Encoding.UTF8;
 }
 
+// Initialize settings service
+var settingsService = new CliSettingsService();
+var settings = await settingsService.LoadSettingsAsync();
+
+// Apply settings to GlobalRegistry
+ApplySettingsToRegistry(settings);
+
 // Parse command line arguments
 var parser = new Parser(with => with.HelpWriter = Console.Error);
 var result = parser.ParseArguments<ScanOptions, DemoOptions, ConfigOptions, AboutOptions>(args);
 
-return result.MapResult(
-    (ScanOptions opts) => RunScan(opts),
-    (DemoOptions opts) => RunDemo(opts),
-    (ConfigOptions opts) => RunConfig(opts),
-    (AboutOptions opts) => RunAbout(opts),
-    errs => 1);
+return await result.MapResult(
+    async (ScanOptions opts) => await RunScan(opts, settingsService, settings),
+    async (DemoOptions opts) => await RunDemo(opts),
+    async (ConfigOptions opts) => await RunConfig(opts, settingsService),
+    async (AboutOptions opts) => await RunAbout(opts),
+    async errs => await Task.FromResult(1));
 
-int RunScan(ScanOptions options)
+async Task<int> RunScan(ScanOptions options, CliSettingsService settingsService, CliSettings settings)
 {
     try
     {
-        // Initialize CLI message handler
-        var messageHandler = new CliMessageHandler(!options.DisableColors);
+        // Initialize CLI message handler with settings
+        var useColors = !options.DisableColors && !settings.DisableColors;
+        var messageHandler = new CliMessageHandler(useColors);
         MessageHandler.Initialize(messageHandler);
         
-        // Apply settings from command line options
-        ApplyCommandLineSettings(options);
+        // Apply command line options (these override settings)
+        ApplyCommandLineSettings(options, settings);
+        
+        // Update settings with recent path if scanning specific directory
+        if (!string.IsNullOrEmpty(options.ScanDir))
+        {
+            settings.AddRecentPath(options.ScanDir);
+            await settingsService.SaveSettingsAsync(settings);
+        }
         
         MessageHandler.MsgInfo("Initializing Scanner111...");
         
@@ -67,7 +84,7 @@ int RunScan(ScanOptions options)
         MessageHandler.MsgSuccess($"Starting analysis of {filesToScan.Count} files...");
         
         // Process files
-        var progressContext = options.DisableProgress 
+        var progressContext = (options.DisableProgress || settings.DisableProgress)
             ? null 
             : MessageHandler.CreateProgressContext("Analyzing crash logs", filesToScan.Count);
         
@@ -115,7 +132,7 @@ int RunScan(ScanOptions options)
     }
 }
 
-int RunDemo(DemoOptions options)
+async Task<int> RunDemo(DemoOptions options)
 {
     // Initialize CLI message handler
     var messageHandler = new CliMessageHandler();
@@ -141,10 +158,28 @@ int RunDemo(DemoOptions options)
     return 0;
 }
 
-int RunConfig(ConfigOptions options)
+async Task<int> RunConfig(ConfigOptions options, CliSettingsService settingsService)
 {
     var messageHandler = new CliMessageHandler();
     MessageHandler.Initialize(messageHandler);
+    
+    if (options.ShowPath)
+    {
+        var settingsPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Scanner111", "cli-settings.json");
+        MessageHandler.MsgInfo($"CLI Settings file: {settingsPath}");
+        MessageHandler.MsgInfo($"File exists: {File.Exists(settingsPath)}");
+    }
+    
+    if (options.Reset)
+    {
+        MessageHandler.MsgInfo("Resetting configuration to defaults...");
+        var defaultSettings = settingsService.GetDefaultSettings();
+        await settingsService.SaveSettingsAsync(defaultSettings);
+        MessageHandler.MsgSuccess("Configuration reset to defaults.");
+        return 0;
+    }
     
     if (options.List)
     {
@@ -156,6 +191,11 @@ int RunConfig(ConfigOptions options)
         MessageHandler.MsgInfo($"Move Unsolved Logs: {GlobalRegistry.GetValueType<bool>("MoveUnsolvedLogs", false)}");
         MessageHandler.MsgInfo($"Audio Notifications: {GlobalRegistry.GetValueType<bool>("AudioNotifications", false)}");
         MessageHandler.MsgInfo($"VR Mode: {GlobalRegistry.GetValueType<bool>("VRMode", false)}");
+        MessageHandler.MsgInfo($"Disable Colors: {GlobalRegistry.GetValueType<bool>("DisableColors", false)}");
+        MessageHandler.MsgInfo($"Disable Progress: {GlobalRegistry.GetValueType<bool>("DisableProgress", false)}");
+        MessageHandler.MsgInfo($"Default Output Format: {GlobalRegistry.Get<string>("DefaultOutputFormat") ?? "detailed"}");
+        MessageHandler.MsgInfo($"Default Game Path: {GlobalRegistry.Get<string>("DefaultGamePath") ?? "(not set)"}");
+        MessageHandler.MsgInfo($"Default Scan Directory: {GlobalRegistry.Get<string>("DefaultScanDirectory") ?? "(not set)"}");
     }
     
     if (!string.IsNullOrEmpty(options.Set))
@@ -166,12 +206,30 @@ int RunConfig(ConfigOptions options)
             var key = parts[0].Trim();
             var value = parts[1].Trim();
             
-            // TODO: Implement configuration setting
-            MessageHandler.MsgSuccess($"Set {key} = {value}");
+            try
+            {
+                // Save to settings file
+                await settingsService.SaveSettingAsync(key, value);
+                
+                // Update GlobalRegistry for current session
+                GlobalRegistry.Set(key, value);
+                
+                MessageHandler.MsgSuccess($"Set {key} = {value}");
+                MessageHandler.MsgInfo("Setting saved to configuration file.");
+            }
+            catch (ArgumentException ex)
+            {
+                MessageHandler.MsgError(ex.Message);
+                return 1;
+            }
         }
         else
         {
             MessageHandler.MsgError("Invalid set format. Use: --set \"key=value\"");
+            MessageHandler.MsgInfo("Available settings:");
+            MessageHandler.MsgInfo("  FcxMode, ShowFormIdValues, SimplifyLogs, MoveUnsolvedLogs");
+            MessageHandler.MsgInfo("  AudioNotifications, VrMode, DisableColors, DisableProgress");
+            MessageHandler.MsgInfo("  DefaultOutputFormat, DefaultGamePath, DefaultScanDirectory");
             return 1;
         }
     }
@@ -179,7 +237,7 @@ int RunConfig(ConfigOptions options)
     return 0;
 }
 
-int RunAbout(AboutOptions options)
+async Task<int> RunAbout(AboutOptions options)
 {
     var messageHandler = new CliMessageHandler();
     MessageHandler.Initialize(messageHandler);
@@ -195,9 +253,28 @@ int RunAbout(AboutOptions options)
     return 0;
 }
 
-void ApplyCommandLineSettings(ScanOptions options)
+void ApplySettingsToRegistry(CliSettings settings)
 {
-    // Apply command line overrides to settings
+    // Load settings into GlobalRegistry at startup
+    GlobalRegistry.Set("FCXMode", settings.FcxMode);
+    GlobalRegistry.Set("ShowFormIDValues", settings.ShowFormIdValues);
+    GlobalRegistry.Set("SimplifyLogs", settings.SimplifyLogs);
+    GlobalRegistry.Set("MoveUnsolvedLogs", settings.MoveUnsolvedLogs);
+    GlobalRegistry.Set("AudioNotifications", settings.AudioNotifications);
+    GlobalRegistry.Set("VRMode", settings.VrMode);
+    GlobalRegistry.Set("DefaultGamePath", settings.DefaultGamePath);
+    GlobalRegistry.Set("DefaultScanDirectory", settings.DefaultScanDirectory);
+    GlobalRegistry.Set("DefaultOutputFormat", settings.DefaultOutputFormat);
+    GlobalRegistry.Set("DisableColors", settings.DisableColors);
+    GlobalRegistry.Set("DisableProgress", settings.DisableProgress);
+    GlobalRegistry.Set("VerboseLogging", settings.VerboseLogging);
+    GlobalRegistry.Set("MaxConcurrentScans", settings.MaxConcurrentScans);
+    GlobalRegistry.Set("CacheEnabled", settings.CacheEnabled);
+}
+
+void ApplyCommandLineSettings(ScanOptions options, CliSettings settings)
+{
+    // Apply command line overrides (these take precedence over saved settings)
     if (options.FcxMode.HasValue)
     {
         GlobalRegistry.Set("FCXMode", options.FcxMode.Value);
@@ -216,6 +293,22 @@ void ApplyCommandLineSettings(ScanOptions options)
     if (options.MoveUnsolved.HasValue)
     {
         GlobalRegistry.Set("MoveUnsolvedLogs", options.MoveUnsolved.Value);
+    }
+    
+    // Apply defaults from settings if not specified on command line
+    if (string.IsNullOrEmpty(options.GamePath) && !string.IsNullOrEmpty(settings.DefaultGamePath))
+    {
+        options.GamePath = settings.DefaultGamePath;
+    }
+    
+    if (string.IsNullOrEmpty(options.ScanDir) && !string.IsNullOrEmpty(settings.DefaultScanDirectory))
+    {
+        options.ScanDir = settings.DefaultScanDirectory;
+    }
+    
+    if (options.OutputFormat == "detailed" && settings.DefaultOutputFormat != "detailed")
+    {
+        options.OutputFormat = settings.DefaultOutputFormat;
     }
 }
 
@@ -365,6 +458,12 @@ public class ConfigOptions
     
     [Option('s', "set", HelpText = "Set configuration value (format: key=value)")]
     public string? Set { get; set; }
+    
+    [Option('r', "reset", HelpText = "Reset configuration to defaults")]
+    public bool Reset { get; set; }
+    
+    [Option("show-path", HelpText = "Show configuration file path")]
+    public bool ShowPath { get; set; }
 }
 
 [Verb("about", HelpText = "Show version and about information")]

@@ -201,7 +201,7 @@ public class PluginAnalyzer : IAnalyzer
             autoscanReport.AddRange(new[]
             {
                 "\n[Last number counts how many times each Plugin Suspect shows up in the crash log.]\n",
-                $"These Plugins were caught by {_yamlSettings.GetSetting("Game", "Game_Info.CRASHGEN_LogName", "Crash Logger")} and some of them might be responsible for this crash.\n",
+                $"These Plugins were caught by {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")} and some of them might be responsible for this crash.\n",
                 "You can try disabling these plugins and check if the game still crashes, though this method can be unreliable.\n\n"
             });
         }
@@ -219,9 +219,9 @@ public class PluginAnalyzer : IAnalyzer
     /// <returns>A dictionary of crash log plugins with the ignored plugins removed</returns>
     private Dictionary<string, string> FilterIgnoredPlugins(Dictionary<string, string> crashlogPlugins)
     {
-        var ignorePluginsList = _yamlSettings.GetSetting<List<string>>("Game", "Crashlog_Plugins_Exclude", new List<string>());
+        var ignorePluginsList = _yamlSettings.GetSetting<List<string>>("CLASSIC Fallout4", "Crashlog_Plugins_Exclude", new List<string>());
         
-        if (ignorePluginsList.Count == 0)
+        if (ignorePluginsList == null || ignorePluginsList.Count == 0)
         {
             return crashlogPlugins;
         }
