@@ -456,4 +456,4 @@ $RECYCLE.BIN/
 !sample_logs/*.log
 *.code-workspace
 *-AUTOSCAN.md
-!sample_logs/-AUTOSCAN.md
+!sample_logs/*-AUTOSCAN.md
