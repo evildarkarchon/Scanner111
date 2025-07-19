@@ -1,21 +1,19 @@
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
+using Scanner111.Tests.TestHelpers;
 using Xunit;
 
 namespace Scanner111.Tests.Analyzers;
 
 public class RecordScannerTests
 {
-    private readonly ClassicScanLogsInfo _config;
+    private readonly TestYamlSettingsProvider _yamlSettings;
     private readonly RecordScanner _analyzer;
 
     public RecordScannerTests()
     {
-        _config = new ClassicScanLogsInfo
-        {
-            CrashgenName = "Buffout 4"
-        };
-        _analyzer = new RecordScanner(_config);
+        _yamlSettings = new TestYamlSettingsProvider();
+        _analyzer = new RecordScanner(_yamlSettings);
     }
 
     [Fact]
@@ -262,11 +260,8 @@ public class RecordScannerTests
     public async Task AnalyzeAsync_WithCrashgenName_UsesCorrectName()
     {
         // Arrange
-        var customConfig = new ClassicScanLogsInfo
-        {
-            CrashgenName = "Custom Crash Generator"
-        };
-        var customAnalyzer = new RecordScanner(customConfig);
+        var customYamlSettings = new TestYamlSettingsProvider();
+        var customAnalyzer = new RecordScanner(customYamlSettings);
         
         var crashLog = new CrashLog
         {

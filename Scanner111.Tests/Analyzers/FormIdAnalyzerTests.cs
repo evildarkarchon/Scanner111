@@ -1,21 +1,21 @@
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
+using Scanner111.Tests.TestHelpers;
 using Xunit;
 
 namespace Scanner111.Tests.Analyzers;
 
 public class FormIdAnalyzerTests
 {
-    private readonly ClassicScanLogsInfo _config;
+    private readonly TestYamlSettingsProvider _yamlSettings;
+    private readonly TestFormIdDatabaseService _formIdDatabase;
     private readonly FormIdAnalyzer _analyzer;
 
     public FormIdAnalyzerTests()
     {
-        _config = new ClassicScanLogsInfo
-        {
-            CrashgenName = "Buffout 4"
-        };
-        _analyzer = new FormIdAnalyzer(_config, false, false);
+        _yamlSettings = new TestYamlSettingsProvider();
+        _formIdDatabase = new TestFormIdDatabaseService();
+        _analyzer = new FormIdAnalyzer(_yamlSettings, _formIdDatabase);
     }
 
     [Fact]

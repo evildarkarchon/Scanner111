@@ -335,9 +335,22 @@ SETTINGS:
     private class TestMessageHandler : IMessageHandler
     {
         public void ShowInfo(string message, MessageTarget target = MessageTarget.All) { }
-        public void ShowWarning(string message) { }
-        public void ShowError(string message) { }
+        public void ShowWarning(string message, MessageTarget target = MessageTarget.All) { }
+        public void ShowError(string message, MessageTarget target = MessageTarget.All) { }
+        public void ShowSuccess(string message, MessageTarget target = MessageTarget.All) { }
+        public void ShowDebug(string message, MessageTarget target = MessageTarget.All) { }
+        public void ShowCritical(string message, MessageTarget target = MessageTarget.All) { }
+        public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info, MessageTarget target = MessageTarget.All) { }
         public IProgress<ProgressInfo> ShowProgress(string title, int totalItems) => new Progress<ProgressInfo>();
+        public IProgressContext CreateProgressContext(string title, int totalItems) => new TestProgressContext();
+        
+        private class TestProgressContext : IProgressContext
+        {
+            public void Update(int current, string message) { }
+            public void Complete() { }
+            public void Report(ProgressInfo value) { }
+            public void Dispose() { }
+        }
     }
 
     private class TestYamlSettingsProvider : IYamlSettingsProvider

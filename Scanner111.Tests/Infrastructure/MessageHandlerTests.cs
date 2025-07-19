@@ -140,14 +140,51 @@ public class TestMessageHandler : IMessageHandler
         LastInfoTarget = target;
     }
     
-    public void ShowWarning(string message)
+    public void ShowWarning(string message, MessageTarget target = MessageTarget.All)
     {
         WarningMessages.Add(message);
     }
     
-    public void ShowError(string message)
+    public void ShowError(string message, MessageTarget target = MessageTarget.All)
     {
         ErrorMessages.Add(message);
+    }
+    
+    public void ShowSuccess(string message, MessageTarget target = MessageTarget.All)
+    {
+        // Just store in info messages for testing
+        InfoMessages.Add(message);
+    }
+    
+    public void ShowDebug(string message, MessageTarget target = MessageTarget.All)
+    {
+        // Just store in info messages for testing
+        InfoMessages.Add(message);
+    }
+    
+    public void ShowCritical(string message, MessageTarget target = MessageTarget.All)
+    {
+        // Just store in error messages for testing
+        ErrorMessages.Add(message);
+    }
+    
+    public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info, MessageTarget target = MessageTarget.All)
+    {
+        switch (messageType)
+        {
+            case MessageType.Info:
+                InfoMessages.Add(message);
+                break;
+            case MessageType.Warning:
+                WarningMessages.Add(message);
+                break;
+            case MessageType.Error:
+                ErrorMessages.Add(message);
+                break;
+            default:
+                InfoMessages.Add(message);
+                break;
+        }
     }
     
     public IProgress<ProgressInfo> ShowProgress(string title, int totalItems)
@@ -155,6 +192,13 @@ public class TestMessageHandler : IMessageHandler
         LastProgressTitle = title;
         LastProgressTotal = totalItems;
         return new TestProgress();
+    }
+    
+    public IProgressContext CreateProgressContext(string title, int totalItems)
+    {
+        LastProgressTitle = title;
+        LastProgressTotal = totalItems;
+        return new TestProgressContext();
     }
 }
 
@@ -165,5 +209,31 @@ public class TestProgress : IProgress<ProgressInfo>
     public void Report(ProgressInfo value)
     {
         Reports.Add(value);
+    }
+}
+
+public class TestProgressContext : IProgressContext
+{
+    public List<ProgressInfo> Reports { get; } = new();
+    private bool _disposed;
+    
+    public void Update(int current, string message)
+    {
+        Reports.Add(new ProgressInfo { Current = current, Message = message });
+    }
+    
+    public void Complete()
+    {
+        // Mark as complete
+    }
+    
+    public void Report(ProgressInfo value)
+    {
+        Reports.Add(value);
+    }
+    
+    public void Dispose()
+    {
+        _disposed = true;
     }
 }

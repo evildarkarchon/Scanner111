@@ -76,10 +76,9 @@ public class ProgressReportingTests
     public void DetailedProgress_ReportsFileComplete()
     {
         // Arrange
-        var progress = new DetailedProgress();
         DetailedProgressInfo? reportedProgress = null;
-        var innerProgress = new Progress<DetailedProgressInfo>(p => reportedProgress = p);
-        var detailedProgress = new DetailedProgress(innerProgress);
+        var mockProgress = new TestProgress<DetailedProgressInfo>(p => reportedProgress = p);
+        var detailedProgress = new DetailedProgress(mockProgress);
 
         // Act
         detailedProgress.ReportFileComplete("test.log", true);
@@ -96,10 +95,9 @@ public class ProgressReportingTests
     public void DetailedProgress_ReportsFileFailure()
     {
         // Arrange
-        var progress = new DetailedProgress();
         DetailedProgressInfo? reportedProgress = null;
-        var innerProgress = new Progress<DetailedProgressInfo>(p => reportedProgress = p);
-        var detailedProgress = new DetailedProgress(innerProgress);
+        var mockProgress = new TestProgress<DetailedProgressInfo>(p => reportedProgress = p);
+        var detailedProgress = new DetailedProgress(mockProgress);
 
         // Act
         detailedProgress.ReportFileComplete("test.log", false);
@@ -141,10 +139,9 @@ public class ProgressReportingTests
     public void DetailedProgress_CompletesAnalyzerProgress()
     {
         // Arrange
-        var progress = new DetailedProgress();
         DetailedProgressInfo? reportedProgress = null;
-        var innerProgress = new Progress<DetailedProgressInfo>(p => reportedProgress = p);
-        var detailedProgress = new DetailedProgress(innerProgress);
+        var mockProgress = new TestProgress<DetailedProgressInfo>(p => reportedProgress = p);
+        var detailedProgress = new DetailedProgress(mockProgress);
 
         // Act
         detailedProgress.ReportAnalyzerStart("FormIdAnalyzer", "test.log");
@@ -213,5 +210,171 @@ public class ProgressReportingTests
 
         // Assert
         Assert.Equal(status, progress.Status);
+    }
+
+    // Integration tests with real Progress<T> async behavior
+    [Fact]
+    public async Task DetailedProgress_ReportsFileComplete_AsyncBehavior()
+    {
+        // Arrange
+        DetailedProgressInfo? reportedProgress = null;
+        var tcs = new TaskCompletionSource<bool>();
+        var innerProgress = new Progress<DetailedProgressInfo>(p => 
+        {
+            reportedProgress = p;
+            tcs.SetResult(true);
+        });
+        var detailedProgress = new DetailedProgress(innerProgress);
+
+        // Act
+        detailedProgress.ReportFileComplete("test.log", true);
+
+        // Wait for async callback (with timeout)
+        var completed = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.True(completed);
+        Assert.NotNull(reportedProgress);
+        Assert.Equal("test.log", reportedProgress.CurrentFile);
+        Assert.Equal(FileProcessingStatus.Completed, reportedProgress.CurrentFileStatus);
+        Assert.Equal(1, reportedProgress.ProcessedFiles);
+        Assert.Equal(1, reportedProgress.SuccessfulFiles);
+    }
+
+    [Fact]
+    public async Task DetailedProgress_ReportsFileFailure_AsyncBehavior()
+    {
+        // Arrange
+        DetailedProgressInfo? reportedProgress = null;
+        var tcs = new TaskCompletionSource<bool>();
+        var innerProgress = new Progress<DetailedProgressInfo>(p => 
+        {
+            reportedProgress = p;
+            tcs.SetResult(true);
+        });
+        var detailedProgress = new DetailedProgress(innerProgress);
+
+        // Act
+        detailedProgress.ReportFileComplete("test.log", false);
+
+        // Wait for async callback (with timeout)
+        var completed = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.True(completed);
+        Assert.NotNull(reportedProgress);
+        Assert.Equal("test.log", reportedProgress.CurrentFile);
+        Assert.Equal(FileProcessingStatus.Failed, reportedProgress.CurrentFileStatus);
+        Assert.Equal(1, reportedProgress.ProcessedFiles);
+        Assert.Equal(1, reportedProgress.FailedFiles);
+    }
+
+    [Fact]
+    public async Task DetailedProgress_CompletesAnalyzerProgress_AsyncBehavior()
+    {
+        // Arrange
+        DetailedProgressInfo? finalProgress = null;
+        var tcs = new TaskCompletionSource<bool>();
+        
+        var innerProgress = new Progress<DetailedProgressInfo>(p => 
+        {
+            finalProgress = p;
+            // Only complete when we're sure we got the final state
+            if (p.ActiveAnalyzers.Count == 0) // Analyzer completed and removed
+                tcs.SetResult(true);
+        });
+        var detailedProgress = new DetailedProgress(innerProgress);
+
+        // Act
+        detailedProgress.ReportAnalyzerStart("FormIdAnalyzer", "test.log");
+        await Task.Delay(10); // Small delay to ensure first report is processed
+        detailedProgress.ReportAnalyzerComplete("FormIdAnalyzer", "test.log", true);
+
+        // Wait for async callback (with timeout)
+        var completed = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.True(completed);
+        Assert.NotNull(finalProgress);
+        
+        // Final report should have no active analyzers (completed one is removed)
+        Assert.Empty(finalProgress.ActiveAnalyzers);
+    }
+
+    [Fact]
+    public async Task DetailedProgress_MultipleReports_AsyncBehavior()
+    {
+        // Arrange
+        var reportedProgresses = new List<DetailedProgressInfo>();
+        var reportCount = 0;
+        var expectedReports = 3;
+        var tcs = new TaskCompletionSource<bool>();
+        
+        var innerProgress = new Progress<DetailedProgressInfo>(p => 
+        {
+            reportedProgresses.Add(p);
+            reportCount++;
+            if (reportCount >= expectedReports)
+                tcs.SetResult(true);
+        });
+        var detailedProgress = new DetailedProgress(innerProgress);
+
+        // Act - Generate multiple progress reports
+        detailedProgress.ReportFileStart("file1.log");
+        detailedProgress.ReportFileComplete("file1.log", true);
+        detailedProgress.ReportFileStart("file2.log");
+
+        // Wait for async callbacks (with timeout)
+        var completed = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.True(completed);
+        Assert.Equal(expectedReports, reportedProgresses.Count);
+        
+        // Verify the sequence
+        Assert.Equal("file1.log", reportedProgresses[0].CurrentFile);
+        Assert.Equal(FileProcessingStatus.InProgress, reportedProgresses[0].CurrentFileStatus);
+        
+        Assert.Equal("file1.log", reportedProgresses[1].CurrentFile);
+        Assert.Equal(FileProcessingStatus.Completed, reportedProgresses[1].CurrentFileStatus);
+        Assert.Equal(1, reportedProgresses[1].SuccessfulFiles);
+        
+        Assert.Equal("file2.log", reportedProgresses[2].CurrentFile);
+        Assert.Equal(FileProcessingStatus.InProgress, reportedProgresses[2].CurrentFileStatus);
+    }
+
+    [Fact]
+    public async Task DetailedProgress_WithNullProgress_DoesNotThrow()
+    {
+        // Arrange
+        var detailedProgress = new DetailedProgress(null); // No inner progress
+
+        // Act & Assert - Should not throw
+        detailedProgress.ReportFileStart("test.log");
+        detailedProgress.ReportFileComplete("test.log", true);
+        detailedProgress.ReportAnalyzerStart("TestAnalyzer", "test.log");
+        detailedProgress.ReportAnalyzerComplete("TestAnalyzer", "test.log", true);
+        
+        // Complete synchronously since there's no async callback
+        await Task.CompletedTask;
+    }
+}
+
+/// <summary>
+/// Test progress implementation that calls the callback synchronously
+/// </summary>
+/// <typeparam name="T">Progress value type</typeparam>
+public class TestProgress<T> : IProgress<T>
+{
+    private readonly Action<T> _callback;
+
+    public TestProgress(Action<T> callback)
+    {
+        _callback = callback;
+    }
+
+    public void Report(T value)
+    {
+        _callback(value);
     }
 }

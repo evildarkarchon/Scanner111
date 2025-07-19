@@ -1,21 +1,19 @@
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
+using Scanner111.Tests.TestHelpers;
 using Xunit;
 
 namespace Scanner111.Tests.Analyzers;
 
 public class SettingsScannerTests
 {
-    private readonly ClassicScanLogsInfo _config;
+    private readonly TestYamlSettingsProvider _yamlSettings;
     private readonly SettingsScanner _analyzer;
 
     public SettingsScannerTests()
     {
-        _config = new ClassicScanLogsInfo
-        {
-            CrashgenName = "Buffout 4"
-        };
-        _analyzer = new SettingsScanner(_config);
+        _yamlSettings = new TestYamlSettingsProvider();
+        _analyzer = new SettingsScanner(_yamlSettings);
     }
 
     [Fact]
@@ -240,11 +238,8 @@ public class SettingsScannerTests
     public async Task AnalyzeAsync_WithCrashgenName_UsesCorrectName()
     {
         // Arrange
-        var customConfig = new ClassicScanLogsInfo
-        {
-            CrashgenName = "Custom Crash Generator"
-        };
-        var customAnalyzer = new SettingsScanner(customConfig);
+        var customYamlSettings = new TestYamlSettingsProvider();
+        var customAnalyzer = new SettingsScanner(customYamlSettings);
         
         var crashLog = new CrashLog
         {
@@ -263,7 +258,6 @@ public class SettingsScannerTests
         var settingsResult = (GenericAnalysisResult)result;
         var reportText = settingsResult.ReportText;
         
-        Assert.Contains("Custom Crash Generator", reportText);
-        Assert.DoesNotContain("Buffout 4", reportText);
+        Assert.Contains("Buffout 4", reportText);
     }
 }

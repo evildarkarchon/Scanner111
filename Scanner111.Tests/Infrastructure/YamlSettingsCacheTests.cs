@@ -67,8 +67,8 @@ Test_Section:
         // Clear cache to ensure fresh start
         YamlSettingsCache.ClearCache();
         
-        // Create a test YAML file in the expected location from the test output directory
-        var testDbPath = Path.Combine(Directory.GetCurrentDirectory(), "CLASSIC Data", "databases");
+        // Create a test YAML file in the expected location (Data directory)
+        var testDbPath = Path.Combine(Directory.GetCurrentDirectory(), "Data");
         if (!Directory.Exists(testDbPath))
         {
             Directory.CreateDirectory(testDbPath);
@@ -92,8 +92,6 @@ Test_Section:
         {
             if (File.Exists(testFile))
                 File.Delete(testFile);
-            if (Directory.Exists(testDbPath))
-                Directory.Delete(testDbPath, true);
         }
     }
     
@@ -108,7 +106,7 @@ Test_Section:
     [Fact]
     public void YamlSettingsCache_WithNonExistentKey_ReturnsDefault()
     {
-        var testDbPath = Path.Combine("CLASSIC Data", "databases");
+        var testDbPath = Path.Combine("Data");
         if (!Directory.Exists(testDbPath))
         {
             Directory.CreateDirectory(testDbPath);
@@ -138,7 +136,7 @@ CLASSIC_Settings:
     [Fact]
     public void YamlSettingsCache_WithCaching_ReturnsCachedValue()
     {
-        var testDbPath = Path.Combine("CLASSIC Data", "databases");
+        var testDbPath = Path.Combine("Data");
         if (!Directory.Exists(testDbPath))
         {
             Directory.CreateDirectory(testDbPath);
@@ -170,15 +168,13 @@ CLASSIC_Settings:
         {
             if (File.Exists(testFile))
                 File.Delete(testFile);
-            if (Directory.Exists(testDbPath))
-                Directory.Delete(testDbPath, true);
         }
     }
     
     [Fact]
     public void YamlSettingsCache_ClearCache_RemovesCachedValues()
     {
-        var testDbPath = Path.Combine("CLASSIC Data", "databases");
+        var testDbPath = Path.Combine("Data");
         if (!Directory.Exists(testDbPath))
         {
             Directory.CreateDirectory(testDbPath);
@@ -213,8 +209,6 @@ CLASSIC_Settings:
         {
             if (File.Exists(testFile))
                 File.Delete(testFile);
-            if (Directory.Exists(testDbPath))
-                Directory.Delete(testDbPath, true);
         }
     }
     
@@ -258,7 +252,7 @@ CLASSIC_Settings:
     [Fact]
     public void YamlSettingsCache_WithDifferentTypes_WorksCorrectly()
     {
-        var testDbPath = Path.Combine("CLASSIC Data", "databases");
+        var testDbPath = Path.Combine("Data");
         if (!Directory.Exists(testDbPath))
         {
             Directory.CreateDirectory(testDbPath);
@@ -290,8 +284,6 @@ CLASSIC_Settings:
         {
             if (File.Exists(testFile))
                 File.Delete(testFile);
-            if (Directory.Exists(testDbPath))
-                Directory.Delete(testDbPath, true);
         }
     }
 }

@@ -1,33 +1,19 @@
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
+using Scanner111.Tests.TestHelpers;
 using Xunit;
 
 namespace Scanner111.Tests.Analyzers;
 
 public class SuspectScannerTests
 {
-    private readonly ClassicScanLogsInfo _config;
+    private readonly TestYamlSettingsProvider _yamlSettings;
     private readonly SuspectScanner _analyzer;
 
     public SuspectScannerTests()
     {
-        _config = new ClassicScanLogsInfo
-        {
-            CrashgenName = "Buffout 4",
-            SuspectsErrorList = new Dictionary<string, string>
-            {
-                {"HIGH | Access Violation", "access violation"},
-                {"MEDIUM | Null Pointer", "null pointer"},
-                {"LOW | Memory Error", "memory error"}
-            },
-            SuspectsStackList = new Dictionary<string, List<string>>
-            {
-                {"HIGH | Stack Overflow", new List<string> {"stack overflow", "ME-REQ|overflow"}},
-                {"MEDIUM | Invalid Handle", new List<string> {"invalid handle", "2|bad handle"}},
-                {"LOW | Debug Assert", new List<string> {"debug assert", "NOT|release mode"}}
-            }
-        };
-        _analyzer = new SuspectScanner(_config);
+        _yamlSettings = new TestYamlSettingsProvider();
+        _analyzer = new SuspectScanner(_yamlSettings);
     }
 
     [Fact]
@@ -154,8 +140,8 @@ public class SuspectScannerTests
         Assert.True(suspectResult.HasFindings);
         Assert.Contains("Access Violation", suspectResult.ReportText);
         Assert.Contains("Null Pointer", suspectResult.ReportText);
-        Assert.Contains("Severity : HIGH", suspectResult.ReportText);
-        Assert.Contains("Severity : MEDIUM", suspectResult.ReportText);
+        Assert.Contains("Severity : 5", suspectResult.ReportText);
+        Assert.Contains("Severity : 4", suspectResult.ReportText);
     }
 
     [Fact]
@@ -189,7 +175,7 @@ public class SuspectScannerTests
         // Assert.Contains("Stack Overflow", reportText);
         Assert.Contains("Invalid Handle", reportText);
         // Assert.Contains("Severity : HIGH", reportText);
-        Assert.Contains("Severity : MEDIUM", reportText);
+        Assert.Contains("Severity : 4", reportText);
     }
 
     [Fact]

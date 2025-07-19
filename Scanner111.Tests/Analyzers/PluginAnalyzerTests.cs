@@ -1,22 +1,19 @@
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
+using Scanner111.Tests.TestHelpers;
 using Xunit;
 
 namespace Scanner111.Tests.Analyzers;
 
 public class PluginAnalyzerTests
 {
-    private readonly ClassicScanLogsInfo _config;
+    private readonly TestYamlSettingsProvider _yamlSettings;
     private readonly PluginAnalyzer _analyzer;
 
     public PluginAnalyzerTests()
     {
-        _config = new ClassicScanLogsInfo
-        {
-            CrashgenName = "Buffout 4",
-            IgnorePluginsList = new List<string> { "ignored.esp" }
-        };
-        _analyzer = new PluginAnalyzer(_config);
+        _yamlSettings = new TestYamlSettingsProvider();
+        _analyzer = new PluginAnalyzer(_yamlSettings);
     }
 
     [Fact]

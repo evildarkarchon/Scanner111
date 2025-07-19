@@ -171,7 +171,7 @@ public class CancellationSupportTests : IDisposable
     {
         // Arrange
         string? reportedValue = null;
-        var innerProgress = new Progress<string>(value => reportedValue = value);
+        var innerProgress = new TestProgress<string>(value => reportedValue = value);
         using var cts = new CancellationTokenSource();
         using var cancellableProgress = new CancellableProgress<string>(innerProgress, cts.Token);
 
@@ -324,6 +324,98 @@ public class CancellationSupportTests : IDisposable
         Assert.Equal("success", result);
     }
 
+    // Integration tests with real Progress<T> async behavior
+    [Fact]
+    public async Task CancellableProgress_ReportsProgress_AsyncBehavior()
+    {
+        // Arrange
+        string? reportedValue = null;
+        var tcs = new TaskCompletionSource<bool>();
+        var innerProgress = new Progress<string>(value => 
+        {
+            reportedValue = value;
+            tcs.SetResult(true);
+        });
+        using var cts = new CancellationTokenSource();
+        using var cancellableProgress = new CancellableProgress<string>(innerProgress, cts.Token);
+
+        // Act
+        cancellableProgress.Report("test value");
+
+        // Wait for async callback (with timeout)
+        var completed = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.True(completed);
+        Assert.Equal("test value", reportedValue);
+    }
+
+    [Fact]
+    public async Task CancellableProgress_DoesNotReportWhenCancelled_AsyncBehavior()
+    {
+        // Arrange
+        string? reportedValue = null;
+        var tcs = new TaskCompletionSource<bool>();
+        var innerProgress = new Progress<string>(value => 
+        {
+            reportedValue = value;
+            tcs.SetResult(true);
+        });
+        using var cts = new CancellationTokenSource();
+        using var cancellableProgress = new CancellableProgress<string>(innerProgress, cts.Token);
+
+        // Pre-cancel the token
+        cts.Cancel();
+
+        // Act
+        cancellableProgress.Report("test value");
+
+        // Wait a short time to ensure no callback occurs
+        var timeoutTask = Task.Delay(TimeSpan.FromMilliseconds(100));
+        var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
+
+        // Assert
+        Assert.Equal(timeoutTask, completedTask); // Should timeout, not complete
+        Assert.Null(reportedValue); // Should not report when cancelled
+    }
+
+    [Fact]
+    public async Task CancellableProgress_MultipleReports_AsyncBehavior()
+    {
+        // Arrange
+        var reportedValues = new List<string>();
+        var reportCount = 0;
+        var expectedReports = 3;
+        var tcs = new TaskCompletionSource<bool>();
+        
+        var innerProgress = new Progress<string>(value => 
+        {
+            reportedValues.Add(value);
+            reportCount++;
+            if (reportCount >= expectedReports)
+                tcs.SetResult(true);
+        });
+        using var cts = new CancellationTokenSource();
+        using var cancellableProgress = new CancellableProgress<string>(innerProgress, cts.Token);
+
+        // Act - Generate multiple progress reports with small delays to avoid batching
+        cancellableProgress.Report("report 1");
+        await Task.Delay(10); // Small delay to avoid Progress<T> batching
+        cancellableProgress.Report("report 2");
+        await Task.Delay(10);
+        cancellableProgress.Report("report 3");
+
+        // Wait for async callbacks (with timeout)
+        var completed = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.True(completed);
+        Assert.Equal(expectedReports, reportedValues.Count);
+        Assert.Contains("report 1", reportedValues);
+        Assert.Contains("report 2", reportedValues);
+        Assert.Contains("report 3", reportedValues);
+    }
+
     public void Dispose()
     {
         foreach (var disposable in _disposables)
@@ -331,5 +423,24 @@ public class CancellationSupportTests : IDisposable
             disposable?.Dispose();
         }
         _disposables.Clear();
+    }
+}
+
+/// <summary>
+/// Test progress implementation that calls the callback synchronously
+/// </summary>
+/// <typeparam name="T">Progress value type</typeparam>
+public class TestProgress<T> : IProgress<T>
+{
+    private readonly Action<T> _callback;
+
+    public TestProgress(Action<T> callback)
+    {
+        _callback = callback;
+    }
+
+    public void Report(T value)
+    {
+        _callback(value);
     }
 }
