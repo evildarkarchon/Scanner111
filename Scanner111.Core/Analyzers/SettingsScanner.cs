@@ -46,17 +46,20 @@ public class SettingsScanner : IAnalyzer
 
         var reportLines = new List<string>();
 
-        // TODO: Extract XSE modules and crashgen settings from crash log
-        // This would require parsing the crash log content for these sections
-        var xseModules = new HashSet<string>();
-        var crashgenSettings = new Dictionary<string, object>();
-        var crashgenIgnore = new HashSet<string>();
+        // Extract XSE modules and crashgen settings from crash log
+        var xseModules = crashLog.XseModules;
+        var crashgenSettings = crashLog.CrashgenSettings;
+        var crashgenIgnore = new HashSet<string>(_yamlSettings.GetSetting<List<string>>("CLASSIC Fallout4", "Game_Info.CRASHGEN_Ignore", new List<string>()) ?? new List<string>());
+
+        // Check for X-Cell and Baka ScrapHeap (matching Python implementation)
+        var hasXCell = xseModules.Contains("x-cell-fo4.dll") || 
+                       xseModules.Contains("x-cell-og.dll") || 
+                       xseModules.Contains("x-cell-ng2.dll");
+        var hasBakaScrapheap = xseModules.Contains("bakascrapheap.dll");
 
         // Perform various settings validations
         ScanBuffoutAchievementsSetting(reportLines, xseModules, crashgenSettings);
-        ScanBuffoutMemoryManagementSettings(reportLines, crashgenSettings, 
-            xseModules.Contains("x-cell.dll"), 
-            xseModules.Contains("bakascrapheap.dll"));
+        ScanBuffoutMemoryManagementSettings(reportLines, crashgenSettings, hasXCell, hasBakaScrapheap);
         ScanArchiveLimitSetting(reportLines, crashgenSettings);
         ScanBuffoutLooksMenuSetting(crashgenSettings, reportLines, xseModules);
         CheckDisabledSettings(crashgenSettings, reportLines, crashgenIgnore);

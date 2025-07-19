@@ -12,6 +12,7 @@ public class FormIdAnalyzer : IAnalyzer
 {
     private static readonly ConcurrentDictionary<string, Regex> PatternCache = new();
     private readonly IYamlSettingsProvider _yamlSettings;
+    private readonly IFormIdDatabaseService _formIdDatabase;
     private readonly Regex _formIdPattern;
 
     /// <summary>
@@ -33,9 +34,11 @@ public class FormIdAnalyzer : IAnalyzer
     /// Initialize the FormID analyzer
     /// </summary>
     /// <param name="yamlSettings">YAML settings provider for configuration</param>
-    public FormIdAnalyzer(IYamlSettingsProvider yamlSettings)
+    /// <param name="formIdDatabase">FormID database service for lookups</param>
+    public FormIdAnalyzer(IYamlSettingsProvider yamlSettings, IFormIdDatabaseService formIdDatabase)
     {
         _yamlSettings = yamlSettings;
+        _formIdDatabase = formIdDatabase;
 
         // Pattern to match FormID format in crash logs (cached)
         const string patternKey = "formid_pattern";
@@ -60,7 +63,7 @@ public class FormIdAnalyzer : IAnalyzer
 
         // Load settings on-demand with caching
         var showFormIdValues = _yamlSettings.GetSetting("CLASSIC Main", "CLASSIC_Settings.Show FormID Values", false);
-        var formIdDbExists = false; // TODO: Implement FormID database detection
+        var formIdDbExists = _formIdDatabase.DatabaseExists;
 
         GenerateFormIdReport(formIds, crashLog.Plugins, reportLines, showFormIdValues, formIdDbExists);
 
@@ -178,14 +181,6 @@ public class FormIdAnalyzer : IAnalyzer
     /// <returns>A string containing the value associated with the form ID and plugin if found in the database, or null if the database does not exist or the value is not found</returns>
     private string? LookupFormIdValue(string formId, string plugin)
     {
-        // FormID database functionality not yet implemented
-        if (true) // TODO: Implement FormID database detection
-        {
-            return null;
-        }
-
-        // TODO: Implement database lookup when FormID database is available
-        // This would call get_entry(formId, plugin) equivalent
-        return null;
+        return _formIdDatabase.GetEntry(formId, plugin);
     }
 }

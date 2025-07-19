@@ -44,6 +44,16 @@ public class CrashLog
     public Dictionary<string, string> Plugins { get; set; } = new();
     
     /// <summary>
+    /// XSE (F4SE/SKSE) modules loaded in the crash
+    /// </summary>
+    public HashSet<string> XseModules { get; set; } = new();
+    
+    /// <summary>
+    /// Crash generator configuration settings extracted from the log
+    /// </summary>
+    public Dictionary<string, object> CrashgenSettings { get; set; } = new();
+    
+    /// <summary>
     /// Version of the crash generator (e.g., Buffout 4 version)
     /// </summary>
     public string CrashGenVersion { get; set; } = string.Empty;

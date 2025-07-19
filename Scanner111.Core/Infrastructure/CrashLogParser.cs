@@ -36,14 +36,16 @@ public static class CrashLogParser
             // Process segments
             if (segments.Count >= 6)
             {
-                // segments[0] = Compatibility
+                // segments[0] = Compatibility/Crashgen Settings
                 // segments[1] = System Specs
                 // segments[2] = Call Stack
                 // segments[3] = Modules
                 // segments[4] = XSE Plugins
                 // segments[5] = Plugins
                 
+                ParseCrashgenSettings(segments[0], crashLog);
                 crashLog.CallStack = segments[2];
+                ParseXseModules(segments[4], crashLog);
                 ParsePluginsSection(segments[5], crashLog);
             }
             
@@ -204,5 +206,64 @@ public static class CrashLogParser
         }
         
         crashLog.IsIncomplete = crashLog.Plugins.Count == 0;
+    }
+    
+    private static void ParseCrashgenSettings(List<string> settingsLines, CrashLog crashLog)
+    {
+        // Parse crashgen configuration settings like [Compatibility], [Patches], etc.
+        foreach (var line in settingsLines)
+        {
+            var trimmedLine = line.Trim();
+            if (string.IsNullOrEmpty(trimmedLine) || trimmedLine.StartsWith('['))
+                continue;
+                
+            // Format: "Key: value"
+            if (trimmedLine.Contains(':'))
+            {
+                var parts = trimmedLine.Split(':', 2);
+                if (parts.Length == 2)
+                {
+                    var key = parts[0].Trim();
+                    var valueStr = parts[1].Trim();
+                    
+                    // Parse value as bool, int, or string
+                    object value = valueStr.ToLower() switch
+                    {
+                        "true" => true,
+                        "false" => false,
+                        _ when int.TryParse(valueStr, out var intVal) => intVal,
+                        _ => valueStr
+                    };
+                    
+                    crashLog.CrashgenSettings[key] = value;
+                }
+            }
+        }
+    }
+    
+    private static void ParseXseModules(List<string> xseLines, CrashLog crashLog)
+    {
+        // Extract module names from XSE plugins section
+        // Format: "ModuleName.dll v1.2.3" or just "ModuleName.dll"
+        var modulePattern = new Regex(@"^(.+?\.dll)\s*(?:v.*)?$", RegexOptions.IgnoreCase);
+        
+        foreach (var line in xseLines)
+        {
+            var trimmedLine = line.Trim();
+            if (string.IsNullOrEmpty(trimmedLine))
+                continue;
+                
+            var match = modulePattern.Match(trimmedLine);
+            if (match.Success)
+            {
+                var moduleName = match.Groups[1].Value.ToLower();
+                crashLog.XseModules.Add(moduleName);
+            }
+            else
+            {
+                // Fallback: add the line as-is but lowercase
+                crashLog.XseModules.Add(trimmedLine.ToLower());
+            }
+        }
     }
 }

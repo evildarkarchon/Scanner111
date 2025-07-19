@@ -12,6 +12,7 @@ public class PluginAnalyzer : IAnalyzer
 {
     private readonly IYamlSettingsProvider _yamlSettings;
     private readonly Regex _pluginSearch;
+    private readonly HashSet<string> _lowerPluginsIgnore;
 
     /// <summary>
     /// Name of the analyzer
@@ -40,7 +41,11 @@ public class PluginAnalyzer : IAnalyzer
             RegexOptions.IgnoreCase | RegexOptions.Compiled
         );
         
-        // Regex for plugin matching initialized
+        // Initialize plugin ignore list from YAML settings
+        var ignorePluginsList = _yamlSettings.GetSetting<List<string>>("CLASSIC Fallout4", "Crashlog_Plugins_Exclude", new List<string>());
+        _lowerPluginsIgnore = new HashSet<string>(
+            ignorePluginsList?.Select(p => p.ToLower()) ?? Enumerable.Empty<string>(), 
+            StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -178,8 +183,11 @@ public class PluginAnalyzer : IAnalyzer
         {
             foreach (var plugin in crashlogPluginsLower)
             {
-                // TODO: Implement plugin ignore list from YAML settings
-                // Skipping ignore list check for now
+                // Skip plugins that are in the ignore list
+                if (_lowerPluginsIgnore.Contains(plugin))
+                {
+                    continue;
+                }
 
                 if (line.Contains(plugin))
                 {

@@ -161,6 +161,7 @@ public class ScanPipelineBuilder
         // Add infrastructure services
         _services.AddSingleton<IYamlSettingsProvider, YamlSettingsService>();
         _services.AddSingleton<IAnalyzerFactory, AnalyzerFactory>();
+        _services.AddSingleton<IFormIdDatabaseService, FormIdDatabaseService>();
         
         // Add caching services if enabled
         if (_enableCaching)

@@ -39,7 +39,7 @@ This report documents the current implementation status of Scanner111, including
 - **Impact**: Missing important crash analysis data about script extender modules
 - **Implementation Notes**:
   - Parse XSE PLUGINS section from crash log
-  - Extract Buffout/Crash Logger settings from [Compatibility] section
+  - Extract Buffout/Crash Logger settings
   - These are already parsed by CrashLogParser but not used by SettingsScanner
 
 ### Medium Priority
