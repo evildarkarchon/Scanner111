@@ -342,8 +342,8 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         var filesToScan = new List<string>();
 
-        // 1. Auto-copy F4SE logs (unconditional)
-        await CopyF4SELogsAsync(filesToScan);
+        // 1. Auto-copy XSE logs (F4SE and SKSE)
+        await CopyXSELogsAsync(filesToScan);
 
         // 2. Add single selected file if specified
         if (!string.IsNullOrEmpty(SelectedLogPath) && File.Exists(SelectedLogPath))
@@ -364,39 +364,56 @@ public partial class MainWindowViewModel : ViewModelBase
         return filesToScan;
     }
 
-    private async Task CopyF4SELogsAsync(List<string> filesToScan)
+    private async Task CopyXSELogsAsync(List<string> filesToScan)
     {
+        // Skip XSE copy if user disabled it
+        if (_currentSettings.SkipXSECopy)
+        {
+            return;
+        }
+        
         try
         {
-            // Look for F4SE crash logs in common locations
-            var f4sePaths = new[]
+            // Get crash logs directory from settings or use default
+            var crashLogsBaseDir = !string.IsNullOrEmpty(_currentSettings.CrashLogsDirectory) 
+                ? _currentSettings.CrashLogsDirectory 
+                : CrashLogDirectoryManager.GetDefaultCrashLogsDirectory();
+
+            // Look for XSE crash logs in common locations (F4SE and SKSE)
+            var xsePaths = new[]
             {
+                // F4SE paths
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Fallout4", "F4SE"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Fallout4VR", "F4SE"),
+                // SKSE paths (including GOG version)
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Skyrim Special Edition", "SKSE"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Skyrim Special Edition GOG", "SKSE"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Skyrim", "SKSE"),
                 // Also check game path if provided
-                !string.IsNullOrEmpty(SelectedGamePath) ? Path.Combine(SelectedGamePath, "Data", "F4SE") : null
+                !string.IsNullOrEmpty(SelectedGamePath) ? Path.Combine(SelectedGamePath, "Data", "F4SE") : null,
+                !string.IsNullOrEmpty(SelectedGamePath) ? Path.Combine(SelectedGamePath, "Data", "SKSE") : null
             }.Where(path => path != null && Directory.Exists(path)).ToArray();
 
             var copiedCount = 0;
-            foreach (var f4sePath in f4sePaths)
+            foreach (var xsePath in xsePaths)
             {
-                if (Directory.Exists(f4sePath))
+                if (Directory.Exists(xsePath))
                 {
-                    var crashLogs = Directory.GetFiles(f4sePath!, "*.log", SearchOption.TopDirectoryOnly)
+                    var crashLogs = Directory.GetFiles(xsePath!, "*.log", SearchOption.TopDirectoryOnly)
                         .Where(f => Path.GetFileName(f).StartsWith("crash-", StringComparison.OrdinalIgnoreCase))
                         .OrderByDescending(File.GetLastWriteTime)
                         .ToArray();
 
                     foreach (var logFile in crashLogs)
                     {
-                        // Copy to current directory for scanning
-                        var targetPath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetFileName(logFile));
-                        if (!File.Exists(targetPath) || File.GetLastWriteTime(logFile) > File.GetLastWriteTime(targetPath))
-                        {
-                            await Task.Run(() => File.Copy(logFile, targetPath, true));
-                            AddLogMessage($"Copied F4SE log: {Path.GetFileName(logFile)}");
-                            copiedCount++;
-                        }
+                        // Detect game type and copy to appropriate subdirectory
+                        var gameType = CrashLogDirectoryManager.DetectGameType(SelectedGamePath, logFile);
+                        var targetPath = await Task.Run(() => 
+                            CrashLogDirectoryManager.CopyCrashLog(logFile, crashLogsBaseDir, gameType, overwrite: true));
+                        
+                        var xseType = xsePath.Contains("F4SE") ? "F4SE" : "SKSE";
+                        AddLogMessage($"Copied {xseType} {gameType} crash log: {Path.GetFileName(logFile)} -> {Path.GetDirectoryName(targetPath)}");
+                        copiedCount++;
                         
                         if (!filesToScan.Contains(targetPath))
                         {
@@ -408,20 +425,20 @@ public partial class MainWindowViewModel : ViewModelBase
 
             if (copiedCount > 0)
             {
-                AddLogMessage($"Auto-copied {copiedCount} F4SE crash logs");
+                AddLogMessage($"Auto-copied {copiedCount} XSE crash logs to {crashLogsBaseDir}");
             }
-            else if (f4sePaths.Length == 0)
+            else if (xsePaths.Length == 0)
             {
-                AddLogMessage("No F4SE directories found for auto-copy");
+                AddLogMessage("No XSE directories found for auto-copy");
             }
             else
             {
-                AddLogMessage("No new F4SE crash logs to copy");
+                AddLogMessage("No new XSE crash logs to copy");
             }
         }
         catch (Exception ex)
         {
-            AddLogMessage($"Error during F4SE auto-copy: {ex.Message}");
+            AddLogMessage($"Error during XSE auto-copy: {ex.Message}");
         }
     }
 

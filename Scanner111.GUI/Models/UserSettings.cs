@@ -57,6 +57,12 @@ public class UserSettings
     [JsonPropertyName("defaultOutputFormat")]
     public string DefaultOutputFormat { get; set; } = "text";
 
+    [JsonPropertyName("crashLogsDirectory")]
+    public string CrashLogsDirectory { get; set; } = "";
+
+    [JsonPropertyName("skipXSECopy")]
+    public bool SkipXSECopy { get; set; } = false;
+
     public void AddRecentLogFile(string path)
     {
         if (string.IsNullOrEmpty(path)) return;

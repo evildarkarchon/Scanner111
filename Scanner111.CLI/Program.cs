@@ -189,6 +189,7 @@ async Task<int> RunConfig(ConfigOptions options, CliSettingsService settingsServ
         MessageHandler.MsgInfo($"Show FormID Values: {GlobalRegistry.GetValueType<bool>("ShowFormIDValues", false)}");
         MessageHandler.MsgInfo($"Simplify Logs: {GlobalRegistry.GetValueType<bool>("SimplifyLogs", false)}");
         MessageHandler.MsgInfo($"Move Unsolved Logs: {GlobalRegistry.GetValueType<bool>("MoveUnsolvedLogs", false)}");
+        MessageHandler.MsgInfo($"Crash Logs Directory: {GlobalRegistry.Get<string>("CrashLogsDirectory") ?? ""}");
         MessageHandler.MsgInfo($"Audio Notifications: {GlobalRegistry.GetValueType<bool>("AudioNotifications", false)}");
         MessageHandler.MsgInfo($"VR Mode: {GlobalRegistry.GetValueType<bool>("VRMode", false)}");
         MessageHandler.MsgInfo($"Disable Colors: {GlobalRegistry.GetValueType<bool>("DisableColors", false)}");
@@ -229,7 +230,7 @@ async Task<int> RunConfig(ConfigOptions options, CliSettingsService settingsServ
             MessageHandler.MsgInfo("Available settings:");
             MessageHandler.MsgInfo("  FcxMode, ShowFormIdValues, SimplifyLogs, MoveUnsolvedLogs");
             MessageHandler.MsgInfo("  AudioNotifications, VrMode, DisableColors, DisableProgress");
-            MessageHandler.MsgInfo("  DefaultOutputFormat, DefaultGamePath, DefaultScanDirectory");
+            MessageHandler.MsgInfo("  DefaultOutputFormat, DefaultGamePath, DefaultScanDirectory, CrashLogsDirectory");
             return 1;
         }
     }
@@ -270,6 +271,7 @@ void ApplySettingsToRegistry(CliSettings settings)
     GlobalRegistry.Set("VerboseLogging", settings.VerboseLogging);
     GlobalRegistry.Set("MaxConcurrentScans", settings.MaxConcurrentScans);
     GlobalRegistry.Set("CacheEnabled", settings.CacheEnabled);
+    GlobalRegistry.Set("CrashLogsDirectory", settings.CrashLogsDirectory);
 }
 
 void ApplyCommandLineSettings(ScanOptions options, CliSettings settings)
@@ -295,6 +297,11 @@ void ApplyCommandLineSettings(ScanOptions options, CliSettings settings)
         GlobalRegistry.Set("MoveUnsolvedLogs", options.MoveUnsolved.Value);
     }
     
+    if (!string.IsNullOrEmpty(options.CrashLogsDirectory))
+    {
+        GlobalRegistry.Set("CrashLogsDirectory", options.CrashLogsDirectory);
+    }
+    
     // Apply defaults from settings if not specified on command line
     if (string.IsNullOrEmpty(options.GamePath) && !string.IsNullOrEmpty(settings.DefaultGamePath))
     {
@@ -315,6 +322,9 @@ void ApplyCommandLineSettings(ScanOptions options, CliSettings settings)
 List<string> CollectFilesToScan(ScanOptions options)
 {
     var filesToScan = new List<string>();
+    
+    // Auto-copy XSE crash logs first (F4SE and SKSE, similar to GUI functionality)
+    CopyXSELogs(filesToScan, options);
     
     // Add specific log file if provided
     if (!string.IsNullOrEmpty(options.LogFile) && File.Exists(options.LogFile))
@@ -354,6 +364,85 @@ List<string> CollectFilesToScan(ScanOptions options)
     }
     
     return filesToScan.Distinct().ToList();
+}
+
+void CopyXSELogs(List<string> filesToScan, ScanOptions options)
+{
+    // Skip XSE copy if user disabled it
+    if (options.SkipXSECopy)
+    {
+        return;
+    }
+    
+    try
+    {
+        // Get crash logs directory from settings or use default
+        var crashLogsBaseDir = GlobalRegistry.Get<string>("CrashLogsDirectory");
+        if (string.IsNullOrEmpty(crashLogsBaseDir))
+        {
+            crashLogsBaseDir = CrashLogDirectoryManager.GetDefaultCrashLogsDirectory();
+        }
+
+        // Look for XSE crash logs in common locations (F4SE and SKSE)
+        var xsePaths = new[]
+        {
+            // F4SE paths
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Fallout4", "F4SE"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Fallout4VR", "F4SE"),
+            // SKSE paths (including GOG version)
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Skyrim Special Edition", "SKSE"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Skyrim Special Edition GOG", "SKSE"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Skyrim", "SKSE"),
+            // Also check game path if provided
+            !string.IsNullOrEmpty(options.GamePath) ? Path.Combine(options.GamePath, "Data", "F4SE") : null,
+            !string.IsNullOrEmpty(options.GamePath) ? Path.Combine(options.GamePath, "Data", "SKSE") : null
+        }.Where(path => path != null && Directory.Exists(path)).ToArray();
+
+        var copiedCount = 0;
+        foreach (var xsePath in xsePaths)
+        {
+            if (Directory.Exists(xsePath))
+            {
+                var crashLogs = Directory.GetFiles(xsePath!, "*.log", SearchOption.TopDirectoryOnly)
+                    .Where(f => Path.GetFileName(f).StartsWith("crash-", StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(File.GetLastWriteTime)
+                    .ToArray();
+
+                foreach (var logFile in crashLogs)
+                {
+                    // Detect game type and copy to appropriate subdirectory
+                    var gameType = CrashLogDirectoryManager.DetectGameType(options.GamePath, logFile);
+                    var targetPath = CrashLogDirectoryManager.CopyCrashLog(logFile, crashLogsBaseDir, gameType, overwrite: true);
+                    
+                    var xseType = xsePath.Contains("F4SE") ? "F4SE" : "SKSE";
+                    MessageHandler.MsgInfo($"Copied {xseType} {gameType} crash log: {Path.GetFileName(logFile)} -> {Path.GetDirectoryName(targetPath)}");
+                    copiedCount++;
+                    
+                    if (!filesToScan.Contains(targetPath))
+                    {
+                        filesToScan.Add(targetPath);
+                    }
+                }
+            }
+        }
+
+        if (copiedCount > 0)
+        {
+            MessageHandler.MsgSuccess($"Auto-copied {copiedCount} XSE crash logs to {crashLogsBaseDir}");
+        }
+        else if (xsePaths.Length == 0)
+        {
+            MessageHandler.MsgDebug("No XSE directories found for auto-copy");
+        }
+        else
+        {
+            MessageHandler.MsgDebug("No new XSE crash logs to copy");
+        }
+    }
+    catch (Exception ex)
+    {
+        MessageHandler.MsgWarning($"Error during XSE auto-copy: {ex.Message}");
+    }
 }
 
 void ProcessScanResult(ScanResult result, ScanOptions options)
@@ -434,6 +523,12 @@ public class ScanOptions
     
     [Option("move-unsolved", HelpText = "Move unsolved logs to separate folder")]
     public bool? MoveUnsolved { get; set; }
+    
+    [Option("crash-logs-dir", HelpText = "Directory to store copied crash logs (with game subfolders)")]
+    public string? CrashLogsDirectory { get; set; }
+    
+    [Option("skip-xse-copy", HelpText = "Skip automatic XSE (F4SE/SKSE) crash log copying")]
+    public bool SkipXSECopy { get; set; }
     
     [Option("disable-progress", HelpText = "Disable progress bars in CLI mode")]
     public bool DisableProgress { get; set; }

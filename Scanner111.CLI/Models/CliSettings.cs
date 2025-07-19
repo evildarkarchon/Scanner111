@@ -56,6 +56,9 @@ public class CliSettings
     [JsonPropertyName("maxRecentPaths")]
     public int MaxRecentPaths { get; set; } = 10;
     
+    [JsonPropertyName("crashLogsDirectory")]
+    public string CrashLogsDirectory { get; set; } = "";
+    
     /// <summary>
     /// Add a path to recent scan paths, maintaining the max limit
     /// </summary>
