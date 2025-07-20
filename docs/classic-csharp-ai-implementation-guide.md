@@ -1691,13 +1691,12 @@ public class CliMessageService : IMessageHandler
 3. Don't forget cancellation tokens in async methods
 4. Don't use blocking I/O in async methods
 5. Don't forget to dispose resources (use `using` statements)
-6. Keep internal references to "CLASSIC" in strings and messages
 
 ## Resources
 
 - Python source: `/Code to Port/` directory
 - Sample logs: `/sample_logs/` directory  
-- YAML files: `/Code to Port/CLASSIC Data/databases/`
+- YAML files: `/Data/` directory
 - Test data: Use actual crash logs for testing
 
 ## Project Name Mapping

@@ -231,7 +231,7 @@ public class ScanResult
             footer.Add("VISIT THE BUFFOUT 4 CRASH ARTICLE: https://www.nexusmods.com/fallout4/articles/3115\n");
             footer.Add("===============================================================================\n");
             footer.Add("Scanner 111 by evildarkarchon | Support: https://discord.gg/pF9U5FmD6w\n");
-            footer.Add("Scanner 111 is a successor to the CLASSIC application by Poet (guidance.of.grace): https://www.nexusmods.com/fallout4/mods/56255\n");
+            footer.Add("Scanner 111 was inspired by CLASSIC, originally developed by Poet (guidance.of.grace): https://www.nexusmods.com/fallout4/mods/56255\n");
             footer.Add("CONTRIBUTORS to CLASSIC: evildarkarchon | kittivelae | AtomicFallout757 | wxMichael\n");
             footer.Add("Scanner 111 | https://github.com/evildarkarchon/Scanner111\n");
         }
