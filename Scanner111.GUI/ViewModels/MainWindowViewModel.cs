@@ -539,7 +539,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         try
         {
-            _currentSettings = await _settingsService.LoadSettingsAsync();
+            _currentSettings = await _settingsService.LoadUserSettingsAsync();
             
             // Apply default paths from settings if current paths are empty
             if (string.IsNullOrEmpty(SelectedLogPath) && !string.IsNullOrEmpty(_currentSettings.DefaultLogPath))
@@ -571,7 +571,7 @@ public partial class MainWindowViewModel : ViewModelBase
             if (!string.IsNullOrEmpty(SelectedScanDirectory))
                 _currentSettings.AddRecentScanDirectory(SelectedScanDirectory);
 
-            await _settingsService.SaveSettingsAsync(_currentSettings);
+            await _settingsService.SaveUserSettingsAsync(_currentSettings);
         }
         catch (Exception ex)
         {

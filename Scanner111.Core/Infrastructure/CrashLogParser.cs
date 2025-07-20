@@ -33,23 +33,32 @@ public static class CrashLogParser
             // Extract segments
             var segments = ExtractSegments(lines);
             
-            // Process segments
-            if (segments.Count >= 6)
-            {
-                // segments[0] = Compatibility/Crashgen Settings
-                // segments[1] = System Specs
-                // segments[2] = Call Stack
-                // segments[3] = Modules
-                // segments[4] = XSE Plugins
-                // segments[5] = Plugins
-                
+            // Process segments - handle missing segments gracefully
+            // segments[0] = Compatibility/Crashgen Settings
+            // segments[1] = System Specs
+            // segments[2] = Call Stack
+            // segments[3] = Modules
+            // segments[4] = XSE Plugins
+            // segments[5] = Plugins
+            
+            if (segments.Count > 0)
                 ParseCrashgenSettings(segments[0], crashLog);
+                
+            if (segments.Count > 2)
                 crashLog.CallStack = segments[2];
+                
+            if (segments.Count > 4)
                 ParseXseModules(segments[4], crashLog);
+                
+            if (segments.Count > 5)
                 ParsePluginsSection(segments[5], crashLog);
-            }
             
             return crashLog;
+        }
+        catch (OperationCanceledException)
+        {
+            // Let cancellation exceptions propagate
+            throw;
         }
         catch
         {
@@ -129,7 +138,9 @@ public static class CrashLogParser
                     var segment = new List<string>();
                     for (int i = segmentStartIndex; i < segmentEndIndex; i++)
                     {
-                        segment.Add(crashData[i].Trim());
+                        var trimmedLine = crashData[i].Trim();
+                        if (!string.IsNullOrEmpty(trimmedLine))
+                            segment.Add(trimmedLine);
                     }
                     segments.Add(segment);
                     segmentIndex++;
@@ -153,7 +164,9 @@ public static class CrashLogParser
                     var segment = new List<string>();
                     for (int i = segmentStartIndex; i < totalLines; i++)
                     {
-                        segment.Add(crashData[i].Trim());
+                        var trimmedLine = crashData[i].Trim();
+                        if (!string.IsNullOrEmpty(trimmedLine))
+                            segment.Add(trimmedLine);
                     }
                     segments.Add(segment);
                     break;
@@ -172,7 +185,9 @@ public static class CrashLogParser
                 var segment = new List<string>();
                 for (int i = segmentStartIndex; i <= currentIndex; i++)
                 {
-                    segment.Add(crashData[i].Trim());
+                    var trimmedLine = crashData[i].Trim();
+                    if (!string.IsNullOrEmpty(trimmedLine))
+                        segment.Add(trimmedLine);
                 }
                 segments.Add(segment);
             }

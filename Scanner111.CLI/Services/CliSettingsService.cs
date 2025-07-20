@@ -5,90 +5,111 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Scanner111.CLI.Models;
 using Scanner111.Core.Infrastructure;
+using Scanner111.Core.Models;
 
 namespace Scanner111.CLI.Services;
 
 /// <summary>
-/// Service for managing CLI settings persistence
+/// Service for managing CLI settings persistence - now uses unified ApplicationSettings
 /// </summary>
 public interface ICliSettingsService
 {
-    Task<CliSettings> LoadSettingsAsync();
-    Task SaveSettingsAsync(CliSettings settings);
+    Task<ApplicationSettings> LoadSettingsAsync();
+    Task SaveSettingsAsync(ApplicationSettings settings);
     Task SaveSettingAsync(string key, object value);
-    CliSettings GetDefaultSettings();
+    ApplicationSettings GetDefaultSettings();
+    
+    // Backward compatibility methods for existing CLI code
+    Task<CliSettings> LoadCliSettingsAsync();
+    Task SaveCliSettingsAsync(CliSettings settings);
 }
 
 public class CliSettingsService : ICliSettingsService
 {
-    private static readonly string SettingsFilePath = Path.Combine(SettingsHelper.GetSettingsDirectory(), "cli-settings.json");
-    
-    private CliSettings? _cachedSettings;
-    
-    public async Task<CliSettings> LoadSettingsAsync()
+    private readonly IApplicationSettingsService _applicationSettingsService;
+
+    public CliSettingsService()
     {
-        var settings = await SettingsHelper.LoadSettingsAsync(SettingsFilePath, GetDefaultSettings);
-        _cachedSettings = settings;
-        return settings;
+        _applicationSettingsService = new ApplicationSettingsService();
     }
-    
-    public async Task SaveSettingsAsync(CliSettings settings)
+
+    // New unified settings methods
+    public async Task<ApplicationSettings> LoadSettingsAsync()
     {
-        await SettingsHelper.SaveSettingsAsync(SettingsFilePath, settings);
-        _cachedSettings = settings;
+        return await _applicationSettingsService.LoadSettingsAsync();
     }
-    
+
+    public async Task SaveSettingsAsync(ApplicationSettings settings)
+    {
+        await _applicationSettingsService.SaveSettingsAsync(settings);
+    }
+
     public async Task SaveSettingAsync(string key, object value)
     {
-        var settings = _cachedSettings ?? await LoadSettingsAsync();
-        
-        // Update the specific setting using reflection
-        var property = typeof(CliSettings).GetProperty(key);
-        if (property == null)
-        {
-            // Try with different casing conventions
-            property = typeof(CliSettings).GetProperty(SettingsHelper.ToPascalCase(key));
-        }
-        
-        if (property != null && property.CanWrite)
-        {
-            try
-            {
-                // Convert value to appropriate type
-                var convertedValue = SettingsHelper.ConvertValue(value, property.PropertyType);
-                property.SetValue(settings, convertedValue);
-                await SaveSettingsAsync(settings);
-            }
-            catch (Exception ex)
-            {
-                throw new ArgumentException($"Failed to set {key}: {ex.Message}", ex);
-            }
-        }
-        else
-        {
-            throw new ArgumentException($"Unknown setting: {key}");
-        }
+        await _applicationSettingsService.SaveSettingAsync(key, value);
     }
-    
-    public CliSettings GetDefaultSettings()
+
+    public ApplicationSettings GetDefaultSettings()
+    {
+        return _applicationSettingsService.GetDefaultSettings();
+    }
+
+    // Backward compatibility methods for existing CLI code
+    public async Task<CliSettings> LoadCliSettingsAsync()
+    {
+        var appSettings = await LoadSettingsAsync();
+        return MapToCliSettings(appSettings);
+    }
+
+    public async Task SaveCliSettingsAsync(CliSettings cliSettings)
+    {
+        var appSettings = await LoadSettingsAsync();
+        MapFromCliSettings(cliSettings, appSettings);
+        await SaveSettingsAsync(appSettings);
+    }
+
+    private CliSettings MapToCliSettings(ApplicationSettings appSettings)
     {
         return new CliSettings
         {
-            FcxMode = false,
-            ShowFormIdValues = false,
-            SimplifyLogs = false,
-            MoveUnsolvedLogs = false,
-            AudioNotifications = false,
-            VrMode = false,
-            DefaultScanDirectory = "",
-            DefaultGamePath = GamePathDetection.TryDetectGamePath(),
-            DefaultOutputFormat = "detailed",
-            DisableColors = false,
-            DisableProgress = false,
-            VerboseLogging = false,
-            MaxConcurrentScans = Environment.ProcessorCount * 2,
-            CacheEnabled = true
+            FcxMode = appSettings.FcxMode,
+            ShowFormIdValues = appSettings.ShowFormIdValues,
+            SimplifyLogs = appSettings.SimplifyLogs,
+            MoveUnsolvedLogs = appSettings.MoveUnsolvedLogs,
+            AudioNotifications = appSettings.AudioNotifications,
+            VrMode = appSettings.VrMode,
+            DefaultScanDirectory = appSettings.DefaultScanDirectory,
+            DefaultGamePath = appSettings.DefaultGamePath,
+            DefaultOutputFormat = appSettings.DefaultOutputFormat,
+            DisableColors = appSettings.DisableColors,
+            DisableProgress = appSettings.DisableProgress,
+            VerboseLogging = appSettings.VerboseLogging,
+            MaxConcurrentScans = appSettings.MaxConcurrentScans,
+            CacheEnabled = appSettings.CacheEnabled,
+            CrashLogsDirectory = appSettings.CrashLogsDirectory,
+            RecentScanPaths = appSettings.RecentScanDirectories,
+            MaxRecentPaths = appSettings.MaxRecentItems
         };
     }
-    
+
+    private void MapFromCliSettings(CliSettings cliSettings, ApplicationSettings appSettings)
+    {
+        appSettings.FcxMode = cliSettings.FcxMode;
+        appSettings.ShowFormIdValues = cliSettings.ShowFormIdValues;
+        appSettings.SimplifyLogs = cliSettings.SimplifyLogs;
+        appSettings.MoveUnsolvedLogs = cliSettings.MoveUnsolvedLogs;
+        appSettings.AudioNotifications = cliSettings.AudioNotifications;
+        appSettings.VrMode = cliSettings.VrMode;
+        appSettings.DefaultScanDirectory = cliSettings.DefaultScanDirectory;
+        appSettings.DefaultGamePath = cliSettings.DefaultGamePath;
+        appSettings.DefaultOutputFormat = cliSettings.DefaultOutputFormat;
+        appSettings.DisableColors = cliSettings.DisableColors;
+        appSettings.DisableProgress = cliSettings.DisableProgress;
+        appSettings.VerboseLogging = cliSettings.VerboseLogging;
+        appSettings.MaxConcurrentScans = cliSettings.MaxConcurrentScans;
+        appSettings.CacheEnabled = cliSettings.CacheEnabled;
+        appSettings.CrashLogsDirectory = cliSettings.CrashLogsDirectory;
+        appSettings.RecentScanDirectories = cliSettings.RecentScanPaths;
+        appSettings.MaxRecentItems = cliSettings.MaxRecentPaths;
+    }
 }

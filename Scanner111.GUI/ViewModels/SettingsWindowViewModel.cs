@@ -149,7 +149,7 @@ public class SettingsWindowViewModel : ViewModelBase
     {
         try
         {
-            var settings = await _settingsService.LoadSettingsAsync();
+            var settings = await _settingsService.LoadUserSettingsAsync();
             _originalSettings = settings;
             LoadFromSettings(settings);
         }
@@ -272,7 +272,25 @@ public class SettingsWindowViewModel : ViewModelBase
 
     private void ResetToDefaults()
     {
-        var defaultSettings = _settingsService.GetDefaultSettings();
+        var appSettings = _settingsService.GetDefaultSettings();
+        var defaultSettings = new UserSettings
+        {
+            DefaultLogPath = appSettings.DefaultLogPath,
+            DefaultGamePath = appSettings.DefaultGamePath,
+            DefaultScanDirectory = appSettings.DefaultScanDirectory,
+            AutoLoadF4SELogs = appSettings.AutoLoadF4SELogs,
+            MaxLogMessages = appSettings.MaxLogMessages,
+            EnableProgressNotifications = appSettings.EnableProgressNotifications,
+            RememberWindowSize = appSettings.RememberWindowSize,
+            WindowWidth = appSettings.WindowWidth,
+            WindowHeight = appSettings.WindowHeight,
+            EnableDebugLogging = appSettings.EnableDebugLogging,
+            MaxRecentItems = appSettings.MaxRecentItems,
+            AutoSaveResults = appSettings.AutoSaveResults,
+            DefaultOutputFormat = appSettings.DefaultOutputFormat,
+            CrashLogsDirectory = appSettings.CrashLogsDirectory,
+            SkipXSECopy = appSettings.SkipXSECopy
+        };
         LoadFromSettings(defaultSettings);
     }
 
@@ -281,7 +299,7 @@ public class SettingsWindowViewModel : ViewModelBase
         try
         {
             var settings = CreateSettingsFromViewModel();
-            await _settingsService.SaveSettingsAsync(settings);
+            await _settingsService.SaveUserSettingsAsync(settings);
             CloseWindow?.Invoke();
         }
         catch (Exception ex)
