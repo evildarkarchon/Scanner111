@@ -51,7 +51,7 @@ public class SettingsScanner : IAnalyzer
         var crashgenSettings = crashLog.CrashgenSettings;
 
         var crashgenIgnoreList =
-            _yamlSettings.GetSetting<List<string>>("CLASSIC Fallout4", "Game_Info.CRASHGEN_Ignore",
+            _yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_Ignore",
                 new List<string>()) ?? new List<string>();
         var crashgenIgnore = new HashSet<string>(crashgenIgnoreList, StringComparer.OrdinalIgnoreCase);
 
@@ -94,11 +94,10 @@ public class SettingsScanner : IAnalyzer
         var crashgenAchievements = crashgen.GetValueOrDefault("Achievements");
         if (crashgenAchievements is true &&
             (xseModules.Contains("achievements.dll") || xseModules.Contains("unlimitedsurvivalmode.dll")))
-            autoscanReport.AddRange(new[]
-            {
-                "# ❌ CAUTION : The Achievements Mod and/or Unlimited Survival Mode is installed, but Achievements is set to TRUE # \n",
+            autoscanReport.AddRange([
+              "# ❌ CAUTION : The Achievements Mod and/or Unlimited Survival Mode is installed, but Achievements is set to TRUE # \n",
                 $" FIX: Open {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")}'s TOML file and change Achievements to FALSE, this prevents conflicts with {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")}.\n-----\n"
-            });
+            ]);
         else
             autoscanReport.Add(
                 $"✔️ Achievements parameter is correctly configured in your {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")} settings! \n-----\n");
@@ -129,7 +128,7 @@ public class SettingsScanner : IAnalyzer
 
         void AddWarningMessage(string warning, string fix)
         {
-            autoscanReport.AddRange(new[] { $"{warningPrefix}{warning} # \n", $"{fixPrefix}{fix}{separator}" });
+            autoscanReport.AddRange([$"{warningPrefix}{warning} # \n", $"{fixPrefix}{fix}{separator}"]);
         }
 
         // Check main MemoryManager setting
@@ -203,11 +202,10 @@ public class SettingsScanner : IAnalyzer
     {
         var crashgenArchiveLimit = crashgen.GetValueOrDefault("ArchiveLimit");
         if (crashgenArchiveLimit is true)
-            autoscanReport.AddRange(new[]
-            {
-                "# ❌ CAUTION : ArchiveLimit is set to TRUE, this setting is known to cause instability. # \n",
+            autoscanReport.AddRange([
+              "# ❌ CAUTION : ArchiveLimit is set to TRUE, this setting is known to cause instability. # \n",
                 $" FIX: Open {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")}'s TOML file and change ArchiveLimit to FALSE.\n-----\n"
-            });
+            ]);
         else
             autoscanReport.Add(
                 $"✔️ ArchiveLimit parameter is correctly configured in your {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")} settings! \n-----\n");
@@ -228,11 +226,10 @@ public class SettingsScanner : IAnalyzer
         if (crashgenF4Ee != null)
         {
             if (crashgenF4Ee is not true && xseModules.Contains("f4ee.dll"))
-                autoscanReport.AddRange(new[]
-                {
-                    "# ❌ CAUTION : Looks Menu is installed, but F4EE parameter under [Compatibility] is set to FALSE # \n",
+                autoscanReport.AddRange([
+                  "# ❌ CAUTION : Looks Menu is installed, but F4EE parameter under [Compatibility] is set to FALSE # \n",
                     $" FIX: Open {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")}'s TOML file and change F4EE to TRUE, this prevents bugs and crashes from Looks Menu.\n-----\n"
-                });
+                ]);
             else
                 autoscanReport.Add(
                     $"✔️ F4EE (Looks Menu) parameter is correctly configured in your {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")} settings! \n-----\n");

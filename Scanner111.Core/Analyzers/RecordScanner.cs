@@ -106,12 +106,12 @@ public class RecordScanner : IAnalyzer
         int rspOffset)
     {
         var recordsList =
-            _yamlSettings.GetSetting<List<string>>("CLASSIC Main", "catch_log_records", new List<string>()) ??
+            _yamlSettings.GetSetting("CLASSIC Main", "catch_log_records", new List<string>()) ??
             new List<string>();
         var lowerRecords = recordsList.Select(r => r.ToLower()).ToHashSet();
 
         var ignoredList =
-            _yamlSettings.GetSetting<List<string>>("CLASSIC Fallout4", "Crashlog_Records_Exclude",
+            _yamlSettings.GetSetting("CLASSIC Fallout4", "Crashlog_Records_Exclude",
                 new List<string>()) ?? new List<string>();
         var lowerIgnore = ignoredList.Select(r => r.ToLower()).ToHashSet();
 

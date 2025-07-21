@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.RegularExpressions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 
@@ -11,7 +10,6 @@ namespace Scanner111.Core.Analyzers;
 public class PluginAnalyzer : IAnalyzer
 {
     private readonly HashSet<string> _lowerPluginsIgnore;
-    private readonly Regex _pluginSearch;
     private readonly IYamlSettingsProvider _yamlSettings;
 
     /// <summary>
@@ -21,16 +19,12 @@ public class PluginAnalyzer : IAnalyzer
     public PluginAnalyzer(IYamlSettingsProvider yamlSettings)
     {
         _yamlSettings = yamlSettings;
-        _pluginSearch = new Regex(
-            @"\s*\[(FE:([0-9A-F]{3})|[0-9A-F]{2})\]\s*(.+?(?:\.es[pml])+)",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled
-        );
 
         // Initialize plugin ignore list from YAML settings
         var ignorePluginsList =
-            _yamlSettings.GetSetting<List<string>>("CLASSIC Fallout4", "Crashlog_Plugins_Exclude", new List<string>());
+            _yamlSettings.GetSetting("CLASSIC Fallout4", "Crashlog_Plugins_Exclude", new List<string>());
         _lowerPluginsIgnore = new HashSet<string>(
-            ignorePluginsList?.Select(p => p.ToLower()) ?? Enumerable.Empty<string>(),
+            ignorePluginsList?.Select(p => p.ToLower()) ?? Array.Empty<string>(),
             StringComparer.OrdinalIgnoreCase);
     }
 
@@ -135,8 +129,8 @@ public class PluginAnalyzer : IAnalyzer
                 foreach (var pluginEntry in loadorderData.Skip(1))
                 {
                     var trimmedEntry = pluginEntry.Trim();
-                    if (!string.IsNullOrEmpty(trimmedEntry) && !loadorderPlugins.ContainsKey(trimmedEntry))
-                        loadorderPlugins[trimmedEntry] = loadorderOrigin;
+                    if (!string.IsNullOrEmpty(trimmedEntry))
+                        loadorderPlugins.TryAdd(trimmedEntry, loadorderOrigin);
                 }
         }
         catch (Exception e)
@@ -186,12 +180,11 @@ public class PluginAnalyzer : IAnalyzer
             foreach (var (plugin, count) in pluginsMatches.OrderByDescending(x => x.Value).ThenBy(x => x.Key))
                 autoscanReport.Add($"- {plugin} | {count}\n");
 
-            autoscanReport.AddRange(new[]
-            {
-                "\n[Last number counts how many times each Plugin Suspect shows up in the crash log.]\n",
+            autoscanReport.AddRange([
+              "\n[Last number counts how many times each Plugin Suspect shows up in the crash log.]\n",
                 $"These Plugins were caught by {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")} and some of them might be responsible for this crash.\n",
                 "You can try disabling these plugins and check if the game still crashes, though this method can be unreliable.\n\n"
-            });
+            ]);
         }
         else
         {
@@ -208,7 +201,7 @@ public class PluginAnalyzer : IAnalyzer
     private Dictionary<string, string> FilterIgnoredPlugins(Dictionary<string, string> crashlogPlugins)
     {
         var ignorePluginsList =
-            _yamlSettings.GetSetting<List<string>>("CLASSIC Fallout4", "Crashlog_Plugins_Exclude", new List<string>());
+            _yamlSettings.GetSetting("CLASSIC Fallout4", "Crashlog_Plugins_Exclude", new List<string>());
 
         if (ignorePluginsList == null || ignorePluginsList.Count == 0) return crashlogPlugins;
 

@@ -41,11 +41,11 @@ public class FormIdDatabaseService : IFormIdDatabaseService
 
         // Set up potential database paths
         var dataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "databases");
-        _databasePaths = new[]
-        {
-            Path.Combine(dataPath, $"{_gameName} FormIDs Main.db"),
+        _databasePaths =
+        [
+          Path.Combine(dataPath, $"{_gameName} FormIDs Main.db"),
             Path.Combine(dataPath, $"{_gameName} FormIDs Local.db")
-        };
+        ];
 
         // Check if any databases exist
         DatabaseExists = _databasePaths.Any(File.Exists);

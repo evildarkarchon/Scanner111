@@ -23,7 +23,6 @@ public static class PipelineUsageExample
             .WithCaching()
             .WithEnhancedErrorHandling()
             .WithPerformanceMonitoring()
-            .WithMaxConcurrency(Environment.ProcessorCount)
             .WithLogging(builder =>
             {
                 builder.AddConsole();

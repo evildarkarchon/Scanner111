@@ -145,16 +145,73 @@ public class SettingsWindowViewModel : ViewModelBase
     public Func<string, Task<string>>? ShowFolderPickerAsync { get; set; }
     public Action? CloseWindow { get; set; }
 
+    private UserSettings CreateDeepCopy(UserSettings source)
+    {
+        var copy = new UserSettings
+        {
+            DefaultLogPath = source.DefaultLogPath,
+            DefaultGamePath = source.DefaultGamePath,
+            DefaultScanDirectory = source.DefaultScanDirectory,
+            AutoLoadF4SeLogs = source.AutoLoadF4SeLogs,
+            MaxLogMessages = source.MaxLogMessages,
+            EnableProgressNotifications = source.EnableProgressNotifications,
+            RememberWindowSize = source.RememberWindowSize,
+            WindowWidth = source.WindowWidth,
+            WindowHeight = source.WindowHeight,
+            EnableDebugLogging = source.EnableDebugLogging,
+            MaxRecentItems = source.MaxRecentItems,
+            AutoSaveResults = source.AutoSaveResults,
+            DefaultOutputFormat = source.DefaultOutputFormat,
+            CrashLogsDirectory = source.CrashLogsDirectory,
+            SkipXseCopy = source.SkipXseCopy
+        };
+
+        // Deep copy the lists
+        foreach (var file in source.RecentLogFiles)
+            copy.RecentLogFiles.Add(file);
+
+        foreach (var path in source.RecentGamePaths)
+            copy.RecentGamePaths.Add(path);
+
+        foreach (var dir in source.RecentScanDirectories)
+            copy.RecentScanDirectories.Add(dir);
+
+        foreach (var analyzer in source.LastUsedAnalyzers)
+            copy.LastUsedAnalyzers.Add(analyzer);
+
+        return copy;
+    }
+
     private async Task LoadSettingsAsync()
     {
         try
         {
             var settings = await _settingsService.LoadUserSettingsAsync();
-            _originalSettings = settings;
+            _originalSettings = CreateDeepCopy(settings);
             LoadFromSettings(settings);
         }
         catch (Exception)
         {
+            var defaultSettings = _settingsService.GetDefaultSettings();
+            var userDefaults = new UserSettings
+            {
+                DefaultLogPath = defaultSettings.DefaultLogPath,
+                DefaultGamePath = defaultSettings.DefaultGamePath,
+                DefaultScanDirectory = defaultSettings.DefaultScanDirectory,
+                AutoLoadF4SeLogs = defaultSettings.AutoLoadF4SeLogs,
+                MaxLogMessages = defaultSettings.MaxLogMessages,
+                EnableProgressNotifications = defaultSettings.EnableProgressNotifications,
+                RememberWindowSize = defaultSettings.RememberWindowSize,
+                WindowWidth = defaultSettings.WindowWidth,
+                WindowHeight = defaultSettings.WindowHeight,
+                EnableDebugLogging = defaultSettings.EnableDebugLogging,
+                MaxRecentItems = defaultSettings.MaxRecentItems,
+                AutoSaveResults = defaultSettings.AutoSaveResults,
+                DefaultOutputFormat = defaultSettings.DefaultOutputFormat,
+                CrashLogsDirectory = defaultSettings.CrashLogsDirectory,
+                SkipXseCopy = defaultSettings.SkipXseCopy
+            };
+            _originalSettings = CreateDeepCopy(userDefaults);
             ResetToDefaults();
         }
     }
@@ -301,6 +358,8 @@ public class SettingsWindowViewModel : ViewModelBase
 
     private void Cancel()
     {
+        // Restore original settings
+        LoadFromSettings(_originalSettings);
         CloseWindow?.Invoke();
     }
 }

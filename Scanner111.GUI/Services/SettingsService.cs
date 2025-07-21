@@ -18,12 +18,7 @@ public interface ISettingsService
 
 public class SettingsService : ISettingsService
 {
-    private readonly IApplicationSettingsService _applicationSettingsService;
-
-    public SettingsService()
-    {
-        _applicationSettingsService = new ApplicationSettingsService();
-    }
+    private readonly ApplicationSettingsService _applicationSettingsService = new ApplicationSettingsService();
 
     // New unified settings methods
     public async Task<ApplicationSettings> LoadSettingsAsync()

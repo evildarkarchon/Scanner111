@@ -93,13 +93,13 @@ public class SuspectScanner : IAnalyzer
 
         // Load the entire YAML file and access the section directly
         var fullData = _yamlSettings.LoadYaml<Dictionary<string, object>>("CLASSIC Fallout4");
-        if (fullData == null || !fullData.ContainsKey("Crashlog_Error_Check"))
+        if (fullData == null || !fullData.TryGetValue("Crashlog_Error_Check", out var value1))
         {
             MessageHandler.MsgDebug("Could not load YAML or Crashlog_Error_Check section not found");
             return false;
         }
 
-        var rawSuspectsData = fullData["Crashlog_Error_Check"] as Dictionary<object, object>;
+        var rawSuspectsData = value1 as Dictionary<object, object>;
         if (rawSuspectsData == null)
         {
             MessageHandler.MsgDebug("Crashlog_Error_Check section is not a dictionary");
@@ -110,8 +110,8 @@ public class SuspectScanner : IAnalyzer
         var suspectsErrorList = new Dictionary<string, (string severity, string criteria)>();
         foreach (var (key, value) in rawSuspectsData)
         {
-            var keyStr = key?.ToString() ?? "";
-            var criteria = value?.ToString() ?? "";
+            var keyStr = key.ToString() ?? "";
+            var criteria = value.ToString() ?? "";
 
             // Parse the key format: "5 | Stack Overflow Crash"
             var parts = keyStr.Split(" | ", 2);
@@ -161,9 +161,9 @@ public class SuspectScanner : IAnalyzer
 
         // Load the entire YAML file and access the section directly
         var fullData = _yamlSettings.LoadYaml<Dictionary<string, object>>("CLASSIC Fallout4");
-        if (fullData == null || !fullData.ContainsKey("Crashlog_Stack_Check")) return false;
+        if (fullData == null || !fullData.TryGetValue("Crashlog_Stack_Check", out var value1)) return false;
 
-        var rawStackData = fullData["Crashlog_Stack_Check"] as Dictionary<object, object>;
+        var rawStackData = value1 as Dictionary<object, object>;
 
         // Parse the special format similar to error check
         var suspectsStackList = new Dictionary<string, List<string>>();
@@ -174,15 +174,15 @@ public class SuspectScanner : IAnalyzer
 
                 // Handle both single string and list formats
                 if (value is List<object> listValue)
-                    stringList = listValue.Select(item => item?.ToString() ?? "").ToList();
+                    stringList = listValue.Select(item => item.ToString() ?? "").ToList();
                 else if (value is string stringValue)
                     // Single string value, treat as single-item list
-                    stringList = new List<string> { stringValue };
+                    stringList = [stringValue];
                 else
                     // Try to convert to string as fallback
-                    stringList = new List<string> { value?.ToString() ?? "" };
+                    stringList = [value.ToString() ?? ""];
 
-                suspectsStackList[key?.ToString() ?? ""] = stringList;
+                suspectsStackList[key.ToString() ?? ""] = stringList;
             }
 
         MessageHandler.MsgDebug($"Found {suspectsStackList.Count} stack patterns to check");
@@ -191,7 +191,7 @@ public class SuspectScanner : IAnalyzer
         foreach (var (errorKey, signalList) in suspectsStackList)
         {
             // Parse error information from the key format: "6 | BA2 Limit Crash"
-            var keyStr = errorKey ?? "";
+            var keyStr = errorKey;
             MessageHandler.MsgDebug($"Processing stack pattern: '{keyStr}' with {signalList.Count} signals");
             var parts = keyStr.Split(" | ", 2);
             if (parts.Length < 2)
@@ -367,10 +367,9 @@ public class SuspectScanner : IAnalyzer
     {
         var crashlogMainErrorLower = crashlogMainError.ToLower();
         if (crashlogMainErrorLower.Contains(".dll") && !crashlogMainErrorLower.Contains("tbbmalloc"))
-            autoscanReport.AddRange(new[]
-            {
-                "* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! * \n",
+            autoscanReport.AddRange([
+              "* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! * \n",
                 "If that dll file belongs to a mod, that mod is a prime suspect for the crash. \n-----\n"
-            });
+            ]);
     }
 }

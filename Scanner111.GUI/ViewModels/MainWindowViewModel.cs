@@ -749,13 +749,11 @@ public class GuiMessageHandler : IMessageHandler
 
 public class GuiProgress : IProgress<ProgressInfo>
 {
-    private readonly int _totalItems;
     private readonly MainWindowViewModel _viewModel;
 
     public GuiProgress(MainWindowViewModel viewModel, int totalItems)
     {
         _viewModel = viewModel;
-        _totalItems = totalItems;
     }
 
     public void Report(ProgressInfo value)
@@ -770,7 +768,6 @@ public class GuiProgress : IProgress<ProgressInfo>
 
 public class GuiProgressContext : IProgressContext
 {
-    private readonly string _title;
     private readonly int _totalItems;
     private readonly MainWindowViewModel _viewModel;
     private bool _disposed;
@@ -778,7 +775,6 @@ public class GuiProgressContext : IProgressContext
     public GuiProgressContext(MainWindowViewModel viewModel, string title, int totalItems)
     {
         _viewModel = viewModel;
-        _title = title;
         _totalItems = totalItems;
 
         Dispatcher.UIThread.InvokeAsync(() =>

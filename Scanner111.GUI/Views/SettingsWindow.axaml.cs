@@ -44,7 +44,7 @@ public partial class SettingsWindow : Window
             FileTypeFilter = GetFileTypes(fileTypeFilter)
         });
 
-        return files?.FirstOrDefault()?.Path.LocalPath ?? "";
+        return files.FirstOrDefault()?.Path.LocalPath ?? "";
     }
 
     private async Task<string> ShowFolderPickerAsync(string title)
@@ -58,7 +58,14 @@ public partial class SettingsWindow : Window
             AllowMultiple = false
         });
 
-        return folders?.FirstOrDefault()?.Path.LocalPath ?? "";
+        IStorageFolder? first = null;
+        foreach (var folder in folders)
+        {
+          first = folder;
+          break;
+        }
+
+        return first?.Path.LocalPath ?? "";
     }
 
     private static List<FilePickerFileType> GetFileTypes(string filter)

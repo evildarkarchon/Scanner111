@@ -16,7 +16,6 @@ public class ScanPipelineBuilder
     private bool _enableCaching = true;
     private bool _enableEnhancedErrorHandling = true;
     private bool _enablePerformanceMonitoring;
-    private int _maxConcurrency = Environment.ProcessorCount;
 
     public ScanPipelineBuilder()
     {
@@ -83,14 +82,6 @@ public class ScanPipelineBuilder
         return this;
     }
 
-    /// <summary>
-    ///     Set maximum concurrency for batch processing
-    /// </summary>
-    public ScanPipelineBuilder WithMaxConcurrency(int maxConcurrency)
-    {
-        _maxConcurrency = maxConcurrency;
-        return this;
-    }
 
     /// <summary>
     ///     Configure logging

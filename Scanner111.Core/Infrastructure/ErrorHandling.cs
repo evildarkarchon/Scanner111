@@ -12,11 +12,6 @@ public interface IErrorHandlingPolicy
     ///     Handle an error and determine the recovery action
     /// </summary>
     ErrorHandlingResult HandleError(Exception exception, string context, int attemptNumber);
-
-    /// <summary>
-    ///     Determine if an error should be retried
-    /// </summary>
-    bool ShouldRetry(Exception exception, int attemptNumber);
 }
 
 /// <summary>
@@ -78,7 +73,7 @@ public class DefaultErrorHandlingPolicy : IErrorHandlingPolicy
 
     public ErrorHandlingResult HandleError(Exception exception, string context, int attemptNumber)
     {
-        return exception switch
+        var result = exception switch
         {
             OperationCanceledException => new ErrorHandlingResult
             {
@@ -145,6 +140,12 @@ public class DefaultErrorHandlingPolicy : IErrorHandlingPolicy
                 LogLevel = LogLevel.Error
             }
         };
+
+        // Log the error handling decision
+        _logger.LogTrace("Error handling policy decision for {Context} (attempt {Attempt}): {Action} - {Message}",
+            context, attemptNumber, result.Action, result.Message);
+
+        return result;
     }
 
     public bool ShouldRetry(Exception exception, int attemptNumber)

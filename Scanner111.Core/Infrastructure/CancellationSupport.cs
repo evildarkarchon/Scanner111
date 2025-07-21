@@ -263,7 +263,7 @@ public static class CancellationTokenExtensions
     /// </summary>
     public static IDisposable RegisterAsyncCallback(this CancellationToken cancellationToken, Func<Task> callback)
     {
-        return cancellationToken.Register(() => Task.Run(callback));
+        return cancellationToken.Register(() => Task.Run(callback, cancellationToken));
     }
 
     /// <summary>

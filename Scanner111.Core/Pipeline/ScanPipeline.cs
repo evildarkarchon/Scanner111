@@ -46,7 +46,7 @@ public class ScanPipeline : IScanPipeline
                 result.Status = ScanStatus.Failed;
                 var errorMessage = $"Failed to parse crash log: {Path.GetFileName(logPath)}";
                 result.AddError(errorMessage);
-                _messageHandler.MsgError(errorMessage, MessageTarget.All);
+                _messageHandler.ShowError(errorMessage, MessageTarget.All);
                 return result;
             }
 
@@ -83,7 +83,7 @@ public class ScanPipeline : IScanPipeline
         {
             result.Status = ScanStatus.Cancelled;
             _logger.LogWarning("Scan cancelled for {LogPath}", logPath);
-            _messageHandler.MsgWarning($"Scan cancelled for: {Path.GetFileName(logPath)}", MessageTarget.All);
+            _messageHandler.ShowWarning($"Scan cancelled for: {Path.GetFileName(logPath)}", MessageTarget.All);
         }
         catch (Exception ex)
         {
@@ -91,7 +91,7 @@ public class ScanPipeline : IScanPipeline
             var errorMessage = $"Unhandled exception while scanning {Path.GetFileName(logPath)}: {ex.Message}";
             result.AddError(errorMessage);
             _logger.LogError(ex, "Error scanning {LogPath}", logPath);
-            _messageHandler.MsgError(errorMessage, MessageTarget.All);
+            _messageHandler.ShowError(errorMessage, MessageTarget.All);
         }
         finally
         {

@@ -97,24 +97,19 @@ public static class SettingsHelper
     /// <returns>The converted value</returns>
     public static object ConvertValue(object value, Type targetType)
     {
-        if (value == null)
-            return null!;
-
+      return value switch
+      {
+        null => null!,
         // Handle string inputs
-        if (value is string stringValue)
+        string stringValue when targetType == typeof(bool) => stringValue.ToLowerInvariant() switch
         {
-            if (targetType == typeof(bool))
-                return stringValue.ToLowerInvariant() switch
-                {
-                    "true" or "yes" or "1" or "on" => true,
-                    "false" or "no" or "0" or "off" => false,
-                    _ => throw new ArgumentException($"Invalid boolean value: {stringValue}")
-                };
-
-            if (targetType == typeof(int)) return int.Parse(stringValue);
-        }
-
-        return Convert.ChangeType(value, targetType);
+          "true" or "yes" or "1" or "on" => true,
+          "false" or "no" or "0" or "off" => false,
+          _ => throw new ArgumentException($"Invalid boolean value: {stringValue}")
+        },
+        string stringValue when targetType == typeof(int) => int.Parse(stringValue),
+        _ => Convert.ChangeType(value, targetType)
+      };
     }
 
     /// <summary>
@@ -127,7 +122,7 @@ public static class SettingsHelper
         if (string.IsNullOrEmpty(input))
             return input;
 
-        var words = input.Split(new[] { '-', '_', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        var words = input.Split(['-', '_', ' '], StringSplitOptions.RemoveEmptyEntries);
         var result = string.Join("", words.Select(w =>
             char.ToUpperInvariant(w[0]) + w.Substring(1).ToLowerInvariant()));
 

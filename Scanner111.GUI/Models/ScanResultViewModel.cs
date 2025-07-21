@@ -52,8 +52,8 @@ public class ScanResultViewModel
     ///     Category for grouping
     /// </summary>
     public string Category => ScanResult.Status.ToString();
-
-    private string GetFirstReportLine()
+    
+    public string GetFirstReportLine()
     {
         var firstLine = ScanResult.Report.FirstOrDefault();
         if (string.IsNullOrEmpty(firstLine))

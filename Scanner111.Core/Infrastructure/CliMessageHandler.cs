@@ -180,7 +180,7 @@ public class CliMessageHandler : IMessageHandler
         try
         {
             var logFiles = Directory.GetFiles(_logDirectory, "scanner111-debug-*.log")
-                .OrderByDescending(f => File.GetCreationTime(f))
+                .OrderByDescending(File.GetCreationTime)
                 .ToArray();
 
             // Keep only the 10 most recent files

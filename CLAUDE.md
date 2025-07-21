@@ -85,14 +85,13 @@ dotnet test --collect:"XPlat Code Coverage"
 
 1. **String Preservation**: Keep "CLASSIC" in all internal strings (only change project/namespace names)
 2. **Output Format**: Must match Python reference implementation exactly
-3. **Class Names**: Keep `ClassicScanLogsInfo` class name (referenced throughout codebase)
-4. **File Encoding**: Always use UTF-8 with ignore errors for file reading
-5. **GUI Theme**: Dark theme with #2d2d30 background, #0e639c primary color
+3. **File Encoding**: Always use UTF-8 with ignore errors for file reading
+4. **GUI Theme**: Dark theme with #2d2d30 background, #0e639c primary color
 
 ### Key Components to Implement
 
 **Models** (Scanner111.Core/Models/):
-- CrashLog, ScanResult, Configuration
+- CrashLog, ScanResult
 - Plugin, FormId, ModInfo
 
 **Analyzers** (Scanner111.Core/Analyzers/):
@@ -131,6 +130,7 @@ dotnet test --collect:"XPlat Code Coverage"
 
 - GlobalRegistry has been removed - use IApplicationSettingsService instead
 - ApplicationSettings is accessed via dependency injection, not static access
+- ClassicScanLogsInfo has been removed - use IYamlSettingsProvider to access YAML settings directly
 - When creating the .NET port, ensure that the report formatting exactly matches the Python implementation, substituting "CLASSIC" with "Scanner 111" as needed
 
 ### Development Best Practices

@@ -148,12 +148,11 @@ public class FormIdAnalyzer : IAnalyzer
                 NextFormId: ;
             }
 
-            autoscanReport.AddRange(new[]
-            {
-                "\n[Last number counts how many times each Form ID shows up in the crash log.]\n",
+            autoscanReport.AddRange([
+              "\n[Last number counts how many times each Form ID shows up in the crash log.]\n",
                 $"These Form IDs were caught by {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")} and some of them might be related to this crash.\n",
                 "You can try searching any listed Form IDs in xEdit and see if they lead to relevant records.\n\n"
-            });
+            ]);
         }
         else
         {
