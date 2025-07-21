@@ -1,5 +1,4 @@
 using Scanner111.Core.Models;
-using Xunit;
 
 namespace Scanner111.Tests.Models;
 
@@ -14,7 +13,7 @@ public class CrashLogTests
     public void CrashLog_DefaultValues_AreCorrect()
     {
         var crashLog = new CrashLog();
-        
+
         Assert.Equal(string.Empty, crashLog.FilePath);
         Assert.Equal(string.Empty, crashLog.FileName);
         Assert.Empty(crashLog.OriginalLines);
@@ -27,7 +26,7 @@ public class CrashLogTests
         Assert.False(crashLog.IsComplete);
         Assert.False(crashLog.HasError);
     }
-    
+
     [Fact]
     public void CrashLog_WithFilePath_ExtractsFileName()
     {
@@ -35,16 +34,16 @@ public class CrashLogTests
         {
             FilePath = @"C:\Users\Test\Documents\crash-2024-01-01-12-34-56.log"
         };
-        
+
         Assert.Equal("crash-2024-01-01-12-34-56.log", crashLog.FileName);
     }
-    
+
     [Fact]
     public void CrashLog_WithSampleLogFile_LoadsCorrectly()
     {
         // Use actual sample log file
         var sampleFile = Path.Combine(_sampleLogsPath, "crash-2024-01-11-08-19-43.log");
-        
+
         if (File.Exists(sampleFile))
         {
             var lines = File.ReadAllLines(sampleFile);
@@ -53,14 +52,14 @@ public class CrashLogTests
                 FilePath = sampleFile,
                 OriginalLines = lines.ToList()
             };
-            
+
             Assert.Equal("crash-2024-01-11-08-19-43.log", crashLog.FileName);
             Assert.True(crashLog.OriginalLines.Count > 0);
             Assert.Contains("Fallout 4", crashLog.Content);
             Assert.Contains("Buffout", crashLog.Content);
         }
     }
-    
+
     [Fact]
     public void CrashLog_WithOriginalLines_BuildsContent()
     {
@@ -68,10 +67,10 @@ public class CrashLogTests
         {
             OriginalLines = new List<string> { "Line 1", "Line 2", "Line 3" }
         };
-        
+
         Assert.Equal("Line 1\nLine 2\nLine 3", crashLog.Content);
     }
-    
+
     [Fact]
     public void CrashLog_IsComplete_ReturnsTrueWhenPluginsExist()
     {
@@ -79,10 +78,10 @@ public class CrashLogTests
         {
             Plugins = new Dictionary<string, string> { { "plugin1.esp", "01" } }
         };
-        
+
         Assert.True(crashLog.IsComplete);
     }
-    
+
     [Fact]
     public void CrashLog_HasError_ReturnsTrueWhenMainErrorSet()
     {
@@ -90,10 +89,10 @@ public class CrashLogTests
         {
             MainError = "Access violation"
         };
-        
+
         Assert.True(crashLog.HasError);
     }
-    
+
     [Fact]
     public void CrashLog_WithMockPluginData_WorksCorrectly()
     {
@@ -108,7 +107,7 @@ public class CrashLogTests
             CrashGenVersion = "Buffout 4 v1.28.6",
             CrashTime = crashTime
         };
-        
+
         Assert.Equal("crash-2024-01-11-08-19-43.log", crashLog.FileName);
         Assert.Equal("Error occurred\nStack trace", crashLog.Content);
         Assert.True(crashLog.IsComplete);
@@ -117,7 +116,7 @@ public class CrashLogTests
         Assert.Equal(2, crashLog.Plugins.Count);
         Assert.Equal(2, crashLog.CallStack.Count);
     }
-    
+
     [Fact]
     public void CrashLog_GetAllSampleFiles_ReturnsExpectedCount()
     {
@@ -125,7 +124,7 @@ public class CrashLogTests
         {
             var logFiles = Directory.GetFiles(_sampleLogsPath, "*.log");
             var mdFiles = Directory.GetFiles(_sampleLogsPath, "*-AUTOSCAN.md");
-            
+
             // Each log file should have a corresponding AUTOSCAN.md file
             Assert.True(logFiles.Length > 0, "Should have sample log files");
             Assert.True(mdFiles.Length > 0, "Should have sample AUTOSCAN.md files");

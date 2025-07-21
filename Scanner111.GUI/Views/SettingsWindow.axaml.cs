@@ -1,10 +1,10 @@
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Platform.Storage;
-using Scanner111.GUI.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Controls;
+using Avalonia.Platform.Storage;
+using Scanner111.GUI.ViewModels;
 
 namespace Scanner111.GUI.Views;
 
@@ -13,7 +13,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
-        
+
         if (DataContext is SettingsWindowViewModel viewModel)
         {
             viewModel.ShowFilePickerAsync = ShowFilePickerAsync;
@@ -21,10 +21,10 @@ public partial class SettingsWindow : Window
         }
     }
 
-    protected override void OnDataContextChanged(System.EventArgs e)
+    protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        
+
         if (DataContext is SettingsWindowViewModel viewModel)
         {
             viewModel.ShowFilePickerAsync = ShowFilePickerAsync;

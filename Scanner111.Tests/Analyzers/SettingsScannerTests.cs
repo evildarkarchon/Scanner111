@@ -1,14 +1,13 @@
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
-using Xunit;
 
 namespace Scanner111.Tests.Analyzers;
 
 public class SettingsScannerTests
 {
-    private readonly TestYamlSettingsProvider _yamlSettings;
     private readonly SettingsScanner _analyzer;
+    private readonly TestYamlSettingsProvider _yamlSettings;
 
     public SettingsScannerTests()
     {
@@ -37,7 +36,7 @@ public class SettingsScannerTests
         // Assert
         Assert.IsType<GenericAnalysisResult>(result);
         var settingsResult = (GenericAnalysisResult)result;
-        
+
         Assert.Equal("Settings Scanner", settingsResult.AnalyzerName);
         Assert.NotNull(settingsResult.ReportLines);
         Assert.Contains("XSEModules", settingsResult.Data);
@@ -65,11 +64,11 @@ public class SettingsScannerTests
         // Assert
         var settingsResult = (GenericAnalysisResult)result;
         Assert.Equal("Settings Scanner", settingsResult.AnalyzerName);
-        
+
         // Data should be initialized but empty
         var xseModules = (HashSet<string>)settingsResult.Data["XSEModules"];
         var crashgenSettings = (Dictionary<string, object>)settingsResult.Data["CrashgenSettings"];
-        
+
         Assert.Empty(xseModules);
         Assert.Empty(crashgenSettings);
     }
@@ -93,11 +92,11 @@ public class SettingsScannerTests
 
         // Assert
         var settingsResult = (GenericAnalysisResult)result;
-        
+
         // Should have run all the settings validation methods
         var reportText = settingsResult.ReportText;
         Assert.Contains("correctly configured", reportText);
-        
+
         // Check that report structure is maintained
         Assert.NotEmpty(settingsResult.ReportLines);
     }
@@ -107,7 +106,7 @@ public class SettingsScannerTests
     {
         // This test demonstrates the structure but would need actual crash log parsing
         // to extract XSE modules and crashgen settings from the crash log content
-        
+
         // Arrange
         var crashLog = new CrashLog
         {
@@ -125,7 +124,7 @@ public class SettingsScannerTests
         // Assert
         var settingsResult = (GenericAnalysisResult)result;
         Assert.Equal("Settings Scanner", settingsResult.AnalyzerName);
-        
+
         // Should contain achievements validation
         var reportText = settingsResult.ReportText;
         Assert.Contains("Achievements parameter", reportText);
@@ -150,7 +149,7 @@ public class SettingsScannerTests
 
         // Assert
         var settingsResult = (GenericAnalysisResult)result;
-        
+
         // Should contain memory management validation (defaults to correct setting)
         var reportText = settingsResult.ReportText;
         Assert.Contains("correctly configured", reportText);
@@ -175,7 +174,7 @@ public class SettingsScannerTests
 
         // Assert
         var settingsResult = (GenericAnalysisResult)result;
-        
+
         // Should contain archive limit validation
         var reportText = settingsResult.ReportText;
         Assert.Contains("ArchiveLimit parameter", reportText);
@@ -200,7 +199,7 @@ public class SettingsScannerTests
 
         // Assert
         var settingsResult = (GenericAnalysisResult)result;
-        
+
         // Should contain F4EE validation (but may not be present with empty settings)
         var reportText = settingsResult.ReportText;
         Assert.Contains("correctly configured", reportText);
@@ -227,7 +226,7 @@ public class SettingsScannerTests
         // Assert
         var settingsResult1 = (GenericAnalysisResult)result1;
         var settingsResult2 = (GenericAnalysisResult)result2;
-        
+
         // Should return consistent results
         Assert.Equal(settingsResult1.AnalyzerName, settingsResult2.AnalyzerName);
         Assert.Equal(settingsResult1.ReportLines.Count, settingsResult2.ReportLines.Count);
@@ -240,7 +239,7 @@ public class SettingsScannerTests
         // Arrange
         var customYamlSettings = new TestYamlSettingsProvider();
         var customAnalyzer = new SettingsScanner(customYamlSettings);
-        
+
         var crashLog = new CrashLog
         {
             FilePath = "test.log",
@@ -257,7 +256,7 @@ public class SettingsScannerTests
         // Assert
         var settingsResult = (GenericAnalysisResult)result;
         var reportText = settingsResult.ReportText;
-        
+
         Assert.Contains("Buffout 4", reportText);
     }
 }

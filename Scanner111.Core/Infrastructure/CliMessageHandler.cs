@@ -1,35 +1,32 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-/// Console-based message handler with colored output (matches Python CLI implementation)
+///     Console-based message handler with colored output (matches Python CLI implementation)
 /// </summary>
 public class CliMessageHandler : IMessageHandler
 {
-    private readonly bool _useColors;
-    private readonly string _logDirectory;
+    internal static CliProgress? ActiveProgress;
     private readonly string _currentLogFile;
-    internal static CliProgress? _activeProgress;
+    private readonly string _logDirectory;
+    private readonly bool _useColors;
 
     public CliMessageHandler(bool useColors = true)
     {
         _useColors = useColors && SupportsColors();
-        
+
         // Set up debug log directory
         _logDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Scanner111", "DebugLogs");
-        
+
         Directory.CreateDirectory(_logDirectory);
-        
+
         // Create current log file with timestamp
         var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
         _currentLogFile = Path.Combine(_logDirectory, $"scanner111-debug-{timestamp}.log");
-        
+
         // Clean up old log files (keep only 10)
         CleanupOldLogFiles();
     }
@@ -70,7 +67,8 @@ public class CliMessageHandler : IMessageHandler
         WriteColoredMessage("🚨 CRITICAL", message, ConsoleColor.Magenta);
     }
 
-    public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info, MessageTarget target = MessageTarget.All)
+    public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info,
+        MessageTarget target = MessageTarget.All)
     {
         if (target == MessageTarget.GuiOnly) return;
 
@@ -93,16 +91,13 @@ public class CliMessageHandler : IMessageHandler
         };
 
         WriteColoredMessage(prefix, message, color);
-        
-        if (details != null)
-        {
-            WriteColoredMessage("   Details", details, ConsoleColor.DarkGray);
-        }
+
+        if (details != null) WriteColoredMessage("   Details", details, ConsoleColor.DarkGray);
     }
 
     public IProgress<ProgressInfo> ShowProgress(string title, int totalItems)
     {
-        return new CliProgress(title, totalItems, _useColors);
+        return new CliProgress(title, _useColors);
     }
 
     public IProgressContext CreateProgressContext(string title, int totalItems)
@@ -113,10 +108,10 @@ public class CliMessageHandler : IMessageHandler
     private void WriteColoredMessage(string prefix, string message, ConsoleColor color)
     {
         var timestamp = DateTime.Now.ToString("HH:mm:ss");
-        
+
         // If there's an active progress bar, interrupt it properly
-        var needsProgressRedraw = _activeProgress?.InterruptForMessage() ?? false;
-        
+        var needsProgressRedraw = ActiveProgress?.InterruptForMessage() ?? false;
+
         if (_useColors)
         {
             Console.Write($"[{timestamp}] ");
@@ -131,12 +126,9 @@ public class CliMessageHandler : IMessageHandler
             var cleanPrefix = RemoveEmojis(prefix);
             Console.WriteLine($"[{timestamp}] {cleanPrefix}: {message}");
         }
-        
+
         // Redraw the progress bar if needed
-        if (needsProgressRedraw)
-        {
-            _activeProgress?.RedrawAfterMessage();
-        }
+        if (needsProgressRedraw) ActiveProgress?.RedrawAfterMessage();
     }
 
     private static string RemoveEmojis(string text)
@@ -157,11 +149,9 @@ public class CliMessageHandler : IMessageHandler
         {
             // Check if we're in a console that supports colors
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
                 // Modern Windows consoles support colors
                 return Environment.OSVersion.Version.Major >= 10;
-            }
-            
+
             // Unix-like systems generally support colors
             return !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TERM"));
         }
@@ -194,8 +184,7 @@ public class CliMessageHandler : IMessageHandler
                 .ToArray();
 
             // Keep only the 10 most recent files
-            for (int i = 10; i < logFiles.Length; i++)
-            {
+            for (var i = 10; i < logFiles.Length; i++)
                 try
                 {
                     File.Delete(logFiles[i]);
@@ -204,7 +193,6 @@ public class CliMessageHandler : IMessageHandler
                 {
                     // Ignore deletion errors
                 }
-            }
         }
         catch
         {
@@ -214,54 +202,50 @@ public class CliMessageHandler : IMessageHandler
 }
 
 /// <summary>
-/// CLI progress implementation with text-based progress bar
+///     CLI progress implementation with text-based progress bar
 /// </summary>
 public class CliProgress : IProgress<ProgressInfo>
 {
-    private readonly string _title;
-    private readonly int _totalItems;
     private readonly bool _useColors;
-    private int _lastPercentage = -1;
     private ProgressInfo? _currentProgress;
     private bool _isActive;
+    private int _lastPercentage = -1;
 
-    public CliProgress(string title, int totalItems, bool useColors)
+    public CliProgress(string title, bool useColors)
     {
-        _title = title;
-        _totalItems = totalItems;
         _useColors = useColors;
-        
-        Console.WriteLine($"\n{_title}");
+
+        Console.WriteLine($"\n{title}");
         _isActive = true;
-        CliMessageHandler._activeProgress = this;
+        CliMessageHandler.ActiveProgress = this;
     }
 
     public void Report(ProgressInfo value)
     {
         if (!_isActive) return;
-        
+
         _currentProgress = value;
         var percentage = (int)value.Percentage;
-        
+
         // Only update if percentage changed to avoid spam
         if (percentage == _lastPercentage) return;
         _lastPercentage = percentage;
 
         DrawProgressBar(value);
-        
+
         if (percentage >= 100)
         {
             Console.WriteLine(); // New line when complete
             _isActive = false;
-            if (CliMessageHandler._activeProgress == this)
-                CliMessageHandler._activeProgress = null;
+            if (CliMessageHandler.ActiveProgress == this)
+                CliMessageHandler.ActiveProgress = null;
         }
     }
 
     public bool InterruptForMessage()
     {
         if (!_isActive) return false;
-        
+
         // Move to new line if we're currently showing progress on the same line
         Console.WriteLine();
         return true;
@@ -270,7 +254,7 @@ public class CliProgress : IProgress<ProgressInfo>
     public void RedrawAfterMessage()
     {
         if (!_isActive || _currentProgress == null) return;
-        
+
         // Redraw the progress bar on a new line
         DrawProgressBar(_currentProgress);
     }
@@ -278,13 +262,13 @@ public class CliProgress : IProgress<ProgressInfo>
     private void DrawProgressBar(ProgressInfo value)
     {
         var percentage = (int)value.Percentage;
-        var barWidth = 40;
+        const int barWidth = 40;
         var filledWidth = (int)(barWidth * (percentage / 100.0));
         var bar = new string('█', filledWidth) + new string('░', barWidth - filledWidth);
-        
+
         if (_useColors)
         {
-            Console.Write($"\r[");
+            Console.Write("\r[");
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Write(new string('█', filledWidth));
             Console.ForegroundColor = ConsoleColor.DarkGray;
@@ -300,7 +284,7 @@ public class CliProgress : IProgress<ProgressInfo>
 }
 
 /// <summary>
-/// CLI progress context with 'using' statement support
+///     CLI progress context with 'using' statement support
 /// </summary>
 public class CliProgressContext : IProgressContext
 {
@@ -311,27 +295,27 @@ public class CliProgressContext : IProgressContext
     public CliProgressContext(string title, int totalItems, bool useColors)
     {
         _totalItems = totalItems;
-        _progress = new CliProgress(title, totalItems, useColors);
+        _progress = new CliProgress(title, useColors);
     }
 
     public void Update(int current, string message)
     {
         if (_disposed) return;
-        
+
         var progressInfo = new ProgressInfo
         {
             Current = current,
             Total = _totalItems,
             Message = message
         };
-        
+
         _progress.Report(progressInfo);
     }
 
     public void Complete()
     {
         if (_disposed) return;
-        
+
         Update(_totalItems, "Complete");
     }
 
@@ -345,11 +329,11 @@ public class CliProgressContext : IProgressContext
     {
         if (_disposed) return;
         _disposed = true;
-        
+
         // Clean up active progress reference
-        if (CliMessageHandler._activeProgress == _progress)
-            CliMessageHandler._activeProgress = null;
-        
+        if (CliMessageHandler.ActiveProgress == _progress)
+            CliMessageHandler.ActiveProgress = null;
+
         // Ensure we end on a new line
         Console.WriteLine();
     }

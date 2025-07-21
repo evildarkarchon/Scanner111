@@ -1,5 +1,4 @@
 using Scanner111.Core.Infrastructure;
-using Xunit;
 
 namespace Scanner111.Tests.Infrastructure;
 
@@ -9,7 +8,7 @@ public class CrashLogParserAdditionalTests
     public async Task ParseAsync_CrashLogWithNoPlugins_IsMarkedIncomplete()
     {
         // Arrange
-        var emptyPluginsLog = @"Fallout 4 v1.10.163
+        const string emptyPluginsLog = @"Fallout 4 v1.10.163
 Buffout 4 v1.26.2
 
 Unhandled exception ""EXCEPTION_ACCESS_VIOLATION"" at 0x7FF798889DFA
@@ -41,12 +40,12 @@ PLUGINS:
 ";
         var tempFile = Path.GetTempFileName();
         await File.WriteAllTextAsync(tempFile, emptyPluginsLog);
-        
+
         try
         {
             // Act
             var result = await CrashLogParser.ParseAsync(tempFile);
-            
+
             // Assert
             Assert.NotNull(result);
             Assert.Empty(result.Plugins);
@@ -61,8 +60,8 @@ PLUGINS:
             File.Delete(tempFile);
         }
     }
-    
-    [Fact] 
+
+    [Fact]
     public async Task ParseAsync_CrashLogWithEmptyLines_IgnoresEmptyLines()
     {
         // Arrange
@@ -96,12 +95,12 @@ PLUGINS:
 ";
         var tempFile = Path.GetTempFileName();
         await File.WriteAllTextAsync(tempFile, logWithEmptyLines);
-        
+
         try
         {
             // Act
             var result = await CrashLogParser.ParseAsync(tempFile);
-            
+
             // Assert
             Assert.NotNull(result);
             Assert.Equal(2, result.Plugins.Count);

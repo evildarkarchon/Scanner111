@@ -1,10 +1,7 @@
-using System;
-using System.IO;
-using System.Text.Json;
 using System.Threading.Tasks;
-using Scanner111.GUI.Models;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
+using Scanner111.GUI.Models;
 
 namespace Scanner111.GUI.Services;
 
@@ -13,7 +10,7 @@ public interface ISettingsService
     Task<ApplicationSettings> LoadSettingsAsync();
     Task SaveSettingsAsync(ApplicationSettings settings);
     ApplicationSettings GetDefaultSettings();
-    
+
     // Backward compatibility methods for existing GUI code
     Task<UserSettings> LoadUserSettingsAsync();
     Task SaveUserSettingsAsync(UserSettings settings);
@@ -65,7 +62,7 @@ public class SettingsService : ISettingsService
             DefaultLogPath = appSettings.DefaultLogPath,
             DefaultGamePath = appSettings.DefaultGamePath,
             DefaultScanDirectory = appSettings.DefaultScanDirectory,
-            AutoLoadF4SELogs = appSettings.AutoLoadF4SELogs,
+            AutoLoadF4SeLogs = appSettings.AutoLoadF4SeLogs,
             MaxLogMessages = appSettings.MaxLogMessages,
             EnableProgressNotifications = appSettings.EnableProgressNotifications,
             RememberWindowSize = appSettings.RememberWindowSize,
@@ -80,7 +77,7 @@ public class SettingsService : ISettingsService
             AutoSaveResults = appSettings.AutoSaveResults,
             DefaultOutputFormat = appSettings.DefaultOutputFormat,
             CrashLogsDirectory = appSettings.CrashLogsDirectory,
-            SkipXSECopy = appSettings.SkipXSECopy
+            SkipXseCopy = appSettings.SkipXseCopy
         };
     }
 
@@ -89,7 +86,7 @@ public class SettingsService : ISettingsService
         appSettings.DefaultLogPath = userSettings.DefaultLogPath;
         appSettings.DefaultGamePath = userSettings.DefaultGamePath;
         appSettings.DefaultScanDirectory = userSettings.DefaultScanDirectory;
-        appSettings.AutoLoadF4SELogs = userSettings.AutoLoadF4SELogs;
+        appSettings.AutoLoadF4SeLogs = userSettings.AutoLoadF4SeLogs;
         appSettings.MaxLogMessages = userSettings.MaxLogMessages;
         appSettings.EnableProgressNotifications = userSettings.EnableProgressNotifications;
         appSettings.RememberWindowSize = userSettings.RememberWindowSize;
@@ -104,6 +101,6 @@ public class SettingsService : ISettingsService
         appSettings.AutoSaveResults = userSettings.AutoSaveResults;
         appSettings.DefaultOutputFormat = userSettings.DefaultOutputFormat;
         appSettings.CrashLogsDirectory = userSettings.CrashLogsDirectory;
-        appSettings.SkipXSECopy = userSettings.SkipXSECopy;
+        appSettings.SkipXseCopy = userSettings.SkipXseCopy;
     }
 }

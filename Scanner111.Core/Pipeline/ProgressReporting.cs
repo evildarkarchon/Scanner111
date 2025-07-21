@@ -3,12 +3,12 @@ using System.Collections.Concurrent;
 namespace Scanner111.Core.Pipeline;
 
 /// <summary>
-/// Detailed progress information for scan operations
+///     Detailed progress information for scan operations
 /// </summary>
 public class DetailedProgress : IProgress<DetailedProgressInfo>
 {
-    private readonly IProgress<DetailedProgressInfo>? _innerProgress;
     private readonly ConcurrentDictionary<string, AnalyzerProgress> _analyzerProgress = new();
+    private readonly IProgress<DetailedProgressInfo>? _innerProgress;
     private DetailedProgressInfo _currentProgress = new();
 
     public DetailedProgress(IProgress<DetailedProgressInfo>? innerProgress = null)
@@ -42,12 +42,12 @@ public class DetailedProgress : IProgress<DetailedProgressInfo>
             ProcessedFiles = _currentProgress.ProcessedFiles + 1,
             LastUpdateTime = DateTime.UtcNow
         };
-        
+
         if (success)
             progress = progress with { SuccessfulFiles = _currentProgress.SuccessfulFiles + 1 };
         else
             progress = progress with { FailedFiles = _currentProgress.FailedFiles + 1 };
-            
+
         Report(progress);
     }
 
@@ -60,7 +60,7 @@ public class DetailedProgress : IProgress<DetailedProgressInfo>
             Status = AnalyzerStatus.Running,
             StartTime = DateTime.UtcNow
         };
-        
+
         UpdateAnalyzerProgress();
     }
 
@@ -73,7 +73,7 @@ public class DetailedProgress : IProgress<DetailedProgressInfo>
             progress.EndTime = DateTime.UtcNow;
             progress.Duration = progress.EndTime - progress.StartTime;
         }
-        
+
         UpdateAnalyzerProgress();
     }
 
@@ -83,22 +83,24 @@ public class DetailedProgress : IProgress<DetailedProgressInfo>
             .Where(p => p.Status == AnalyzerStatus.Running)
             .OrderBy(p => p.StartTime)
             .ToList();
-            
+
         var progress = _currentProgress with
         {
             ActiveAnalyzers = analyzerProgresses,
             LastUpdateTime = DateTime.UtcNow
         };
-        
+
         Report(progress);
     }
 
-    private static string GetKey(string analyzerName, string filePath) 
-        => $"{analyzerName}:{filePath}";
+    private static string GetKey(string analyzerName, string filePath)
+    {
+        return $"{analyzerName}:{filePath}";
+    }
 }
 
 /// <summary>
-/// Detailed progress information
+///     Detailed progress information
 /// </summary>
 public record DetailedProgressInfo
 {
@@ -107,31 +109,31 @@ public record DetailedProgressInfo
     public int ProcessedFiles { get; init; }
     public int SuccessfulFiles { get; init; }
     public int FailedFiles { get; init; }
-    public double ProgressPercentage => TotalFiles > 0 ? (ProcessedFiles * 100.0) / TotalFiles : 0;
-    
+    public double ProgressPercentage => TotalFiles > 0 ? ProcessedFiles * 100.0 / TotalFiles : 0;
+
     // Current file progress
     public string CurrentFile { get; init; } = string.Empty;
     public FileProcessingStatus CurrentFileStatus { get; init; }
-    
+
     // Analyzer progress
     public IReadOnlyList<AnalyzerProgress> ActiveAnalyzers { get; init; } = Array.Empty<AnalyzerProgress>();
-    
+
     // Timing
     public DateTime StartTime { get; init; }
     public DateTime LastUpdateTime { get; init; }
     public TimeSpan ElapsedTime => LastUpdateTime - StartTime;
     public TimeSpan? EstimatedTimeRemaining { get; init; }
-    
+
     // Performance metrics
     public double FilesPerSecond => ElapsedTime.TotalSeconds > 0 ? ProcessedFiles / ElapsedTime.TotalSeconds : 0;
     public double AverageFileTime => ProcessedFiles > 0 ? ElapsedTime.TotalSeconds / ProcessedFiles : 0;
-    
+
     // Memory usage
-    public long MemoryUsageMB { get; init; }
+    public long MemoryUsageMb { get; init; }
 }
 
 /// <summary>
-/// Progress for individual analyzer
+///     Progress for individual analyzer
 /// </summary>
 public class AnalyzerProgress
 {
@@ -144,7 +146,7 @@ public class AnalyzerProgress
 }
 
 /// <summary>
-/// Status of file processing
+///     Status of file processing
 /// </summary>
 public enum FileProcessingStatus
 {
@@ -156,7 +158,7 @@ public enum FileProcessingStatus
 }
 
 /// <summary>
-/// Status of analyzer execution
+///     Status of analyzer execution
 /// </summary>
 public enum AnalyzerStatus
 {

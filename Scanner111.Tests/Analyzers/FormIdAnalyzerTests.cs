@@ -1,21 +1,18 @@
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
-using Xunit;
 
 namespace Scanner111.Tests.Analyzers;
 
 public class FormIdAnalyzerTests
 {
-    private readonly TestYamlSettingsProvider _yamlSettings;
-    private readonly TestFormIdDatabaseService _formIdDatabase;
     private readonly FormIdAnalyzer _analyzer;
 
     public FormIdAnalyzerTests()
     {
-        _yamlSettings = new TestYamlSettingsProvider();
-        _formIdDatabase = new TestFormIdDatabaseService();
-        _analyzer = new FormIdAnalyzer(_yamlSettings, _formIdDatabase);
+        var yamlSettings = new TestYamlSettingsProvider();
+        var formIdDatabase = new TestFormIdDatabaseService();
+        _analyzer = new FormIdAnalyzer(yamlSettings, formIdDatabase);
     }
 
     [Fact]
@@ -25,17 +22,17 @@ public class FormIdAnalyzerTests
         var crashLog = new CrashLog
         {
             FilePath = "test.log",
-            CallStack = new List<string>
-            {
+            CallStack =
+            [
                 "  Form ID: 0x0001A332",
                 "  Form ID: 0x00014E45",
                 "  Form ID: 0xFF000000", // Should be skipped (starts with FF)
                 "  Some other line"
-            },
+            ],
             Plugins = new Dictionary<string, string>
             {
-                {"TestPlugin.esp", "00"},
-                {"AnotherPlugin.esp", "01"}
+                { "TestPlugin.esp", "00" },
+                { "AnotherPlugin.esp", "01" }
             }
         };
 
@@ -45,7 +42,7 @@ public class FormIdAnalyzerTests
         // Assert
         Assert.IsType<FormIdAnalysisResult>(result);
         var formIdResult = (FormIdAnalysisResult)result;
-        
+
         Assert.Equal("FormID Analyzer", formIdResult.AnalyzerName);
         Assert.True(formIdResult.HasFindings);
         Assert.Equal(2, formIdResult.FormIds.Count);
@@ -61,12 +58,12 @@ public class FormIdAnalyzerTests
         var crashLog = new CrashLog
         {
             FilePath = "test.log",
-            CallStack = new List<string>
-            {
+            CallStack =
+            [
                 "  Some random line",
                 "  Another line without FormID",
                 "  Yet another line"
-            },
+            ],
             Plugins = new Dictionary<string, string>()
         };
 
@@ -87,15 +84,15 @@ public class FormIdAnalyzerTests
         var crashLog = new CrashLog
         {
             FilePath = "test.log",
-            CallStack = new List<string>
-            {
+            CallStack =
+            [
                 "  Form ID: 0xFF000001",
                 "  Form ID: 0xFF000002",
-                "  Form ID: 0x00012345" // This should be included
-            },
+                "  Form ID: 0x00012345"
+            ],
             Plugins = new Dictionary<string, string>
             {
-                {"TestPlugin.esp", "00"}
+                { "TestPlugin.esp", "00" }
             }
         };
 
@@ -118,15 +115,15 @@ public class FormIdAnalyzerTests
         var crashLog = new CrashLog
         {
             FilePath = "test.log",
-            CallStack = new List<string>
-            {
+            CallStack =
+            [
                 "  Form ID: 0x00012345",
                 "  Form ID: 0x01006789"
-            },
+            ],
             Plugins = new Dictionary<string, string>
             {
-                {"TestPlugin.esp", "00"},
-                {"AnotherPlugin.esp", "01"}
+                { "TestPlugin.esp", "00" },
+                { "AnotherPlugin.esp", "01" }
             }
         };
 
@@ -148,16 +145,16 @@ public class FormIdAnalyzerTests
         var crashLog = new CrashLog
         {
             FilePath = "test.log",
-            CallStack = new List<string>
-            {
+            CallStack =
+            [
                 "  Form ID: 0x00012345",
                 "  Form ID: 0x00012345",
                 "  Form ID: 0x00012345",
                 "  Form ID: 0x00067890"
-            },
+            ],
             Plugins = new Dictionary<string, string>
             {
-                {"TestPlugin.esp", "00"}
+                { "TestPlugin.esp", "00" }
             }
         };
 
@@ -178,16 +175,16 @@ public class FormIdAnalyzerTests
         var crashLog = new CrashLog
         {
             FilePath = "test.log",
-            CallStack = new List<string>
-            {
+            CallStack =
+            [
                 "  Form ID: 0x12345", // Too short
                 "  Form ID: 0xGGGGGGGG", // Invalid hex
                 "  Form ID: 0x00012345", // Valid
                 "  Form ID: not a form id"
-            },
+            ],
             Plugins = new Dictionary<string, string>
             {
-                {"TestPlugin.esp", "00"}
+                { "TestPlugin.esp", "00" }
             }
         };
 
@@ -208,15 +205,15 @@ public class FormIdAnalyzerTests
         var crashLog = new CrashLog
         {
             FilePath = "test.log",
-            CallStack = new List<string>
-            {
+            CallStack =
+            [
                 "  Form ID: 0x0001abcd",
                 "  Form ID: 0x0001ABCD",
                 "  form id: 0x00012345"
-            },
+            ],
             Plugins = new Dictionary<string, string>
             {
-                {"TestPlugin.esp", "00"}
+                { "TestPlugin.esp", "00" }
             }
         };
 
@@ -226,7 +223,7 @@ public class FormIdAnalyzerTests
         // Assert
         var formIdResult = (FormIdAnalysisResult)result;
         Assert.True(formIdResult.HasFindings);
-        
+
         // Should normalize to uppercase and treat as same FormID
         Assert.Contains("Form ID: 0001ABCD", formIdResult.FormIds);
         Assert.Contains("Form ID: 00012345", formIdResult.FormIds);

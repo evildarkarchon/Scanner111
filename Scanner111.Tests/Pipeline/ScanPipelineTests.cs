@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Xunit;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
@@ -12,8 +11,8 @@ public class ScanPipelineTests : IDisposable
 {
     private readonly ILogger<ScanPipeline> _logger;
     private readonly IMessageHandler _messageHandler;
-    private readonly IYamlSettingsProvider _settingsProvider;
     private readonly ScanPipeline _pipeline;
+    private readonly IYamlSettingsProvider _settingsProvider;
     private readonly List<TestAnalyzer> _testAnalyzers;
 
     public ScanPipelineTests()
@@ -21,17 +20,22 @@ public class ScanPipelineTests : IDisposable
         _logger = new TestLogger<ScanPipeline>();
         _messageHandler = new TestMessageHandler();
         _settingsProvider = new TestYamlSettingsProvider();
-        
+
         // Create test analyzers with different priorities and capabilities
         _testAnalyzers = new List<TestAnalyzer>
         {
-            new TestAnalyzer("HighPriority", priority: 1, canRunInParallel: true, shouldSucceed: true),
-            new TestAnalyzer("MediumPriority", priority: 5, canRunInParallel: false, shouldSucceed: true),
-            new TestAnalyzer("LowPriority", priority: 10, canRunInParallel: true, shouldSucceed: true),
-            new TestAnalyzer("FailingAnalyzer", priority: 3, canRunInParallel: true, shouldSucceed: false)
+            new("HighPriority", 1, true, true),
+            new("MediumPriority", 5, false, true),
+            new("LowPriority", 10, true, true),
+            new("FailingAnalyzer", 3, true, false)
         };
-        
+
         _pipeline = new ScanPipeline(_testAnalyzers, _logger, _messageHandler, _settingsProvider);
+    }
+
+    public void Dispose()
+    {
+        _pipeline?.DisposeAsync().AsTask().Wait();
     }
 
     [Fact]
@@ -96,15 +100,15 @@ public class ScanPipelineTests : IDisposable
 
         // Assert
         Assert.Equal(4, result.AnalysisResults.Count);
-        
+
         // Sequential analyzers should run first and be completed
         var sequentialResults = result.AnalysisResults.Where(r => r.AnalyzerName == "MediumPriority").ToList();
         Assert.Single(sequentialResults);
-        
+
         // Parallel analyzers should also be completed
-        var parallelResults = result.AnalysisResults.Where(r => 
-            r.AnalyzerName == "HighPriority" || 
-            r.AnalyzerName == "LowPriority" || 
+        var parallelResults = result.AnalysisResults.Where(r =>
+            r.AnalyzerName == "HighPriority" ||
+            r.AnalyzerName == "LowPriority" ||
             r.AnalyzerName == "FailingAnalyzer").ToList();
         Assert.Equal(3, parallelResults.Count);
     }
@@ -127,16 +131,13 @@ public class ScanPipelineTests : IDisposable
         var options = new ScanOptions { MaxConcurrency = 2 };
 
         // Act
-        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths, options, progress))
-        {
-            results.Add(result);
-        }
+        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths, options, progress)) results.Add(result);
 
         // Assert
         Assert.Equal(3, results.Count);
         Assert.All(results, r => Assert.NotEqual(ScanStatus.Failed, r.Status));
         Assert.True(progressReports.Count > 0);
-        
+
         var finalProgress = progressReports.Last();
         Assert.Equal(3, finalProgress.TotalFiles);
         Assert.Equal(3, finalProgress.ProcessedFiles);
@@ -152,10 +153,7 @@ public class ScanPipelineTests : IDisposable
         var results = new List<ScanResult>();
 
         // Act
-        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths))
-        {
-            results.Add(result);
-        }
+        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths)) results.Add(result);
 
         // Assert
         Assert.Single(results); // Should only process once due to deduplication
@@ -184,10 +182,7 @@ public class ScanPipelineTests : IDisposable
             await foreach (var result in _pipeline.ProcessBatchAsync(logPaths, cancellationToken: cts.Token))
             {
                 results.Add(result);
-                if (results.Count >= 2)
-                {
-                    cts.Cancel(); // Cancel after processing 2 files
-                }
+                if (results.Count >= 2) cts.Cancel(); // Cancel after processing 2 files
             }
         }
         catch (OperationCanceledException)
@@ -215,15 +210,12 @@ public class ScanPipelineTests : IDisposable
         var results = new List<ScanResult>();
 
         // Act
-        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths, progress: progress))
-        {
-            results.Add(result);
-        }
+        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths, progress: progress)) results.Add(result);
 
         // Assert
         Assert.Equal(3, results.Count);
         Assert.True(progressReports.Count >= 3); // At least one progress report per file
-        
+
         var finalProgress = progressReports.Last();
         Assert.Equal(3, finalProgress.TotalFiles);
         Assert.Equal(3, finalProgress.ProcessedFiles);
@@ -255,10 +247,7 @@ public class ScanPipelineTests : IDisposable
         var results = new List<ScanResult>();
 
         // Act
-        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths))
-        {
-            results.Add(result);
-        }
+        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths)) results.Add(result);
 
         // Assert
         Assert.Empty(results);
@@ -281,10 +270,7 @@ public class ScanPipelineTests : IDisposable
 
         // Act
         var start = DateTime.UtcNow;
-        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths, options))
-        {
-            results.Add(result);
-        }
+        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths, options)) results.Add(result);
         var elapsed = DateTime.UtcNow - start;
 
         // Assert
@@ -301,19 +287,11 @@ public class ScanPipelineTests : IDisposable
         File.WriteAllText(tempPath, content);
         return tempPath;
     }
-
-    public void Dispose()
-    {
-        _pipeline?.DisposeAsync().AsTask().Wait();
-    }
 }
 
 // Test analyzer for testing purposes
 internal class TestAnalyzer : IAnalyzer
 {
-    public string Name { get; }
-    public int Priority { get; }
-    public bool CanRunInParallel { get; }
     private readonly bool _shouldSucceed;
 
     public TestAnalyzer(string name, int priority, bool canRunInParallel, bool shouldSucceed)
@@ -324,27 +302,27 @@ internal class TestAnalyzer : IAnalyzer
         _shouldSucceed = shouldSucceed;
     }
 
+    public string Name { get; }
+    public int Priority { get; }
+    public bool CanRunInParallel { get; }
+
     public async Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
     {
         // Simulate some work
         await Task.Delay(10, cancellationToken);
 
         if (_shouldSucceed)
-        {
             return new GenericAnalysisResult
             {
                 AnalyzerName = Name,
                 Success = true
             };
-        }
-        else
+
+        return new GenericAnalysisResult
         {
-            return new GenericAnalysisResult
-            {
-                AnalyzerName = Name,
-                Success = false,
-                Errors = new[] { $"Simulated failure in {Name}" }
-            };
-        }
+            AnalyzerName = Name,
+            Success = false,
+            Errors = new[] { $"Simulated failure in {Name}" }
+        };
     }
 }

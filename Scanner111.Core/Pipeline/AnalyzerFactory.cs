@@ -1,23 +1,20 @@
 using Microsoft.Extensions.DependencyInjection;
 using Scanner111.Core.Analyzers;
-using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Core.Pipeline;
 
 /// <summary>
-/// Default implementation of analyzer factory
+///     Default implementation of analyzer factory
 /// </summary>
 public class AnalyzerFactory : IAnalyzerFactory
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly IYamlSettingsProvider _settingsProvider;
     private readonly Dictionary<string, Type> _analyzerTypes;
+    private readonly IServiceProvider _serviceProvider;
 
-    public AnalyzerFactory(IServiceProvider serviceProvider, IYamlSettingsProvider settingsProvider)
+    public AnalyzerFactory(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
-        _settingsProvider = settingsProvider;
-        
+
         // Register analyzer types
         _analyzerTypes = new Dictionary<string, Type>
         {
@@ -32,28 +29,20 @@ public class AnalyzerFactory : IAnalyzerFactory
     public IEnumerable<IAnalyzer> CreateAnalyzers(string game)
     {
         var analyzers = new List<IAnalyzer>();
-        
+
         // Create all registered analyzers
-        foreach (var (name, type) in _analyzerTypes)
+        foreach (var (_, type) in _analyzerTypes)
         {
             var analyzer = CreateAnalyzerInstance(type);
-            if (analyzer != null)
-            {
-                analyzers.Add(analyzer);
-            }
+            if (analyzer != null) analyzers.Add(analyzer);
         }
-        
+
         return analyzers.OrderBy(a => a.Priority);
     }
 
     public IAnalyzer? CreateAnalyzer(string name)
     {
-        if (_analyzerTypes.TryGetValue(name, out var type))
-        {
-            return CreateAnalyzerInstance(type);
-        }
-        
-        return null;
+        return _analyzerTypes.TryGetValue(name, out var type) ? CreateAnalyzerInstance(type) : null;
     }
 
     public IEnumerable<string> GetAvailableAnalyzers()
@@ -67,7 +56,7 @@ public class AnalyzerFactory : IAnalyzerFactory
         {
             return (IAnalyzer?)ActivatorUtilities.CreateInstance(_serviceProvider, analyzerType);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Log error
             return null;

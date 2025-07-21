@@ -1,10 +1,9 @@
-using System.Threading.Tasks;
 using Scanner111.Core.Models;
 
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-/// Service for managing unified application settings
+///     Service for managing unified application settings
 /// </summary>
 public interface IApplicationSettingsService
 {

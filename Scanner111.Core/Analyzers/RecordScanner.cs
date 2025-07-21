@@ -1,32 +1,17 @@
-using Scanner111.Core.Models;
 using Scanner111.Core.Infrastructure;
+using Scanner111.Core.Models;
 
 namespace Scanner111.Core.Analyzers;
 
 /// <summary>
-/// Handles scanning for named records in crash logs, direct port of Python RecordScanner
+///     Handles scanning for named records in crash logs, direct port of Python RecordScanner
 /// </summary>
 public class RecordScanner : IAnalyzer
 {
     private readonly IYamlSettingsProvider _yamlSettings;
 
     /// <summary>
-    /// Name of the analyzer
-    /// </summary>
-    public string Name => "Record Scanner";
-    
-    /// <summary>
-    /// Priority of the analyzer (lower values run first)
-    /// </summary>
-    public int Priority => 30;
-    
-    /// <summary>
-    /// Whether this analyzer can be run in parallel with others
-    /// </summary>
-    public bool CanRunInParallel => true;
-
-    /// <summary>
-    /// Initialize the record scanner
+    ///     Initialize the record scanner
     /// </summary>
     /// <param name="yamlSettings">YAML settings provider for configuration</param>
     public RecordScanner(IYamlSettingsProvider yamlSettings)
@@ -35,7 +20,22 @@ public class RecordScanner : IAnalyzer
     }
 
     /// <summary>
-    /// Analyze a crash log for named records
+    ///     Name of the analyzer
+    /// </summary>
+    public string Name => "Record Scanner";
+
+    /// <summary>
+    ///     Priority of the analyzer (lower values run first)
+    /// </summary>
+    public int Priority => 30;
+
+    /// <summary>
+    ///     Whether this analyzer can be run in parallel with others
+    /// </summary>
+    public bool CanRunInParallel => true;
+
+    /// <summary>
+    ///     Analyze a crash log for named records
     /// </summary>
     /// <param name="crashLog">Crash log to analyze</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -49,7 +49,7 @@ public class RecordScanner : IAnalyzer
 
         // Extract records from the call stack
         var extractedRecords = ExtractRecords(crashLog.CallStack);
-        
+
         // Scan for named records
         ScanNamedRecords(crashLog.CallStack, recordsMatches, reportLines);
 
@@ -60,20 +60,22 @@ public class RecordScanner : IAnalyzer
             HasFindings = recordsMatches.Count > 0,
             Data = new Dictionary<string, object>
             {
-                {"RecordsMatches", recordsMatches},
-                {"ExtractedRecords", extractedRecords}
+                { "RecordsMatches", recordsMatches },
+                { "ExtractedRecords", extractedRecords }
             }
         };
     }
 
     /// <summary>
-    /// Scans named records in the provided segment callstack, identifies matches, and updates the autoscan report accordingly.
-    /// Direct port of Python scan_named_records method.
+    ///     Scans named records in the provided segment callstack, identifies matches, and updates the autoscan report
+    ///     accordingly.
+    ///     Direct port of Python scan_named_records method.
     /// </summary>
     /// <param name="segmentCallstack">The callstack to scan for named records</param>
     /// <param name="recordsMatches">A list to hold records that match the scan criteria</param>
     /// <param name="autoscanReport">The report to be updated based on scanning results</param>
-    private void ScanNamedRecords(List<string> segmentCallstack, List<string> recordsMatches, List<string> autoscanReport)
+    private void ScanNamedRecords(List<string> segmentCallstack, List<string> recordsMatches,
+        List<string> autoscanReport)
     {
         // Constants
         const string rspMarker = "[RSP+";
@@ -84,29 +86,33 @@ public class RecordScanner : IAnalyzer
 
         // Report results
         if (recordsMatches.Count > 0)
-        {
             ReportFoundRecords(recordsMatches, autoscanReport);
-        }
         else
-        {
             autoscanReport.Add("* COULDN'T FIND ANY NAMED RECORDS *\n\n");
-        }
     }
 
     /// <summary>
-    /// Finds and collects matching records from a given segment of a call stack based on specified criteria.
-    /// Direct port of Python _find_matching_records method.
+    ///     Finds and collects matching records from a given segment of a call stack based on specified criteria.
+    ///     Direct port of Python _find_matching_records method.
     /// </summary>
     /// <param name="segmentCallstack">A list of strings representing segment of the call stack to be analyzed</param>
     /// <param name="recordsMatches">A list where matching record lines will be appended</param>
     /// <param name="rspMarker">A marker string to identify the relevant portion of the call stack lines</param>
-    /// <param name="rspOffset">An integer representing the character offset from rsp_marker used to determine where to begin extracting record content</param>
-    private void FindMatchingRecords(List<string> segmentCallstack, List<string> recordsMatches, string rspMarker, int rspOffset)
+    /// <param name="rspOffset">
+    ///     An integer representing the character offset from rsp_marker used to determine where to begin
+    ///     extracting record content
+    /// </param>
+    private void FindMatchingRecords(List<string> segmentCallstack, List<string> recordsMatches, string rspMarker,
+        int rspOffset)
     {
-        var recordsList = _yamlSettings.GetSetting<List<string>>("CLASSIC Main", "catch_log_records", new List<string>()) ?? new List<string>();
+        var recordsList =
+            _yamlSettings.GetSetting<List<string>>("CLASSIC Main", "catch_log_records", new List<string>()) ??
+            new List<string>();
         var lowerRecords = recordsList.Select(r => r.ToLower()).ToHashSet();
-        
-        var ignoredList = _yamlSettings.GetSetting<List<string>>("CLASSIC Fallout4", "Crashlog_Records_Exclude", new List<string>()) ?? new List<string>();
+
+        var ignoredList =
+            _yamlSettings.GetSetting<List<string>>("CLASSIC Fallout4", "Crashlog_Records_Exclude",
+                new List<string>()) ?? new List<string>();
         var lowerIgnore = ignoredList.Select(r => r.ToLower()).ToHashSet();
 
         foreach (var line in segmentCallstack)
@@ -114,16 +120,13 @@ public class RecordScanner : IAnalyzer
             var lowerLine = line.ToLower();
 
             // Check if line contains any target record and doesn't contain any ignored terms
-            if (lowerRecords.Any(item => lowerLine.Contains(item)) && 
+            if (lowerRecords.Any(item => lowerLine.Contains(item)) &&
                 !lowerIgnore.Any(record => lowerLine.Contains(record)))
             {
                 // Extract the relevant part of the line based on format
                 if (line.Contains(rspMarker))
                 {
-                    if (line.Length > rspOffset)
-                    {
-                        recordsMatches.Add(line.Substring(rspOffset).Trim());
-                    }
+                    if (line.Length > rspOffset) recordsMatches.Add(line.Substring(rspOffset).Trim());
                 }
                 else
                 {
@@ -134,8 +137,8 @@ public class RecordScanner : IAnalyzer
     }
 
     /// <summary>
-    /// Format and add report entries for found records.
-    /// Direct port of Python _report_found_records method.
+    ///     Format and add report entries for found records.
+    ///     Direct port of Python _report_found_records method.
     /// </summary>
     /// <param name="recordsMatches">List of found records</param>
     /// <param name="autoscanReport">List to append formatted report</param>
@@ -148,10 +151,7 @@ public class RecordScanner : IAnalyzer
             .ToDictionary(g => g.Key, g => g.Count());
 
         // Add each record with its count
-        foreach (var (record, count) in recordsFound)
-        {
-            autoscanReport.Add($"- {record} | {count}\n");
-        }
+        foreach (var (record, count) in recordsFound) autoscanReport.Add($"- {record} | {count}\n");
 
         // Add explanatory notes
         var explanatoryNotes = new[]
@@ -164,8 +164,8 @@ public class RecordScanner : IAnalyzer
     }
 
     /// <summary>
-    /// Extract records from a segment callstack based on specific matching criteria.
-    /// Direct port of Python extract_records method.
+    ///     Extract records from a segment callstack based on specific matching criteria.
+    ///     Direct port of Python extract_records method.
     /// </summary>
     /// <param name="segmentCallstack">The list of strings representing the segment callstack to be processed</param>
     /// <returns>A list of strings containing the matching records identified from the segment callstack</returns>

@@ -5,12 +5,12 @@ using Scanner111.Core.Models;
 namespace Scanner111.Core.Pipeline;
 
 /// <summary>
-/// Example showing how to use the enhanced scan pipeline
+///     Example showing how to use the enhanced scan pipeline
 /// </summary>
 public static class PipelineUsageExample
 {
     /// <summary>
-    /// Example of creating and using an enhanced pipeline with all features enabled
+    ///     Example of creating and using an enhanced pipeline with all features enabled
     /// </summary>
     public static async Task<IEnumerable<ScanResult>> ProcessFilesWithEnhancedPipelineAsync(
         IEnumerable<string> logFiles,
@@ -20,11 +20,11 @@ public static class PipelineUsageExample
         // Create the enhanced pipeline with all features enabled
         var pipeline = new ScanPipelineBuilder()
             .AddDefaultAnalyzers()
-            .WithCaching(true)
-            .WithEnhancedErrorHandling(true)
-            .WithPerformanceMonitoring(true)
+            .WithCaching()
+            .WithEnhancedErrorHandling()
+            .WithPerformanceMonitoring()
             .WithMaxConcurrency(Environment.ProcessorCount)
-            .WithLogging(builder => 
+            .WithLogging(builder =>
             {
                 builder.AddConsole();
                 builder.SetMinimumLevel(LogLevel.Information);
@@ -34,24 +34,22 @@ public static class PipelineUsageExample
         var results = new List<ScanResult>();
 
         // Process files with progress reporting
-        await foreach (var result in pipeline.ProcessBatchAsync(logFiles, 
-            new ScanOptions 
-            { 
-                MaxConcurrency = Environment.ProcessorCount,
-                EnableCaching = true 
-            }, 
-            progress, 
-            cancellationToken))
-        {
+        await foreach (var result in pipeline.ProcessBatchAsync(logFiles,
+                           new ScanOptions
+                           {
+                               MaxConcurrency = Environment.ProcessorCount,
+                               EnableCaching = true
+                           },
+                           progress,
+                           cancellationToken))
             results.Add(result);
-        }
 
         await pipeline.DisposeAsync();
         return results;
     }
 
     /// <summary>
-    /// Example of processing a single file with detailed progress reporting
+    ///     Example of processing a single file with detailed progress reporting
     /// </summary>
     public static async Task<ScanResult> ProcessSingleFileWithProgressAsync(
         string logFile,
@@ -59,7 +57,7 @@ public static class PipelineUsageExample
         CancellationToken cancellationToken = default)
     {
         using var enhancedCts = new EnhancedCancellationTokenSource(
-            timeout: TimeSpan.FromMinutes(5));
+            TimeSpan.FromMinutes(5));
 
         var combinedToken = CancellationTokenSource
             .CreateLinkedTokenSource(cancellationToken, enhancedCts.Token)
@@ -67,17 +65,17 @@ public static class PipelineUsageExample
 
         var pipeline = new ScanPipelineBuilder()
             .AddDefaultAnalyzers()
-            .WithCaching(true)
-            .WithEnhancedErrorHandling(true)
-            .WithPerformanceMonitoring(true)
+            .WithCaching()
+            .WithEnhancedErrorHandling()
+            .WithPerformanceMonitoring()
             .Build();
 
         try
         {
             // Use checkpoint for cancellation support
-            await combinedToken.CheckpointAsync("Starting file processing", 
-                new Progress<string>(msg => detailedProgress?.Report(new DetailedProgressInfo 
-                { 
+            await combinedToken.CheckpointAsync("Starting file processing",
+                new Progress<string>(_ => detailedProgress?.Report(new DetailedProgressInfo
+                {
                     CurrentFile = logFile,
                     CurrentFileStatus = FileProcessingStatus.InProgress,
                     LastUpdateTime = DateTime.UtcNow
@@ -85,8 +83,8 @@ public static class PipelineUsageExample
 
             var result = await pipeline.ProcessSingleAsync(logFile, combinedToken);
 
-            detailedProgress?.Report(new DetailedProgressInfo 
-            { 
+            detailedProgress?.Report(new DetailedProgressInfo
+            {
                 CurrentFile = logFile,
                 CurrentFileStatus = result.Failed ? FileProcessingStatus.Failed : FileProcessingStatus.Completed,
                 ProcessedFiles = 1,
@@ -103,33 +101,31 @@ public static class PipelineUsageExample
     }
 
     /// <summary>
-    /// Example of using cache management
+    ///     Example of using cache management
     /// </summary>
     public static async Task DemonstrateAdvancedCachingAsync()
     {
         var pipeline = new ScanPipelineBuilder()
             .AddDefaultAnalyzers()
-            .WithCaching(true)
-            .WithEnhancedErrorHandling(true)
+            .WithCaching()
+            .WithEnhancedErrorHandling()
             .Build();
 
-        if (pipeline is EnhancedScanPipeline enhancedPipeline)
-        {
+        if (pipeline is EnhancedScanPipeline)
             // Enhanced pipeline created with caching enabled
             MessageHandler.MsgDebug("Enhanced pipeline created with caching enabled");
-        }
 
         await pipeline.DisposeAsync();
     }
 
     /// <summary>
-    /// Example of error handling configuration
+    ///     Example of error handling configuration
     /// </summary>
     public static IScanPipeline CreatePipelineWithCustomErrorHandling()
     {
         return new ScanPipelineBuilder()
             .AddDefaultAnalyzers()
-            .WithEnhancedErrorHandling(true)
+            .WithEnhancedErrorHandling()
             .WithLogging(builder =>
             {
                 builder.AddConsole();
@@ -139,7 +135,7 @@ public static class PipelineUsageExample
     }
 
     /// <summary>
-    /// Example of lightweight pipeline for simple scenarios
+    ///     Example of lightweight pipeline for simple scenarios
     /// </summary>
     public static IScanPipeline CreateLightweightPipeline()
     {

@@ -1,9 +1,7 @@
-using System.Threading.Tasks;
-
 namespace Scanner111.CLI.Commands;
 
 /// <summary>
-/// Base interface for all CLI commands
+///     Base interface for all CLI commands
 /// </summary>
 public interface ICommand<in T>
 {

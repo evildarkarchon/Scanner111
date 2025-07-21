@@ -1,43 +1,73 @@
-using ReactiveUI;
-using Scanner111.Core.Models;
-using Scanner111.Core.Pipeline;
-using Scanner111.Core.Infrastructure;
-using Scanner111.GUI.Models;
-using Scanner111.GUI.Services;
-using Scanner111.GUI.Views;
-using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.IO;
-using System;
-using System.Linq;
-using Avalonia.Threading;
 using Avalonia.Controls;
+using Avalonia.Threading;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using ReactiveUI;
+using Scanner111.Core.Infrastructure;
+using Scanner111.Core.Models;
+using Scanner111.Core.Pipeline;
+using Scanner111.GUI.Models;
+using Scanner111.GUI.Services;
+using Scanner111.GUI.Views;
 
 namespace Scanner111.GUI.ViewModels;
 
-public partial class MainWindowViewModel : ViewModelBase
+public class MainWindowViewModel : ViewModelBase
 {
-    private string _statusText = "Ready";
-    private bool _isScanning = false;
-    private double _progressValue = 0;
+    private readonly ISettingsService _settingsService;
+    private UserSettings _currentSettings;
+    private bool _isScanning;
+    private IMessageHandler? _messageHandler;
     private string _progressText = "";
-    private bool _progressVisible = false;
-    private string _selectedLogPath = "";
-    private string _selectedGamePath = "";
-    private string _selectedScanDirectory = "";
-    private ScanResultViewModel? _selectedResult;
+    private double _progressValue;
+    private bool _progressVisible;
+    private IReportWriter? _reportWriter;
     private CancellationTokenSource? _scanCancellationTokenSource;
+
+    private IScanPipeline? _scanPipeline;
+    private string _selectedGamePath = "";
+    private string _selectedLogPath = "";
+    private ScanResultViewModel? _selectedResult;
+    private string _selectedScanDirectory = "";
+    private string _statusText = "Ready";
+
+    public MainWindowViewModel()
+    {
+        _settingsService = new SettingsService();
+        _currentSettings = new UserSettings();
+
+        // Initialize commands first - defer pipeline creation to avoid threading issues
+        SelectLogFileCommand = ReactiveCommand.CreateFromTask(SelectLogFile);
+        SelectGamePathCommand = ReactiveCommand.CreateFromTask(SelectGamePath);
+        SelectScanDirectoryCommand = ReactiveCommand.CreateFromTask(SelectScanDirectory);
+        ScanCommand = ReactiveCommand.CreateFromTask(ExecuteScan);
+        CancelScanCommand = ReactiveCommand.Create(CancelScan);
+        ClearResultsCommand = ReactiveCommand.Create(ClearResults);
+        OpenSettingsCommand = ReactiveCommand.CreateFromTask(OpenSettings);
+        ExportSelectedReportCommand = ReactiveCommand.CreateFromTask(ExportSelectedReport,
+            this.WhenAnyValue(x => x.SelectedResult).Select(x => x != null));
+        ExportAllReportsCommand = ReactiveCommand.CreateFromTask(ExportAllReports,
+            this.WhenAnyValue(x => x.ScanResults.Count).Select(x => x > 0));
+
+        StatusText = "Ready - Select a crash log file to begin";
+
+        // Load settings asynchronously
+        _ = LoadSettingsAsync();
+    }
 
     public string StatusText
     {
         get => _statusText;
-        set 
+        set
         {
             if (Dispatcher.UIThread.CheckAccess())
                 this.RaiseAndSetIfChanged(ref _statusText, value);
@@ -49,7 +79,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public bool IsScanning
     {
         get => _isScanning;
-        set 
+        set
         {
             if (Dispatcher.UIThread.CheckAccess())
                 this.RaiseAndSetIfChanged(ref _isScanning, value);
@@ -61,7 +91,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public double ProgressValue
     {
         get => _progressValue;
-        set 
+        set
         {
             if (Dispatcher.UIThread.CheckAccess())
                 this.RaiseAndSetIfChanged(ref _progressValue, value);
@@ -73,7 +103,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public string ProgressText
     {
         get => _progressText;
-        set 
+        set
         {
             if (Dispatcher.UIThread.CheckAccess())
                 this.RaiseAndSetIfChanged(ref _progressText, value);
@@ -85,7 +115,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public bool ProgressVisible
     {
         get => _progressVisible;
-        set 
+        set
         {
             if (Dispatcher.UIThread.CheckAccess())
                 this.RaiseAndSetIfChanged(ref _progressVisible, value);
@@ -97,7 +127,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public string SelectedLogPath
     {
         get => _selectedLogPath;
-        set 
+        set
         {
             if (Dispatcher.UIThread.CheckAccess())
                 this.RaiseAndSetIfChanged(ref _selectedLogPath, value);
@@ -109,7 +139,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public string SelectedGamePath
     {
         get => _selectedGamePath;
-        set 
+        set
         {
             if (Dispatcher.UIThread.CheckAccess())
                 this.RaiseAndSetIfChanged(ref _selectedGamePath, value);
@@ -121,7 +151,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public string SelectedScanDirectory
     {
         get => _selectedScanDirectory;
-        set 
+        set
         {
             if (Dispatcher.UIThread.CheckAccess())
                 this.RaiseAndSetIfChanged(ref _selectedScanDirectory, value);
@@ -133,7 +163,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public ScanResultViewModel? SelectedResult
     {
         get => _selectedResult;
-        set 
+        set
         {
             if (Dispatcher.UIThread.CheckAccess())
                 this.RaiseAndSetIfChanged(ref _selectedResult, value);
@@ -155,50 +185,27 @@ public partial class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> ExportSelectedReportCommand { get; }
     public ReactiveCommand<Unit, Unit> ExportAllReportsCommand { get; }
 
-    private IScanPipeline? _scanPipeline;
-    private IMessageHandler? _messageHandler;
-    private IReportWriter? _reportWriter;
-    private readonly ISettingsService _settingsService;
-    private UserSettings _currentSettings;
-
-    public MainWindowViewModel()
-    {
-        _settingsService = new SettingsService();
-        _currentSettings = new UserSettings();
-        
-        // Initialize commands first - defer pipeline creation to avoid threading issues
-        SelectLogFileCommand = ReactiveCommand.CreateFromTask(SelectLogFile);
-        SelectGamePathCommand = ReactiveCommand.CreateFromTask(SelectGamePath);
-        SelectScanDirectoryCommand = ReactiveCommand.CreateFromTask(SelectScanDirectory);
-        ScanCommand = ReactiveCommand.CreateFromTask(ExecuteScan);
-        CancelScanCommand = ReactiveCommand.Create(CancelScan);
-        ClearResultsCommand = ReactiveCommand.Create(ClearResults);
-        OpenSettingsCommand = ReactiveCommand.CreateFromTask(OpenSettings);
-        ExportSelectedReportCommand = ReactiveCommand.CreateFromTask(ExportSelectedReport, this.WhenAnyValue(x => x.SelectedResult).Select(x => x != null));
-        ExportAllReportsCommand = ReactiveCommand.CreateFromTask(ExportAllReports, this.WhenAnyValue(x => x.ScanResults.Count).Select(x => x > 0));
-
-        StatusText = "Ready - Select a crash log file to begin";
-        
-        // Load settings asynchronously
-        _ = LoadSettingsAsync();
-    }
+    // File picker delegates - set by the View
+    public Func<string, string, Task<string>>? ShowFilePickerAsync { get; set; }
+    public Func<string, Task<string>>? ShowFolderPickerAsync { get; set; }
+    public Window? TopLevel { get; set; }
 
     private void EnsurePipelineInitialized()
     {
         if (_scanPipeline == null)
         {
             _messageHandler = new GuiMessageHandler(this);
-            
+
             _scanPipeline = new ScanPipelineBuilder()
                 .AddDefaultAnalyzers()
                 .WithMessageHandler(_messageHandler)
-                .WithCaching(true)
-                .WithEnhancedErrorHandling(true)
+                .WithCaching()
+                .WithEnhancedErrorHandling()
                 .WithLogging(builder => builder.AddConsole())
                 .Build();
-                
+
             // Initialize report writer with null logger (GUI doesn't need console logging)
-            _reportWriter = new ReportWriter(Microsoft.Extensions.Logging.Abstractions.NullLogger<ReportWriter>.Instance);
+            _reportWriter = new ReportWriter(NullLogger<ReportWriter>.Instance);
         }
     }
 
@@ -272,13 +279,13 @@ public partial class MainWindowViewModel : ViewModelBase
         try
         {
             EnsurePipelineInitialized();
-            
+
             IsScanning = true;
             ProgressVisible = true;
             ProgressValue = 0;
             ProgressText = "Initializing scan...";
             StatusText = "Scanning crash logs...";
-            
+
             _scanCancellationTokenSource = new CancellationTokenSource();
             ScanResults.Clear();
 
@@ -286,7 +293,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
             // Collect all files to scan
             var filesToScan = await CollectFilesToScan();
-            
+
             if (filesToScan.Count == 0)
             {
                 StatusText = "No crash log files found to scan";
@@ -295,19 +302,18 @@ public partial class MainWindowViewModel : ViewModelBase
             }
 
             AddLogMessage($"Found {filesToScan.Count} crash log files to scan");
-            
+
             if (filesToScan.Count == 1)
             {
                 // Single file scan
-                var result = await _scanPipeline!.ProcessSingleAsync(filesToScan[0], _scanCancellationTokenSource.Token);
-                if (result != null)
-                {
-                    ScanResults.Add(new ScanResultViewModel(result));
-                    AddLogMessage($"Scan status: {result.Status}, Found {result.AnalysisResults.Count} analysis results");
-                    
-                    // Auto-save if enabled
-                    await AutoSaveResult(result);
-                }
+                var result =
+                    await _scanPipeline!.ProcessSingleAsync(filesToScan[0], _scanCancellationTokenSource.Token);
+                ScanResults.Add(new ScanResultViewModel(result));
+                AddLogMessage(
+                    $"Scan status: {result.Status}, Found {result.AnalysisResults.Count} analysis results");
+
+                // Auto-save if enabled
+                await AutoSaveResult(result);
             }
             else
             {
@@ -315,24 +321,23 @@ public partial class MainWindowViewModel : ViewModelBase
                 var resultCount = 0;
                 await foreach (var result in _scanPipeline!.ProcessBatchAsync(filesToScan))
                 {
-                    if (result != null)
-                    {
-                        ScanResults.Add(new ScanResultViewModel(result));
-                        resultCount++;
-                        ProgressValue = (double)resultCount / filesToScan.Count * 100;
-                        ProgressText = $"Processed {resultCount}/{filesToScan.Count} files";
-                        AddLogMessage($"Processed {Path.GetFileName(result.LogPath)}: {result.Status}, {result.AnalysisResults.Count} analysis results");
-                        
-                        // Auto-save if enabled
-                        await AutoSaveResult(result);
-                    }
+                    ScanResults.Add(new ScanResultViewModel(result));
+                    resultCount++;
+                    ProgressValue = (double)resultCount / filesToScan.Count * 100;
+                    ProgressText = $"Processed {resultCount}/{filesToScan.Count} files";
+                    AddLogMessage(
+                        $"Processed {Path.GetFileName(result.LogPath)}: {result.Status}, {result.AnalysisResults.Count} analysis results");
+
+                    // Auto-save if enabled
+                    await AutoSaveResult(result);
                 }
             }
 
             ProgressValue = 100;
             ProgressText = $"Scan complete - {ScanResults.Count} results";
             StatusText = $"Scan completed - {ScanResults.Count} results from {filesToScan.Count} files";
-            AddLogMessage($"Scan completed successfully. Found {ScanResults.Count} total results from {filesToScan.Count} files.");
+            AddLogMessage(
+                $"Scan completed successfully. Found {ScanResults.Count} total results from {filesToScan.Count} files.");
         }
         catch (OperationCanceledException)
         {
@@ -358,52 +363,50 @@ public partial class MainWindowViewModel : ViewModelBase
         var filesToScan = new List<string>();
 
         // 1. Auto-copy XSE logs (F4SE and SKSE)
-        await CopyXSELogsAsync(filesToScan);
+        await CopyXseLogsAsync(filesToScan);
 
         // 2. Add single selected file if specified
         if (!string.IsNullOrEmpty(SelectedLogPath) && File.Exists(SelectedLogPath))
-        {
             if (!filesToScan.Contains(SelectedLogPath))
             {
                 filesToScan.Add(SelectedLogPath);
                 AddLogMessage($"Added selected file: {Path.GetFileName(SelectedLogPath)}");
             }
-        }
 
         // 3. Add files from selected directory if specified
         if (!string.IsNullOrEmpty(SelectedScanDirectory) && Directory.Exists(SelectedScanDirectory))
-        {
             await ScanDirectoryForLogs(SelectedScanDirectory, filesToScan);
-        }
 
         return filesToScan;
     }
 
-    private async Task CopyXSELogsAsync(List<string> filesToScan)
+    private async Task CopyXseLogsAsync(List<string> filesToScan)
     {
         // Skip XSE copy if user disabled it
-        if (_currentSettings.SkipXSECopy)
-        {
-            return;
-        }
-        
+        if (_currentSettings.SkipXseCopy) return;
+
         try
         {
             // Get crash logs directory from settings or use default
-            var crashLogsBaseDir = !string.IsNullOrEmpty(_currentSettings.CrashLogsDirectory) 
-                ? _currentSettings.CrashLogsDirectory 
+            var crashLogsBaseDir = !string.IsNullOrEmpty(_currentSettings.CrashLogsDirectory)
+                ? _currentSettings.CrashLogsDirectory
                 : CrashLogDirectoryManager.GetDefaultCrashLogsDirectory();
 
             // Look for XSE crash logs in common locations (F4SE and SKSE)
             var xsePaths = new[]
             {
                 // F4SE paths
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Fallout4", "F4SE"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Fallout4VR", "F4SE"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Fallout4",
+                    "F4SE"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Fallout4VR",
+                    "F4SE"),
                 // SKSE paths (including GOG version)
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Skyrim Special Edition", "SKSE"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Skyrim Special Edition GOG", "SKSE"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Skyrim", "SKSE"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games",
+                    "Skyrim Special Edition", "SKSE"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games",
+                    "Skyrim Special Edition GOG", "SKSE"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Skyrim",
+                    "SKSE"),
                 // Also check game path if provided
                 !string.IsNullOrEmpty(SelectedGamePath) ? Path.Combine(SelectedGamePath, "Data", "F4SE") : null,
                 !string.IsNullOrEmpty(SelectedGamePath) ? Path.Combine(SelectedGamePath, "Data", "SKSE") : null
@@ -411,10 +414,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
             var copiedCount = 0;
             foreach (var xsePath in xsePaths)
-            {
                 if (Directory.Exists(xsePath))
                 {
-                    var crashLogs = Directory.GetFiles(xsePath!, "*.log", SearchOption.TopDirectoryOnly)
+                    var crashLogs = Directory.GetFiles(xsePath, "*.log", SearchOption.TopDirectoryOnly)
                         .Where(f => Path.GetFileName(f).StartsWith("crash-", StringComparison.OrdinalIgnoreCase))
                         .OrderByDescending(File.GetLastWriteTime)
                         .ToArray();
@@ -423,33 +425,24 @@ public partial class MainWindowViewModel : ViewModelBase
                     {
                         // Detect game type and copy to appropriate subdirectory
                         var gameType = CrashLogDirectoryManager.DetectGameType(SelectedGamePath, logFile);
-                        var targetPath = await Task.Run(() => 
-                            CrashLogDirectoryManager.CopyCrashLog(logFile, crashLogsBaseDir, gameType, overwrite: true));
-                        
+                        var targetPath = await Task.Run(() =>
+                            CrashLogDirectoryManager.CopyCrashLog(logFile, crashLogsBaseDir, gameType));
+
                         var xseType = xsePath.Contains("F4SE") ? "F4SE" : "SKSE";
-                        AddLogMessage($"Copied {xseType} {gameType} crash log: {Path.GetFileName(logFile)} -> {Path.GetDirectoryName(targetPath)}");
+                        AddLogMessage(
+                            $"Copied {xseType} {gameType} crash log: {Path.GetFileName(logFile)} -> {Path.GetDirectoryName(targetPath)}");
                         copiedCount++;
-                        
-                        if (!filesToScan.Contains(targetPath))
-                        {
-                            filesToScan.Add(targetPath);
-                        }
+
+                        if (!filesToScan.Contains(targetPath)) filesToScan.Add(targetPath);
                     }
                 }
-            }
 
             if (copiedCount > 0)
-            {
                 AddLogMessage($"Auto-copied {copiedCount} XSE crash logs to {crashLogsBaseDir}");
-            }
             else if (xsePaths.Length == 0)
-            {
                 AddLogMessage("No XSE directories found for auto-copy");
-            }
             else
-            {
                 AddLogMessage("No new XSE crash logs to copy");
-            }
         }
         catch (Exception ex)
         {
@@ -461,14 +454,14 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         try
         {
-            var logFiles = await Task.Run(() => 
+            var logFiles = await Task.Run(() =>
                 Directory.GetFiles(directory, "*.*", SearchOption.TopDirectoryOnly)
-                    .Where(f => 
+                    .Where(f =>
                     {
                         var ext = Path.GetExtension(f).ToLower();
                         return ext == ".log" || ext == ".txt";
                     })
-                    .Where(f => 
+                    .Where(f =>
                     {
                         var name = Path.GetFileName(f).ToLower();
                         return name.Contains("crash") || name.Contains("dump") || name.Contains("error");
@@ -478,13 +471,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
             var addedCount = 0;
             foreach (var logFile in logFiles)
-            {
                 if (!filesToScan.Contains(logFile))
                 {
                     filesToScan.Add(logFile);
                     addedCount++;
                 }
-            }
 
             AddLogMessage($"Added {addedCount} crash logs from directory: {Path.GetFileName(directory)}");
         }
@@ -512,27 +503,21 @@ public partial class MainWindowViewModel : ViewModelBase
     public void AddLogMessage(string message)
     {
         var timestamp = DateTime.Now.ToString("HH:mm:ss");
-        UpdateUI(() => {
+        UpdateUi(() =>
+        {
             LogMessages.Add($"[{timestamp}] {message}");
-            
+
             // Keep only last 100 messages
-            while (LogMessages.Count > 100)
-            {
-                LogMessages.RemoveAt(0);
-            }
+            while (LogMessages.Count > 100) LogMessages.RemoveAt(0);
         });
     }
 
-    private void UpdateUI(Action action)
+    private void UpdateUi(Action action)
     {
         if (Dispatcher.UIThread.CheckAccess())
-        {
             action();
-        }
         else
-        {
             Dispatcher.UIThread.InvokeAsync(action);
-        }
     }
 
     private async Task LoadSettingsAsync()
@@ -540,15 +525,16 @@ public partial class MainWindowViewModel : ViewModelBase
         try
         {
             _currentSettings = await _settingsService.LoadUserSettingsAsync();
-            
+
             // Apply default paths from settings if current paths are empty
             if (string.IsNullOrEmpty(SelectedLogPath) && !string.IsNullOrEmpty(_currentSettings.DefaultLogPath))
                 SelectedLogPath = _currentSettings.DefaultLogPath;
-                
+
             if (string.IsNullOrEmpty(SelectedGamePath) && !string.IsNullOrEmpty(_currentSettings.DefaultGamePath))
                 SelectedGamePath = _currentSettings.DefaultGamePath;
-                
-            if (string.IsNullOrEmpty(SelectedScanDirectory) && !string.IsNullOrEmpty(_currentSettings.DefaultScanDirectory))
+
+            if (string.IsNullOrEmpty(SelectedScanDirectory) &&
+                !string.IsNullOrEmpty(_currentSettings.DefaultScanDirectory))
                 SelectedScanDirectory = _currentSettings.DefaultScanDirectory;
         }
         catch (Exception ex)
@@ -564,10 +550,10 @@ public partial class MainWindowViewModel : ViewModelBase
             // Update recent paths
             if (!string.IsNullOrEmpty(SelectedLogPath))
                 _currentSettings.AddRecentLogFile(SelectedLogPath);
-                
+
             if (!string.IsNullOrEmpty(SelectedGamePath))
                 _currentSettings.AddRecentGamePath(SelectedGamePath);
-                
+
             if (!string.IsNullOrEmpty(SelectedScanDirectory))
                 _currentSettings.AddRecentScanDirectory(SelectedScanDirectory);
 
@@ -587,11 +573,9 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 DataContext = new SettingsWindowViewModel(_settingsService)
             };
-            
+
             if (settingsWindow.DataContext is SettingsWindowViewModel viewModel)
-            {
                 viewModel.CloseWindow = () => settingsWindow.Close();
-            }
 
             // Show as dialog and reload settings after closing
             if (TopLevel != null)
@@ -613,10 +597,7 @@ public partial class MainWindowViewModel : ViewModelBase
         try
         {
             var success = await _reportWriter.WriteReportAsync(result);
-            if (success)
-            {
-                AddLogMessage($"Report auto-saved: {Path.GetFileName(result.OutputPath)}");
-            }
+            if (success) AddLogMessage($"Report auto-saved: {Path.GetFileName(result.OutputPath)}");
         }
         catch (Exception ex)
         {
@@ -631,14 +612,9 @@ public partial class MainWindowViewModel : ViewModelBase
         try
         {
             var success = await _reportWriter.WriteReportAsync(SelectedResult.ScanResult);
-            if (success)
-            {
-                AddLogMessage($"Report exported to: {SelectedResult.ScanResult.OutputPath}");
-            }
-            else
-            {
-                AddLogMessage("Failed to export report");
-            }
+            AddLogMessage(success
+                ? $"Report exported to: {SelectedResult.ScanResult.OutputPath}"
+                : "Failed to export report");
         }
         catch (Exception ex)
         {
@@ -659,27 +635,23 @@ public partial class MainWindowViewModel : ViewModelBase
             ProgressText = "Exporting reports...";
             ProgressValue = 0;
 
-            for (int i = 0; i < ScanResults.Count; i++)
+            for (var i = 0; i < ScanResults.Count; i++)
             {
                 var result = ScanResults[i];
                 try
                 {
                     var success = await _reportWriter.WriteReportAsync(result.ScanResult);
                     if (success)
-                    {
                         exportedCount++;
-                    }
                     else
-                    {
                         failedCount++;
-                    }
                 }
                 catch
                 {
                     failedCount++;
                 }
 
-                ProgressValue = ((i + 1) * 100.0) / ScanResults.Count;
+                ProgressValue = (i + 1) * 100.0 / ScanResults.Count;
                 ProgressText = $"Exported {exportedCount}/{ScanResults.Count} reports...";
             }
 
@@ -692,11 +664,6 @@ public partial class MainWindowViewModel : ViewModelBase
             AddLogMessage($"Error during batch export: {ex.Message}");
         }
     }
-
-    // File picker delegates - set by the View
-    public Func<string, string, Task<string>>? ShowFilePickerAsync { get; set; }
-    public Func<string, Task<string>>? ShowFolderPickerAsync { get; set; }
-    public Window? TopLevel { get; set; }
 }
 
 public class GuiMessageHandler : IMessageHandler
@@ -744,10 +711,11 @@ public class GuiMessageHandler : IMessageHandler
         Dispatcher.UIThread.InvokeAsync(() => _viewModel.AddLogMessage($"🚨 CRITICAL: {message}"));
     }
 
-    public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info, MessageTarget target = MessageTarget.All)
+    public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info,
+        MessageTarget target = MessageTarget.All)
     {
         if (target == MessageTarget.CliOnly) return;
-        
+
         var prefix = messageType switch
         {
             MessageType.Info => "ℹ️ INFO",
@@ -758,14 +726,15 @@ public class GuiMessageHandler : IMessageHandler
             MessageType.Critical => "🚨 CRITICAL",
             _ => "INFO"
         };
-        
+
         var fullMessage = details != null ? $"{message}\nDetails: {details}" : message;
         Dispatcher.UIThread.InvokeAsync(() => _viewModel.AddLogMessage($"{prefix}: {fullMessage}"));
     }
 
     public IProgress<ProgressInfo> ShowProgress(string title, int totalItems)
     {
-        Dispatcher.UIThread.InvokeAsync(() => {
+        Dispatcher.UIThread.InvokeAsync(() =>
+        {
             _viewModel.ProgressText = title;
             _viewModel.ProgressVisible = true;
         });
@@ -780,8 +749,8 @@ public class GuiMessageHandler : IMessageHandler
 
 public class GuiProgress : IProgress<ProgressInfo>
 {
-    private readonly MainWindowViewModel _viewModel;
     private readonly int _totalItems;
+    private readonly MainWindowViewModel _viewModel;
 
     public GuiProgress(MainWindowViewModel viewModel, int totalItems)
     {
@@ -791,7 +760,8 @@ public class GuiProgress : IProgress<ProgressInfo>
 
     public void Report(ProgressInfo value)
     {
-        Dispatcher.UIThread.InvokeAsync(() => {
+        Dispatcher.UIThread.InvokeAsync(() =>
+        {
             _viewModel.ProgressText = value.Message;
             _viewModel.ProgressValue = value.Percentage;
         });
@@ -800,9 +770,9 @@ public class GuiProgress : IProgress<ProgressInfo>
 
 public class GuiProgressContext : IProgressContext
 {
-    private readonly MainWindowViewModel _viewModel;
     private readonly string _title;
     private readonly int _totalItems;
+    private readonly MainWindowViewModel _viewModel;
     private bool _disposed;
 
     public GuiProgressContext(MainWindowViewModel viewModel, string title, int totalItems)
@@ -810,8 +780,9 @@ public class GuiProgressContext : IProgressContext
         _viewModel = viewModel;
         _title = title;
         _totalItems = totalItems;
-        
-        Dispatcher.UIThread.InvokeAsync(() => {
+
+        Dispatcher.UIThread.InvokeAsync(() =>
+        {
             _viewModel.ProgressText = title;
             _viewModel.ProgressVisible = true;
             _viewModel.ProgressValue = 0;
@@ -821,9 +792,10 @@ public class GuiProgressContext : IProgressContext
     public void Update(int current, string message)
     {
         if (_disposed) return;
-        
-        var percentage = _totalItems > 0 ? (current * 100.0) / _totalItems : 0;
-        Dispatcher.UIThread.InvokeAsync(() => {
+
+        var percentage = _totalItems > 0 ? current * 100.0 / _totalItems : 0;
+        Dispatcher.UIThread.InvokeAsync(() =>
+        {
             _viewModel.ProgressText = message;
             _viewModel.ProgressValue = percentage;
         });
@@ -832,8 +804,9 @@ public class GuiProgressContext : IProgressContext
     public void Complete()
     {
         if (_disposed) return;
-        
-        Dispatcher.UIThread.InvokeAsync(() => {
+
+        Dispatcher.UIThread.InvokeAsync(() =>
+        {
             _viewModel.ProgressValue = 100;
             _viewModel.ProgressText = "Complete";
         });
@@ -842,8 +815,9 @@ public class GuiProgressContext : IProgressContext
     public void Report(ProgressInfo value)
     {
         if (_disposed) return;
-        
-        Dispatcher.UIThread.InvokeAsync(() => {
+
+        Dispatcher.UIThread.InvokeAsync(() =>
+        {
             _viewModel.ProgressText = value.Message;
             _viewModel.ProgressValue = value.Percentage;
         });
@@ -853,9 +827,7 @@ public class GuiProgressContext : IProgressContext
     {
         if (_disposed) return;
         _disposed = true;
-        
-        Dispatcher.UIThread.InvokeAsync(() => {
-            _viewModel.ProgressVisible = false;
-        });
+
+        Dispatcher.UIThread.InvokeAsync(() => { _viewModel.ProgressVisible = false; });
     }
 }

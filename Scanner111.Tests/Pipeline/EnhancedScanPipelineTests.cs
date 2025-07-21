@@ -4,15 +4,14 @@ using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
-using Xunit;
 
 namespace Scanner111.Tests.Pipeline;
 
 public class EnhancedScanPipelineTests : IDisposable
 {
-    private readonly string _testLogPath;
+    private readonly List<IDisposable> _disposables = [];
     private readonly EnhancedScanPipeline _pipeline;
-    private readonly List<IDisposable> _disposables = new();
+    private readonly string _testLogPath;
 
     public EnhancedScanPipelineTests()
     {
@@ -34,9 +33,9 @@ public class EnhancedScanPipelineTests : IDisposable
 
         var analyzers = new List<IAnalyzer>
         {
-            new TestAnalyzer("TestAnalyzer1", priority: 10, canRunInParallel: true),
-            new TestAnalyzer("TestAnalyzer2", priority: 20, canRunInParallel: false),
-            new TestAnalyzer("TestAnalyzer3", priority: 30, canRunInParallel: true)
+            new TestAnalyzer("TestAnalyzer1", 10, true),
+            new TestAnalyzer("TestAnalyzer2", 20, false),
+            new TestAnalyzer("TestAnalyzer3", 30, true)
         };
 
         _pipeline = new EnhancedScanPipeline(
@@ -48,6 +47,44 @@ public class EnhancedScanPipelineTests : IDisposable
             resilientExecutor);
 
         // Note: EnhancedScanPipeline implements IAsyncDisposable, not IDisposable
+    }
+
+    public void Dispose()
+    {
+        foreach (var disposable in _disposables) disposable.Dispose();
+        _disposables.Clear();
+
+        // Dispose pipeline asynchronously
+        try
+        {
+            _pipeline.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
+        }
+        catch (Exception)
+        {
+            // Ignore disposal exceptions in tests
+        }
+
+        if (File.Exists(_testLogPath))
+            try
+            {
+                File.Delete(_testLogPath);
+            }
+            catch (IOException)
+            {
+                // File might still be in use by a canceled operation
+                // Try again after a short delay
+                Task.Delay(100).Wait();
+                try
+                {
+                    File.Delete(_testLogPath);
+                }
+                catch
+                {
+                    // If it still fails, ignore - it's a temp file
+                }
+            }
+
+        GC.SuppressFinalize(this);
     }
 
     [Fact]
@@ -70,7 +107,7 @@ public class EnhancedScanPipelineTests : IDisposable
     {
         // Arrange
         using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        await cts.CancelAsync();
 
         // Act & Assert
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
@@ -103,16 +140,13 @@ public class EnhancedScanPipelineTests : IDisposable
         var progress = new Progress<BatchProgress>(p => progressReports.Add(p));
 
         // Act
-        await foreach (var result in _pipeline.ProcessBatchAsync(testFiles, progress: progress))
-        {
-            results.Add(result);
-        }
+        await foreach (var result in _pipeline.ProcessBatchAsync(testFiles, progress: progress)) results.Add(result);
 
         // Assert
         Assert.Single(results);
         Assert.Equal(ScanStatus.Completed, results[0].Status);
         Assert.NotEmpty(progressReports);
-        
+
         var finalProgress = progressReports.Last();
         Assert.Equal(1, finalProgress.TotalFiles);
         Assert.Equal(1, finalProgress.ProcessedFiles);
@@ -131,17 +165,14 @@ public class EnhancedScanPipelineTests : IDisposable
 
         // Act
         var startTime = DateTime.UtcNow;
-        await foreach (var result in _pipeline.ProcessBatchAsync(testFiles, options))
-        {
-            results.Add(result);
-        }
+        await foreach (var result in _pipeline.ProcessBatchAsync(testFiles, options)) results.Add(result);
         var duration = DateTime.UtcNow - startTime;
 
         // Assert
         Assert.Equal(10, results.Count);
         // Note: Some results may fail since we're using non-existent file paths with suffixes
         Assert.All(results, r => Assert.True(r.Status == ScanStatus.Completed || r.Status == ScanStatus.Failed));
-        
+
         // With concurrency limit of 2, processing should take longer than if all were parallel
         // This is a rough test - in practice, timing tests can be flaky
         Assert.True(duration.TotalMilliseconds > 0);
@@ -157,17 +188,14 @@ public class EnhancedScanPipelineTests : IDisposable
         var results = new List<ScanResult>();
 
         // Act
-        await foreach (var result in _pipeline.ProcessBatchAsync(testFiles))
-        {
-            results.Add(result);
-        }
+        await foreach (var result in _pipeline.ProcessBatchAsync(testFiles)) results.Add(result);
 
         // Assert
         Assert.Equal(2, results.Count);
-        
+
         var validResult = results.First(r => r.LogPath == validFile);
         var invalidResult = results.First(r => r.LogPath == invalidFile);
-        
+
         Assert.Equal(ScanStatus.Completed, validResult.Status);
         Assert.Equal(ScanStatus.Failed, invalidResult.Status);
     }
@@ -179,28 +207,38 @@ public class EnhancedScanPipelineTests : IDisposable
         var testFiles = Enumerable.Range(0, 100)
             .Select(i => $"{_testLogPath}.{i}")
             .ToList();
-        using var cts = new CancellationTokenSource();
 
-        // Act
         var results = new List<ScanResult>();
-        var processingTask = Task.Run(async () =>
+        TaskCanceledException? caughtException = null;
+
+        // Act - Use a separate method to avoid captured variable disposal issues
+        try
         {
-            await foreach (var result in _pipeline.ProcessBatchAsync(testFiles, cancellationToken: cts.Token))
-            {
-                results.Add(result);
-                if (results.Count >= 5) // Cancel after processing a few files
-                {
-                    cts.Cancel();
-                }
-            }
-        });
+            await ProcessWithCancellationAsync(testFiles, results);
+        }
+        catch (TaskCanceledException ex)
+        {
+            caughtException = ex;
+        }
 
         // Assert
-        await Assert.ThrowsAsync<TaskCanceledException>(() => processingTask);
+        Assert.NotNull(caughtException);
         Assert.True(results.Count < testFiles.Count); // Should not process all files
-        
+
         // Give time for any in-flight operations to complete
         await Task.Delay(100);
+    }
+
+    private async Task ProcessWithCancellationAsync(List<string> testFiles, List<ScanResult> results)
+    {
+        using var cts = new CancellationTokenSource();
+
+        await foreach (var result in _pipeline.ProcessBatchAsync(testFiles, cancellationToken: cts.Token))
+        {
+            results.Add(result);
+            if (results.Count >= 5) // Cancel after processing a few files
+                await cts.CancelAsync();
+        }
     }
 
     [Fact]
@@ -257,54 +295,9 @@ SETTINGS:
 ";
     }
 
-    public void Dispose()
-    {
-        foreach (var disposable in _disposables)
-        {
-            disposable?.Dispose();
-        }
-        _disposables.Clear();
-
-        // Dispose pipeline asynchronously
-        try
-        {
-            _pipeline?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
-        }
-        catch (Exception)
-        {
-            // Ignore disposal exceptions in tests
-        }
-
-        if (File.Exists(_testLogPath))
-        {
-            try
-            {
-                File.Delete(_testLogPath);
-            }
-            catch (IOException)
-            {
-                // File might still be in use by a canceled operation
-                // Try again after a short delay
-                Task.Delay(100).Wait();
-                try
-                {
-                    File.Delete(_testLogPath);
-                }
-                catch
-                {
-                    // If it still fails, ignore - it's a temp file
-                }
-            }
-        }
-    }
-
     // Test helper classes
     private class TestAnalyzer : IAnalyzer
     {
-        public string Name { get; }
-        public int Priority { get; }
-        public bool CanRunInParallel { get; }
-
         public TestAnalyzer(string name, int priority, bool canRunInParallel)
         {
             Name = name;
@@ -312,15 +305,19 @@ SETTINGS:
             CanRunInParallel = canRunInParallel;
         }
 
+        public string Name { get; }
+        public int Priority { get; }
+        public bool CanRunInParallel { get; }
+
         public async Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
         {
             await Task.Delay(10, cancellationToken); // Simulate work
-            
+
             return new GenericAnalysisResult
             {
                 AnalyzerName = Name,
                 Success = true,
-                ReportLines = new List<string> { $"Analysis by {Name}\n" },
+                ReportLines = [$"Analysis by {Name}\n"],
                 HasFindings = true
             };
         }
@@ -329,10 +326,6 @@ SETTINGS:
     private class OrderTrackingAnalyzer : IAnalyzer
     {
         private readonly List<string> _executionOrder;
-        
-        public string Name { get; }
-        public int Priority { get; }
-        public bool CanRunInParallel { get; }
 
         public OrderTrackingAnalyzer(string name, int priority, bool canRunInParallel, List<string> executionOrder)
         {
@@ -342,16 +335,20 @@ SETTINGS:
             _executionOrder = executionOrder;
         }
 
+        public string Name { get; }
+        public int Priority { get; }
+        public bool CanRunInParallel { get; }
+
         public async Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
         {
             _executionOrder.Add(Name);
             await Task.Delay(1, cancellationToken);
-            
+
             return new GenericAnalysisResult
             {
                 AnalyzerName = Name,
                 Success = true,
-                ReportLines = new List<string> { $"Analysis by {Name}\n" },
+                ReportLines = [$"Analysis by {Name}\n"],
                 HasFindings = true
             };
         }
@@ -359,22 +356,62 @@ SETTINGS:
 
     private class TestMessageHandler : IMessageHandler
     {
-        public void ShowInfo(string message, MessageTarget target = MessageTarget.All) { }
-        public void ShowWarning(string message, MessageTarget target = MessageTarget.All) { }
-        public void ShowError(string message, MessageTarget target = MessageTarget.All) { }
-        public void ShowSuccess(string message, MessageTarget target = MessageTarget.All) { }
-        public void ShowDebug(string message, MessageTarget target = MessageTarget.All) { }
-        public void ShowCritical(string message, MessageTarget target = MessageTarget.All) { }
-        public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info, MessageTarget target = MessageTarget.All) { }
-        public IProgress<ProgressInfo> ShowProgress(string title, int totalItems) => new Progress<ProgressInfo>();
-        public IProgressContext CreateProgressContext(string title, int totalItems) => new TestProgressContext();
-        
+        public void ShowInfo(string message, MessageTarget target = MessageTarget.All)
+        {
+        }
+
+        public void ShowWarning(string message, MessageTarget target = MessageTarget.All)
+        {
+        }
+
+        public void ShowError(string message, MessageTarget target = MessageTarget.All)
+        {
+        }
+
+        public void ShowSuccess(string message, MessageTarget target = MessageTarget.All)
+        {
+        }
+
+        public void ShowDebug(string message, MessageTarget target = MessageTarget.All)
+        {
+        }
+
+        public void ShowCritical(string message, MessageTarget target = MessageTarget.All)
+        {
+        }
+
+        public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info,
+            MessageTarget target = MessageTarget.All)
+        {
+        }
+
+        public IProgress<ProgressInfo> ShowProgress(string title, int totalItems)
+        {
+            return new Progress<ProgressInfo>();
+        }
+
+        public IProgressContext CreateProgressContext(string title, int totalItems)
+        {
+            return new TestProgressContext();
+        }
+
         private class TestProgressContext : IProgressContext
         {
-            public void Update(int current, string message) { }
-            public void Complete() { }
-            public void Report(ProgressInfo value) { }
-            public void Dispose() { }
+            public void Update(int current, string message)
+            {
+            }
+
+            public void Complete()
+            {
+            }
+
+            public void Report(ProgressInfo value)
+            {
+            }
+
+            public void Dispose()
+            {
+            }
         }
     }
 

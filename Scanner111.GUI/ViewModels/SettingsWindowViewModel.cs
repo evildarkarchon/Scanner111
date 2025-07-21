@@ -1,30 +1,51 @@
-using ReactiveUI;
-using Scanner111.GUI.Models;
-using Scanner111.GUI.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Threading.Tasks;
+using ReactiveUI;
+using Scanner111.GUI.Models;
+using Scanner111.GUI.Services;
 
 namespace Scanner111.GUI.ViewModels;
 
 public class SettingsWindowViewModel : ViewModelBase
 {
     private readonly ISettingsService _settingsService;
-    private UserSettings _originalSettings;
-    private string _defaultLogPath = "";
-    private string _defaultGamePath = "";
-    private string _defaultScanDirectory = "";
-    private bool _autoLoadF4SELogs = true;
-    private int _maxLogMessages = 100;
-    private bool _enableProgressNotifications = true;
-    private bool _rememberWindowSize = true;
-    private double _windowWidth = 1200;
-    private double _windowHeight = 800;
-    private bool _enableDebugLogging = false;
-    private int _maxRecentItems = 10;
+    private bool _autoLoadF4SeLogs = true;
     private bool _autoSaveResults = true;
+    private string _defaultGamePath = "";
+    private string _defaultLogPath = "";
     private string _defaultOutputFormat = "detailed";
+    private string _defaultScanDirectory = "";
+    private bool _enableDebugLogging;
+    private bool _enableProgressNotifications = true;
+    private int _maxLogMessages = 100;
+    private int _maxRecentItems = 10;
+    private UserSettings _originalSettings;
+    private bool _rememberWindowSize = true;
+    private double _windowHeight = 800;
+    private double _windowWidth = 1200;
+
+    public SettingsWindowViewModel() : this(new SettingsService())
+    {
+    }
+
+    public SettingsWindowViewModel(ISettingsService settingsService)
+    {
+        _settingsService = settingsService;
+        _originalSettings = new UserSettings();
+
+        BrowseLogPathCommand = ReactiveCommand.CreateFromTask(BrowseLogPath);
+        BrowseGamePathCommand = ReactiveCommand.CreateFromTask(BrowseGamePath);
+        BrowseScanDirectoryCommand = ReactiveCommand.CreateFromTask(BrowseScanDirectory);
+        ClearRecentFilesCommand = ReactiveCommand.Create(ClearRecentFiles);
+        ResetToDefaultsCommand = ReactiveCommand.Create(ResetToDefaults);
+        SaveCommand = ReactiveCommand.CreateFromTask(SaveSettings);
+        CancelCommand = ReactiveCommand.Create(Cancel);
+
+        // Load settings on initialization
+        _ = LoadSettingsAsync();
+    }
 
     public string DefaultLogPath
     {
@@ -44,10 +65,10 @@ public class SettingsWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _defaultScanDirectory, value);
     }
 
-    public bool AutoLoadF4SELogs
+    public bool AutoLoadF4SeLogs
     {
-        get => _autoLoadF4SELogs;
-        set => this.RaiseAndSetIfChanged(ref _autoLoadF4SELogs, value);
+        get => _autoLoadF4SeLogs;
+        set => this.RaiseAndSetIfChanged(ref _autoLoadF4SeLogs, value);
     }
 
     public int MaxLogMessages
@@ -124,27 +145,6 @@ public class SettingsWindowViewModel : ViewModelBase
     public Func<string, Task<string>>? ShowFolderPickerAsync { get; set; }
     public Action? CloseWindow { get; set; }
 
-    public SettingsWindowViewModel() : this(new SettingsService())
-    {
-    }
-
-    public SettingsWindowViewModel(ISettingsService settingsService)
-    {
-        _settingsService = settingsService;
-        _originalSettings = new UserSettings();
-
-        BrowseLogPathCommand = ReactiveCommand.CreateFromTask(BrowseLogPath);
-        BrowseGamePathCommand = ReactiveCommand.CreateFromTask(BrowseGamePath);
-        BrowseScanDirectoryCommand = ReactiveCommand.CreateFromTask(BrowseScanDirectory);
-        ClearRecentFilesCommand = ReactiveCommand.Create(ClearRecentFiles);
-        ResetToDefaultsCommand = ReactiveCommand.Create(ResetToDefaults);
-        SaveCommand = ReactiveCommand.CreateFromTask(SaveSettings);
-        CancelCommand = ReactiveCommand.Create(Cancel);
-
-        // Load settings on initialization
-        _ = LoadSettingsAsync();
-    }
-
     private async Task LoadSettingsAsync()
     {
         try
@@ -153,7 +153,7 @@ public class SettingsWindowViewModel : ViewModelBase
             _originalSettings = settings;
             LoadFromSettings(settings);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             ResetToDefaults();
         }
@@ -164,7 +164,7 @@ public class SettingsWindowViewModel : ViewModelBase
         DefaultLogPath = settings.DefaultLogPath;
         DefaultGamePath = settings.DefaultGamePath;
         DefaultScanDirectory = settings.DefaultScanDirectory;
-        AutoLoadF4SELogs = settings.AutoLoadF4SELogs;
+        AutoLoadF4SeLogs = settings.AutoLoadF4SeLogs;
         MaxLogMessages = settings.MaxLogMessages;
         EnableProgressNotifications = settings.EnableProgressNotifications;
         RememberWindowSize = settings.RememberWindowSize;
@@ -199,7 +199,7 @@ public class SettingsWindowViewModel : ViewModelBase
             DefaultLogPath = DefaultLogPath,
             DefaultGamePath = DefaultGamePath,
             DefaultScanDirectory = DefaultScanDirectory,
-            AutoLoadF4SELogs = AutoLoadF4SELogs,
+            AutoLoadF4SeLogs = AutoLoadF4SeLogs,
             MaxLogMessages = MaxLogMessages,
             EnableProgressNotifications = EnableProgressNotifications,
             RememberWindowSize = RememberWindowSize,
@@ -228,10 +228,7 @@ public class SettingsWindowViewModel : ViewModelBase
         if (ShowFilePickerAsync != null)
         {
             var result = await ShowFilePickerAsync("Select Default Log File", "*.log");
-            if (!string.IsNullOrEmpty(result))
-            {
-                DefaultLogPath = result;
-            }
+            if (!string.IsNullOrEmpty(result)) DefaultLogPath = result;
         }
     }
 
@@ -240,10 +237,7 @@ public class SettingsWindowViewModel : ViewModelBase
         if (ShowFolderPickerAsync != null)
         {
             var result = await ShowFolderPickerAsync("Select Game Installation Directory");
-            if (!string.IsNullOrEmpty(result))
-            {
-                DefaultGamePath = result;
-            }
+            if (!string.IsNullOrEmpty(result)) DefaultGamePath = result;
         }
     }
 
@@ -252,10 +246,7 @@ public class SettingsWindowViewModel : ViewModelBase
         if (ShowFolderPickerAsync != null)
         {
             var result = await ShowFolderPickerAsync("Select Default Scan Directory");
-            if (!string.IsNullOrEmpty(result))
-            {
-                DefaultScanDirectory = result;
-            }
+            if (!string.IsNullOrEmpty(result)) DefaultScanDirectory = result;
         }
     }
 
@@ -264,7 +255,7 @@ public class SettingsWindowViewModel : ViewModelBase
         RecentLogFiles.Clear();
         RecentGamePaths.Clear();
         RecentScanDirectories.Clear();
-        
+
         this.RaisePropertyChanged(nameof(HasRecentLogFiles));
         this.RaisePropertyChanged(nameof(HasRecentGamePaths));
         this.RaisePropertyChanged(nameof(HasRecentScanDirectories));
@@ -278,7 +269,7 @@ public class SettingsWindowViewModel : ViewModelBase
             DefaultLogPath = appSettings.DefaultLogPath,
             DefaultGamePath = appSettings.DefaultGamePath,
             DefaultScanDirectory = appSettings.DefaultScanDirectory,
-            AutoLoadF4SELogs = appSettings.AutoLoadF4SELogs,
+            AutoLoadF4SeLogs = appSettings.AutoLoadF4SeLogs,
             MaxLogMessages = appSettings.MaxLogMessages,
             EnableProgressNotifications = appSettings.EnableProgressNotifications,
             RememberWindowSize = appSettings.RememberWindowSize,
@@ -289,7 +280,7 @@ public class SettingsWindowViewModel : ViewModelBase
             AutoSaveResults = appSettings.AutoSaveResults,
             DefaultOutputFormat = appSettings.DefaultOutputFormat,
             CrashLogsDirectory = appSettings.CrashLogsDirectory,
-            SkipXSECopy = appSettings.SkipXSECopy
+            SkipXseCopy = appSettings.SkipXseCopy
         };
         LoadFromSettings(defaultSettings);
     }
@@ -302,7 +293,7 @@ public class SettingsWindowViewModel : ViewModelBase
             await _settingsService.SaveUserSettingsAsync(settings);
             CloseWindow?.Invoke();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Settings save failed - ignore silently for GUI
         }

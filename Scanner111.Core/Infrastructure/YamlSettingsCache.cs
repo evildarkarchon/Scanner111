@@ -1,39 +1,39 @@
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-/// Backward compatibility adapter for the static YamlSettingsCache API
-/// Uses the new singleton YamlSettingsService internally
+///     Backward compatibility adapter for the static YamlSettingsCache API
+///     Uses the new singleton YamlSettingsService internally
 /// </summary>
 public static class YamlSettingsCache
 {
     private static volatile IYamlSettingsProvider? _instance;
-    private static readonly object _initLock = new object();
-    
+    private static readonly object InitLock = new();
+
     /// <summary>
-    /// Initialize the static cache with a service instance
-    /// Called by DI container during startup or for testing
+    ///     Initialize the static cache with a service instance
+    ///     Called by DI container during startup or for testing
     /// </summary>
     internal static void Initialize(IYamlSettingsProvider yamlSettingsProvider)
     {
-        lock (_initLock)
+        lock (InitLock)
         {
             _instance = yamlSettingsProvider;
         }
     }
-    
+
     /// <summary>
-    /// Reset the static cache (for testing)
+    ///     Reset the static cache (for testing)
     /// </summary>
     internal static void Reset()
     {
-        lock (_initLock)
+        lock (InitLock)
         {
             _instance = null;
         }
     }
-    
+
     /// <summary>
-    /// Get a setting value from a YAML file with caching
+    ///     Get a setting value from a YAML file with caching
     /// </summary>
     /// <typeparam name="T">Type of value to return</typeparam>
     /// <param name="yamlFile">YAML filename (without extension)</param>
@@ -43,13 +43,14 @@ public static class YamlSettingsCache
     public static T? YamlSettings<T>(string yamlFile, string keyPath, T? defaultValue = default)
     {
         if (_instance == null)
-            throw new InvalidOperationException("YamlSettingsCache not initialized. Ensure services are configured properly.");
-        
+            throw new InvalidOperationException(
+                "YamlSettingsCache not initialized. Ensure services are configured properly.");
+
         return _instance.GetSetting(yamlFile, keyPath, defaultValue);
     }
-    
+
     /// <summary>
-    /// Set a setting value in memory cache
+    ///     Set a setting value in memory cache
     /// </summary>
     /// <typeparam name="T">Type of value to set</typeparam>
     /// <param name="yamlFile">YAML filename (without extension)</param>
@@ -58,13 +59,14 @@ public static class YamlSettingsCache
     public static void SetYamlSetting<T>(string yamlFile, string keyPath, T value)
     {
         if (_instance == null)
-            throw new InvalidOperationException("YamlSettingsCache not initialized. Ensure services are configured properly.");
-        
+            throw new InvalidOperationException(
+                "YamlSettingsCache not initialized. Ensure services are configured properly.");
+
         _instance.SetSetting(yamlFile, keyPath, value);
     }
-    
+
     /// <summary>
-    /// Clear the settings cache
+    ///     Clear the settings cache
     /// </summary>
     public static void ClearCache()
     {

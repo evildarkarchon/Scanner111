@@ -5,84 +5,84 @@
              RequestedThemeVariant="Dark">
 
     <Application.DataTemplates>
-        <local:ViewLocator/>
+        <local:ViewLocator />
     </Application.DataTemplates>
-  
+
     <Application.Styles>
         <FluentTheme />
-        
+
         <!-- Custom Dark Theme for Scanner111 -->
         <Style Selector="Window">
-            <Setter Property="Background" Value="#FF2d2d30"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#FF2d2d30" />
+            <Setter Property="Foreground" Value="White" />
         </Style>
-        
+
         <Style Selector="TabControl">
-            <Setter Property="Background" Value="#FF2d2d30"/>
+            <Setter Property="Background" Value="#FF2d2d30" />
         </Style>
-        
+
         <Style Selector="TabItem">
-            <Setter Property="Background" Value="#FF3c3c3c"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#FF3c3c3c" />
+            <Setter Property="Foreground" Value="White" />
         </Style>
-        
+
         <Style Selector="TabItem:selected">
-            <Setter Property="Background" Value="#FF0e639c"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#FF0e639c" />
+            <Setter Property="Foreground" Value="White" />
         </Style>
-        
+
         <Style Selector="Button">
-            <Setter Property="Background" Value="#FF444444"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#FF666666"/>
-            <Setter Property="CornerRadius" Value="3"/>
+            <Setter Property="Background" Value="#FF444444" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#FF666666" />
+            <Setter Property="CornerRadius" Value="3" />
         </Style>
-        
+
         <Style Selector="Button:pointerover">
-            <Setter Property="Background" Value="#FF555555"/>
+            <Setter Property="Background" Value="#FF555555" />
         </Style>
-        
+
         <Style Selector="Button:pressed">
-            <Setter Property="Background" Value="#FF333333"/>
+            <Setter Property="Background" Value="#FF333333" />
         </Style>
-        
+
         <Style Selector="TextBox">
-            <Setter Property="Background" Value="#FF3c3c3c"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#FF666666"/>
-            <Setter Property="SelectionBrush" Value="#FF0e639c"/>
+            <Setter Property="Background" Value="#FF3c3c3c" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#FF666666" />
+            <Setter Property="SelectionBrush" Value="#FF0e639c" />
         </Style>
-        
+
         <Style Selector="ListBox">
-            <Setter Property="Background" Value="#FF2d2d30"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#FF2d2d30" />
+            <Setter Property="Foreground" Value="White" />
         </Style>
-        
+
         <Style Selector="ListBoxItem">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
         </Style>
-        
+
         <Style Selector="ListBoxItem:selected">
-            <Setter Property="Background" Value="#FF0e639c"/>
+            <Setter Property="Background" Value="#FF0e639c" />
         </Style>
-        
+
         <Style Selector="ScrollViewer">
-            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Background" Value="Transparent" />
         </Style>
-        
+
         <Style Selector="ProgressBar">
-            <Setter Property="Background" Value="#FF555555"/>
-            <Setter Property="Foreground" Value="#FF0e639c"/>
+            <Setter Property="Background" Value="#FF555555" />
+            <Setter Property="Foreground" Value="#FF0e639c" />
         </Style>
-        
+
         <Style Selector="Border">
-            <Setter Property="BorderBrush" Value="#FF666666"/>
+            <Setter Property="BorderBrush" Value="#FF666666" />
         </Style>
-        
+
         <Style Selector="Separator">
-            <Setter Property="Background" Value="#FF666666"/>
+            <Setter Property="Background" Value="#FF666666" />
         </Style>
     </Application.Styles>
 </Application>

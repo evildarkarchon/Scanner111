@@ -1,16 +1,14 @@
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
-using Xunit;
 
 namespace Scanner111.Tests.Infrastructure;
 
 public class CacheManagerTests : IDisposable
 {
-    private readonly MemoryCache _memoryCache;
     private readonly CacheManager _cacheManager;
+    private readonly MemoryCache _memoryCache;
     private readonly string _testFilePath;
 
     public CacheManagerTests()
@@ -18,10 +16,19 @@ public class CacheManagerTests : IDisposable
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
         var logger = NullLogger<CacheManager>.Instance;
         _cacheManager = new CacheManager(_memoryCache, logger);
-        
+
         // Create a temporary test file
         _testFilePath = Path.GetTempFileName();
         File.WriteAllText(_testFilePath, "test content");
+    }
+
+    public void Dispose()
+    {
+        _cacheManager.Dispose();
+        _memoryCache.Dispose();
+
+        if (File.Exists(_testFilePath)) File.Delete(_testFilePath);
+        GC.SuppressFinalize(this);
     }
 
     [Fact]
@@ -29,6 +36,7 @@ public class CacheManagerTests : IDisposable
     {
         // Arrange
         var factoryCalled = 0;
+
         string Factory()
         {
             factoryCalled++;
@@ -50,6 +58,7 @@ public class CacheManagerTests : IDisposable
     {
         // Arrange
         var factoryCalled = 0;
+
         string Factory()
         {
             factoryCalled++;
@@ -75,7 +84,7 @@ public class CacheManagerTests : IDisposable
         {
             AnalyzerName = "TestAnalyzer",
             Success = true,
-            ReportLines = new List<string> { "Test report" }
+            ReportLines = ["Test report"]
         };
 
         // Act
@@ -184,7 +193,7 @@ public class CacheManagerTests : IDisposable
         // Assert
         var cachedResult = _cacheManager.GetCachedAnalysisResult(_testFilePath, "TestAnalyzer");
         var cachedYaml = _cacheManager.GetOrSetYamlSetting("test", "key", () => "new-value");
-        
+
         Assert.Null(cachedResult);
         Assert.Equal("new-value", cachedYaml); // Should call factory again
     }
@@ -204,7 +213,7 @@ public class CacheManagerTests : IDisposable
         // Assert
         Assert.True(stats.TotalHits > 0);
         Assert.True(stats.TotalMisses > 0);
-        Assert.True(stats.HitRate > 0 && stats.HitRate <= 1);
+        Assert.True(stats.HitRate is > 0 and <= 1);
         Assert.True(stats.MemoryUsage >= 0);
     }
 
@@ -214,6 +223,7 @@ public class CacheManagerTests : IDisposable
         // Arrange
         var nullCache = new NullCacheManager();
         var factoryCalled = 0;
+
         string Factory()
         {
             factoryCalled++;
@@ -277,16 +287,5 @@ public class CacheManagerTests : IDisposable
         Assert.Equal(0, stats.HitRate);
         Assert.Equal(0, stats.CachedFiles);
         Assert.Equal(0, stats.MemoryUsage);
-    }
-
-    public void Dispose()
-    {
-        _cacheManager?.Dispose();
-        _memoryCache?.Dispose();
-        
-        if (File.Exists(_testFilePath))
-        {
-            File.Delete(_testFilePath);
-        }
     }
 }

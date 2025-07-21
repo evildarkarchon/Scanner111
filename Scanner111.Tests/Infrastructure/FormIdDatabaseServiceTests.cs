@@ -1,23 +1,40 @@
+using System.Collections.Concurrent;
 using System.Data.SQLite;
-using Xunit;
+using System.Reflection;
 using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Tests.Infrastructure;
 
 public class FormIdDatabaseServiceTests : IDisposable
 {
-    private readonly string _testDataPath;
-    private readonly string _mainDbPath;
     private readonly string _localDbPath;
+    private readonly string _mainDbPath;
+    private readonly string _testDataPath;
 
     public FormIdDatabaseServiceTests()
     {
         // Create a temporary directory for test databases
         _testDataPath = Path.Combine(Path.GetTempPath(), "Scanner111Tests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(Path.Combine(_testDataPath, "databases"));
-        
+
         _mainDbPath = Path.Combine(_testDataPath, "databases", "Fallout4 FormIDs Main.db");
         _localDbPath = Path.Combine(_testDataPath, "databases", "Fallout4 FormIDs Local.db");
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            if (Directory.Exists(_testDataPath)) Directory.Delete(_testDataPath, true);
+        }
+        catch
+        {
+            // Ignore cleanup errors
+        }
+        finally
+        {
+            GC.SuppressFinalize(this);
+        }
     }
 
     [Fact]
@@ -60,7 +77,7 @@ public class FormIdDatabaseServiceTests : IDisposable
         // Arrange
         CreateTestDatabase(_mainDbPath);
         InsertTestData(_mainDbPath, "12345", "TestPlugin.esp", "Test Entry Description");
-        
+
         var service = new TestFormIdDatabaseService("Fallout4", new[] { _mainDbPath });
 
         // Act
@@ -90,7 +107,7 @@ public class FormIdDatabaseServiceTests : IDisposable
         // Arrange
         CreateTestDatabase(_mainDbPath);
         InsertTestData(_mainDbPath, "12345", "TestPlugin.esp", "Test Entry Description");
-        
+
         var service = new TestFormIdDatabaseService("Fallout4", new[] { _mainDbPath });
 
         // Act
@@ -110,7 +127,7 @@ public class FormIdDatabaseServiceTests : IDisposable
         // Arrange
         CreateTestDatabase(_mainDbPath);
         InsertTestData(_mainDbPath, "12345", "TestPlugin.esp", "Test Entry Description");
-        
+
         var service = new TestFormIdDatabaseService("Fallout4", new[] { _mainDbPath });
 
         // Act - Call multiple times
@@ -122,7 +139,7 @@ public class FormIdDatabaseServiceTests : IDisposable
         Assert.Equal("Test Entry Description", result1);
         Assert.Equal("Test Entry Description", result2);
         Assert.Equal("Test Entry Description", result3);
-        
+
         // Verify caching is working by checking the cache
         Assert.True(service.IsCached("12345".ToUpper(), "TestPlugin.esp"));
     }
@@ -133,10 +150,10 @@ public class FormIdDatabaseServiceTests : IDisposable
         // Arrange
         CreateTestDatabase(_mainDbPath);
         CreateTestDatabase(_localDbPath);
-        
+
         InsertTestData(_mainDbPath, "11111", "MainPlugin.esp", "Entry from Main DB");
         InsertTestData(_localDbPath, "22222", "LocalPlugin.esp", "Entry from Local DB");
-        
+
         var service = new TestFormIdDatabaseService("Fallout4", new[] { _mainDbPath, _localDbPath });
 
         // Act
@@ -154,11 +171,11 @@ public class FormIdDatabaseServiceTests : IDisposable
         // Arrange
         CreateTestDatabase(_mainDbPath);
         CreateTestDatabase(_localDbPath);
-        
+
         // Insert same FormID/Plugin in both databases with different entries
         InsertTestData(_mainDbPath, "12345", "TestPlugin.esp", "Entry from Main DB");
         InsertTestData(_localDbPath, "12345", "TestPlugin.esp", "Entry from Local DB");
-        
+
         var service = new TestFormIdDatabaseService("Fallout4", new[] { _mainDbPath, _localDbPath });
 
         // Act
@@ -174,10 +191,10 @@ public class FormIdDatabaseServiceTests : IDisposable
         // Arrange
         CreateTestDatabase(_localDbPath);
         InsertTestData(_localDbPath, "12345", "TestPlugin.esp", "Entry from Local DB");
-        
+
         // Create a corrupt database file (just empty file)
         File.WriteAllText(_mainDbPath, "This is not a valid SQLite database");
-        
+
         var service = new TestFormIdDatabaseService("Fallout4", new[] { _mainDbPath, _localDbPath });
 
         // Act
@@ -198,7 +215,7 @@ public class FormIdDatabaseServiceTests : IDisposable
         // Arrange
         CreateTestDatabase(_mainDbPath);
         InsertTestData(_mainDbPath, formId, "TestPlugin.esp", $"Entry for {formId}");
-        
+
         var service = new TestFormIdDatabaseService("Fallout4", new[] { _mainDbPath });
 
         // Act
@@ -209,44 +226,38 @@ public class FormIdDatabaseServiceTests : IDisposable
     }
 
     [Fact]
-    public void GetEntry_ConcurrentAccess_ShouldBeThreadSafe()
+    public async Task GetEntry_ConcurrentAccess_ShouldBeThreadSafe()
     {
         // Arrange
         CreateTestDatabase(_mainDbPath);
-        
+
         // Insert multiple test entries
-        for (int i = 0; i < 100; i++)
-        {
-            InsertTestData(_mainDbPath, i.ToString("X6"), "TestPlugin.esp", $"Entry {i}");
-        }
-        
+        for (var i = 0; i < 100; i++) InsertTestData(_mainDbPath, i.ToString("X6"), "TestPlugin.esp", $"Entry {i}");
+
         var service = new TestFormIdDatabaseService("Fallout4", new[] { _mainDbPath });
         var tasks = new List<Task<string?>>();
 
         // Act - Access from multiple threads simultaneously
-        for (int i = 0; i < 50; i++)
+        for (var i = 0; i < 50; i++)
         {
             var formId = i.ToString("X6");
             tasks.Add(Task.Run(() => service.GetEntry(formId, "TestPlugin.esp")));
         }
 
-        var results = Task.WhenAll(tasks).Result;
+        var results = await Task.WhenAll(tasks);
 
         // Assert
         Assert.Equal(50, results.Length);
-        for (int i = 0; i < 50; i++)
-        {
-            Assert.Equal($"Entry {i}", results[i]);
-        }
+        for (var i = 0; i < 50; i++) Assert.Equal($"Entry {i}", results[i]);
     }
 
     private void CreateTestDatabase(string dbPath)
     {
         var connectionString = $"Data Source={dbPath};Version=3;";
-        
+
         using var connection = new SQLiteConnection(connectionString);
         connection.Open();
-        
+
         using var command = new SQLiteCommand(@"
             CREATE TABLE IF NOT EXISTS Fallout4 (
                 formid TEXT,
@@ -259,10 +270,10 @@ public class FormIdDatabaseServiceTests : IDisposable
     private void InsertTestData(string dbPath, string formId, string plugin, string entry)
     {
         var connectionString = $"Data Source={dbPath};Version=3;";
-        
+
         using var connection = new SQLiteConnection(connectionString);
         connection.Open();
-        
+
         using var command = new SQLiteCommand(@"
             INSERT INTO Fallout4 (formid, plugin, entry) 
             VALUES (@formid, @plugin, @entry)", connection);
@@ -271,52 +282,43 @@ public class FormIdDatabaseServiceTests : IDisposable
         command.Parameters.AddWithValue("@entry", entry);
         command.ExecuteNonQuery();
     }
-
-    public void Dispose()
-    {
-        try
-        {
-            if (Directory.Exists(_testDataPath))
-            {
-                Directory.Delete(_testDataPath, true);
-            }
-        }
-        catch
-        {
-            // Ignore cleanup errors
-        }
-    }
 }
 
 // Test implementation that allows us to control database paths
 internal class TestFormIdDatabaseService : IFormIdDatabaseService
 {
     private readonly FormIdDatabaseService _inner;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<(string formId, string plugin), string>? _queryCache;
+    private readonly ConcurrentDictionary<(string formId, string plugin), string>? _queryCache;
 
     public TestFormIdDatabaseService(string gameName, string[] databasePaths)
     {
         // Use reflection to create the service with custom paths for testing
-        var field = typeof(FormIdDatabaseService).GetField("_databasePaths", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var existsField = typeof(FormIdDatabaseService).GetField("_databasesExist", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var cacheField = typeof(FormIdDatabaseService).GetField("_queryCache", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var field = typeof(FormIdDatabaseService).GetField("_databasePaths",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        var existsField = typeof(FormIdDatabaseService).GetField("_databasesExist",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        var cacheField = typeof(FormIdDatabaseService).GetField("_queryCache",
+            BindingFlags.NonPublic | BindingFlags.Instance);
 
         _inner = new FormIdDatabaseService(gameName);
-        
+
         if (field != null)
             field.SetValue(_inner, databasePaths);
         if (existsField != null)
             existsField.SetValue(_inner, databasePaths.Any(File.Exists));
         if (cacheField != null)
-            _queryCache = (System.Collections.Concurrent.ConcurrentDictionary<(string formId, string plugin), string>)cacheField.GetValue(_inner)!;
+            _queryCache = (ConcurrentDictionary<(string formId, string plugin), string>)cacheField.GetValue(_inner)!;
     }
 
     public bool DatabaseExists => _inner.DatabaseExists;
 
-    public string? GetEntry(string formId, string plugin) => _inner.GetEntry(formId, plugin);
+    public string? GetEntry(string formId, string plugin)
+    {
+        return _inner.GetEntry(formId, plugin);
+    }
 
-    public bool IsCached(string formId, string plugin) => _queryCache?.ContainsKey((formId, plugin)) ?? false;
+    public bool IsCached(string formId, string plugin)
+    {
+        return _queryCache?.ContainsKey((formId, plugin)) ?? false;
+    }
 }

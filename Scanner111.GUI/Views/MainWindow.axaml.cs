@@ -1,10 +1,8 @@
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Scanner111.GUI.ViewModels;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Scanner111.GUI.Views;
 
@@ -13,7 +11,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        
+
         // Wire up file picker events
         Loaded += MainWindow_Loaded;
     }
@@ -21,13 +19,14 @@ public partial class MainWindow : Window
     private void MainWindow_Loaded(object? sender, RoutedEventArgs e)
     {
         // Create ViewModel on UI thread after window is loaded
-        var viewModel = new MainWindowViewModel();
-        
-        // Set up file picker delegates
-        viewModel.ShowFilePickerAsync = ShowFilePickerAsync;
-        viewModel.ShowFolderPickerAsync = ShowFolderPickerAsync;
-        viewModel.TopLevel = this;
-        
+        var viewModel = new MainWindowViewModel
+        {
+            // Set up file picker delegates
+            ShowFilePickerAsync = ShowFilePickerAsync,
+            ShowFolderPickerAsync = ShowFolderPickerAsync,
+            TopLevel = this
+        };
+
         // Set DataContext
         DataContext = viewModel;
     }
@@ -41,20 +40,20 @@ public partial class MainWindow : Window
         {
             Title = title,
             AllowMultiple = false,
-            FileTypeFilter = new[]
-            {
+            FileTypeFilter =
+            [
                 new FilePickerFileType("Log Files")
                 {
-                    Patterns = new[] { "*.log", "*.txt" }
+                    Patterns = ["*.log", "*.txt"]
                 },
                 new FilePickerFileType("All Files")
                 {
-                    Patterns = new[] { "*.*" }
+                    Patterns = ["*.*"]
                 }
-            }
+            ]
         });
 
-        return files.FirstOrDefault()?.Path.LocalPath ?? string.Empty;
+        return files.Count > 0 ? files[0].Path.LocalPath : string.Empty;
     }
 
     private async Task<string> ShowFolderPickerAsync(string title)
@@ -68,6 +67,6 @@ public partial class MainWindow : Window
             AllowMultiple = false
         });
 
-        return folders.FirstOrDefault()?.Path.LocalPath ?? string.Empty;
+        return folders.Count > 0 ? folders[0].Path.LocalPath : string.Empty;
     }
 }

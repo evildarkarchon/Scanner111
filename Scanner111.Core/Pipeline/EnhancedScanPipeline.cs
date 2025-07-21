@@ -9,17 +9,17 @@ using Scanner111.Core.Models;
 namespace Scanner111.Core.Pipeline;
 
 /// <summary>
-/// Enhanced scan pipeline with caching, error handling, and detailed progress reporting
+///     Enhanced scan pipeline with caching, error handling, and detailed progress reporting
 /// </summary>
 public class EnhancedScanPipeline : IScanPipeline
 {
     private readonly IEnumerable<IAnalyzer> _analyzers;
+    private readonly ICacheManager _cacheManager;
     private readonly ILogger<EnhancedScanPipeline> _logger;
     private readonly IMessageHandler _messageHandler;
-    private readonly IYamlSettingsProvider _settingsProvider;
-    private readonly ICacheManager _cacheManager;
     private readonly ResilientExecutor _resilientExecutor;
     private readonly SemaphoreSlim _semaphore;
+    private readonly IYamlSettingsProvider _settingsProvider;
     private bool _disposed;
 
     public EnhancedScanPipeline(
@@ -42,59 +42,59 @@ public class EnhancedScanPipeline : IScanPipeline
     public async Task<ScanResult> ProcessSingleAsync(string logPath, CancellationToken cancellationToken = default)
     {
         var executionResult = await _resilientExecutor.ExecuteAsync(async ct =>
-        {
-            var stopwatch = Stopwatch.StartNew();
-            var result = new ScanResult { LogPath = logPath };
-
-            try
             {
-                _logger.LogInformation("Starting enhanced scan of {LogPath}", logPath);
-                
-                // Parse crash log with caching
-                var crashLog = await ParseCrashLogWithCaching(logPath, ct);
-                if (crashLog == null)
+                var stopwatch = Stopwatch.StartNew();
+                var result = new ScanResult { LogPath = logPath };
+
+                try
+                {
+                    _logger.LogInformation("Starting enhanced scan of {LogPath}", logPath);
+
+                    // Parse crash log with caching
+                    var crashLog = await ParseCrashLogWithCaching(logPath, ct);
+                    if (crashLog == null)
+                    {
+                        result.Status = ScanStatus.Failed;
+                        result.AddError("Failed to parse crash log");
+                        return result;
+                    }
+
+                    result.CrashLog = crashLog;
+
+                    // Run analyzers with caching and error handling
+                    await RunAnalyzersWithCaching(result, crashLog, ct);
+
+                    result.Status = result.HasErrors ? ScanStatus.CompletedWithErrors : ScanStatus.Completed;
+
+                    // Free memory immediately after analysis is complete
+                    result.CrashLog?.DisposeOriginalLines();
+
+                    _logger.LogInformation("Completed scan of {LogPath} in {ElapsedMs}ms with status {Status}",
+                        logPath, stopwatch.ElapsedMilliseconds, result.Status);
+                }
+                catch (OperationCanceledException)
+                {
+                    result.Status = ScanStatus.Cancelled;
+                    _logger.LogWarning("Scan cancelled for {LogPath}", logPath);
+                }
+                catch (Exception ex)
                 {
                     result.Status = ScanStatus.Failed;
-                    result.AddError("Failed to parse crash log");
-                    return result;
+                    result.AddError($"Unhandled exception: {ex.Message}");
+                    _logger.LogError(ex, "Error scanning {LogPath}", logPath);
+                }
+                finally
+                {
+                    result.ProcessingTime = stopwatch.Elapsed;
                 }
 
-                result.CrashLog = crashLog;
+                return result;
+            }, $"ProcessSingle:{logPath}", cancellationToken);
 
-                // Run analyzers with caching and error handling
-                await RunAnalyzersWithCaching(result, crashLog, ct);
-
-                result.Status = result.HasErrors ? ScanStatus.CompletedWithErrors : ScanStatus.Completed;
-                
-                // Free memory immediately after analysis is complete
-                result.CrashLog?.DisposeOriginalLines();
-                
-                _logger.LogInformation("Completed scan of {LogPath} in {ElapsedMs}ms with status {Status}", 
-                    logPath, stopwatch.ElapsedMilliseconds, result.Status);
-            }
-            catch (OperationCanceledException)
-            {
-                result.Status = ScanStatus.Cancelled;
-                _logger.LogWarning("Scan cancelled for {LogPath}", logPath);
-            }
-            catch (Exception ex)
-            {
-                result.Status = ScanStatus.Failed;
-                result.AddError($"Unhandled exception: {ex.Message}");
-                _logger.LogError(ex, "Error scanning {LogPath}", logPath);
-            }
-            finally
-            {
-                result.ProcessingTime = stopwatch.Elapsed;
-            }
-
-            return result;
-        }, $"ProcessSingle:{logPath}", cancellationToken);
-        
-        return executionResult ?? new ScanResult 
-        { 
-            LogPath = logPath, 
-            Status = ScanStatus.Failed 
+        return executionResult ?? new ScanResult
+        {
+            LogPath = logPath,
+            Status = ScanStatus.Failed
         };
     }
 
@@ -109,14 +109,14 @@ public class EnhancedScanPipeline : IScanPipeline
         var paths = logPaths.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var detailedProgress = new DetailedProgress();
         var startTime = DateTime.UtcNow;
-        
+
         // Initialize progress
         var initialProgress = new DetailedProgressInfo
         {
             TotalFiles = paths.Count,
             StartTime = startTime,
             LastUpdateTime = startTime,
-            MemoryUsageMB = GC.GetTotalMemory(false) / (1024 * 1024)
+            MemoryUsageMb = GC.GetTotalMemory(false) / (1024 * 1024)
         };
         detailedProgress.Report(initialProgress);
 
@@ -147,7 +147,7 @@ public class EnhancedScanPipeline : IScanPipeline
         // Consumer tasks with detailed progress tracking
         var maxConcurrency = options.MaxDegreeOfParallelism ?? options.MaxConcurrency;
         var consumerTasks = Enumerable.Range(0, maxConcurrency)
-            .Select(i => ProcessChannelWithProgressAsync(channel.Reader, detailedProgress, cancellationToken))
+            .Select(_ => ProcessChannelWithProgressAsync(channel.Reader, detailedProgress, cancellationToken))
             .ToList();
 
         // Process results as they complete
@@ -159,7 +159,7 @@ public class EnhancedScanPipeline : IScanPipeline
         await foreach (var result in MergeResultsAsync(consumerTasks, cancellationToken))
         {
             processedFiles++;
-            
+
             switch (result.Status)
             {
                 case ScanStatus.Completed:
@@ -200,7 +200,7 @@ public class EnhancedScanPipeline : IScanPipeline
         }
 
         await producerTask;
-        
+
         // Log final statistics
         var cacheStats = _cacheManager.GetStatistics();
         _logger.LogInformation(
@@ -209,27 +209,38 @@ public class EnhancedScanPipeline : IScanPipeline
             paths.Count, successfulScans, failedScans, incompleteScans, cacheStats.HitRate);
     }
 
+    public ValueTask DisposeAsync()
+    {
+        if (_disposed) return ValueTask.CompletedTask;
+
+        _semaphore.Dispose();
+        _disposed = true;
+
+        GC.SuppressFinalize(this);
+        return ValueTask.CompletedTask;
+    }
+
     private async Task<CrashLog?> ParseCrashLogWithCaching(string logPath, CancellationToken cancellationToken)
     {
         return await _resilientExecutor.ExecuteAsync(async ct =>
-        {
-            // Check if we have a cached result that's still valid
-            if (_cacheManager.IsFileCacheValid(logPath))
             {
-                // For crash log parsing, we could cache the parsed result if needed
-                // For now, just parse normally but with resilient execution
-            }
+                // Check if we have a cached result that's still valid
+                if (_cacheManager.IsFileCacheValid(logPath))
+                {
+                    // For crash log parsing, we could cache the parsed result if needed
+                    // For now, just parse normally but with resilient execution
+                }
 
-            return await CrashLog.ParseAsync(logPath, ct);
-        }, $"ParseCrashLog:{logPath}", cancellationToken);
+                return await CrashLog.ParseAsync(logPath, ct);
+            }, $"ParseCrashLog:{logPath}", cancellationToken);
     }
 
-    private async Task RunAnalyzersWithCaching(ScanResult result, CrashLog crashLog, CancellationToken cancellationToken)
+    private async Task RunAnalyzersWithCaching(ScanResult result, CrashLog crashLog,
+        CancellationToken cancellationToken)
     {
         var analyzerTasks = new List<Task<AnalysisResult?>>();
-        
+
         foreach (var analyzer in _analyzers)
-        {
             if (analyzer.CanRunInParallel)
             {
                 analyzerTasks.Add(RunAnalyzerWithCaching(analyzer, crashLog, cancellationToken));
@@ -238,24 +249,16 @@ public class EnhancedScanPipeline : IScanPipeline
             {
                 // Run sequential analyzers immediately and wait
                 var analysisResult = await RunAnalyzerWithCaching(analyzer, crashLog, cancellationToken);
-                if (analysisResult != null)
-                {
-                    result.AddAnalysisResult(analysisResult);
-                }
+                if (analysisResult != null) result.AddAnalysisResult(analysisResult);
             }
-        }
 
         // Wait for all parallel analyzers
         if (analyzerTasks.Any())
         {
             var parallelResults = await Task.WhenAll(analyzerTasks);
             foreach (var analysisResult in parallelResults)
-            {
                 if (analysisResult != null)
-                {
                     result.AddAnalysisResult(analysisResult);
-                }
-            }
         }
     }
 
@@ -273,19 +276,16 @@ public class EnhancedScanPipeline : IScanPipeline
         }
 
         return await _resilientExecutor.ExecuteAsync(async ct =>
-        {
-            _logger.LogDebug("Running analyzer: {AnalyzerName} on {FilePath}", analyzer.Name, crashLog.FilePath);
-            
-            var result = await analyzer.AnalyzeAsync(crashLog, ct);
-            
-            // Cache the result if successful
-            if (result.Success)
             {
-                _cacheManager.CacheAnalysisResult(crashLog.FilePath, analyzer.Name, result);
-            }
-            
-            return result;
-        }, $"RunAnalyzer:{analyzer.Name}:{crashLog.FilePath}", cancellationToken);
+                _logger.LogDebug("Running analyzer: {AnalyzerName} on {FilePath}", analyzer.Name, crashLog.FilePath);
+
+                var result = await analyzer.AnalyzeAsync(crashLog, ct);
+
+                // Cache the result if successful
+                if (result.Success) _cacheManager.CacheAnalysisResult(crashLog.FilePath, analyzer.Name, result);
+
+                return result;
+            }, $"RunAnalyzer:{analyzer.Name}:{crashLog.FilePath}", cancellationToken);
     }
 
     private async IAsyncEnumerable<ScanResult> ProcessChannelWithProgressAsync(
@@ -299,11 +299,11 @@ public class EnhancedScanPipeline : IScanPipeline
             try
             {
                 detailedProgress.ReportFileStart(logPath);
-                
+
                 var result = await ProcessSingleAsync(logPath, cancellationToken);
-                
+
                 detailedProgress.ReportFileComplete(logPath, !result.Failed);
-                
+
                 yield return result;
             }
             finally
@@ -320,11 +320,11 @@ public class EnhancedScanPipeline : IScanPipeline
         // Create streaming merge without unbounded buffering
         var enumerators = sources.Select(source => source.GetAsyncEnumerator(cancellationToken)).ToList();
         var activeTasks = new List<Task<(int sourceIndex, bool hasValue, ScanResult? result)>>();
-        
+
         try
         {
             // Start initial MoveNext for all sources
-            for (int i = 0; i < enumerators.Count; i++)
+            for (var i = 0; i < enumerators.Count; i++)
             {
                 var index = i;
                 activeTasks.Add(Task.Run(async () =>
@@ -350,14 +350,14 @@ public class EnhancedScanPipeline : IScanPipeline
             {
                 var completedTask = await Task.WhenAny(activeTasks);
                 activeTasks.Remove(completedTask);
-                
+
                 var (sourceIndex, hasValue, result) = await completedTask;
-                
+
                 if (hasValue && result != null)
                 {
                     // Yield the result immediately - no buffering
                     yield return result;
-                    
+
                     // Start next read from this source
                     activeTasks.Add(Task.Run(async () =>
                     {
@@ -383,7 +383,6 @@ public class EnhancedScanPipeline : IScanPipeline
         {
             // Dispose all enumerators
             foreach (var enumerator in enumerators)
-            {
                 try
                 {
                     await enumerator.DisposeAsync();
@@ -397,15 +396,6 @@ public class EnhancedScanPipeline : IScanPipeline
                 {
                     // Enumerator may already be disposed
                 }
-            }
         }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_disposed) return;
-        
-        _semaphore?.Dispose();
-        _disposed = true;
     }
 }

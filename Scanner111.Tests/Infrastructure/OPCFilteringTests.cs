@@ -1,17 +1,15 @@
+using System.Reflection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
-using Scanner111.Core.Models;
-using System.Reflection;
-using Xunit;
 
 namespace Scanner111.Tests.Infrastructure;
 
-public class OPCFilteringTests : IDisposable
+public class OpcFilteringTests : IDisposable
 {
-    private readonly string _tempDirectory;
     private readonly ReportWriter _reportWriter;
+    private readonly string _tempDirectory;
 
-    public OPCFilteringTests()
+    public OpcFilteringTests()
     {
         _tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(_tempDirectory);
@@ -20,10 +18,8 @@ public class OPCFilteringTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(_tempDirectory))
-        {
-            Directory.Delete(_tempDirectory, true);
-        }
+        if (Directory.Exists(_tempDirectory)) Directory.Delete(_tempDirectory, true);
+        GC.SuppressFinalize(this);
     }
 
     [Theory]
@@ -32,19 +28,11 @@ public class OPCFilteringTests : IDisposable
     public void FilterReportContent_WithOPCHeaders_RemovesOPCSections(string opcHeader)
     {
         // Arrange
-        var reportContent = string.Join('\n', new[]
-        {
-            "Normal content before",
-            "====================================================",
-            opcHeader,
-            "====================================================",
-            "OPC content to be removed",
-            "More OPC content",
-            "====================================================",
-            "NEXT VALID SECTION",
-            "====================================================",
-            "Normal content after"
-        });
+        var reportContent = string.Join('\n', "Normal content before",
+            "====================================================", opcHeader,
+            "====================================================", "OPC content to be removed", "More OPC content",
+            "====================================================", "NEXT VALID SECTION",
+            "====================================================", "Normal content after");
 
         // Act
         var filtered = InvokeFilterReportContent(reportContent);
@@ -62,19 +50,14 @@ public class OPCFilteringTests : IDisposable
     public void FilterReportContent_WithOPCFoundMessage_RemovesOPCContent()
     {
         // Arrange
-        var reportContent = string.Join('\n', new[]
-        {
-            "Regular analysis",
+        var reportContent = string.Join('\n', "Regular analysis",
             "====================================================",
             "CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER...",
             "====================================================",
-            "# FOUND NO PROBLEMATIC MODS THAT ARE ALREADY PATCHED THROUGH THE OPC INSTALLER #",
-            "",
+            "# FOUND NO PROBLEMATIC MODS THAT ARE ALREADY PATCHED THROUGH THE OPC INSTALLER #", "",
             "====================================================",
             "CHECKING FOR MODS THAT IF IMPORTANT PATCHES & FIXES ARE INSTALLED...",
-            "====================================================",
-            "Continuing with normal analysis"
-        });
+            "====================================================", "Continuing with normal analysis");
 
         // Act
         var filtered = InvokeFilterReportContent(reportContent);
@@ -91,22 +74,13 @@ public class OPCFilteringTests : IDisposable
     public void FilterReportContent_WithNestedOPCSections_RemovesAllOPCContent()
     {
         // Arrange
-        var reportContent = string.Join('\n', new[]
-        {
-            "Start",
-            "====================================================",
-            "MODS PATCHED THROUGH OPC INSTALLER",
-            "====================================================",
-            "First OPC section",
-            "====================================================",
+        var reportContent = string.Join('\n', "Start", "====================================================",
+            "MODS PATCHED THROUGH OPC INSTALLER", "====================================================",
+            "First OPC section", "====================================================",
             "CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER...",
-            "====================================================",
-            "Second OPC section",
-            "====================================================",
-            "REGULAR SECTION NAME",
-            "====================================================",
-            "End"
-        });
+            "====================================================", "Second OPC section",
+            "====================================================", "REGULAR SECTION NAME",
+            "====================================================", "End");
 
         // Act
         var filtered = InvokeFilterReportContent(reportContent);
@@ -125,17 +99,11 @@ public class OPCFilteringTests : IDisposable
     public void FilterReportContent_WithOPCAtBeginning_RemovesOPCContent()
     {
         // Arrange
-        var reportContent = string.Join('\n', new[]
-        {
-            "====================================================",
+        var reportContent = string.Join('\n', "====================================================",
             "CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER...",
-            "====================================================",
-            "OPC content at start",
-            "====================================================",
-            "NORMAL SECTION",
-            "====================================================",
-            "Normal content"
-        });
+            "====================================================", "OPC content at start",
+            "====================================================", "NORMAL SECTION",
+            "====================================================", "Normal content");
 
         // Act
         var filtered = InvokeFilterReportContent(reportContent);
@@ -151,18 +119,10 @@ public class OPCFilteringTests : IDisposable
     public void FilterReportContent_WithOPCAtEnd_RemovesOPCContent()
     {
         // Arrange
-        var reportContent = string.Join('\n', new[]
-        {
-            "Normal content",
-            "====================================================",
-            "REGULAR SECTION",
-            "====================================================",
-            "More normal content",
-            "====================================================",
-            "MODS PATCHED THROUGH OPC INSTALLER",
-            "====================================================",
-            "OPC content at end"
-        });
+        var reportContent = string.Join('\n', "Normal content", "====================================================",
+            "REGULAR SECTION", "====================================================", "More normal content",
+            "====================================================", "MODS PATCHED THROUGH OPC INSTALLER",
+            "====================================================", "OPC content at end");
 
         // Act
         var filtered = InvokeFilterReportContent(reportContent);
@@ -179,18 +139,11 @@ public class OPCFilteringTests : IDisposable
     public void FilterReportContent_WithoutOPCContent_ReturnsUnchanged()
     {
         // Arrange
-        var reportContent = string.Join('\n', new[]
-        {
-            "Normal analysis content",
-            "====================================================",
-            "CHECKING FOR PLUGIN ISSUES",
-            "====================================================",
-            "Found 3 plugin issues",
-            "====================================================",
-            "CHECKING FOR FORM ID ISSUES",
-            "====================================================",
-            "No Form ID issues found"
-        });
+        var reportContent = string.Join('\n', "Normal analysis content",
+            "====================================================", "CHECKING FOR PLUGIN ISSUES",
+            "====================================================", "Found 3 plugin issues",
+            "====================================================", "CHECKING FOR FORM ID ISSUES",
+            "====================================================", "No Form ID issues found");
 
         // Act
         var filtered = InvokeFilterReportContent(reportContent);
@@ -229,15 +182,10 @@ public class OPCFilteringTests : IDisposable
     public void FilterReportContent_WithOPCInMiddleOfLine_DoesNotRemove()
     {
         // Arrange
-        var reportContent = string.Join('\n', new[]
-        {
-            "This line mentions OPC INSTALLER but is not a section header",
-            "====================================================",
-            "NORMAL SECTION",
-            "====================================================",
-            "Some plugins may need OPC installer patches",
-            "This should remain"
-        });
+        var reportContent = string.Join('\n', "This line mentions OPC INSTALLER but is not a section header",
+            "====================================================", "NORMAL SECTION",
+            "====================================================", "Some plugins may need OPC installer patches",
+            "This should remain");
 
         // Act
         var filtered = InvokeFilterReportContent(reportContent);
@@ -252,18 +200,11 @@ public class OPCFilteringTests : IDisposable
     public void FilterReportContent_WithOPCCaseVariations_RemovesOPCContent()
     {
         // Arrange
-        var reportContent = string.Join('\n', new[]
-        {
-            "Normal content",
-            "====================================================",
+        var reportContent = string.Join('\n', "Normal content", "====================================================",
             "checking for mods that are patched through opc installer...",
-            "====================================================",
-            "OPC content with different case",
-            "====================================================",
-            "NORMAL SECTION",
-            "====================================================",
-            "End content"
-        });
+            "====================================================", "OPC content with different case",
+            "====================================================", "NORMAL SECTION",
+            "====================================================", "End content");
 
         // Act
         var filtered = InvokeFilterReportContent(reportContent);
@@ -284,19 +225,11 @@ public class OPCFilteringTests : IDisposable
     public void FilterReportContent_WithOPCResultMessages_RemovesMessages(string opcResultMessage)
     {
         // Arrange
-        var reportContent = string.Join('\n', new[]
-        {
-            "Analysis start",
-            "====================================================",
+        var reportContent = string.Join('\n', "Analysis start", "====================================================",
             "CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER...",
-            "====================================================",
-            opcResultMessage,
-            "",
-            "====================================================",
-            "NEXT SECTION",
-            "====================================================",
-            "Analysis continues"
-        });
+            "====================================================", opcResultMessage, "",
+            "====================================================", "NEXT SECTION",
+            "====================================================", "Analysis continues");
 
         // Act
         var filtered = InvokeFilterReportContent(reportContent);
@@ -310,13 +243,15 @@ public class OPCFilteringTests : IDisposable
     }
 
     /// <summary>
-    /// Uses reflection to access the private FilterReportContent method for testing
+    ///     Uses reflection to invoke the private FilterReportContent method on the ReportWriter
     /// </summary>
     private string? InvokeFilterReportContent(string? reportContent)
     {
-        var method = typeof(ReportWriter).GetMethod("FilterReportContent", BindingFlags.NonPublic | BindingFlags.Static);
-        Assert.NotNull(method);
-        
-        return (string?)method.Invoke(null, new object?[] { reportContent });
+        var method = typeof(ReportWriter).GetMethod("FilterReportContent",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        if (method == null) throw new InvalidOperationException("FilterReportContent method not found on ReportWriter");
+
+        return (string?)method.Invoke(_reportWriter, new object?[] { reportContent });
     }
 }

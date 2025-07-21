@@ -1,14 +1,13 @@
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
-using Xunit;
 
 namespace Scanner111.Tests.Analyzers;
 
 public class SuspectScannerTests
 {
-    private readonly TestYamlSettingsProvider _yamlSettings;
     private readonly SuspectScanner _analyzer;
+    private readonly TestYamlSettingsProvider _yamlSettings;
 
     public SuspectScannerTests()
     {
@@ -38,7 +37,7 @@ public class SuspectScannerTests
         // Assert
         Assert.IsType<SuspectAnalysisResult>(result);
         var suspectResult = (SuspectAnalysisResult)result;
-        
+
         Assert.Equal("Suspect Scanner", suspectResult.AnalyzerName);
         Assert.True(suspectResult.HasFindings);
         Assert.NotEmpty(suspectResult.ReportLines);
@@ -90,8 +89,10 @@ public class SuspectScannerTests
 
         // Assert
         var suspectResult = (SuspectAnalysisResult)result;
-        Assert.Contains("* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! *", suspectResult.ReportText);
-        Assert.Contains("If that dll file belongs to a mod, that mod is a prime suspect for the crash.", suspectResult.ReportText);
+        Assert.Contains("* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! *",
+            suspectResult.ReportText);
+        Assert.Contains("If that dll file belongs to a mod, that mod is a prime suspect for the crash.",
+            suspectResult.ReportText);
     }
 
     [Fact]
@@ -114,7 +115,8 @@ public class SuspectScannerTests
 
         // Assert
         var suspectResult = (SuspectAnalysisResult)result;
-        Assert.DoesNotContain("* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! *", suspectResult.ReportText);
+        Assert.DoesNotContain("* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! *",
+            suspectResult.ReportText);
     }
 
     [Fact]
@@ -165,10 +167,10 @@ public class SuspectScannerTests
 
         // Assert
         var suspectResult = (SuspectAnalysisResult)result;
-        
+
         // Debug output to see what's actually in the report
         var reportText = suspectResult.ReportText;
-        
+
         // The stack suspects should be found
         Assert.True(suspectResult.HasFindings);
         // Stack Overflow requires ME-REQ (main error match) which we don't have, so it won't be found
@@ -182,7 +184,7 @@ public class SuspectScannerTests
     public async Task AnalyzeAsync_WithRequiredMainErrorPattern_RequiresMainErrorMatch()
     {
         // Test ME-REQ pattern - should only trigger if main error contains the pattern
-        
+
         // Arrange - main error has required pattern
         var crashLog1 = new CrashLog
         {
@@ -228,7 +230,7 @@ public class SuspectScannerTests
     public async Task AnalyzeAsync_WithCountPattern_RequiresMinimumOccurrences()
     {
         // Test numeric pattern - should only trigger if minimum occurrences are met
-        
+
         // Arrange - has exactly 2 occurrences (meets minimum)
         var crashLog1 = new CrashLog
         {
@@ -275,7 +277,7 @@ public class SuspectScannerTests
     public async Task AnalyzeAsync_WithNegativePattern_SkipsWhenPatternFound()
     {
         // Test NOT pattern - should skip the suspect if the NOT pattern is found
-        
+
         // Arrange - does NOT have the negative pattern
         var crashLog1 = new CrashLog
         {
@@ -341,17 +343,13 @@ public class SuspectScannerTests
         // The case-insensitive matching should find the access violation
         // But it seems like the matching is not working as expected
         var reportText = suspectResult.ReportText;
-        
+
         // If no matches found, HasFindings will be false, so let's check the actual behavior
         if (suspectResult.HasFindings)
-        {
             Assert.Contains("Access Violation", reportText);
-        }
         else
-        {
             // The test shows case-insensitive matching isn't working as expected
             // This could be a configuration issue or the actual case-sensitive matching
             Assert.False(suspectResult.HasFindings);
-        }
     }
 }

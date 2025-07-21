@@ -1,37 +1,22 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
-using Scanner111.Core.Models;
 using Scanner111.Core.Infrastructure;
+using Scanner111.Core.Models;
 
 namespace Scanner111.Core.Analyzers;
 
 /// <summary>
-/// Handles FormID analysis and lookup operations, direct port of Python FormIDAnalyzer
+///     Handles FormID analysis and lookup operations, direct port of Python FormIDAnalyzer
 /// </summary>
 public class FormIdAnalyzer : IAnalyzer
 {
     private static readonly ConcurrentDictionary<string, Regex> PatternCache = new();
-    private readonly IYamlSettingsProvider _yamlSettings;
     private readonly IFormIdDatabaseService _formIdDatabase;
     private readonly Regex _formIdPattern;
+    private readonly IYamlSettingsProvider _yamlSettings;
 
     /// <summary>
-    /// Name of the analyzer
-    /// </summary>
-    public string Name => "FormID Analyzer";
-    
-    /// <summary>
-    /// Priority of the analyzer (lower values run first)
-    /// </summary>
-    public int Priority => 10;
-    
-    /// <summary>
-    /// Whether this analyzer can be run in parallel with others
-    /// </summary>
-    public bool CanRunInParallel => true;
-
-    /// <summary>
-    /// Initialize the FormID analyzer
+    ///     Initialize the FormID analyzer
     /// </summary>
     /// <param name="yamlSettings">YAML settings provider for configuration</param>
     /// <param name="formIdDatabase">FormID database service for lookups</param>
@@ -49,7 +34,22 @@ public class FormIdAnalyzer : IAnalyzer
     }
 
     /// <summary>
-    /// Analyze a crash log for FormID information
+    ///     Name of the analyzer
+    /// </summary>
+    public string Name => "FormID Analyzer";
+
+    /// <summary>
+    ///     Priority of the analyzer (lower values run first)
+    /// </summary>
+    public int Priority => 10;
+
+    /// <summary>
+    ///     Whether this analyzer can be run in parallel with others
+    /// </summary>
+    public bool CanRunInParallel => true;
+
+    /// <summary>
+    ///     Analyze a crash log for FormID information
     /// </summary>
     /// <param name="crashLog">Crash log to analyze</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -77,8 +77,8 @@ public class FormIdAnalyzer : IAnalyzer
     }
 
     /// <summary>
-    /// Extracts Form IDs from a given call stack.
-    /// Direct port of Python extract_formids method.
+    ///     Extracts Form IDs from a given call stack.
+    ///     Direct port of Python extract_formids method.
     /// </summary>
     /// <param name="segmentCallstack">A list of strings representing the call stack to be processed</param>
     /// <returns>A list containing all extracted and formatted Form IDs that meet the criteria</returns>
@@ -86,10 +86,7 @@ public class FormIdAnalyzer : IAnalyzer
     {
         var formIdsMatches = new List<string>();
 
-        if (segmentCallstack.Count == 0)
-        {
-            return formIdsMatches;
-        }
+        if (segmentCallstack.Count == 0) return formIdsMatches;
 
         foreach (var line in segmentCallstack)
         {
@@ -98,10 +95,7 @@ public class FormIdAnalyzer : IAnalyzer
             {
                 var formIdId = match.Groups[1].Value.ToUpper(); // Get the hex part without 0x
                 // Skip if it starts with FF (plugin limit)
-                if (!formIdId.StartsWith("FF"))
-                {
-                    formIdsMatches.Add($"Form ID: {formIdId}");
-                }
+                if (!formIdId.StartsWith("FF")) formIdsMatches.Add($"Form ID: {formIdId}");
             }
         }
 
@@ -109,15 +103,16 @@ public class FormIdAnalyzer : IAnalyzer
     }
 
     /// <summary>
-    /// Processes and appends reports based on Form ID matches retrieved from crash logs and a scan report.
-    /// Direct port of Python formid_match method.
+    ///     Processes and appends reports based on Form ID matches retrieved from crash logs and a scan report.
+    ///     Direct port of Python formid_match method.
     /// </summary>
     /// <param name="formIdsMatches">A list of Form ID matches extracted from the crash log</param>
     /// <param name="crashlogPlugins">A dictionary mapping plugin filenames to plugin IDs found in the crash log</param>
     /// <param name="autoscanReport">A mutable list to which the generated or default report will be appended</param>
     /// <param name="showFormIdValues">Whether to show FormID values</param>
     /// <param name="formIdDbExists">Whether FormID database exists</param>
-    private void GenerateFormIdReport(List<string> formIdsMatches, Dictionary<string, string> crashlogPlugins, List<string> autoscanReport, bool showFormIdValues, bool formIdDbExists)
+    private void GenerateFormIdReport(List<string> formIdsMatches, Dictionary<string, string> crashlogPlugins,
+        List<string> autoscanReport, bool showFormIdValues, bool formIdDbExists)
     {
         if (formIdsMatches.Count > 0)
         {
@@ -129,18 +124,12 @@ public class FormIdAnalyzer : IAnalyzer
 
             foreach (var (formIdFull, count) in formIdsFound)
             {
-                var formIdSplit = formIdFull.Split(": ", 2, StringSplitOptions.None);
-                if (formIdSplit.Length < 2)
-                {
-                    continue;
-                }
+                var formIdSplit = formIdFull.Split(": ", 2);
+                if (formIdSplit.Length < 2) continue;
 
                 foreach (var (plugin, pluginId) in crashlogPlugins)
                 {
-                    if (pluginId != formIdSplit[1][..2])
-                    {
-                        continue;
-                    }
+                    if (pluginId != formIdSplit[1][..2]) continue;
 
                     if (showFormIdValues && formIdDbExists)
                     {
@@ -156,7 +145,7 @@ public class FormIdAnalyzer : IAnalyzer
                     break;
                 }
 
-                NextFormId:;
+                NextFormId: ;
             }
 
             autoscanReport.AddRange(new[]
@@ -173,12 +162,15 @@ public class FormIdAnalyzer : IAnalyzer
     }
 
     /// <summary>
-    /// Look up the value associated with a given form ID and plugin in the database.
-    /// Direct port of Python lookup_formid_value method.
+    ///     Look up the value associated with a given form ID and plugin in the database.
+    ///     Direct port of Python lookup_formid_value method.
     /// </summary>
     /// <param name="formId">A string representing the form ID to look up</param>
     /// <param name="plugin">A string representing the plugin name associated with the form ID</param>
-    /// <returns>A string containing the value associated with the form ID and plugin if found in the database, or null if the database does not exist or the value is not found</returns>
+    /// <returns>
+    ///     A string containing the value associated with the form ID and plugin if found in the database, or null if the
+    ///     database does not exist or the value is not found
+    /// </returns>
     private string? LookupFormIdValue(string formId, string plugin)
     {
         return _formIdDatabase.GetEntry(formId, plugin);

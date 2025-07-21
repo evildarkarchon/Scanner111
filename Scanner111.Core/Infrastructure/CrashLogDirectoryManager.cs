@@ -1,25 +1,21 @@
-using System;
-using System.IO;
-using System.Linq;
-
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-/// Manages crash log directory structure with game-specific subfolders
+///     Manages crash log directory structure with game-specific subfolders
 /// </summary>
 public static class CrashLogDirectoryManager
 {
     /// <summary>
-    /// Gets the default crash logs directory path
+    ///     Gets the default crash logs directory path
     /// </summary>
     public static string GetDefaultCrashLogsDirectory()
     {
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), 
-                           "Scanner111", "Crash Logs");
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "Scanner111", "Crash Logs");
     }
-    
+
     /// <summary>
-    /// Detects the game type from a game path or crash log content
+    ///     Detects the game type from a game path or crash log content
     /// </summary>
     /// <param name="gamePath">Optional game installation path</param>
     /// <param name="crashLogPath">Optional crash log file to analyze</param>
@@ -32,37 +28,30 @@ public static class CrashLogDirectoryManager
             var executableFiles = Directory.GetFiles(gamePath, "*.exe", SearchOption.TopDirectoryOnly)
                 .Select(Path.GetFileName)
                 .ToArray();
-                
+
             if (executableFiles.Any(f => f?.Equals("Fallout4.exe", StringComparison.OrdinalIgnoreCase) == true))
                 return "Fallout4";
             if (executableFiles.Any(f => f?.Equals("Fallout4VR.exe", StringComparison.OrdinalIgnoreCase) == true))
                 return "Fallout4VR";
             if (executableFiles.Any(f => f?.Equals("SkyrimSE.exe", StringComparison.OrdinalIgnoreCase) == true))
                 return "SkyrimSE";
-            if (executableFiles.Any(f => f?.Equals("Skyrim.exe", StringComparison.OrdinalIgnoreCase) == true))
-                return "Skyrim";
         }
-        
+
         // Try to detect from crash log path and content
         if (!string.IsNullOrEmpty(crashLogPath))
-        {
             try
             {
                 // First check the file path for XSE directory hints (even if file doesn't exist)
-                if (crashLogPath.Contains("\\F4SE\\") || crashLogPath.Contains("/F4SE/"))
-                {
-                    if (crashLogPath.Contains("Fallout4VR", StringComparison.OrdinalIgnoreCase))
-                        return "Fallout4VR";
-                    else
-                        return "Fallout4";
-                }
-                if (crashLogPath.Contains("\\SKSE\\") || crashLogPath.Contains("/SKSE/"))
-                {
+                if (crashLogPath.Contains(@"\F4SE\") || crashLogPath.Contains("/F4SE/"))
+                    return crashLogPath.Contains("Fallout4VR", StringComparison.OrdinalIgnoreCase)
+                        ? "Fallout4VR"
+                        : "Fallout4";
+
+                if (crashLogPath.Contains(@"\SKSE\") || crashLogPath.Contains("/SKSE/"))
                     // Check for Skyrim Special Edition (standard and GOG versions)
                     if (crashLogPath.Contains("Skyrim Special Edition", StringComparison.OrdinalIgnoreCase))
                         return "SkyrimSE";
-                }
-                
+
                 // Then check file content if file exists
                 if (File.Exists(crashLogPath))
                 {
@@ -83,14 +72,13 @@ public static class CrashLogDirectoryManager
             {
                 // Ignore errors reading crash log for detection
             }
-        }
-        
+
         // Default fallback - assume Fallout 4 as it's the most common
         return "Fallout4";
     }
-    
+
     /// <summary>
-    /// Gets the full path for a game-specific crash logs directory
+    ///     Gets the full path for a game-specific crash logs directory
     /// </summary>
     /// <param name="baseDirectory">Base crash logs directory</param>
     /// <param name="gameType">Game type (e.g., "Fallout4", "SkyrimSE")</param>
@@ -99,9 +87,9 @@ public static class CrashLogDirectoryManager
     {
         return Path.Combine(baseDirectory, gameType);
     }
-    
+
     /// <summary>
-    /// Ensures the crash logs directory structure exists
+    ///     Ensures the crash logs directory structure exists
     /// </summary>
     /// <param name="baseDirectory">Base crash logs directory</param>
     /// <param name="gameType">Game type to create subfolder for</param>
@@ -109,7 +97,7 @@ public static class CrashLogDirectoryManager
     public static string EnsureDirectoryExists(string baseDirectory, string gameType)
     {
         var gameDirectory = GetGameSpecificDirectory(baseDirectory, gameType);
-        
+
         try
         {
             Directory.CreateDirectory(gameDirectory);
@@ -118,12 +106,12 @@ public static class CrashLogDirectoryManager
         {
             throw new InvalidOperationException($"Failed to create crash logs directory: {gameDirectory}", ex);
         }
-        
+
         return gameDirectory;
     }
-    
+
     /// <summary>
-    /// Gets the target path for copying a crash log file
+    ///     Gets the target path for copying a crash log file
     /// </summary>
     /// <param name="baseDirectory">Base crash logs directory</param>
     /// <param name="gameType">Game type</param>
@@ -135,40 +123,36 @@ public static class CrashLogDirectoryManager
         var fileName = Path.GetFileName(originalFilePath);
         return Path.Combine(gameDirectory, fileName);
     }
-    
+
     /// <summary>
-    /// Copies a crash log file to the appropriate game-specific directory
+    ///     Copies a crash log file to the appropriate game-specific directory
     /// </summary>
     /// <param name="sourceFilePath">Source crash log file</param>
     /// <param name="baseDirectory">Base crash logs directory</param>
     /// <param name="gameType">Game type (optional - will auto-detect if not provided)</param>
     /// <param name="overwrite">Whether to overwrite existing files</param>
     /// <returns>Path to the copied file</returns>
-    public static string CopyCrashLog(string sourceFilePath, string baseDirectory, string? gameType = null, bool overwrite = true)
+    public static string CopyCrashLog(string sourceFilePath, string baseDirectory, string? gameType = null,
+        bool overwrite = true)
     {
         if (!File.Exists(sourceFilePath))
             throw new FileNotFoundException($"Source crash log file not found: {sourceFilePath}");
-            
+
         // Auto-detect game type if not provided
-        if (string.IsNullOrEmpty(gameType))
-        {
-            gameType = DetectGameType(crashLogPath: sourceFilePath);
-        }
-        
+        if (string.IsNullOrEmpty(gameType)) gameType = DetectGameType(crashLogPath: sourceFilePath);
+
         var targetPath = GetTargetPath(baseDirectory, gameType, sourceFilePath);
-        
+
         // Only copy if target doesn't exist or source is newer
         if (!File.Exists(targetPath) || overwrite)
         {
             var sourceInfo = new FileInfo(sourceFilePath);
             var targetInfo = File.Exists(targetPath) ? new FileInfo(targetPath) : null;
-            
+
             if (targetInfo == null || sourceInfo.LastWriteTime > targetInfo.LastWriteTime)
-            {
                 File.Copy(sourceFilePath, targetPath, overwrite);
-            }
         }
-        
+
         return targetPath;
     }
 }

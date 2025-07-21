@@ -1,14 +1,13 @@
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
-using Xunit;
 
 namespace Scanner111.Tests.Analyzers;
 
 public class PluginAnalyzerTests
 {
-    private readonly TestYamlSettingsProvider _yamlSettings;
     private readonly PluginAnalyzer _analyzer;
+    private readonly TestYamlSettingsProvider _yamlSettings;
 
     public PluginAnalyzerTests()
     {
@@ -32,8 +31,8 @@ public class PluginAnalyzerTests
             },
             Plugins = new Dictionary<string, string>
             {
-                {"TestPlugin.esp", "00"},
-                {"AnotherPlugin.esp", "01"}
+                { "TestPlugin.esp", "00" },
+                { "AnotherPlugin.esp", "01" }
             }
         };
 
@@ -43,7 +42,7 @@ public class PluginAnalyzerTests
         // Assert
         Assert.IsType<PluginAnalysisResult>(result);
         var pluginResult = (PluginAnalysisResult)result;
-        
+
         Assert.Equal("Plugin Analyzer", pluginResult.AnalyzerName);
         Assert.True(pluginResult.HasFindings);
         Assert.Equal(2, pluginResult.Plugins.Count);
@@ -91,8 +90,8 @@ public class PluginAnalyzerTests
             },
             Plugins = new Dictionary<string, string>
             {
-                {"TestPlugin.esp", "00"},
-                {"AnotherPlugin.esp", "01"}
+                { "TestPlugin.esp", "00" },
+                { "AnotherPlugin.esp", "01" }
             }
         };
 
@@ -122,8 +121,8 @@ public class PluginAnalyzerTests
             },
             Plugins = new Dictionary<string, string>
             {
-                {"TestPlugin.esp", "00"},
-                {"ignored.esp", "01"}
+                { "TestPlugin.esp", "00" },
+                { "ignored.esp", "01" }
             }
         };
 
@@ -133,7 +132,8 @@ public class PluginAnalyzerTests
         // Assert
         var pluginResult = (PluginAnalysisResult)result;
         Assert.True(pluginResult.HasFindings);
-        Assert.Equal(2, pluginResult.Plugins.Count); // Both plugins are in the list but ignored.esp is filtered from matching
+        Assert.Equal(2,
+            pluginResult.Plugins.Count); // Both plugins are in the list but ignored.esp is filtered from matching
         Assert.Contains("- testplugin.esp | 1", pluginResult.ReportText);
         // ignored.esp should not appear in the report due to filtering
         Assert.DoesNotContain("- ignored.esp", pluginResult.ReportText);
@@ -154,7 +154,7 @@ public class PluginAnalyzerTests
             },
             Plugins = new Dictionary<string, string>
             {
-                {"TestPlugin.esp", "00"}
+                { "TestPlugin.esp", "00" }
             }
         };
 
@@ -183,7 +183,7 @@ public class PluginAnalyzerTests
             },
             Plugins = new Dictionary<string, string>
             {
-                {"TestPlugin.esp", "00"}
+                { "TestPlugin.esp", "00" }
             }
         };
 
@@ -214,9 +214,9 @@ public class PluginAnalyzerTests
             },
             Plugins = new Dictionary<string, string>
             {
-                {"Alpha.esp", "00"},
-                {"Beta.esp", "01"},
-                {"Charlie.esp", "02"}
+                { "Alpha.esp", "00" },
+                { "Beta.esp", "01" },
+                { "Charlie.esp", "02" }
             }
         };
 
@@ -226,16 +226,16 @@ public class PluginAnalyzerTests
         // Assert
         var pluginResult = (PluginAnalysisResult)result;
         Assert.True(pluginResult.HasFindings);
-        
+
         var reportText = pluginResult.ReportText;
-        
+
         // Should be sorted by count (descending) then by name (ascending)
         var charlieIndex = reportText.IndexOf("- charlie.esp | 3");
         var alphaIndex = reportText.IndexOf("- alpha.esp | 2");
         var betaIndex = reportText.IndexOf("- beta.esp | 1");
-        
+
         Assert.True(charlieIndex < alphaIndex); // Charlie (3) before Alpha (2)
-        Assert.True(alphaIndex < betaIndex);    // Alpha (2) before Beta (1)
+        Assert.True(alphaIndex < betaIndex); // Alpha (2) before Beta (1)
     }
 
     [Fact]
@@ -243,7 +243,7 @@ public class PluginAnalyzerTests
     {
         // Note: This test would need to be enhanced to actually create/mock a loadorder.txt file
         // For now, we'll test the basic functionality without the file
-        
+
         // Arrange
         var crashLog = new CrashLog
         {
@@ -254,7 +254,7 @@ public class PluginAnalyzerTests
             },
             Plugins = new Dictionary<string, string>
             {
-                {"TestPlugin.esp", "00"}
+                { "TestPlugin.esp", "00" }
             }
         };
 

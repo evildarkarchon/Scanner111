@@ -6,58 +6,57 @@ using Scanner111.Core.Analyzers;
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-/// Cache manager for settings and analysis results
+///     Cache manager for settings and analysis results
 /// </summary>
 public interface ICacheManager
 {
     /// <summary>
-    /// Get or set YAML settings with caching
+    ///     Get or set YAML settings with caching
     /// </summary>
     T? GetOrSetYamlSetting<T>(string yamlFile, string keyPath, Func<T?> factory, TimeSpan? expiry = null);
-    
+
     /// <summary>
-    /// Cache analysis result for a file
+    ///     Cache analysis result for a file
     /// </summary>
     void CacheAnalysisResult(string filePath, string analyzerName, AnalysisResult result);
-    
+
     /// <summary>
-    /// Get cached analysis result
+    ///     Get cached analysis result
     /// </summary>
     AnalysisResult? GetCachedAnalysisResult(string filePath, string analyzerName);
-    
+
     /// <summary>
-    /// Check if file has been modified since last cache
+    ///     Check if file has been modified since last cache
     /// </summary>
     bool IsFileCacheValid(string filePath);
-    
+
     /// <summary>
-    /// Clear all caches
+    ///     Clear all caches
     /// </summary>
     void ClearCache();
-    
+
     /// <summary>
-    /// Get cache statistics
+    ///     Get cache statistics
     /// </summary>
     CacheStatistics GetStatistics();
 }
 
 /// <summary>
-/// Implementation of cache manager
+///     Implementation of cache manager
 /// </summary>
 public class CacheManager : ICacheManager, IDisposable
 {
-    private readonly IMemoryCache _memoryCache;
-    private readonly ILogger<CacheManager> _logger;
-    private readonly ConcurrentDictionary<string, DateTime> _fileModificationTimes = new();
+    // Cache key prefixes
+    private const string YamlPrefix = "yaml:";
+    private const string AnalysisPrefix = "analysis:";
+    private const string FileTimePrefix = "filetime:";
     private readonly ConcurrentDictionary<string, int> _cacheHits = new();
     private readonly ConcurrentDictionary<string, int> _cacheMisses = new();
+    private readonly ConcurrentDictionary<string, DateTime> _fileModificationTimes = new();
+    private readonly ILogger<CacheManager> _logger;
+    private readonly IMemoryCache _memoryCache;
     private readonly object _statsLock = new();
     private bool _disposed;
-
-    // Cache key prefixes
-    private const string YAML_PREFIX = "yaml:";
-    private const string ANALYSIS_PREFIX = "analysis:";
-    private const string FILE_TIME_PREFIX = "filetime:";
 
     public CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger)
     {
@@ -68,8 +67,8 @@ public class CacheManager : ICacheManager, IDisposable
     public T? GetOrSetYamlSetting<T>(string yamlFile, string keyPath, Func<T?> factory, TimeSpan? expiry = null)
     {
         CheckDisposed();
-        var cacheKey = $"{YAML_PREFIX}{yamlFile}:{keyPath}";
-        
+        var cacheKey = $"{YamlPrefix}{yamlFile}:{keyPath}";
+
         if (_memoryCache.TryGetValue(cacheKey, out T? cached))
         {
             RecordCacheHit(cacheKey);
@@ -79,14 +78,14 @@ public class CacheManager : ICacheManager, IDisposable
 
         RecordCacheMiss(cacheKey);
         _logger.LogTrace("Cache miss for YAML setting: {CacheKey}", cacheKey);
-        
+
         var value = factory();
         var options = new MemoryCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = expiry ?? TimeSpan.FromMinutes(30),
             Priority = CacheItemPriority.Normal
         };
-        
+
         _memoryCache.Set(cacheKey, value, options);
         return value;
     }
@@ -100,11 +99,11 @@ public class CacheManager : ICacheManager, IDisposable
             if (!fileInfo.Exists) return;
 
             var cacheKey = GetAnalysisCacheKey(filePath, analyzerName);
-            var fileTimeKey = $"{FILE_TIME_PREFIX}{filePath}";
-            
+            var fileTimeKey = $"{FileTimePrefix}{filePath}";
+
             // Cache the file modification time
             _fileModificationTimes[fileTimeKey] = fileInfo.LastWriteTimeUtc;
-            
+
             // Cache the analysis result with file-based expiration
             var options = new MemoryCacheEntryOptions
             {
@@ -112,13 +111,13 @@ public class CacheManager : ICacheManager, IDisposable
                 Priority = CacheItemPriority.High,
                 Size = EstimateResultSize(result)
             };
-            
+
             _memoryCache.Set(cacheKey, result, options);
             _logger.LogTrace("Cached analysis result: {CacheKey}", cacheKey);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to cache analysis result for {FilePath}:{AnalyzerName}", 
+            _logger.LogWarning(ex, "Failed to cache analysis result for {FilePath}:{AnalyzerName}",
                 filePath, analyzerName);
         }
     }
@@ -129,7 +128,7 @@ public class CacheManager : ICacheManager, IDisposable
         try
         {
             var cacheKey = GetAnalysisCacheKey(filePath, analyzerName);
-            
+
             if (!IsFileCacheValid(filePath))
             {
                 // File has been modified, invalidate cache
@@ -137,6 +136,7 @@ public class CacheManager : ICacheManager, IDisposable
                 RecordCacheMiss(cacheKey);
                 return null;
             }
+
             if (_memoryCache.TryGetValue(cacheKey, out AnalysisResult? cached))
             {
                 RecordCacheHit(cacheKey);
@@ -149,7 +149,7 @@ public class CacheManager : ICacheManager, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to get cached analysis result for {FilePath}:{AnalyzerName}", 
+            _logger.LogWarning(ex, "Failed to get cached analysis result for {FilePath}:{AnalyzerName}",
                 filePath, analyzerName);
             return null;
         }
@@ -162,7 +162,7 @@ public class CacheManager : ICacheManager, IDisposable
             var fileInfo = new FileInfo(filePath);
             if (!fileInfo.Exists) return false;
 
-            var fileTimeKey = $"{FILE_TIME_PREFIX}{filePath}";
+            var fileTimeKey = $"{FileTimePrefix}{filePath}";
             if (!_fileModificationTimes.TryGetValue(fileTimeKey, out var cachedTime))
                 return false;
 
@@ -177,15 +177,12 @@ public class CacheManager : ICacheManager, IDisposable
     public void ClearCache()
     {
         CheckDisposed();
-        if (_memoryCache is MemoryCache mc)
-        {
-            mc.Compact(1.0); // Remove all entries
-        }
-        
+        if (_memoryCache is MemoryCache mc) mc.Compact(1.0); // Remove all entries
+
         _fileModificationTimes.Clear();
         _cacheHits.Clear();
         _cacheMisses.Clear();
-        
+
         _logger.LogInformation("Cache cleared");
     }
 
@@ -197,7 +194,7 @@ public class CacheManager : ICacheManager, IDisposable
             var totalHits = _cacheHits.Values.Sum();
             var totalMisses = _cacheMisses.Values.Sum();
             var totalRequests = totalHits + totalMisses;
-            
+
             return new CacheStatistics
             {
                 TotalHits = totalHits,
@@ -209,18 +206,30 @@ public class CacheManager : ICacheManager, IDisposable
         }
     }
 
+    public void Dispose()
+    {
+        if (_disposed) return;
+
+        _fileModificationTimes.Clear();
+        _cacheHits.Clear();
+        _cacheMisses.Clear();
+        _disposed = true;
+    }
+
     private void RecordCacheHit(string cacheKey)
     {
-        _cacheHits.AddOrUpdate(cacheKey, 1, (key, count) => count + 1);
+        _cacheHits.AddOrUpdate(cacheKey, 1, (_, count) => count + 1);
     }
 
     private void RecordCacheMiss(string cacheKey)
     {
-        _cacheMisses.AddOrUpdate(cacheKey, 1, (key, count) => count + 1);
+        _cacheMisses.AddOrUpdate(cacheKey, 1, (_, count) => count + 1);
     }
 
     private static string GetAnalysisCacheKey(string filePath, string analyzerName)
-        => $"{ANALYSIS_PREFIX}{filePath}:{analyzerName}";
+    {
+        return $"{AnalysisPrefix}{filePath}:{analyzerName}";
+    }
 
     private static long EstimateResultSize(AnalysisResult result)
     {
@@ -231,16 +240,6 @@ public class CacheManager : ICacheManager, IDisposable
         return baseSize + reportSize + errorSize;
     }
 
-    public void Dispose()
-    {
-        if (_disposed) return;
-        
-        _fileModificationTimes.Clear();
-        _cacheHits.Clear();
-        _cacheMisses.Clear();
-        _disposed = true;
-    }
-    
     private void CheckDisposed()
     {
         if (_disposed)
@@ -249,7 +248,7 @@ public class CacheManager : ICacheManager, IDisposable
 }
 
 /// <summary>
-/// Cache performance statistics
+///     Cache performance statistics
 /// </summary>
 public record CacheStatistics
 {

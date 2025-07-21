@@ -1,22 +1,21 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Console;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Core.Pipeline;
 
 /// <summary>
-/// Builder for creating scan pipeline instances
+///     Builder for creating scan pipeline instances
 /// </summary>
 public class ScanPipelineBuilder
 {
-    private readonly IServiceCollection _services;
     private readonly List<Type> _analyzerTypes = new();
-    private bool _enablePerformanceMonitoring;
+    private readonly IServiceCollection _services;
     private bool _enableCaching = true;
     private bool _enableEnhancedErrorHandling = true;
+    private bool _enablePerformanceMonitoring;
     private int _maxConcurrency = Environment.ProcessorCount;
 
     public ScanPipelineBuilder()
@@ -26,7 +25,7 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Add an analyzer to the pipeline
+    ///     Add an analyzer to the pipeline
     /// </summary>
     public ScanPipelineBuilder AddAnalyzer<T>() where T : class, IAnalyzer
     {
@@ -36,7 +35,7 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Add all default analyzers
+    ///     Add all default analyzers
     /// </summary>
     public ScanPipelineBuilder AddDefaultAnalyzers()
     {
@@ -49,7 +48,7 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Configure the message handler
+    ///     Configure the message handler
     /// </summary>
     public ScanPipelineBuilder WithMessageHandler(IMessageHandler messageHandler)
     {
@@ -58,7 +57,7 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Enable performance monitoring
+    ///     Enable performance monitoring
     /// </summary>
     public ScanPipelineBuilder WithPerformanceMonitoring(bool enable = true)
     {
@@ -67,7 +66,7 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Enable caching for analysis results and settings
+    ///     Enable caching for analysis results and settings
     /// </summary>
     public ScanPipelineBuilder WithCaching(bool enable = true)
     {
@@ -76,7 +75,7 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Enable enhanced error handling and resilience
+    ///     Enable enhanced error handling and resilience
     /// </summary>
     public ScanPipelineBuilder WithEnhancedErrorHandling(bool enable = true)
     {
@@ -85,7 +84,7 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Set maximum concurrency for batch processing
+    ///     Set maximum concurrency for batch processing
     /// </summary>
     public ScanPipelineBuilder WithMaxConcurrency(int maxConcurrency)
     {
@@ -94,7 +93,7 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Configure logging
+    ///     Configure logging
     /// </summary>
     public ScanPipelineBuilder WithLogging(Action<ILoggingBuilder> configure)
     {
@@ -103,25 +102,25 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Build the scan pipeline
+    ///     Build the scan pipeline
     /// </summary>
     public IScanPipeline Build()
     {
         // Build service provider
         var serviceProvider = _services.BuildServiceProvider();
-        
+
         // Initialize static YamlSettingsCache with the service instance
         var yamlSettingsProvider = serviceProvider.GetRequiredService<IYamlSettingsProvider>();
         YamlSettingsCache.Initialize(yamlSettingsProvider);
-        
+
         // Create analyzers
         var analyzers = _analyzerTypes
             .Select(type => (IAnalyzer)serviceProvider.GetRequiredService(type))
             .ToList();
-        
+
         // Create base pipeline
         IScanPipeline pipeline;
-        
+
         if (_enableCaching || _enableEnhancedErrorHandling)
         {
             // Use enhanced pipeline
@@ -130,8 +129,8 @@ public class ScanPipelineBuilder
             var settingsProvider = serviceProvider.GetRequiredService<IYamlSettingsProvider>();
             var cacheManager = serviceProvider.GetRequiredService<ICacheManager>();
             var resilientExecutor = serviceProvider.GetRequiredService<ResilientExecutor>();
-            
-            pipeline = new EnhancedScanPipeline(analyzers, enhancedLogger, messageHandler, 
+
+            pipeline = new EnhancedScanPipeline(analyzers, enhancedLogger, messageHandler,
                 settingsProvider, cacheManager, resilientExecutor);
         }
         else
@@ -140,16 +139,16 @@ public class ScanPipelineBuilder
             var logger = serviceProvider.GetRequiredService<ILogger<ScanPipeline>>();
             var messageHandler = serviceProvider.GetRequiredService<IMessageHandler>();
             var settingsProvider = serviceProvider.GetRequiredService<IYamlSettingsProvider>();
-            
+
             pipeline = new ScanPipeline(analyzers, logger, messageHandler, settingsProvider);
         }
-        
+
         if (_enablePerformanceMonitoring)
         {
             var perfLogger = serviceProvider.GetRequiredService<ILogger>();
             return new PerformanceMonitoringPipeline(pipeline, perfLogger);
         }
-        
+
         return pipeline;
     }
 
@@ -157,13 +156,13 @@ public class ScanPipelineBuilder
     {
         // Add logging
         _services.AddLogging(builder => builder.AddConsole());
-        
+
         // Add infrastructure services
         _services.AddSingleton<IYamlSettingsProvider, YamlSettingsService>();
         _services.AddSingleton<IAnalyzerFactory, AnalyzerFactory>();
         _services.AddSingleton<IFormIdDatabaseService, FormIdDatabaseService>();
         _services.AddSingleton<IReportWriter, ReportWriter>();
-        
+
         // Add caching services if enabled
         if (_enableCaching)
         {
@@ -174,7 +173,7 @@ public class ScanPipelineBuilder
         {
             _services.AddSingleton<ICacheManager, NullCacheManager>();
         }
-        
+
         // Add error handling services if enabled
         if (_enableEnhancedErrorHandling)
         {
@@ -183,30 +182,59 @@ public class ScanPipelineBuilder
         }
         else
         {
-            _services.AddSingleton<ResilientExecutor>(provider => 
-                new ResilientExecutor(new NoRetryErrorPolicy(), 
+            _services.AddSingleton<ResilientExecutor>(provider =>
+                new ResilientExecutor(new NoRetryErrorPolicy(),
                     provider.GetRequiredService<ILogger<ResilientExecutor>>()));
         }
-        
+
         // Add default message handler if not provided
         _services.TryAddSingleton<IMessageHandler, NullMessageHandler>();
-        
+
         // ClassicScanLogsInfo removed - using IYamlSettingsProvider directly
     }
 }
 
 /// <summary>
-/// Null message handler for when no UI is needed
+///     Null message handler for when no UI is needed
 /// </summary>
 internal class NullMessageHandler : IMessageHandler
 {
-    public void ShowInfo(string message, MessageTarget target = MessageTarget.All) { }
-    public void ShowWarning(string message, MessageTarget target = MessageTarget.All) { }
-    public void ShowError(string message, MessageTarget target = MessageTarget.All) { }
-    public void ShowSuccess(string message, MessageTarget target = MessageTarget.All) { }
-    public void ShowDebug(string message, MessageTarget target = MessageTarget.All) { }
-    public void ShowCritical(string message, MessageTarget target = MessageTarget.All) { }
-    public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info, MessageTarget target = MessageTarget.All) { }
-    public IProgress<ProgressInfo> ShowProgress(string title, int totalItems) => new Progress<ProgressInfo>();
-    public IProgressContext CreateProgressContext(string title, int totalItems) => new NullProgressContext();
+    public void ShowInfo(string message, MessageTarget target = MessageTarget.All)
+    {
+    }
+
+    public void ShowWarning(string message, MessageTarget target = MessageTarget.All)
+    {
+    }
+
+    public void ShowError(string message, MessageTarget target = MessageTarget.All)
+    {
+    }
+
+    public void ShowSuccess(string message, MessageTarget target = MessageTarget.All)
+    {
+    }
+
+    public void ShowDebug(string message, MessageTarget target = MessageTarget.All)
+    {
+    }
+
+    public void ShowCritical(string message, MessageTarget target = MessageTarget.All)
+    {
+    }
+
+    public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info,
+        MessageTarget target = MessageTarget.All)
+    {
+    }
+
+    public IProgress<ProgressInfo> ShowProgress(string title, int totalItems)
+    {
+        return new Progress<ProgressInfo>();
+    }
+
+    public IProgressContext CreateProgressContext(string title, int totalItems)
+    {
+        return new NullProgressContext();
+    }
 }

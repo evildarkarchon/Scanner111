@@ -13,17 +13,41 @@ Scanner111 is a C# port of a Python crash log analyzer for Bethesda games (Fallo
 # Build solution
 dotnet build
 
+# Build in Release mode
+dotnet build -c Release
+
 # Run GUI application
 dotnet run --project Scanner111.GUI
 
-# Run CLI application
+# Run CLI application (default scan verb)
 dotnet run --project Scanner111.CLI -- scan
 
-# Run tests
+# Run CLI with specific log file
+dotnet run --project Scanner111.CLI -- scan -l "path/to/crash.log"
+
+# Run CLI demo mode
+dotnet run --project Scanner111.CLI -- demo
+
+# Run CLI config command
+dotnet run --project Scanner111.CLI -- config
+
+# Run CLI about command  
+dotnet run --project Scanner111.CLI -- about
+
+# Run all tests
 dotnet test
 
-# Run specific test
+# Run tests with detailed output
+dotnet test -v normal
+
+# Run specific test by name
 dotnet test --filter "FullyQualifiedName~TestName"
+
+# Run tests for specific class
+dotnet test --filter "ClassName=FormIdAnalyzerTests"
+
+# Run tests with code coverage
+dotnet test --collect:"XPlat Code Coverage"
 ```
 
 ## Architecture Overview
@@ -40,15 +64,22 @@ dotnet test --filter "FullyQualifiedName~TestName"
    - Use `IAsyncEnumerable` for streaming results
    - Producer/consumer pattern with `System.Threading.Channels`
    - All operations must be async with proper cancellation support
+   - `IScanPipeline` with batch processing capabilities
 
 2. **Analyzer Factory Pattern**
    - `IAnalyzer` interface with priority-based execution
    - Dynamic analyzer creation via dependency injection
    - Parallel execution support for independent analyzers
+   - Analyzers: FormIdAnalyzer, PluginAnalyzer, RecordScanner, SettingsScanner, SuspectScanner
 
 3. **Message Handler Abstraction**
    - `IMessageHandler` for UI-agnostic communication
-   - Different implementations for GUI and CLI
+   - Different implementations for GUI (MessageHandler) and CLI (CliMessageHandler)
+
+4. **Command Pattern (CLI)**
+   - `ICommand` interface for CLI commands
+   - Commands: ScanCommand, DemoCommand, ConfigCommand, AboutCommand
+   - CommandLineParser for argument parsing
 
 ### Critical Implementation Requirements
 
@@ -74,14 +105,18 @@ dotnet test --filter "FullyQualifiedName~TestName"
 
 **Infrastructure** (Scanner111.Core/Infrastructure/):
 - YamlSettingsCache for YAML file caching
-- MessageHandler for UI communication
-- GlobalRegistry for shared state
+- MessageHandler/CliMessageHandler for UI communication
+- ApplicationSettingsService for settings management (replaces GlobalRegistry)
+- CrashLogParser for parsing crash logs
+- FormIdDatabaseService for FormID lookups
+- GamePathDetection for auto-detecting game installations
+- ReportWriter for generating analysis reports
 
 ### Reference Resources
 
 - **Python Implementation**: `Code to Port/` directory
 - **Sample Logs**: `sample_logs/` with expected outputs (AUTOSCAN.md files)
-- **YAML Data**: `Code to Port/CLASSIC Data/databases/` for configuration
+- **YAML Data**: `Data/` for lookup data
 - **Detailed Guide**: `docs/classic-csharp-ai-implementation-guide.md` for implementation phases
 
 ### Development Workflow
@@ -94,7 +129,8 @@ dotnet test --filter "FullyQualifiedName~TestName"
 
 ### Migration Notes
 
-- Any code from the Python app that used GlobalRegistry should now use Scanner111.Core.ApplicationSettings
+- GlobalRegistry has been removed - use IApplicationSettingsService instead
+- ApplicationSettings is accessed via dependency injection, not static access
 - When creating the .NET port, ensure that the report formatting exactly matches the Python implementation, substituting "CLASSIC" with "Scanner 111" as needed
 
 ### Development Best Practices
@@ -116,7 +152,37 @@ dotnet test --filter "FullyQualifiedName~TestName"
   - Using `Channel<T>` for managing async I/O streams
   - Carefully managing shared resources in multi-threaded async scenarios
 
-### Development Guidelines
+### Testing Guidelines
 
 - **Unit Testing**:
   - Any new code must have proper unit tests written or updated after the code is in a state where it compiles properly
+  - Test projects use xUnit framework
+  - Use TestImplementations.cs for test helpers and mock implementations
+  - Integration tests in Scanner111.Tests/Integration/
+  - Analyzer tests should verify output format matches expected AUTOSCAN.md files
+
+### CLI Options
+
+The CLI supports various options for the scan command:
+- `-l, --log`: Path to specific crash log file
+- `-d, --scan-dir`: Directory to scan for crash logs
+- `-g, --game-path`: Path to game installation directory
+- `-v, --verbose`: Enable verbose output
+- `--fcx-mode`: Enable FCX mode for enhanced file checks
+- `--show-fid-values`: Show FormID values (slower scans)
+- `--simplify-logs`: Simplify logs (Warning: May remove important information)
+- `--move-unsolved`: Move unsolved logs to separate folder
+- `--crash-logs-dir`: Directory to store copied crash logs
+- `--skip-xse-copy`: Skip automatic XSE (F4SE/SKSE) crash log copying
+- `--disable-progress`: Disable progress bars in CLI mode
+- `--disable-colors`: Disable colored output
+- `-o, --output-format`: Output format (detailed or summary)
+
+### Development Guidelines
+
+- **Dependency Injection**: All services use constructor injection
+- **Async/Await**: Use async methods throughout, avoid blocking calls
+- **Cancellation**: Pass CancellationToken to all async operations
+- **Progress Reporting**: Use IProgress<T> for long-running operations
+- **File I/O**: Always use UTF-8 encoding with error handling
+- **Logging**: Use ILogger abstraction, not console writes

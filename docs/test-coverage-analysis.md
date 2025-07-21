@@ -50,7 +50,7 @@ This report identifies areas of the Scanner111 codebase that currently lack test
 | Component | Priority | Risk Level | Impact |
 |-----------|----------|------------|--------|
 | ~~`CrashLogParser.cs`~~ | **HIGH** | **Critical** | Core parsing functionality |
-| `FormIdDatabaseService.cs` | **HIGH** | **High** | FormID lookup operations |
+| ~~`FormIdDatabaseService.cs` ~~| **HIGH** | **High** | FormID lookup operations |
 | `GamePathDetection.cs` | **HIGH** | **High** | Game installation detection |
 | `SettingsHelper.cs` | **HIGH** | **Medium** | Settings management |
 | `CliMessageHandler.cs` | **MEDIUM** | **Medium** | CLI-specific messaging |
@@ -59,8 +59,8 @@ This report identifies areas of the Scanner111 codebase that currently lack test
 #### Pipeline (6 critical components)
 | Component | Priority | Risk Level | Impact |
 |-----------|----------|------------|--------|
-| `AnalyzerFactory.cs` | **HIGH** | **Critical** | Analyzer instantiation |
-| `ScanPipeline.cs` | **HIGH** | **Critical** | Core pipeline logic |
+| ~~`AnalyzerFactory.cs` ~~| **HIGH** | **Critical** | Analyzer instantiation |
+| ~~`ScanPipeline.cs` ~~| **HIGH** | **Critical** | Core pipeline logic |
 | `ScanPipelineBuilder.cs` | **HIGH** | **High** | Pipeline construction |
 | `PerformanceMonitoringPipeline.cs` | **MEDIUM** | **Medium** | Performance tracking |
 | `PipelineUsageExample.cs` | **LOW** | **Low** | Example code |

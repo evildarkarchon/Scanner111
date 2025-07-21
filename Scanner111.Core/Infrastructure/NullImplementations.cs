@@ -4,7 +4,7 @@ using Scanner111.Core.Analyzers;
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-/// Null cache manager that doesn't cache anything
+///     Null cache manager that doesn't cache anything
 /// </summary>
 public class NullCacheManager : ICacheManager
 {
@@ -47,7 +47,7 @@ public class NullCacheManager : ICacheManager
 }
 
 /// <summary>
-/// Error policy that never retries
+///     Error policy that never retries
 /// </summary>
 public class NoRetryErrorPolicy : IErrorHandlingPolicy
 {
@@ -61,7 +61,7 @@ public class NoRetryErrorPolicy : IErrorHandlingPolicy
                 Message = "Operation was cancelled",
                 LogLevel = LogLevel.Information
             },
-            
+
             _ => new ErrorHandlingResult
             {
                 Action = ErrorAction.Skip,
@@ -78,7 +78,7 @@ public class NoRetryErrorPolicy : IErrorHandlingPolicy
 }
 
 /// <summary>
-/// Null progress implementation for generic types
+///     Null progress implementation for generic types
 /// </summary>
 public class NullProgress<T> : IProgress<T>
 {

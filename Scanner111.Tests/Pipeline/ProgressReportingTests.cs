@@ -1,4 +1,3 @@
-using Xunit;
 using Scanner111.Core.Pipeline;
 
 namespace Scanner111.Tests.Pipeline;
@@ -128,7 +127,7 @@ public class ProgressReportingTests
         // Assert
         Assert.NotNull(reportedProgress);
         Assert.Single(reportedProgress.ActiveAnalyzers);
-        
+
         var analyzer = reportedProgress.ActiveAnalyzers.First();
         Assert.Equal("FormIdAnalyzer", analyzer.AnalyzerName);
         Assert.Equal("test.log", analyzer.FileName);
@@ -219,7 +218,7 @@ public class ProgressReportingTests
         // Arrange
         DetailedProgressInfo? reportedProgress = null;
         var tcs = new TaskCompletionSource<bool>();
-        var innerProgress = new Progress<DetailedProgressInfo>(p => 
+        var innerProgress = new Progress<DetailedProgressInfo>(p =>
         {
             reportedProgress = p;
             tcs.SetResult(true);
@@ -247,7 +246,7 @@ public class ProgressReportingTests
         // Arrange
         DetailedProgressInfo? reportedProgress = null;
         var tcs = new TaskCompletionSource<bool>();
-        var innerProgress = new Progress<DetailedProgressInfo>(p => 
+        var innerProgress = new Progress<DetailedProgressInfo>(p =>
         {
             reportedProgress = p;
             tcs.SetResult(true);
@@ -275,8 +274,8 @@ public class ProgressReportingTests
         // Arrange
         DetailedProgressInfo? finalProgress = null;
         var tcs = new TaskCompletionSource<bool>();
-        
-        var innerProgress = new Progress<DetailedProgressInfo>(p => 
+
+        var innerProgress = new Progress<DetailedProgressInfo>(p =>
         {
             finalProgress = p;
             // Only complete when we're sure we got the final state
@@ -296,7 +295,7 @@ public class ProgressReportingTests
         // Assert
         Assert.True(completed);
         Assert.NotNull(finalProgress);
-        
+
         // Final report should have no active analyzers (completed one is removed)
         Assert.Empty(finalProgress.ActiveAnalyzers);
     }
@@ -309,8 +308,8 @@ public class ProgressReportingTests
         var reportCount = 0;
         var expectedReports = 3;
         var tcs = new TaskCompletionSource<bool>();
-        
-        var innerProgress = new Progress<DetailedProgressInfo>(p => 
+
+        var innerProgress = new Progress<DetailedProgressInfo>(p =>
         {
             reportedProgresses.Add(p);
             reportCount++;
@@ -333,15 +332,15 @@ public class ProgressReportingTests
         // Assert
         Assert.True(completed);
         Assert.Equal(expectedReports, reportedProgresses.Count);
-        
+
         // Verify the sequence
         Assert.Equal("file1.log", reportedProgresses[0].CurrentFile);
         Assert.Equal(FileProcessingStatus.InProgress, reportedProgresses[0].CurrentFileStatus);
-        
+
         Assert.Equal("file1.log", reportedProgresses[1].CurrentFile);
         Assert.Equal(FileProcessingStatus.Completed, reportedProgresses[1].CurrentFileStatus);
         Assert.Equal(1, reportedProgresses[1].SuccessfulFiles);
-        
+
         Assert.Equal("file2.log", reportedProgresses[2].CurrentFile);
         Assert.Equal(FileProcessingStatus.InProgress, reportedProgresses[2].CurrentFileStatus);
     }
@@ -350,21 +349,21 @@ public class ProgressReportingTests
     public async Task DetailedProgress_WithNullProgress_DoesNotThrow()
     {
         // Arrange
-        var detailedProgress = new DetailedProgress(null); // No inner progress
+        var detailedProgress = new DetailedProgress(); // No inner progress
 
         // Act & Assert - Should not throw
         detailedProgress.ReportFileStart("test.log");
         detailedProgress.ReportFileComplete("test.log", true);
         detailedProgress.ReportAnalyzerStart("TestAnalyzer", "test.log");
         detailedProgress.ReportAnalyzerComplete("TestAnalyzer", "test.log", true);
-        
+
         // Complete synchronously since there's no async callback
         await Task.CompletedTask;
     }
 }
 
 /// <summary>
-/// Test progress implementation that calls the callback synchronously
+///     Test progress implementation that calls the callback synchronously
 /// </summary>
 /// <typeparam name="T">Progress value type</typeparam>
 public class TestProgress<T> : IProgress<T>

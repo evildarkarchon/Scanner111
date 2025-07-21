@@ -1,8 +1,3 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Text.Json;
-using System.Threading.Tasks;
 using Scanner111.CLI.Models;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
@@ -10,7 +5,7 @@ using Scanner111.Core.Models;
 namespace Scanner111.CLI.Services;
 
 /// <summary>
-/// Service for managing CLI settings persistence - now uses unified ApplicationSettings
+///     Service for managing CLI settings persistence - now uses unified ApplicationSettings
 /// </summary>
 public interface ICliSettingsService
 {
@@ -18,7 +13,7 @@ public interface ICliSettingsService
     Task SaveSettingsAsync(ApplicationSettings settings);
     Task SaveSettingAsync(string key, object value);
     ApplicationSettings GetDefaultSettings();
-    
+
     // Backward compatibility methods for existing CLI code
     Task<CliSettings> LoadCliSettingsAsync();
     Task SaveCliSettingsAsync(CliSettings settings);
@@ -26,12 +21,7 @@ public interface ICliSettingsService
 
 public class CliSettingsService : ICliSettingsService
 {
-    private readonly IApplicationSettingsService _applicationSettingsService;
-
-    public CliSettingsService()
-    {
-        _applicationSettingsService = new ApplicationSettingsService();
-    }
+    private readonly IApplicationSettingsService _applicationSettingsService = new ApplicationSettingsService();
 
     // New unified settings methods
     public async Task<ApplicationSettings> LoadSettingsAsync()

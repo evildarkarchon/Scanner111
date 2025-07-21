@@ -1,114 +1,127 @@
 using System.Text;
 using Scanner111.Core.Infrastructure;
-using Scanner111.Core.Models;
-using Xunit;
 
 namespace Scanner111.Tests.Infrastructure;
 
 public class CrashLogParserTests : IDisposable
 {
     private readonly string _testDirectory;
-    
+
     public CrashLogParserTests()
     {
         _testDirectory = Path.Combine(Path.GetTempPath(), $"Scanner111Tests_{Guid.NewGuid()}");
         Directory.CreateDirectory(_testDirectory);
     }
-    
+
+    // Cleanup
+    public void Dispose()
+    {
+        try
+        {
+            if (Directory.Exists(_testDirectory)) Directory.Delete(_testDirectory, true);
+        }
+        catch
+        {
+            // Ignore cleanup errors
+        }
+
+        GC.SuppressFinalize(this);
+    }
+
     [Fact]
     public async Task ParseAsync_WithValidCrashLog_ReturnsCorrectlySized()
     {
         // Arrange
         var crashLogPath = CreateTestCrashLog("valid_crash.log", GenerateValidCrashLog());
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.Equal(crashLogPath, result.FilePath);
         Assert.NotEmpty(result.OriginalLines);
     }
-    
+
     [Fact]
     public async Task ParseAsync_WithTooShortFile_ReturnsNull()
     {
         // Arrange
-        var crashLogPath = CreateTestCrashLog("short_crash.log", 
+        var crashLogPath = CreateTestCrashLog("short_crash.log",
             string.Join("\n", Enumerable.Range(1, 10).Select(i => $"Line {i}")));
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.Null(result);
     }
-    
+
     [Fact]
     public async Task ParseAsync_WithNonExistentFile_ReturnsNull()
     {
         // Arrange
         var crashLogPath = Path.Combine(_testDirectory, "nonexistent.log");
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.Null(result);
     }
-    
+
     [Fact]
     public async Task ParseAsync_ParsesGameVersionCorrectly()
     {
         // Arrange
         var crashLogPath = CreateTestCrashLog("game_version.log", GenerateValidCrashLog());
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.Equal("Fallout 4 v1.10.163", result.GameVersion);
     }
-    
+
     [Fact]
     public async Task ParseAsync_ParsesCrashGenVersionCorrectly()
     {
         // Arrange
         var crashLogPath = CreateTestCrashLog("crashgen_version.log", GenerateValidCrashLog());
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.Equal("Buffout 4 v1.26.2", result.CrashGenVersion);
     }
-    
+
     [Fact]
     public async Task ParseAsync_ParsesMainErrorCorrectly()
     {
         // Arrange
         var crashLogPath = CreateTestCrashLog("main_error.log", GenerateValidCrashLog());
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.Contains("Unhandled exception", result.MainError);
         Assert.Contains("at 0x7FF798889DFA", result.MainError);
     }
-    
+
     [Fact]
     public async Task ParseAsync_ParsesPluginsCorrectly()
     {
         // Arrange
         var crashLogPath = CreateTestCrashLog("plugins.log", GenerateValidCrashLog());
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.NotEmpty(result.Plugins);
@@ -117,32 +130,32 @@ public class CrashLogParserTests : IDisposable
         Assert.True(result.Plugins.ContainsKey("DLCRobot.esm"));
         Assert.Equal("01:000", result.Plugins["DLCRobot.esm"]);
     }
-    
+
     [Fact]
     public async Task ParseAsync_ParsesXseModulesCorrectly()
     {
         // Arrange
         var crashLogPath = CreateTestCrashLog("xse_modules.log", GenerateValidCrashLog());
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.NotEmpty(result.XseModules);
         Assert.Contains("f4se_1_10_163.dll", result.XseModules);
         Assert.Contains("buffout4.dll", result.XseModules);
     }
-    
+
     [Fact]
     public async Task ParseAsync_ParsesCrashgenSettingsCorrectly()
     {
         // Arrange
         var crashLogPath = CreateTestCrashLog("settings.log", GenerateValidCrashLog());
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.NotEmpty(result.CrashgenSettings);
@@ -151,73 +164,69 @@ public class CrashLogParserTests : IDisposable
         Assert.True(result.CrashgenSettings.ContainsKey("Buffout4"));
         Assert.Equal(1, result.CrashgenSettings["Buffout4"]);
     }
-    
+
     [Fact]
     public async Task ParseAsync_HandlesIncompleteLogCorrectly()
     {
         // Arrange
         // Create a log with the PLUGINS section header but no actual plugin entries
         var originalLog = GenerateValidCrashLog();
-        var pluginsIndex = originalLog.IndexOf("PLUGINS:");
+        var pluginsIndex = originalLog.IndexOf("PLUGINS:", StringComparison.OrdinalIgnoreCase);
         string incompleteLog;
-        
+
         if (pluginsIndex >= 0)
         {
             // Find and remove all plugin entries (lines starting with [XX:YYY])
             var lines = originalLog.Split('\n');
             var filteredLines = new List<string>();
-            
+
             foreach (var line in lines)
-            {
                 // Keep the line unless it's a plugin entry
                 if (!line.TrimStart().StartsWith("[") || !line.Contains("]") || !line.Contains(".es"))
-                {
                     filteredLines.Add(line);
-                }
-            }
-            
+
             incompleteLog = string.Join("\n", filteredLines);
         }
         else
         {
             incompleteLog = originalLog;
         }
-        
+
         var crashLogPath = CreateTestCrashLog("incomplete.log", incompleteLog);
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.True(result.IsIncomplete);
     }
-    
+
     [Fact]
     public async Task ParseAsync_ExtractsCallStackCorrectly()
     {
         // Arrange
         var crashLogPath = CreateTestCrashLog("callstack.log", GenerateValidCrashLog());
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.NotEmpty(result.CallStack);
         Assert.Contains("Fallout4.exe+2479DFA", string.Join("\n", result.CallStack));
     }
-    
+
     [Fact]
     public async Task ParseAsync_HandlesSkyrimLogCorrectly()
     {
         // Arrange
         var skyrimLog = GenerateSkyrimCrashLog();
         var crashLogPath = CreateTestCrashLog("skyrim.log", skyrimLog);
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.Equal("Skyrim SE v1.5.97", result.GameVersion);
@@ -226,7 +235,7 @@ public class CrashLogParserTests : IDisposable
         // Should have extracted from SKSE PLUGINS section
         Assert.Contains("skse64_1_5_97.dll", result.XseModules);
     }
-    
+
     [Fact]
     public async Task ParseAsync_HandlesMainErrorWithPipeCorrectly()
     {
@@ -235,17 +244,17 @@ public class CrashLogParserTests : IDisposable
             "Unhandled exception \"EXCEPTION_ACCESS_VIOLATION\" at 0x7FF798889DFA",
             "Unhandled exception \"EXCEPTION_ACCESS_VIOLATION\" at 0x7FF798889DFA | Fallout4.exe+2479DFA");
         var crashLogPath = CreateTestCrashLog("pipe_error.log", content);
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.Contains("Unhandled exception", result.MainError);
         Assert.Contains("\n", result.MainError);
         Assert.Contains("Fallout4.exe+2479DFA", result.MainError);
     }
-    
+
     [Fact]
     public async Task ParseAsync_HandlesEmptySegmentsGracefully()
     {
@@ -269,16 +278,13 @@ PLUGINS:
 ";
         var lines = new List<string>(content.Split('\n'));
         // Ensure we have at least 20 lines
-        while (lines.Count < 25)
-        {
-            lines.Add("");
-        }
-        
+        while (lines.Count < 25) lines.Add("");
+
         var crashLogPath = CreateTestCrashLog("empty_segments.log", string.Join("\n", lines));
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.Empty(result.Plugins); // No plugins listed in the PLUGINS section
@@ -286,7 +292,7 @@ PLUGINS:
         Assert.NotEmpty(result.CallStack); // And has call stack
         Assert.True(result.IsIncomplete); // Marked incomplete due to no plugins
     }
-    
+
     [Fact]
     public async Task ParseAsync_ParsesMixedCaseSettingsCorrectly()
     {
@@ -295,17 +301,17 @@ PLUGINS:
             "F4EE: true",
             "F4EE: TRUE\n\tAutoTimer: FALSE\n\tMaxStack: 100");
         var crashLogPath = CreateTestCrashLog("mixed_settings.log", crashLog);
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.Equal(true, result.CrashgenSettings["F4EE"]);
         Assert.Equal(false, result.CrashgenSettings["AutoTimer"]);
         Assert.Equal(100, result.CrashgenSettings["MaxStack"]);
     }
-    
+
     [Fact]
     public async Task ParseAsync_HandlesXseModulesWithoutVersions()
     {
@@ -314,30 +320,30 @@ PLUGINS:
             "f4se_1_10_163.dll v2.0.17",
             "f4se_1_10_163.dll\n\tsome_plugin.dll\n\tanother.dll v1.0");
         var crashLogPath = CreateTestCrashLog("xse_no_version.log", crashLog);
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.Contains("f4se_1_10_163.dll", result.XseModules);
         Assert.Contains("some_plugin.dll", result.XseModules);
         Assert.Contains("another.dll", result.XseModules);
     }
-    
+
     [Fact]
     public async Task ParseAsync_WithCancellationToken_RespectsCanellation()
     {
         // Arrange
         var crashLogPath = CreateTestCrashLog("cancel_test.log", GenerateValidCrashLog());
         var cts = new CancellationTokenSource();
-        cts.Cancel();
-        
+        await cts.CancelAsync();
+
         // Act & Assert
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => CrashLogParser.ParseAsync(crashLogPath, cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            CrashLogParser.ParseAsync(crashLogPath, cts.Token));
     }
-    
+
     [Fact]
     public async Task ParseAsync_HandlesUtf8WithErrors()
     {
@@ -345,25 +351,25 @@ PLUGINS:
         var crashLogPath = Path.Combine(_testDirectory, "utf8_error.log");
         var content = GenerateValidCrashLog();
         var bytes = Encoding.UTF8.GetBytes(content);
-        
+
         // Insert some invalid UTF-8 bytes
         var invalidBytes = new byte[bytes.Length + 3];
         Array.Copy(bytes, invalidBytes, 100);
-        invalidBytes[100] = 0xFF;  // Invalid UTF-8 start byte
-        invalidBytes[101] = 0xFE;  // Invalid UTF-8 sequence
-        invalidBytes[102] = 0xFD;  // Invalid UTF-8 sequence
+        invalidBytes[100] = 0xFF; // Invalid UTF-8 start byte
+        invalidBytes[101] = 0xFE; // Invalid UTF-8 sequence
+        invalidBytes[102] = 0xFD; // Invalid UTF-8 sequence
         Array.Copy(bytes, 100, invalidBytes, 103, bytes.Length - 100);
-        
+
         await File.WriteAllBytesAsync(crashLogPath, invalidBytes);
-        
+
         // Act
         var result = await CrashLogParser.ParseAsync(crashLogPath);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.NotEmpty(result.OriginalLines);
     }
-    
+
     // Helper methods
     private string CreateTestCrashLog(string filename, string content)
     {
@@ -371,7 +377,7 @@ PLUGINS:
         File.WriteAllText(filePath, content);
         return filePath;
     }
-    
+
     private string GenerateValidCrashLog()
     {
         return @"Fallout 4 v1.10.163
@@ -409,7 +415,7 @@ PLUGINS:
 	[FE:001]   TestPlugin.esp
 ";
     }
-    
+
     private string GenerateSkyrimCrashLog()
     {
         return @"Skyrim SE v1.5.97
@@ -440,21 +446,5 @@ PLUGINS:
 	[00:000]   Skyrim.esm
 	[01:000]   Update.esm
 ";
-    }
-    
-    // Cleanup
-    public void Dispose()
-    {
-        try
-        {
-            if (Directory.Exists(_testDirectory))
-            {
-                Directory.Delete(_testDirectory, true);
-            }
-        }
-        catch
-        {
-            // Ignore cleanup errors
-        }
     }
 }

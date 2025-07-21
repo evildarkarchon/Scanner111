@@ -1,14 +1,13 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
-using Xunit;
 
 namespace Scanner111.Tests.Infrastructure;
 
 public class ErrorHandlingTests
 {
-    private readonly ILogger<DefaultErrorHandlingPolicy> _logger;
     private readonly ILogger<ResilientExecutor> _executorLogger;
+    private readonly ILogger<DefaultErrorHandlingPolicy> _logger;
 
     public ErrorHandlingTests()
     {
@@ -68,7 +67,7 @@ public class ErrorHandlingTests
     public void DefaultErrorHandlingPolicy_RetriesIOException()
     {
         // Arrange
-        var policy = new DefaultErrorHandlingPolicy(_logger, maxRetries: 3);
+        var policy = new DefaultErrorHandlingPolicy(_logger);
         var exception = new IOException("IO error");
 
         // Act
@@ -85,7 +84,7 @@ public class ErrorHandlingTests
     public void DefaultErrorHandlingPolicy_DoesNotRetryAfterMaxAttempts()
     {
         // Arrange
-        var policy = new DefaultErrorHandlingPolicy(_logger, maxRetries: 2);
+        var policy = new DefaultErrorHandlingPolicy(_logger, 2);
         var exception = new IOException("IO error");
 
         // Act
@@ -115,7 +114,7 @@ public class ErrorHandlingTests
     public void DefaultErrorHandlingPolicy_ShouldRetry_RespectsMaxRetries()
     {
         // Arrange
-        var policy = new DefaultErrorHandlingPolicy(_logger, maxRetries: 3);
+        var policy = new DefaultErrorHandlingPolicy(_logger);
         var exception = new IOException("IO error");
 
         // Act & Assert
@@ -135,7 +134,7 @@ public class ErrorHandlingTests
 
         // Act
         var result = await executor.ExecuteAsync(
-            async ct => await Task.FromResult(expectedResult),
+            _ => Task.FromResult(expectedResult),
             "test operation");
 
         // Assert
@@ -146,19 +145,16 @@ public class ErrorHandlingTests
     public async Task ResilientExecutor_RetriesFailedOperation()
     {
         // Arrange
-        var policy = new DefaultErrorHandlingPolicy(_logger, maxRetries: 3, TimeSpan.FromMilliseconds(1));
+        var policy = new DefaultErrorHandlingPolicy(_logger, 3, TimeSpan.FromMilliseconds(1));
         var executor = new ResilientExecutor(policy, _executorLogger);
         var attemptCount = 0;
 
         // Act
-        var result = await executor.ExecuteAsync(async ct =>
+        var result = await executor.ExecuteAsync(_ =>
         {
             attemptCount++;
-            if (attemptCount < 3)
-            {
-                throw new IOException("Temporary failure");
-            }
-            return "success";
+            if (attemptCount < 3) throw new IOException("Temporary failure");
+            return Task.FromResult("success");
         }, "test operation");
 
         // Assert
@@ -170,16 +166,14 @@ public class ErrorHandlingTests
     public async Task ResilientExecutor_ThrowsAfterMaxRetries()
     {
         // Arrange
-        var policy = new DefaultErrorHandlingPolicy(_logger, maxRetries: 2, TimeSpan.FromMilliseconds(1));
+        var policy = new DefaultErrorHandlingPolicy(_logger, 2, TimeSpan.FromMilliseconds(1));
         var executor = new ResilientExecutor(policy, _executorLogger);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
         {
-            await executor.ExecuteAsync(async ct =>
-            {
-                throw new InvalidOperationException("Persistent failure");
-            }, "test operation");
+            await executor.ExecuteAsync(_ => throw new InvalidOperationException("Persistent failure"),
+                "test operation");
         });
     }
 
@@ -194,11 +188,11 @@ public class ErrorHandlingTests
         // Act & Assert
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
         {
-            await executor.ExecuteAsync(async ct =>
+            await executor.ExecuteAsync(ct =>
             {
                 cts.Cancel();
                 ct.ThrowIfCancellationRequested();
-                return "should not reach here";
+                return Task.FromResult("should not reach here");
             }, "test operation", cts.Token);
         });
     }
@@ -212,10 +206,10 @@ public class ErrorHandlingTests
         var executed = false;
 
         // Act
-        await executor.ExecuteAsync(async ct =>
+        await executor.ExecuteAsync(_ =>
         {
             executed = true;
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         }, "test operation");
 
         // Assert
@@ -230,11 +224,7 @@ public class ErrorHandlingTests
         var circuitBreaker = new CircuitBreaker(3, TimeSpan.FromSeconds(1), logger);
 
         // Act
-        var result = await circuitBreaker.ExecuteAsync(async () =>
-        {
-            await Task.CompletedTask;
-            return "success";
-        });
+        var result = await circuitBreaker.ExecuteAsync(() => Task.FromResult("success"));
 
         // Assert
         Assert.Equal("success", result);
@@ -248,26 +238,20 @@ public class ErrorHandlingTests
         var circuitBreaker = new CircuitBreaker(2, TimeSpan.FromSeconds(1), logger);
 
         // Act - Cause failures to exceed threshold
-        for (int i = 0; i < 2; i++)
-        {
+        for (var i = 0; i < 2; i++)
             try
             {
-                await circuitBreaker.ExecuteAsync<string>(async () =>
-                {
-                    throw new InvalidOperationException("Test failure");
-                    return "";
-                });
+                await circuitBreaker.ExecuteAsync<string>(() => throw new InvalidOperationException("Test failure"));
             }
             catch (InvalidOperationException)
             {
                 // Expected
             }
-        }
 
         // Assert - Circuit should be open now
         await Assert.ThrowsAsync<CircuitBreakerOpenException>(async () =>
         {
-            await circuitBreaker.ExecuteAsync<string>(async () => "should not execute");
+            await circuitBreaker.ExecuteAsync(() => Task.FromResult("should not execute"));
         });
     }
 
@@ -310,7 +294,7 @@ public class ErrorHandlingTests
     public void DefaultErrorHandlingPolicy_ShouldRetry_HandlesDifferentAttempts(int attemptNumber, bool expectedResult)
     {
         // Arrange
-        var policy = new DefaultErrorHandlingPolicy(_logger, maxRetries: 3);
+        var policy = new DefaultErrorHandlingPolicy(_logger);
         var exception = new TimeoutException("Timeout");
 
         // Act

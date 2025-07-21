@@ -1,14 +1,13 @@
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
-using Xunit;
 
 namespace Scanner111.Tests.Analyzers;
 
 public class RecordScannerTests
 {
-    private readonly TestYamlSettingsProvider _yamlSettings;
     private readonly RecordScanner _analyzer;
+    private readonly TestYamlSettingsProvider _yamlSettings;
 
     public RecordScannerTests()
     {
@@ -38,7 +37,7 @@ public class RecordScannerTests
         // Assert
         Assert.IsType<GenericAnalysisResult>(result);
         var recordResult = (GenericAnalysisResult)result;
-        
+
         Assert.Equal("Record Scanner", recordResult.AnalyzerName);
         Assert.NotNull(recordResult.ReportLines);
         Assert.Contains("RecordsMatches", recordResult.Data);
@@ -67,10 +66,10 @@ public class RecordScannerTests
         // Assert
         var recordResult = (GenericAnalysisResult)result;
         Assert.False(recordResult.HasFindings);
-        
+
         var recordsMatches = (List<string>)recordResult.Data["RecordsMatches"];
         var extractedRecords = (List<string>)recordResult.Data["ExtractedRecords"];
-        
+
         Assert.Empty(recordsMatches);
         Assert.Empty(extractedRecords);
         Assert.Contains("* COULDN'T FIND ANY NAMED RECORDS *", recordResult.ReportText);
@@ -81,7 +80,7 @@ public class RecordScannerTests
     {
         // Note: The current implementation has empty record sets, so this test demonstrates structure
         // In a real implementation, the _lowerRecords would be populated from YAML configuration
-        
+
         // Arrange
         var crashLog = new CrashLog
         {
@@ -101,7 +100,7 @@ public class RecordScannerTests
         // Assert
         var recordResult = (GenericAnalysisResult)result;
         Assert.Equal("Record Scanner", recordResult.AnalyzerName);
-        
+
         // With empty record sets, no records should be found
         Assert.False(recordResult.HasFindings);
         Assert.Contains("* COULDN'T FIND ANY NAMED RECORDS *", recordResult.ReportText);
@@ -129,7 +128,7 @@ public class RecordScannerTests
         // Assert
         var recordResult = (GenericAnalysisResult)result;
         Assert.Equal("Record Scanner", recordResult.AnalyzerName);
-        
+
         // With empty record sets, no records should be found
         Assert.False(recordResult.HasFindings);
     }
@@ -157,7 +156,7 @@ public class RecordScannerTests
         // Assert
         var recordResult = (GenericAnalysisResult)result;
         var extractedRecords = (List<string>)recordResult.Data["ExtractedRecords"];
-        
+
         // Records should be extracted but not matched (due to empty record sets)
         Assert.Empty(extractedRecords);
     }
@@ -167,7 +166,7 @@ public class RecordScannerTests
     {
         // This test demonstrates the counting functionality structure
         // In a real implementation with populated record sets, this would work
-        
+
         // Arrange
         var crashLog = new CrashLog
         {
@@ -188,7 +187,7 @@ public class RecordScannerTests
         // Assert
         var recordResult = (GenericAnalysisResult)result;
         Assert.Equal("Record Scanner", recordResult.AnalyzerName);
-        
+
         // Should handle duplicate counting properly when records are found
         Assert.False(recordResult.HasFindings); // Empty record sets
     }
@@ -214,10 +213,10 @@ public class RecordScannerTests
         // Assert
         var recordResult = (GenericAnalysisResult)result;
         var reportText = recordResult.ReportText;
-        
+
         // Should contain the "no records found" message
         Assert.Contains("* COULDN'T FIND ANY NAMED RECORDS *", reportText);
-        
+
         // Report structure should be correct
         Assert.NotNull(recordResult.ReportLines);
         Assert.Single(recordResult.ReportLines);
@@ -228,7 +227,7 @@ public class RecordScannerTests
     {
         // Test would need actual records to trigger explanatory notes
         // This test demonstrates the expected behavior structure
-        
+
         // Arrange
         var crashLog = new CrashLog
         {
@@ -245,13 +244,13 @@ public class RecordScannerTests
 
         // Assert
         var recordResult = (GenericAnalysisResult)result;
-        
+
         // With populated record sets, the report would contain:
         // - Individual record entries with counts
         // - Explanatory notes about what the numbers mean
         // - Information about the crash generator
         // - Notes about named records providing extra info
-        
+
         Assert.Equal("Record Scanner", recordResult.AnalyzerName);
         Assert.NotNull(recordResult.ReportLines);
     }
@@ -262,7 +261,7 @@ public class RecordScannerTests
         // Arrange
         var customYamlSettings = new TestYamlSettingsProvider();
         var customAnalyzer = new RecordScanner(customYamlSettings);
-        
+
         var crashLog = new CrashLog
         {
             FilePath = "test.log",
@@ -279,7 +278,7 @@ public class RecordScannerTests
         // Assert
         var recordResult = (GenericAnalysisResult)result;
         Assert.Equal("Record Scanner", recordResult.AnalyzerName);
-        
+
         // The crashgen name would be used in explanatory notes when records are found
         Assert.NotNull(recordResult.ReportLines);
     }
@@ -305,7 +304,7 @@ public class RecordScannerTests
         // Assert
         var recordResult1 = (GenericAnalysisResult)result1;
         var recordResult2 = (GenericAnalysisResult)result2;
-        
+
         // Should return consistent results
         Assert.Equal(recordResult1.AnalyzerName, recordResult2.AnalyzerName);
         Assert.Equal(recordResult1.ReportLines.Count, recordResult2.ReportLines.Count);

@@ -1,12 +1,18 @@
-using Microsoft.Extensions.Logging.Abstractions;
+using System.Diagnostics.CodeAnalysis;
 using Scanner111.Core.Infrastructure;
-using Xunit;
 
 namespace Scanner111.Tests.Infrastructure;
 
 public class CancellationSupportTests : IDisposable
 {
     private readonly List<IDisposable> _disposables = new();
+
+    public void Dispose()
+    {
+        foreach (var disposable in _disposables) disposable.Dispose();
+        _disposables.Clear();
+        GC.SuppressFinalize(this);
+    }
 
     [Fact]
     public void EnhancedCancellationTokenSource_CreatesValidToken()
@@ -16,7 +22,6 @@ public class CancellationSupportTests : IDisposable
         _disposables.Add(cts);
 
         // Assert
-        Assert.NotNull(cts.Token);
         Assert.False(cts.IsCancellationRequested);
     }
 
@@ -96,7 +101,7 @@ public class CancellationSupportTests : IDisposable
     {
         // Arrange
         using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        await cts.CancelAsync();
 
         // Act & Assert
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
@@ -218,13 +223,10 @@ public class CancellationSupportTests : IDisposable
         // Arrange
         using var semaphore = new CancellableSemaphore(0, 1); // No permits available
         using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        await cts.CancelAsync();
 
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-        {
-            await semaphore.WaitAsync(cts.Token);
-        });
+        await Assert.ThrowsAsync<OperationCanceledException>(async () => { await semaphore.WaitAsync(cts.Token); });
     }
 
     [Fact]
@@ -266,12 +268,15 @@ public class CancellationSupportTests : IDisposable
         // Act
         using var registration = cts.Token.RegisterAsyncCallback(async () =>
         {
+            // Don't pass cancellation token - we want this to complete even during cancellation
+            // ReSharper disable once MethodSupportsCancellation
             await Task.Delay(1);
             callbackCalled = true;
         });
-        cts.Cancel();
-        
-        // Wait a moment for async callback to complete
+        await cts.CancelAsync();
+
+        // Wait a moment for async callback to complete (short delay, no cancellation needed)
+        // ReSharper disable once MethodSupportsCancellation
         await Task.Delay(50);
 
         // Assert
@@ -286,7 +291,7 @@ public class CancellationSupportTests : IDisposable
 
         // Act
         var waitTask = cts.Token.WaitForCancellationAsync();
-        cts.Cancel();
+        await cts.CancelAsync();
         await waitTask;
 
         // Assert - Should complete without throwing
@@ -298,16 +303,14 @@ public class CancellationSupportTests : IDisposable
     {
         // Arrange
         using var cts = new CancellationTokenSource();
+        // ReSharper disable once MethodSupportsCancellation
         var longRunningTask = Task.Delay(TimeSpan.FromSeconds(10));
 
         // Act
-        cts.Cancel();
+        await cts.CancelAsync();
 
         // Assert
-        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
-        {
-            await longRunningTask.WaitAsync(cts.Token);
-        });
+        await Assert.ThrowsAsync<TaskCanceledException>(async () => { await longRunningTask.WaitAsync(cts.Token); });
     }
 
     [Fact]
@@ -331,7 +334,7 @@ public class CancellationSupportTests : IDisposable
         // Arrange
         string? reportedValue = null;
         var tcs = new TaskCompletionSource<bool>();
-        var innerProgress = new Progress<string>(value => 
+        var innerProgress = new Progress<string>(value =>
         {
             reportedValue = value;
             tcs.SetResult(true);
@@ -343,6 +346,7 @@ public class CancellationSupportTests : IDisposable
         cancellableProgress.Report("test value");
 
         // Wait for async callback (with timeout)
+        // ReSharper disable once MethodSupportsCancellation
         var completed = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
         // Assert
@@ -356,7 +360,7 @@ public class CancellationSupportTests : IDisposable
         // Arrange
         string? reportedValue = null;
         var tcs = new TaskCompletionSource<bool>();
-        var innerProgress = new Progress<string>(value => 
+        var innerProgress = new Progress<string>(value =>
         {
             reportedValue = value;
             tcs.SetResult(true);
@@ -365,12 +369,13 @@ public class CancellationSupportTests : IDisposable
         using var cancellableProgress = new CancellableProgress<string>(innerProgress, cts.Token);
 
         // Pre-cancel the token
-        cts.Cancel();
+        await cts.CancelAsync();
 
         // Act
         cancellableProgress.Report("test value");
 
         // Wait a short time to ensure no callback occurs
+        // ReSharper disable once MethodSupportsCancellation
         var timeoutTask = Task.Delay(TimeSpan.FromMilliseconds(100));
         var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
 
@@ -380,6 +385,7 @@ public class CancellationSupportTests : IDisposable
     }
 
     [Fact]
+    [SuppressMessage("ReSharper", "MethodSupportsCancellation")]
     public async Task CancellableProgress_MultipleReports_AsyncBehavior()
     {
         // Arrange
@@ -387,8 +393,8 @@ public class CancellationSupportTests : IDisposable
         var reportCount = 0;
         var expectedReports = 3;
         var tcs = new TaskCompletionSource<bool>();
-        
-        var innerProgress = new Progress<string>(value => 
+
+        var innerProgress = new Progress<string>(value =>
         {
             reportedValues.Add(value);
             reportCount++;
@@ -415,19 +421,10 @@ public class CancellationSupportTests : IDisposable
         Assert.Contains("report 2", reportedValues);
         Assert.Contains("report 3", reportedValues);
     }
-
-    public void Dispose()
-    {
-        foreach (var disposable in _disposables)
-        {
-            disposable?.Dispose();
-        }
-        _disposables.Clear();
-    }
 }
 
 /// <summary>
-/// Test progress implementation that calls the callback synchronously
+///     Test progress implementation that calls the callback synchronously
 /// </summary>
 /// <typeparam name="T">Progress value type</typeparam>
 public class TestProgress<T> : IProgress<T>

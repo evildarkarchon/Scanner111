@@ -32,83 +32,83 @@
     </NativeMenu.Menu>
 
     <Design.DataContext>
-        <vm:MainWindowViewModel/>
+        <vm:MainWindowViewModel />
     </Design.DataContext>
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Header and Controls -->
         <Border Grid.Row="0" Background="#FF0e639c" Padding="15">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" MinWidth="200"/>
-                    <ColumnDefinition Width="Auto" MinWidth="350"/>
+                    <ColumnDefinition Width="*" MinWidth="200" />
+                    <ColumnDefinition Width="Auto" MinWidth="350" />
                 </Grid.ColumnDefinitions>
-                
+
                 <StackPanel Grid.Column="0" Orientation="Vertical">
-                    <TextBlock Text="CLASSIC Crash Log Analyzer" 
-                              FontSize="20" FontWeight="Bold" 
-                              Foreground="White" Margin="0,0,0,5"
-                              TextWrapping="Wrap"/>
-                    <TextBlock Text="Analyze Bethesda game crash logs to identify problematic modifications" 
-                              FontSize="12" Foreground="#FFE0E0E0"
-                              TextWrapping="Wrap"/>
+                    <TextBlock Text="CLASSIC Crash Log Analyzer"
+                               FontSize="20" FontWeight="Bold"
+                               Foreground="White" Margin="0,0,0,5"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="Analyze Bethesda game crash logs to identify problematic modifications"
+                               FontSize="12" Foreground="#FFE0E0E0"
+                               TextWrapping="Wrap" />
                 </StackPanel>
-                
+
                 <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="8" MinWidth="350">
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0" Text="{Binding SelectedLogPath}" 
-                                Watermark="Select crash log file..." 
-                                IsReadOnly="True" Margin="0,0,5,0"/>
-                        <Button Grid.Column="1" Content="Browse..." 
-                               Command="{Binding SelectLogFileCommand}"
-                               Background="#FF444444" Foreground="White"/>
+                        <TextBox Grid.Column="0" Text="{Binding SelectedLogPath}"
+                                 Watermark="Select crash log file..."
+                                 IsReadOnly="True" Margin="0,0,5,0" />
+                        <Button Grid.Column="1" Content="Browse..."
+                                Command="{Binding SelectLogFileCommand}"
+                                Background="#FF444444" Foreground="White" />
                     </Grid>
-                    
+
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0" Text="{Binding SelectedGamePath}" 
-                                Watermark="Game installation path (optional)..." 
-                                IsReadOnly="True" Margin="0,0,5,0"/>
-                        <Button Grid.Column="1" Content="Browse..." 
-                               Command="{Binding SelectGamePathCommand}"
-                               Background="#FF444444" Foreground="White"/>
+                        <TextBox Grid.Column="0" Text="{Binding SelectedGamePath}"
+                                 Watermark="Game installation path (optional)..."
+                                 IsReadOnly="True" Margin="0,0,5,0" />
+                        <Button Grid.Column="1" Content="Browse..."
+                                Command="{Binding SelectGamePathCommand}"
+                                Background="#FF444444" Foreground="White" />
                     </Grid>
-                    
+
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0" Text="{Binding SelectedScanDirectory}" 
-                                Watermark="Directory to scan for crash logs (optional)..." 
-                                IsReadOnly="True" Margin="0,0,5,0"/>
-                        <Button Grid.Column="1" Content="Browse..." 
-                               Command="{Binding SelectScanDirectoryCommand}"
-                               Background="#FF444444" Foreground="White"/>
+                        <TextBox Grid.Column="0" Text="{Binding SelectedScanDirectory}"
+                                 Watermark="Directory to scan for crash logs (optional)..."
+                                 IsReadOnly="True" Margin="0,0,5,0" />
+                        <Button Grid.Column="1" Content="Browse..."
+                                Command="{Binding SelectScanDirectoryCommand}"
+                                Background="#FF444444" Foreground="White" />
                     </Grid>
-                    
+
                     <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
                         <Button Content="Scan" Command="{Binding ScanCommand}"
-                               Background="#FF0e639c" Foreground="White" 
-                               Padding="15,5" FontWeight="Bold"/>
+                                Background="#FF0e639c" Foreground="White"
+                                Padding="15,5" FontWeight="Bold" />
                         <Button Content="Cancel" Command="{Binding CancelScanCommand}"
-                               Background="#FFB71C1C" Foreground="White" Padding="15,5"/>
+                                Background="#FFB71C1C" Foreground="White" Padding="15,5" />
                         <Button Content="Clear" Command="{Binding ClearResultsCommand}"
-                               Background="#FF444444" Foreground="White" Padding="15,5"/>
+                                Background="#FF444444" Foreground="White" Padding="15,5" />
                     </StackPanel>
                 </StackPanel>
             </Grid>
@@ -120,64 +120,64 @@
             <TabItem Header="Scan Results">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    
+
                     <!-- Results Summary -->
                     <Border Grid.Row="0" Background="#FF3c3c3c" Padding="10" Margin="5">
                         <StackPanel Orientation="Horizontal" Spacing="20">
-                            <TextBlock Text="Issues Found:" Foreground="White" FontWeight="Bold"/>
-                            <TextBlock Text="{Binding ScanResults.Count}" Foreground="#FF0e639c" FontWeight="Bold"/>
-                            <Separator Width="1" Background="#FF666666"/>
-                            <TextBlock Text="Status:" Foreground="White" FontWeight="Bold"/>
-                            <TextBlock Text="{Binding StatusText}" Foreground="White"/>
+                            <TextBlock Text="Issues Found:" Foreground="White" FontWeight="Bold" />
+                            <TextBlock Text="{Binding ScanResults.Count}" Foreground="#FF0e639c" FontWeight="Bold" />
+                            <Separator Width="1" Background="#FF666666" />
+                            <TextBlock Text="Status:" Foreground="White" FontWeight="Bold" />
+                            <TextBlock Text="{Binding StatusText}" Foreground="White" />
                         </StackPanel>
                     </Border>
-                    
+
                     <!-- Results List and Detail View -->
                     <Grid Grid.Row="1">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="0.4*" MinWidth="300" MaxWidth="600"/>
-                            <ColumnDefinition Width="5"/>
-                            <ColumnDefinition Width="0.6*" MinWidth="400"/>
+                            <ColumnDefinition Width="0.4*" MinWidth="300" MaxWidth="600" />
+                            <ColumnDefinition Width="5" />
+                            <ColumnDefinition Width="0.6*" MinWidth="400" />
                         </Grid.ColumnDefinitions>
-                        
+
                         <!-- Results List -->
                         <Border Grid.Column="0" Background="#FF3c3c3c" Margin="5">
-                            <ListBox ItemsSource="{Binding ScanResults}" 
-                                    SelectedItem="{Binding SelectedResult}"
-                                    Background="Transparent" 
-                                    BorderThickness="0">
+                            <ListBox ItemsSource="{Binding ScanResults}"
+                                     SelectedItem="{Binding SelectedResult}"
+                                     Background="Transparent"
+                                     BorderThickness="0">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate DataType="{x:Type models:ScanResultViewModel}">
-                                        <Border Background="#FF404040" 
-                                               Padding="10" Margin="2" 
-                                               CornerRadius="3">
+                                        <Border Background="#FF404040"
+                                                Padding="10" Margin="2"
+                                                CornerRadius="3">
                                             <StackPanel>
-                                                <TextBlock Text="{Binding Description}" 
-                                                          FontWeight="Bold" 
-                                                          Foreground="White" 
-                                                          TextWrapping="Wrap"/>
-                                                <TextBlock Text="{Binding Details}" 
-                                                          Foreground="#FFCCCCCC" 
-                                                          FontSize="11" 
-                                                          TextWrapping="Wrap" 
-                                                          Margin="0,3,0,0"/>
-                                                <StackPanel Orientation="Horizontal" 
-                                                           Spacing="10" 
-                                                           Margin="0,5,0,0">
-                                                    <Border Background="{Binding SeverityColor}" 
-                                                           Padding="5,2" 
-                                                           CornerRadius="2">
-                                                        <TextBlock Text="{Binding Severity}" 
-                                                                  Foreground="White" 
-                                                                  FontSize="10" 
-                                                                  FontWeight="Bold"/>
+                                                <TextBlock Text="{Binding Description}"
+                                                           FontWeight="Bold"
+                                                           Foreground="White"
+                                                           TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding Details}"
+                                                           Foreground="#FFCCCCCC"
+                                                           FontSize="11"
+                                                           TextWrapping="Wrap"
+                                                           Margin="0,3,0,0" />
+                                                <StackPanel Orientation="Horizontal"
+                                                            Spacing="10"
+                                                            Margin="0,5,0,0">
+                                                    <Border Background="{Binding SeverityColor}"
+                                                            Padding="5,2"
+                                                            CornerRadius="2">
+                                                        <TextBlock Text="{Binding Severity}"
+                                                                   Foreground="White"
+                                                                   FontSize="10"
+                                                                   FontWeight="Bold" />
                                                     </Border>
-                                                    <TextBlock Text="{Binding Category}" 
-                                                              Foreground="#FF999999" 
-                                                              FontSize="10"/>
+                                                    <TextBlock Text="{Binding Category}"
+                                                               Foreground="#FF999999"
+                                                               FontSize="10" />
                                                 </StackPanel>
                                             </StackPanel>
                                         </Border>
@@ -185,122 +185,132 @@
                                 </ListBox.ItemTemplate>
                             </ListBox>
                         </Border>
-                        
+
                         <!-- Splitter -->
-                        <GridSplitter Grid.Column="1" 
-                                     Background="#FF666666" 
-                                     HorizontalAlignment="Stretch"/>
-                        
+                        <GridSplitter Grid.Column="1"
+                                      Background="#FF666666"
+                                      HorizontalAlignment="Stretch" />
+
                         <!-- Detail View -->
                         <Border Grid.Column="2" Background="#FF3c3c3c" Margin="5" Padding="10">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <StackPanel IsVisible="{Binding SelectedResult, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                <StackPanel
+                                    IsVisible="{Binding SelectedResult, Converter={x:Static ObjectConverters.IsNotNull}}">
                                     <!-- File Info -->
-                                    <TextBlock Text="File Information" 
-                                              FontSize="16" FontWeight="Bold" 
-                                              Foreground="White" Margin="0,0,0,10"/>
-                                    
+                                    <TextBlock Text="File Information"
+                                               FontSize="16" FontWeight="Bold"
+                                               Foreground="White" Margin="0,0,0,10" />
+
                                     <Grid Margin="0,0,0,15">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="100"/>
-                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="100" />
+                                            <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
-                                        
-                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="File:" Foreground="#FFCCCCCC" FontWeight="Bold"/>
-                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedResult.ScanResult.LogPath}" 
-                                                  Foreground="White" TextWrapping="Wrap" Margin="5,0,0,0"/>
-                                        
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Status:" Foreground="#FFCCCCCC" FontWeight="Bold" Margin="0,5,0,0"/>
-                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedResult.ScanResult.Status}" 
-                                                  Foreground="White" Margin="5,5,0,0"/>
-                                        
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Time:" Foreground="#FFCCCCCC" FontWeight="Bold" Margin="0,5,0,0"/>
-                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedResult.Details}" 
-                                                  Foreground="White" Margin="5,5,0,0"/>
-                                        
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Results:" Foreground="#FFCCCCCC" FontWeight="Bold" Margin="0,5,0,0"/>
-                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedResult.ScanResult.AnalysisResults.Count}" 
-                                                  Foreground="White" Margin="5,5,0,0"/>
+
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="File:" Foreground="#FFCCCCCC"
+                                                   FontWeight="Bold" />
+                                        <TextBlock Grid.Row="0" Grid.Column="1"
+                                                   Text="{Binding SelectedResult.ScanResult.LogPath}"
+                                                   Foreground="White" TextWrapping="Wrap" Margin="5,0,0,0" />
+
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Status:" Foreground="#FFCCCCCC"
+                                                   FontWeight="Bold" Margin="0,5,0,0" />
+                                        <TextBlock Grid.Row="1" Grid.Column="1"
+                                                   Text="{Binding SelectedResult.ScanResult.Status}"
+                                                   Foreground="White" Margin="5,5,0,0" />
+
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Time:" Foreground="#FFCCCCCC"
+                                                   FontWeight="Bold" Margin="0,5,0,0" />
+                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedResult.Details}"
+                                                   Foreground="White" Margin="5,5,0,0" />
+
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Results:" Foreground="#FFCCCCCC"
+                                                   FontWeight="Bold" Margin="0,5,0,0" />
+                                        <TextBlock Grid.Row="3" Grid.Column="1"
+                                                   Text="{Binding SelectedResult.ScanResult.AnalysisResults.Count}"
+                                                   Foreground="White" Margin="5,5,0,0" />
                                     </Grid>
-                                    
+
                                     <!-- Analysis Results -->
-                                    <TextBlock Text="Analysis Results" 
-                                              FontSize="16" FontWeight="Bold" 
-                                              Foreground="White" Margin="0,10,0,10"/>
-                                    
+                                    <TextBlock Text="Analysis Results"
+                                               FontSize="16" FontWeight="Bold"
+                                               Foreground="White" Margin="0,10,0,10" />
+
                                     <ItemsControl ItemsSource="{Binding SelectedResult.ScanResult.AnalysisResults}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Background="#FF404040" 
-                                                       Padding="10" Margin="0,2" 
-                                                       CornerRadius="3">
+                                                <Border Background="#FF404040"
+                                                        Padding="10" Margin="0,2"
+                                                        CornerRadius="3">
                                                     <StackPanel>
                                                         <Grid>
                                                             <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
                                                             </Grid.ColumnDefinitions>
-                                                            
-                                                            <TextBlock Grid.Column="0" 
-                                                                      Text="{Binding AnalyzerName}" 
-                                                                      FontWeight="Bold" 
-                                                                      Foreground="#FF0e639c" 
-                                                                      VerticalAlignment="Center"/>
-                                                            
-                                                            <Border Grid.Column="1" 
-                                                                   Background="{Binding HasFindings, Converter={x:Static converters:BooleanToFindingsColorConverter.Instance}}"
-                                                                   Padding="5,2" 
-                                                                   CornerRadius="2">
-                                                                <TextBlock Text="{Binding HasFindings, Converter={x:Static converters:BooleanToFindingsTextConverter.Instance}}" 
-                                                                          Foreground="White" 
-                                                                          FontSize="10" 
-                                                                          FontWeight="Bold"/>
+
+                                                            <TextBlock Grid.Column="0"
+                                                                       Text="{Binding AnalyzerName}"
+                                                                       FontWeight="Bold"
+                                                                       Foreground="#FF0e639c"
+                                                                       VerticalAlignment="Center" />
+
+                                                            <Border Grid.Column="1"
+                                                                    Background="{Binding HasFindings, Converter={x:Static converters:BooleanToFindingsColorConverter.Instance}}"
+                                                                    Padding="5,2"
+                                                                    CornerRadius="2">
+                                                                <TextBlock
+                                                                    Text="{Binding HasFindings, Converter={x:Static converters:BooleanToFindingsTextConverter.Instance}}"
+                                                                    Foreground="White"
+                                                                    FontSize="10"
+                                                                    FontWeight="Bold" />
                                                             </Border>
                                                         </Grid>
-                                                        
+
                                                         <!-- Analysis Summary -->
-                                                        <TextBlock Text="{Binding ., Converter={x:Static converters:AnalysisResultSummaryConverter.Instance}}" 
-                                                                  Foreground="#FFCCCCCC" 
-                                                                  FontSize="11" 
-                                                                  Margin="0,5,0,0"
-                                                                  TextWrapping="Wrap"/>
-                                                        
+                                                        <TextBlock
+                                                            Text="{Binding ., Converter={x:Static converters:AnalysisResultSummaryConverter.Instance}}"
+                                                            Foreground="#FFCCCCCC"
+                                                            FontSize="11"
+                                                            Margin="0,5,0,0"
+                                                            TextWrapping="Wrap" />
+
                                                         <!-- Report Preview -->
-                                                        <TextBlock Text="{Binding ReportText}" 
-                                                                  Foreground="#FFE0E0E0" 
-                                                                  FontSize="10" 
-                                                                  FontFamily="Consolas"
-                                                                  Margin="0,5,0,0"
-                                                                  MaxLines="3"
-                                                                  TextTrimming="CharacterEllipsis"
-                                                                  TextWrapping="Wrap"
-                                                                  IsVisible="{Binding HasFindings}"/>
+                                                        <TextBlock Text="{Binding ReportText}"
+                                                                   Foreground="#FFE0E0E0"
+                                                                   FontSize="10"
+                                                                   FontFamily="Consolas"
+                                                                   Margin="0,5,0,0"
+                                                                   MaxLines="3"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   TextWrapping="Wrap"
+                                                                   IsVisible="{Binding HasFindings}" />
                                                     </StackPanel>
                                                 </Border>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    
+
                                     <!-- Full Report -->
-                                    <TextBlock Text="Full Report" 
-                                              FontSize="16" FontWeight="Bold" 
-                                              Foreground="White" Margin="0,20,0,10"/>
-                                    
-                                    <Border Background="#FF404040" 
-                                           Padding="10" 
-                                           CornerRadius="3">
-                                        <TextBlock Text="{Binding SelectedResult.ScanResult.ReportText}" 
-                                                  Foreground="White" 
-                                                  FontFamily="Consolas" 
-                                                  FontSize="11" 
-                                                  TextWrapping="Wrap"
-                                                  xml:space="preserve"/>
+                                    <TextBlock Text="Full Report"
+                                               FontSize="16" FontWeight="Bold"
+                                               Foreground="White" Margin="0,20,0,10" />
+
+                                    <Border Background="#FF404040"
+                                            Padding="10"
+                                            CornerRadius="3">
+                                        <TextBlock Text="{Binding SelectedResult.ScanResult.ReportText}"
+                                                   Foreground="White"
+                                                   FontFamily="Consolas"
+                                                   FontSize="11"
+                                                   TextWrapping="Wrap"
+                                                   xml:space="preserve" />
                                     </Border>
                                 </StackPanel>
                             </ScrollViewer>
@@ -308,20 +318,20 @@
                     </Grid>
                 </Grid>
             </TabItem>
-            
+
             <!-- Log Messages Tab -->
             <TabItem Header="Log Messages">
                 <Border Background="#FF3c3c3c" Margin="5">
-                    <ListBox ItemsSource="{Binding LogMessages}" 
-                            Background="Transparent" 
-                            BorderThickness="0">
+                    <ListBox ItemsSource="{Binding LogMessages}"
+                             Background="Transparent"
+                             BorderThickness="0">
                         <ListBox.ItemTemplate>
                             <DataTemplate DataType="{x:Type system:String}">
-                                <TextBlock Text="{Binding}" 
-                                          Foreground="#FFCCCCCC" 
-                                          FontFamily="Consolas" 
-                                          FontSize="11" 
-                                          Margin="5,2"/>
+                                <TextBlock Text="{Binding}"
+                                           Foreground="#FFCCCCCC"
+                                           FontFamily="Consolas"
+                                           FontSize="11"
+                                           Margin="5,2" />
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
@@ -330,32 +340,32 @@
         </TabControl>
 
         <!-- Progress Bar -->
-        <Border Grid.Row="2" 
-               Background="#FF3c3c3c" 
-               Padding="10" 
-               IsVisible="{Binding ProgressVisible}">
+        <Border Grid.Row="2"
+                Background="#FF3c3c3c"
+                Padding="10"
+                IsVisible="{Binding ProgressVisible}">
             <StackPanel>
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" 
-                              Text="{Binding ProgressText}" 
-                              Foreground="White" 
-                              VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="1" 
-                              Text="{Binding ProgressValue, StringFormat='{}{0:F0}%'}" 
-                              Foreground="#FF0e639c" 
-                              FontWeight="Bold" 
-                              VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding ProgressText}"
+                               Foreground="White"
+                               VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding ProgressValue, StringFormat='{}{0:F0}%'}"
+                               Foreground="#FF0e639c"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center" />
                 </Grid>
-                <ProgressBar Value="{Binding ProgressValue}" 
-                           Maximum="100" 
-                           Height="4" 
-                           Margin="0,5,0,0" 
-                           Background="#FF555555" 
-                           Foreground="#FF0e639c"/>
+                <ProgressBar Value="{Binding ProgressValue}"
+                             Maximum="100"
+                             Height="4"
+                             Margin="0,5,0,0"
+                             Background="#FF555555"
+                             Foreground="#FF0e639c" />
             </StackPanel>
         </Border>
 
@@ -363,22 +373,22 @@
         <Border Grid.Row="3" Background="#FF444444" Padding="10,5">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                
-                <TextBlock Grid.Column="0" 
-                          Text="{Binding StatusText}" 
-                          Foreground="White" 
-                          VerticalAlignment="Center"/>
-                
-                <StackPanel Grid.Column="1" 
-                           Orientation="Horizontal" 
-                           Spacing="10">
-                    <TextBlock Text="Scanner111 v1.0" 
-                              Foreground="#FF999999" 
-                              FontSize="10" 
-                              VerticalAlignment="Center"/>
+
+                <TextBlock Grid.Column="0"
+                           Text="{Binding StatusText}"
+                           Foreground="White"
+                           VerticalAlignment="Center" />
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="10">
+                    <TextBlock Text="Scanner111 v1.0"
+                               Foreground="#FF999999"
+                               FontSize="10"
+                               VerticalAlignment="Center" />
                 </StackPanel>
             </Grid>
         </Border>

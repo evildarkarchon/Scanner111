@@ -6,7 +6,7 @@ using Scanner111.Core.Models;
 namespace Scanner111.Core.Pipeline;
 
 /// <summary>
-/// Decorator that adds performance monitoring to a scan pipeline
+///     Decorator that adds performance monitoring to a scan pipeline
 /// </summary>
 public class PerformanceMonitoringPipeline : IScanPipeline
 {
@@ -28,13 +28,13 @@ public class PerformanceMonitoringPipeline : IScanPipeline
         try
         {
             var result = await _innerPipeline.ProcessSingleAsync(logPath, cancellationToken);
-            
+
             metrics.EndTime = DateTime.UtcNow;
             metrics.TotalDuration = stopwatch.Elapsed;
             metrics.Success = !result.Failed;
-            
+
             RecordMetrics(logPath, metrics);
-            
+
             return result;
         }
         catch (Exception ex)
@@ -43,7 +43,7 @@ public class PerformanceMonitoringPipeline : IScanPipeline
             metrics.TotalDuration = stopwatch.Elapsed;
             metrics.Success = false;
             metrics.Error = ex.Message;
-            
+
             RecordMetrics(logPath, metrics);
             throw;
         }
@@ -62,12 +62,12 @@ public class PerformanceMonitoringPipeline : IScanPipeline
         await foreach (var result in _innerPipeline.ProcessBatchAsync(logPaths, options, progress, cancellationToken))
         {
             batchMetrics.FilesProcessed++;
-            
+
             if (result.Failed)
                 batchMetrics.FailedFiles++;
             else
                 batchMetrics.SuccessfulFiles++;
-            
+
             fileMetrics[result.LogPath] = new PerformanceMetrics
             {
                 StartTime = DateTime.UtcNow.Subtract(result.ProcessingTime),
@@ -75,7 +75,7 @@ public class PerformanceMonitoringPipeline : IScanPipeline
                 TotalDuration = result.ProcessingTime,
                 Success = !result.Failed
             };
-            
+
             yield return result;
         }
 
@@ -88,10 +88,15 @@ public class PerformanceMonitoringPipeline : IScanPipeline
         LogBatchMetrics(batchMetrics, fileMetrics);
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        await _innerPipeline.DisposeAsync();
+    }
+
     private void RecordMetrics(string logPath, PerformanceMetrics metrics)
     {
         _metrics[logPath] = metrics;
-        
+
         _logger.LogInformation(
             "Processed {LogPath} in {Duration:F2}s (Success: {Success})",
             logPath,
@@ -99,7 +104,8 @@ public class PerformanceMonitoringPipeline : IScanPipeline
             metrics.Success);
     }
 
-    private void LogBatchMetrics(BatchPerformanceMetrics batchMetrics, Dictionary<string, PerformanceMetrics> fileMetrics)
+    private void LogBatchMetrics(BatchPerformanceMetrics batchMetrics,
+        Dictionary<string, PerformanceMetrics> fileMetrics)
     {
         _logger.LogInformation(
             "Batch processing completed: {TotalFiles} files in {Duration:F2}s " +
@@ -116,27 +122,23 @@ public class PerformanceMonitoringPipeline : IScanPipeline
             .Take(5);
 
         foreach (var (file, metrics) in slowestFiles)
-        {
             _logger.LogDebug(
                 "Slowest file: {File} took {Duration:F2}s",
                 Path.GetFileName(file),
                 metrics.TotalDuration.TotalSeconds);
-        }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _innerPipeline.DisposeAsync();
     }
 
     /// <summary>
-    /// Get performance metrics for analysis
+    ///     Get performance metrics for analysis
     /// </summary>
-    public IReadOnlyDictionary<string, PerformanceMetrics> GetMetrics() => _metrics;
+    public IReadOnlyDictionary<string, PerformanceMetrics> GetMetrics()
+    {
+        return _metrics;
+    }
 }
 
 /// <summary>
-/// Performance metrics for a single file
+///     Performance metrics for a single file
 /// </summary>
 public class PerformanceMetrics
 {
@@ -149,7 +151,7 @@ public class PerformanceMetrics
 }
 
 /// <summary>
-/// Performance metrics for a batch operation
+///     Performance metrics for a batch operation
 /// </summary>
 public class BatchPerformanceMetrics
 {

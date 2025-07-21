@@ -1,9 +1,5 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
 using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
-using Scanner111.Core.Models;
 using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.CLI.Commands;
@@ -21,7 +17,7 @@ public class ConfigCommand : ICommand<ConfigOptions>
     {
         var messageHandler = new CliMessageHandler();
         MessageHandler.Initialize(messageHandler);
-        
+
         if (options.ShowPath)
         {
             var settingsPath = Path.Combine(
@@ -30,7 +26,7 @@ public class ConfigCommand : ICommand<ConfigOptions>
             MessageHandler.MsgInfo($"Unified Settings file: {settingsPath}");
             MessageHandler.MsgInfo($"File exists: {File.Exists(settingsPath)}");
         }
-        
+
         if (options.Reset)
         {
             MessageHandler.MsgInfo("Resetting configuration to defaults...");
@@ -39,24 +35,18 @@ public class ConfigCommand : ICommand<ConfigOptions>
             MessageHandler.MsgSuccess("Configuration reset to defaults.");
             return 0;
         }
-        
-        if (options.List)
-        {
-            await ListCurrentConfiguration();
-        }
-        
-        if (!string.IsNullOrEmpty(options.Set))
-        {
-            return await SetConfiguration(options.Set);
-        }
-        
+
+        if (options.List) await ListCurrentConfiguration();
+
+        if (!string.IsNullOrEmpty(options.Set)) return await SetConfiguration(options.Set);
+
         return 0;
     }
 
     private async Task ListCurrentConfiguration()
     {
         var settings = await _settingsService.LoadSettingsAsync();
-        
+
         MessageHandler.MsgInfo("Current Scanner111 Configuration:");
         MessageHandler.MsgInfo("================================");
         MessageHandler.MsgInfo($"FCX Mode: {settings.FcxMode}");
@@ -69,8 +59,8 @@ public class ConfigCommand : ICommand<ConfigOptions>
         MessageHandler.MsgInfo($"Disable Colors: {settings.DisableColors}");
         MessageHandler.MsgInfo($"Disable Progress: {settings.DisableProgress}");
         MessageHandler.MsgInfo($"Default Output Format: {settings.DefaultOutputFormat}");
-        MessageHandler.MsgInfo($"Default Game Path: {settings.DefaultGamePath ?? "(not set)"}");
-        MessageHandler.MsgInfo($"Default Scan Directory: {settings.DefaultScanDirectory ?? "(not set)"}");
+        MessageHandler.MsgInfo($"Default Game Path: {settings.DefaultGamePath}");
+        MessageHandler.MsgInfo($"Default Scan Directory: {settings.DefaultScanDirectory}");
     }
 
     private async Task<int> SetConfiguration(string setOption)
@@ -80,12 +70,12 @@ public class ConfigCommand : ICommand<ConfigOptions>
         {
             var key = parts[0].Trim();
             var value = parts[1].Trim();
-            
+
             try
             {
                 // Save to settings file
                 await _settingsService.SaveSettingAsync(key, value);
-                
+
                 MessageHandler.MsgSuccess($"Set {key} = {value}");
                 MessageHandler.MsgInfo("Setting saved to configuration file.");
             }

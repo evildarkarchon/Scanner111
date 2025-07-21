@@ -1,17 +1,16 @@
+using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
-using System.Text;
-using Xunit;
 
 namespace Scanner111.Tests.Infrastructure;
 
 public class ReportWriterTests : IDisposable
 {
-    private readonly string _tempDirectory;
-    private readonly IReportWriter _reportWriter;
     private readonly ILogger<ReportWriter> _logger;
+    private readonly IReportWriter _reportWriter;
+    private readonly string _tempDirectory;
 
     public ReportWriterTests()
     {
@@ -23,10 +22,7 @@ public class ReportWriterTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(_tempDirectory))
-        {
-            Directory.Delete(_tempDirectory, true);
-        }
+        if (Directory.Exists(_tempDirectory)) Directory.Delete(_tempDirectory, true);
     }
 
     [Fact]
@@ -35,9 +31,9 @@ public class ReportWriterTests : IDisposable
         // Arrange
         var logPath = Path.Combine(_tempDirectory, "crash-test.log");
         var expectedOutputPath = Path.Combine(_tempDirectory, "crash-test-AUTOSCAN.md");
-        
+
         await File.WriteAllTextAsync(logPath, "Sample crash log content");
-        
+
         var scanResult = CreateSampleScanResult(logPath);
 
         // Act
@@ -46,7 +42,7 @@ public class ReportWriterTests : IDisposable
         // Assert
         Assert.True(result);
         Assert.True(File.Exists(expectedOutputPath));
-        
+
         var content = await File.ReadAllTextAsync(expectedOutputPath, Encoding.UTF8);
         Assert.Equal(scanResult.ReportText, content);
     }
@@ -57,9 +53,9 @@ public class ReportWriterTests : IDisposable
         // Arrange
         var logPath = Path.Combine(_tempDirectory, "crash-test.log");
         var customOutputPath = Path.Combine(_tempDirectory, "custom-report.md");
-        
+
         await File.WriteAllTextAsync(logPath, "Sample crash log content");
-        
+
         var scanResult = CreateSampleScanResult(logPath);
 
         // Act
@@ -68,7 +64,7 @@ public class ReportWriterTests : IDisposable
         // Assert
         Assert.True(result);
         Assert.True(File.Exists(customOutputPath));
-        
+
         var content = await File.ReadAllTextAsync(customOutputPath, Encoding.UTF8);
         Assert.Equal(scanResult.ReportText, content);
     }
@@ -80,7 +76,7 @@ public class ReportWriterTests : IDisposable
         var subDirectory = Path.Combine(_tempDirectory, "subdir", "nested");
         var logPath = Path.Combine(subDirectory, "crash-test.log");
         var expectedOutputPath = Path.Combine(subDirectory, "crash-test-AUTOSCAN.md");
-        
+
         var scanResult = CreateSampleScanResult(logPath);
 
         // Act
@@ -97,8 +93,8 @@ public class ReportWriterTests : IDisposable
     {
         // Arrange
         var logPath = Path.Combine(_tempDirectory, "crash-test.log");
-        var scanResult = new ScanResult 
-        { 
+        var scanResult = new ScanResult
+        {
             LogPath = logPath,
             Report = new List<string>()
         };
@@ -109,7 +105,7 @@ public class ReportWriterTests : IDisposable
         // Assert
         Assert.True(result);
         Assert.True(File.Exists(scanResult.OutputPath));
-        
+
         var content = await File.ReadAllTextAsync(scanResult.OutputPath, Encoding.UTF8);
         Assert.Equal(string.Empty, content);
     }
@@ -133,11 +129,11 @@ public class ReportWriterTests : IDisposable
     {
         // Arrange
         var logPath = Path.Combine(_tempDirectory, "crash-test.log");
-        var scanResult = new ScanResult 
-        { 
+        var scanResult = new ScanResult
+        {
             LogPath = logPath,
-            Report = new List<string> 
-            { 
+            Report = new List<string>
+            {
                 "Test with special characters: éñüñß\n",
                 "Unicode symbols: ✓ ❌ ⚠️\n",
                 "Asian characters: 中文 日本語\n"
@@ -149,7 +145,7 @@ public class ReportWriterTests : IDisposable
 
         // Assert
         Assert.True(result);
-        
+
         var content = await File.ReadAllTextAsync(scanResult.OutputPath, Encoding.UTF8);
         Assert.Contains("éñüñß", content);
         Assert.Contains("✓ ❌ ⚠️", content);
@@ -161,7 +157,7 @@ public class ReportWriterTests : IDisposable
     {
         // Arrange
         var logPath = Path.Combine(_tempDirectory, "crash-test.log");
-        var reportWithOPC = new List<string>
+        var reportWithOpc = new List<string>
         {
             "Normal content line 1\n",
             "====================================================\n",
@@ -174,11 +170,11 @@ public class ReportWriterTests : IDisposable
             "====================================================\n",
             "Normal content line 2\n"
         };
-        
-        var scanResult = new ScanResult 
-        { 
+
+        var scanResult = new ScanResult
+        {
             LogPath = logPath,
-            Report = reportWithOPC
+            Report = reportWithOpc
         };
 
         // Act
@@ -186,7 +182,7 @@ public class ReportWriterTests : IDisposable
 
         // Assert
         Assert.True(result);
-        
+
         var content = await File.ReadAllTextAsync(scanResult.OutputPath, Encoding.UTF8);
         Assert.Contains("Normal content line 1", content);
         Assert.Contains("Normal content line 2", content);
@@ -199,7 +195,7 @@ public class ReportWriterTests : IDisposable
     {
         // Arrange
         var logPath = Path.Combine(_tempDirectory, "crash-test.log");
-        var reportWithMultipleOPC = new List<string>
+        var reportWithMultipleOpc = new List<string>
         {
             "Start content\n",
             "====================================================\n",
@@ -219,11 +215,11 @@ public class ReportWriterTests : IDisposable
             "====================================================\n",
             "End content\n"
         };
-        
-        var scanResult = new ScanResult 
-        { 
+
+        var scanResult = new ScanResult
+        {
             LogPath = logPath,
-            Report = reportWithMultipleOPC
+            Report = reportWithMultipleOpc
         };
 
         // Act
@@ -231,7 +227,7 @@ public class ReportWriterTests : IDisposable
 
         // Assert
         Assert.True(result);
-        
+
         var content = await File.ReadAllTextAsync(scanResult.OutputPath, Encoding.UTF8);
         Assert.Contains("Start content", content);
         Assert.Contains("Regular content", content);
@@ -246,7 +242,7 @@ public class ReportWriterTests : IDisposable
     {
         // Arrange
         var logPath = Path.Combine(_tempDirectory, "crash-test.log");
-        var reportWithOPCAtEnd = new List<string>
+        var reportWithOpcAtEnd = new List<string>
         {
             "Normal content\n",
             "====================================================\n",
@@ -254,11 +250,11 @@ public class ReportWriterTests : IDisposable
             "====================================================\n",
             "Final OPC content\n"
         };
-        
-        var scanResult = new ScanResult 
-        { 
+
+        var scanResult = new ScanResult
+        {
             LogPath = logPath,
-            Report = reportWithOPCAtEnd
+            Report = reportWithOpcAtEnd
         };
 
         // Act
@@ -266,7 +262,7 @@ public class ReportWriterTests : IDisposable
 
         // Assert
         Assert.True(result);
-        
+
         var content = await File.ReadAllTextAsync(scanResult.OutputPath, Encoding.UTF8);
         Assert.Contains("Normal content", content);
         Assert.DoesNotContain("Final OPC content", content);
@@ -303,16 +299,16 @@ public class ReportWriterTests : IDisposable
         // Arrange
         var logPath = Path.Combine(_tempDirectory, "crash-test.log");
         var scanResult = CreateSampleScanResult(logPath);
-        
+
         // Create existing file with different content
         await File.WriteAllTextAsync(scanResult.OutputPath, "Old content");
-        
+
         // Act
         var result = await _reportWriter.WriteReportAsync(scanResult);
 
         // Assert
         Assert.True(result);
-        
+
         var content = await File.ReadAllTextAsync(scanResult.OutputPath, Encoding.UTF8);
         Assert.Equal(scanResult.ReportText, content);
         Assert.DoesNotContain("Old content", content);

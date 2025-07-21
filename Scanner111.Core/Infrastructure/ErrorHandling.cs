@@ -1,26 +1,26 @@
-using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-/// Error handling policy for different types of failures
+///     Error handling policy for different types of failures
 /// </summary>
 public interface IErrorHandlingPolicy
 {
     /// <summary>
-    /// Handle an error and determine the recovery action
+    ///     Handle an error and determine the recovery action
     /// </summary>
     ErrorHandlingResult HandleError(Exception exception, string context, int attemptNumber);
-    
+
     /// <summary>
-    /// Determine if an error should be retried
+    ///     Determine if an error should be retried
     /// </summary>
     bool ShouldRetry(Exception exception, int attemptNumber);
 }
 
 /// <summary>
-/// Result of error handling
+///     Result of error handling
 /// </summary>
 public record ErrorHandlingResult
 {
@@ -32,39 +32,39 @@ public record ErrorHandlingResult
 }
 
 /// <summary>
-/// Actions to take when handling errors
+///     Actions to take when handling errors
 /// </summary>
 public enum ErrorAction
 {
     /// <summary>
-    /// Continue processing, ignore the error
+    ///     Continue processing, ignore the error
     /// </summary>
     Continue,
-    
+
     /// <summary>
-    /// Retry the operation after a delay
+    ///     Retry the operation after a delay
     /// </summary>
     Retry,
-    
+
     /// <summary>
-    /// Fail fast and stop processing
+    ///     Fail fast and stop processing
     /// </summary>
     Fail,
-    
+
     /// <summary>
-    /// Skip this item and continue with the next
+    ///     Skip this item and continue with the next
     /// </summary>
     Skip
 }
 
 /// <summary>
-/// Default error handling policy implementation
+///     Default error handling policy implementation
 /// </summary>
 public class DefaultErrorHandlingPolicy : IErrorHandlingPolicy
 {
+    private readonly TimeSpan _baseRetryDelay;
     private readonly ILogger<DefaultErrorHandlingPolicy> _logger;
     private readonly int _maxRetries;
-    private readonly TimeSpan _baseRetryDelay;
 
     public DefaultErrorHandlingPolicy(
         ILogger<DefaultErrorHandlingPolicy> logger,
@@ -86,28 +86,28 @@ public class DefaultErrorHandlingPolicy : IErrorHandlingPolicy
                 Message = "Operation was cancelled",
                 LogLevel = LogLevel.Information
             },
-            
+
             UnauthorizedAccessException => new ErrorHandlingResult
             {
                 Action = ErrorAction.Skip,
                 Message = $"Access denied to file in {context}",
                 LogLevel = LogLevel.Warning
             },
-            
+
             FileNotFoundException => new ErrorHandlingResult
             {
                 Action = ErrorAction.Skip,
                 Message = $"File not found in {context}",
                 LogLevel = LogLevel.Warning
             },
-            
+
             DirectoryNotFoundException => new ErrorHandlingResult
             {
                 Action = ErrorAction.Skip,
                 Message = $"Directory not found in {context}",
                 LogLevel = LogLevel.Warning
             },
-            
+
             IOException when ShouldRetry(exception, attemptNumber) => new ErrorHandlingResult
             {
                 Action = ErrorAction.Retry,
@@ -115,21 +115,21 @@ public class DefaultErrorHandlingPolicy : IErrorHandlingPolicy
                 Message = $"IO error in {context}, retrying in {CalculateRetryDelay(attemptNumber)}",
                 LogLevel = LogLevel.Warning
             },
-            
+
             IOException => new ErrorHandlingResult
             {
                 Action = ErrorAction.Skip,
                 Message = $"IO error in {context} - max retries exceeded, skipping",
                 LogLevel = LogLevel.Warning
             },
-            
+
             OutOfMemoryException => new ErrorHandlingResult
             {
                 Action = ErrorAction.Fail,
                 Message = "Out of memory - cannot continue processing",
                 LogLevel = LogLevel.Critical
             },
-            
+
             _ when ShouldRetry(exception, attemptNumber) => new ErrorHandlingResult
             {
                 Action = ErrorAction.Retry,
@@ -137,7 +137,7 @@ public class DefaultErrorHandlingPolicy : IErrorHandlingPolicy
                 Message = $"Unexpected error in {context}, retrying",
                 LogLevel = LogLevel.Warning
             },
-            
+
             _ => new ErrorHandlingResult
             {
                 Action = ErrorAction.Fail,
@@ -151,7 +151,7 @@ public class DefaultErrorHandlingPolicy : IErrorHandlingPolicy
     {
         if (attemptNumber > _maxRetries)
             return false;
-            
+
         return exception switch
         {
             OperationCanceledException => false,
@@ -175,7 +175,7 @@ public class DefaultErrorHandlingPolicy : IErrorHandlingPolicy
 }
 
 /// <summary>
-/// Resilient operation executor with error handling and retries
+///     Resilient operation executor with error handling and retries
 /// </summary>
 public class ResilientExecutor
 {
@@ -189,7 +189,7 @@ public class ResilientExecutor
     }
 
     /// <summary>
-    /// Execute an operation with error handling and retries
+    ///     Execute an operation with error handling and retries
     /// </summary>
     public async Task<T?> ExecuteAsync<T>(
         Func<CancellationToken, Task<T>> operation,
@@ -200,69 +200,54 @@ public class ResilientExecutor
         var stopwatch = Stopwatch.StartNew();
 
         while (true)
-        {
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                
+
                 _logger.LogTrace("Executing operation: {Context} (attempt {Attempt})", context, attemptNumber);
                 var result = await operation(cancellationToken);
-                
+
                 if (attemptNumber > 1)
-                {
                     _logger.LogInformation(
                         "Operation succeeded after {Attempts} attempts in {Duration}ms: {Context}",
                         attemptNumber, stopwatch.ElapsedMilliseconds, context);
-                }
-                
+
                 return result;
             }
             catch (Exception ex)
             {
                 var errorResult = _errorPolicy.HandleError(ex, context, attemptNumber);
-                
+
                 if (errorResult.ShouldLog)
-                {
                     _logger.Log(errorResult.LogLevel, ex,
                         "Error in operation {Context} (attempt {Attempt}): {Message}",
                         context, attemptNumber, errorResult.Message);
-                }
 
                 switch (errorResult.Action)
                 {
                     case ErrorAction.Continue:
                         return default;
-                        
+
                     case ErrorAction.Skip:
                         return default;
-                        
+
                     case ErrorAction.Fail:
                         throw;
-                        
+
                     case ErrorAction.Retry:
                         if (errorResult.RetryDelay.HasValue)
-                        {
-                            try
-                            {
-                                await Task.Delay(errorResult.RetryDelay.Value, cancellationToken);
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                throw; // Don't retry if cancelled during delay
-                            }
-                        }
+                            await Task.Delay(errorResult.RetryDelay.Value, cancellationToken);
                         attemptNumber++;
                         continue;
-                        
+
                     default:
                         throw new InvalidOperationException($"Unknown error action: {errorResult.Action}");
                 }
             }
-        }
     }
 
     /// <summary>
-    /// Execute an operation without return value
+    ///     Execute an operation without return value
     /// </summary>
     public async Task ExecuteAsync(
         Func<CancellationToken, Task> operation,
@@ -278,18 +263,18 @@ public class ResilientExecutor
 }
 
 /// <summary>
-/// Circuit breaker to prevent cascading failures
+///     Circuit breaker to prevent cascading failures
 /// </summary>
 public class CircuitBreaker
 {
     private readonly int _failureThreshold;
-    private readonly TimeSpan _timeout;
+    private readonly object _lock = new();
     private readonly ILogger<CircuitBreaker> _logger;
-    
+    private readonly TimeSpan _timeout;
+
     private int _failureCount;
     private DateTime _lastFailureTime;
     private CircuitBreakerState _state = CircuitBreakerState.Closed;
-    private readonly object _lock = new();
 
     public CircuitBreaker(int failureThreshold, TimeSpan timeout, ILogger<CircuitBreaker> logger)
     {
@@ -300,10 +285,7 @@ public class CircuitBreaker
 
     public async Task<T> ExecuteAsync<T>(Func<Task<T>> operation)
     {
-        if (!CanExecute())
-        {
-            throw new CircuitBreakerOpenException("Circuit breaker is open");
-        }
+        if (!CanExecute()) throw new CircuitBreakerOpenException("Circuit breaker is open");
 
         try
         {
@@ -333,6 +315,7 @@ public class CircuitBreaker
                     _logger.LogInformation("Circuit breaker transitioning to half-open");
                     return true;
                 }
+
                 return false;
             }
 
@@ -347,10 +330,7 @@ public class CircuitBreaker
         {
             _failureCount = 0;
             _state = CircuitBreakerState.Closed;
-            if (_state != CircuitBreakerState.Closed)
-            {
-                _logger.LogInformation("Circuit breaker closed");
-            }
+            if (_state != CircuitBreakerState.Closed) _logger.LogInformation("Circuit breaker closed");
         }
     }
 
@@ -377,7 +357,4 @@ public enum CircuitBreakerState
     HalfOpen
 }
 
-public class CircuitBreakerOpenException : Exception
-{
-    public CircuitBreakerOpenException(string message) : base(message) { }
-}
+public class CircuitBreakerOpenException(string message) : Exception(message);

@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Scanner111.Core.Models;
 
 namespace Scanner111.Core.Pipeline;
@@ -6,12 +5,12 @@ namespace Scanner111.Core.Pipeline;
 public interface IScanPipeline : IAsyncDisposable
 {
     /// <summary>
-    /// Process a single crash log file
+    ///     Process a single crash log file
     /// </summary>
     Task<ScanResult> ProcessSingleAsync(string logPath, CancellationToken cancellationToken = default);
-    
+
     /// <summary>
-    /// Process multiple crash logs with parallelism
+    ///     Process multiple crash logs with parallelism
     /// </summary>
     IAsyncEnumerable<ScanResult> ProcessBatchAsync(
         IEnumerable<string> logPaths,
@@ -37,7 +36,7 @@ public class BatchProgress
     public int FailedScans { get; init; }
     public int IncompleteScans { get; init; }
     public string CurrentFile { get; init; } = string.Empty;
-    public double ProgressPercentage => TotalFiles > 0 ? (ProcessedFiles * 100.0) / TotalFiles : 0;
+    public double ProgressPercentage => TotalFiles > 0 ? ProcessedFiles * 100.0 / TotalFiles : 0;
     public TimeSpan ElapsedTime { get; init; }
     public TimeSpan? EstimatedTimeRemaining { get; init; }
 }
