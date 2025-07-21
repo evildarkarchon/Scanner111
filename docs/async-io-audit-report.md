@@ -75,7 +75,6 @@ _semaphore = new SemaphoreSlim(Environment.ProcessorCount);
 ### 3. Thread-Safe Operations Assessment
 
 **✅ Properly Implemented**:
-- `GlobalRegistry`: Uses `ConcurrentDictionary<string, object>` with atomic operations
 - `CacheManager`: Thread-safe collections with explicit locking for statistics
 - Channel operations: Proper completion and cancellation handling
 

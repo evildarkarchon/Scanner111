@@ -20,7 +20,7 @@ public class CrashLog
     /// <summary>
     /// Original lines from the crash log file
     /// </summary>
-    public List<string> OriginalLines { get; init; } = new();
+    public List<string> OriginalLines { get; set; } = new();
     
     /// <summary>
     /// Full content as a single string
@@ -83,6 +83,15 @@ public class CrashLog
     /// True if the crash log is incomplete or truncated
     /// </summary>
     public bool IsIncomplete { get; set; }
+    
+    /// <summary>
+    /// Release memory used by original lines after analysis is complete
+    /// </summary>
+    public void DisposeOriginalLines()
+    {
+        OriginalLines.Clear();
+        OriginalLines.TrimExcess();
+    }
     
     /// <summary>
     /// Parse a crash log from file asynchronously

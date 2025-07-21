@@ -11,6 +11,7 @@ public class YamlSettingsCacheTests : IDisposable
     private readonly string _classicDataPath;
     private readonly IYamlSettingsProvider _yamlSettingsService;
     private readonly IMemoryCache _memoryCache;
+    private readonly CacheManager _cacheManager;
     
     public YamlSettingsCacheTests()
     {
@@ -43,8 +44,8 @@ Test_Section:
         
         // Initialize the service components
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
-        var cacheManager = new CacheManager(_memoryCache, NullLogger<CacheManager>.Instance);
-        _yamlSettingsService = new YamlSettingsService(cacheManager);
+        _cacheManager = new CacheManager(_memoryCache, NullLogger<CacheManager>.Instance);
+        _yamlSettingsService = new YamlSettingsService(_cacheManager);
         
         // Initialize the static cache with our service
         YamlSettingsCache.Initialize(_yamlSettingsService);
@@ -52,13 +53,18 @@ Test_Section:
     
     public void Dispose()
     {
-        _memoryCache?.Dispose();
-        
-        // Clean up test file
+        // Clean up test file first
         if (File.Exists(_testYamlPath))
         {
             File.Delete(_testYamlPath);
         }
+        
+        // Reset the static cache before disposing services
+        YamlSettingsCache.Reset();
+        
+        // Dispose in reverse order of creation
+        _cacheManager?.Dispose();
+        _memoryCache?.Dispose();
     }
     
     [Fact]

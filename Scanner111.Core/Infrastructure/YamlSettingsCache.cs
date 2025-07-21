@@ -6,7 +6,8 @@ namespace Scanner111.Core.Infrastructure;
 /// </summary>
 public static class YamlSettingsCache
 {
-    private static IYamlSettingsProvider? _instance;
+    private static volatile IYamlSettingsProvider? _instance;
+    private static readonly object _initLock = new object();
     
     /// <summary>
     /// Initialize the static cache with a service instance
@@ -14,7 +15,21 @@ public static class YamlSettingsCache
     /// </summary>
     internal static void Initialize(IYamlSettingsProvider yamlSettingsProvider)
     {
-        _instance = yamlSettingsProvider;
+        lock (_initLock)
+        {
+            _instance = yamlSettingsProvider;
+        }
+    }
+    
+    /// <summary>
+    /// Reset the static cache (for testing)
+    /// </summary>
+    internal static void Reset()
+    {
+        lock (_initLock)
+        {
+            _instance = null;
+        }
     }
     
     /// <summary>

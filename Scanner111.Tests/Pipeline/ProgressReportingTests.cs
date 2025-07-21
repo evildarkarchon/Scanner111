@@ -324,6 +324,9 @@ public class ProgressReportingTests
         detailedProgress.ReportFileComplete("file1.log", true);
         detailedProgress.ReportFileStart("file2.log");
 
+        // Give time for the Progress<T> callbacks to execute
+        await Task.Delay(100);
+
         // Wait for async callbacks (with timeout)
         var completed = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
 

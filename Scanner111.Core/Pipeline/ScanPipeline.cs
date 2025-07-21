@@ -78,6 +78,9 @@ public class ScanPipeline : IScanPipeline
             }
 
             result.Status = result.HasErrors ? ScanStatus.CompletedWithErrors : ScanStatus.Completed;
+            
+            // Free memory immediately after analysis is complete
+            result.CrashLog?.DisposeOriginalLines();
         }
         catch (OperationCanceledException)
         {
@@ -105,7 +108,8 @@ public class ScanPipeline : IScanPipeline
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         options ??= new ScanOptions();
-        var paths = logPaths.ToList();
+        // Deduplicate input paths to prevent processing the same file multiple times
+        var paths = logPaths.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var totalFiles = paths.Count;
         var processedFiles = 0;
         var successfulScans = 0;
@@ -211,24 +215,87 @@ public class ScanPipeline : IScanPipeline
         List<IAsyncEnumerable<ScanResult>> sources,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var channel = Channel.CreateUnbounded<ScanResult>();
-        var tasks = sources.Select(async source =>
+        // Create streaming merge without unbounded buffering
+        var enumerators = sources.Select(source => source.GetAsyncEnumerator(cancellationToken)).ToList();
+        var activeTasks = new List<Task<(int sourceIndex, bool hasValue, ScanResult? result)>>();
+        
+        try
         {
-            await foreach (var item in source.WithCancellation(cancellationToken))
+            // Start initial MoveNext for all sources
+            for (int i = 0; i < enumerators.Count; i++)
             {
-                await channel.Writer.WriteAsync(item, cancellationToken);
+                var index = i;
+                activeTasks.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        var hasValue = await enumerators[index].MoveNextAsync();
+                        return (index, hasValue, hasValue ? enumerators[index].Current : null);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return (index, false, null);
+                    }
+                    catch
+                    {
+                        return (index, false, null);
+                    }
+                }, cancellationToken));
             }
-        }).ToList();
 
-        _ = Task.Run(async () =>
+            // Process results as they become available
+            while (activeTasks.Count > 0)
+            {
+                var completedTask = await Task.WhenAny(activeTasks);
+                activeTasks.Remove(completedTask);
+                
+                var (sourceIndex, hasValue, result) = await completedTask;
+                
+                if (hasValue && result != null)
+                {
+                    // Yield the result immediately - no buffering
+                    yield return result;
+                    
+                    // Start next read from this source
+                    activeTasks.Add(Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var nextHasValue = await enumerators[sourceIndex].MoveNextAsync();
+                            return (sourceIndex, nextHasValue, nextHasValue ? enumerators[sourceIndex].Current : null);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            return (sourceIndex, false, null);
+                        }
+                        catch
+                        {
+                            return (sourceIndex, false, null);
+                        }
+                    }, cancellationToken));
+                }
+                // If hasValue is false, this source is exhausted - don't restart it
+            }
+        }
+        finally
         {
-            await Task.WhenAll(tasks);
-            channel.Writer.Complete();
-        }, cancellationToken);
-
-        await foreach (var result in channel.Reader.ReadAllAsync(cancellationToken))
-        {
-            yield return result;
+            // Dispose all enumerators
+            foreach (var enumerator in enumerators)
+            {
+                try
+                {
+                    await enumerator.DisposeAsync();
+                }
+                catch (NotSupportedException)
+                {
+                    // Some enumerators may not support async disposal
+                    // This is acceptable during cancellation scenarios
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Enumerator may already be disposed
+                }
+            }
         }
     }
 

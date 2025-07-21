@@ -8,6 +8,7 @@ namespace Scanner111.Core.Models;
 /// </summary>
 public class ApplicationSettings
 {
+    private readonly object _recentItemsLock = new object();
     // === Core Analysis Settings ===
     
     [JsonPropertyName("fcxMode")]
@@ -124,12 +125,15 @@ public class ApplicationSettings
     {
         if (string.IsNullOrEmpty(path)) return;
         
-        RecentLogFiles.Remove(path);
-        RecentLogFiles.Insert(0, path);
-        
-        while (RecentLogFiles.Count > MaxRecentItems)
+        lock (_recentItemsLock)
         {
-            RecentLogFiles.RemoveAt(RecentLogFiles.Count - 1);
+            RecentLogFiles.Remove(path);
+            RecentLogFiles.Insert(0, path);
+            
+            while (RecentLogFiles.Count > MaxRecentItems)
+            {
+                RecentLogFiles.RemoveAt(RecentLogFiles.Count - 1);
+            }
         }
     }
     
@@ -137,12 +141,15 @@ public class ApplicationSettings
     {
         if (string.IsNullOrEmpty(path)) return;
         
-        RecentGamePaths.Remove(path);
-        RecentGamePaths.Insert(0, path);
-        
-        while (RecentGamePaths.Count > MaxRecentItems)
+        lock (_recentItemsLock)
         {
-            RecentGamePaths.RemoveAt(RecentGamePaths.Count - 1);
+            RecentGamePaths.Remove(path);
+            RecentGamePaths.Insert(0, path);
+            
+            while (RecentGamePaths.Count > MaxRecentItems)
+            {
+                RecentGamePaths.RemoveAt(RecentGamePaths.Count - 1);
+            }
         }
     }
     
@@ -150,12 +157,15 @@ public class ApplicationSettings
     {
         if (string.IsNullOrEmpty(path)) return;
         
-        RecentScanDirectories.Remove(path);
-        RecentScanDirectories.Insert(0, path);
-        
-        while (RecentScanDirectories.Count > MaxRecentItems)
+        lock (_recentItemsLock)
         {
-            RecentScanDirectories.RemoveAt(RecentScanDirectories.Count - 1);
+            RecentScanDirectories.Remove(path);
+            RecentScanDirectories.Insert(0, path);
+            
+            while (RecentScanDirectories.Count > MaxRecentItems)
+            {
+                RecentScanDirectories.RemoveAt(RecentScanDirectories.Count - 1);
+            }
         }
     }
     

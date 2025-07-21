@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text;
 using Scanner111.Core.Models;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,7 @@ namespace Scanner111.Core.Infrastructure;
 public class ReportWriter : IReportWriter
 {
     private readonly ILogger<ReportWriter> _logger;
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _fileLocks = new();
 
     public ReportWriter(ILogger<ReportWriter> logger)
     {
@@ -25,6 +27,11 @@ public class ReportWriter : IReportWriter
     /// <inheritdoc/>
     public async Task<bool> WriteReportAsync(ScanResult scanResult, string outputPath, CancellationToken cancellationToken = default)
     {
+        // Get or create a semaphore for this specific file path to prevent concurrent writes
+        var normalizedPath = Path.GetFullPath(outputPath).ToLowerInvariant();
+        var fileLock = _fileLocks.GetOrAdd(normalizedPath, _ => new SemaphoreSlim(1, 1));
+        
+        await fileLock.WaitAsync(cancellationToken);
         try
         {
             var reportContent = FilterReportContent(scanResult.ReportText);
@@ -44,6 +51,10 @@ public class ReportWriter : IReportWriter
         {
             _logger.LogError(ex, "Failed to write report to: {OutputPath}", outputPath);
             return false;
+        }
+        finally
+        {
+            fileLock.Release();
         }
     }
 

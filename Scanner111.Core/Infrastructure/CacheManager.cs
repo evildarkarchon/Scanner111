@@ -67,6 +67,7 @@ public class CacheManager : ICacheManager, IDisposable
 
     public T? GetOrSetYamlSetting<T>(string yamlFile, string keyPath, Func<T?> factory, TimeSpan? expiry = null)
     {
+        CheckDisposed();
         var cacheKey = $"{YAML_PREFIX}{yamlFile}:{keyPath}";
         
         if (_memoryCache.TryGetValue(cacheKey, out T? cached))
@@ -92,6 +93,7 @@ public class CacheManager : ICacheManager, IDisposable
 
     public void CacheAnalysisResult(string filePath, string analyzerName, AnalysisResult result)
     {
+        CheckDisposed();
         try
         {
             var fileInfo = new FileInfo(filePath);
@@ -123,6 +125,7 @@ public class CacheManager : ICacheManager, IDisposable
 
     public AnalysisResult? GetCachedAnalysisResult(string filePath, string analyzerName)
     {
+        CheckDisposed();
         try
         {
             var cacheKey = GetAnalysisCacheKey(filePath, analyzerName);
@@ -173,6 +176,7 @@ public class CacheManager : ICacheManager, IDisposable
 
     public void ClearCache()
     {
+        CheckDisposed();
         if (_memoryCache is MemoryCache mc)
         {
             mc.Compact(1.0); // Remove all entries
@@ -187,6 +191,7 @@ public class CacheManager : ICacheManager, IDisposable
 
     public CacheStatistics GetStatistics()
     {
+        CheckDisposed();
         lock (_statsLock)
         {
             var totalHits = _cacheHits.Values.Sum();
@@ -234,6 +239,12 @@ public class CacheManager : ICacheManager, IDisposable
         _cacheHits.Clear();
         _cacheMisses.Clear();
         _disposed = true;
+    }
+    
+    private void CheckDisposed()
+    {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(CacheManager));
     }
 }
 

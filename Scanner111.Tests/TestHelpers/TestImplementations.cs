@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 
@@ -106,4 +108,106 @@ public class TestFormIdDatabaseService : IFormIdDatabaseService
         }
         return null;
     }
+}
+
+public class TestLogger<T> : ILogger<T>
+{
+    public IDisposable BeginScope<TState>(TState state) => null!;
+    public bool IsEnabled(LogLevel logLevel) => true;
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+    {
+        // Test implementation - do nothing
+    }
+}
+
+public class TestMessageHandler : IMessageHandler
+{
+    public void ShowInfo(string message, MessageTarget target = MessageTarget.All) { }
+    public void ShowWarning(string message, MessageTarget target = MessageTarget.All) { }
+    public void ShowError(string message, MessageTarget target = MessageTarget.All) { }
+    public void ShowSuccess(string message, MessageTarget target = MessageTarget.All) { }
+    public void ShowDebug(string message, MessageTarget target = MessageTarget.All) { }
+    public void ShowCritical(string message, MessageTarget target = MessageTarget.All) { }
+    public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info, MessageTarget target = MessageTarget.All) { }
+    public IProgress<ProgressInfo> ShowProgress(string title, int totalItems) { return new Progress<ProgressInfo>(); }
+    public IProgressContext CreateProgressContext(string title, int totalItems) { return new TestProgressContext(); }
+}
+
+public class TestCacheManager : ICacheManager
+{
+    private readonly Dictionary<string, AnalysisResult> _cache = new();
+    
+    public AnalysisResult? GetCachedAnalysisResult(string filePath, string analyzerName)
+    {
+        var key = $"{filePath}:{analyzerName}";
+        return _cache.TryGetValue(key, out var result) ? result : null;
+    }
+    
+    public void CacheAnalysisResult(string filePath, string analyzerName, AnalysisResult result)
+    {
+        var key = $"{filePath}:{analyzerName}";
+        _cache[key] = result;
+    }
+    
+    public bool IsFileCacheValid(string filePath)
+    {
+        return true; // For testing, always consider cache valid
+    }
+    
+    public CacheStatistics GetStatistics()
+    {
+        return new CacheStatistics
+        {
+            TotalHits = _cache.Count / 2,
+            TotalMisses = _cache.Count / 2,
+            HitRate = 0.5, // 50% hit rate for testing
+            CachedFiles = _cache.Count
+        };
+    }
+    
+    public void ClearCache()
+    {
+        _cache.Clear();
+    }
+    
+    public T? GetOrSetYamlSetting<T>(string yamlFile, string keyPath, Func<T?> factory, TimeSpan? expiry = null)
+    {
+        // For testing, just call the factory
+        return factory();
+    }
+}
+
+public class TestErrorHandlingPolicy : IErrorHandlingPolicy
+{
+    public bool ShouldRetry(Exception exception, int attemptCount)
+    {
+        return attemptCount < 3; // Retry up to 3 times for testing
+    }
+    
+    public TimeSpan GetRetryDelay(int attemptCount)
+    {
+        return TimeSpan.FromMilliseconds(10); // Short delay for testing
+    }
+    
+    public bool ShouldContinueOnError(Exception exception)
+    {
+        return true; // Continue on errors for testing
+    }
+    
+    public ErrorHandlingResult HandleError(Exception exception, string context, int attemptCount)
+    {
+        return new ErrorHandlingResult
+        {
+            Action = ErrorAction.Continue,
+            Message = "Test error handling"
+        };
+    }
+}
+
+public class TestProgressContext : IProgressContext
+{
+    public void Dispose() { }
+    public void Report(ProgressInfo value) { }
+    public void Update(int current, string message) { }
+    public void Complete() { }
 }
