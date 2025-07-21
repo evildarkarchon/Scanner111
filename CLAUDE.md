@@ -115,3 +115,8 @@ dotnet test --filter "FullyQualifiedName~TestName"
   - Implementing thread-safe async read/write operations
   - Using `Channel<T>` for managing async I/O streams
   - Carefully managing shared resources in multi-threaded async scenarios
+
+### Development Guidelines
+
+- **Unit Testing**:
+  - Any new code must have proper unit tests written or updated after the code is in a state where it compiles properly
