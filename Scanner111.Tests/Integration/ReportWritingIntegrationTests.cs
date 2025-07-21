@@ -186,12 +186,11 @@ public class ReportWritingIntegrationTests : IDisposable
         var reportWriter = new ReportWriter(NullLogger<ReportWriter>.Instance);
 
         // Test with AutoSaveResults enabled
-        GlobalRegistry.Set("AutoSaveResults", true);
-        var autoSaveEnabled = GlobalRegistry.GetValueType<bool>("AutoSaveResults", true);
+        var settingsWithAutoSave = new ApplicationSettings { AutoSaveResults = true };
         
         // Act
         bool saveResult = false;
-        if (autoSaveEnabled && !string.IsNullOrEmpty(scanResult.ReportText))
+        if (settingsWithAutoSave.AutoSaveResults && !string.IsNullOrEmpty(scanResult.ReportText))
         {
             saveResult = await reportWriter.WriteReportAsync(scanResult);
         }
@@ -211,12 +210,11 @@ public class ReportWritingIntegrationTests : IDisposable
             Report = new List<string> { "Report that should not be saved\n" }
         };
 
-        GlobalRegistry.Set("AutoSaveResults", false);
-        var autoSaveDisabled = GlobalRegistry.GetValueType<bool>("AutoSaveResults", true);
+        var settingsWithoutAutoSave = new ApplicationSettings { AutoSaveResults = false };
         
         // Act
         bool saveResult2 = false;
-        if (autoSaveDisabled && !string.IsNullOrEmpty(scanResult2.ReportText))
+        if (settingsWithoutAutoSave.AutoSaveResults && !string.IsNullOrEmpty(scanResult2.ReportText))
         {
             saveResult2 = await reportWriter.WriteReportAsync(scanResult2);
         }

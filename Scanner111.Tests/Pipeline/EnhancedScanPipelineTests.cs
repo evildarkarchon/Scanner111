@@ -193,6 +193,9 @@ public class EnhancedScanPipelineTests : IDisposable
         // Assert
         await Assert.ThrowsAsync<TaskCanceledException>(() => processingTask);
         Assert.True(results.Count < testFiles.Count); // Should not process all files
+        
+        // Give time for any in-flight operations to complete
+        await Task.Delay(100);
     }
 
     [Fact]
@@ -269,7 +272,24 @@ SETTINGS:
 
         if (File.Exists(_testLogPath))
         {
-            File.Delete(_testLogPath);
+            try
+            {
+                File.Delete(_testLogPath);
+            }
+            catch (IOException)
+            {
+                // File might still be in use by a canceled operation
+                // Try again after a short delay
+                Task.Delay(100).Wait();
+                try
+                {
+                    File.Delete(_testLogPath);
+                }
+                catch
+                {
+                    // If it still fails, ignore - it's a temp file
+                }
+            }
         }
     }
 

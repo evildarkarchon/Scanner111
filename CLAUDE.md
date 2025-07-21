@@ -91,3 +91,27 @@ dotnet test --filter "FullyQualifiedName~TestName"
 3. Follow MVVM pattern strictly for GUI components
 4. Use dependency injection for all services
 5. Write unit tests for all analyzers using sample data
+
+### Migration Notes
+
+- Any code from the Python app that used GlobalRegistry should now use Scanner111.Core.ApplicationSettings
+- When creating the .NET port, ensure that the report formatting exactly matches the Python implementation, substituting "CLASSIC" with "Scanner 111" as needed
+
+### Development Best Practices
+
+- **Async Method Best Practices**:
+  - Don't forget cancellation tokens in async methods
+  - Don't use blocking I/O in async methods
+
+### Resource Management
+- Don't forget to dispose resources (use `using` statements)
+
+### Development Reminders
+- Always rebuild when testing new changes
+
+### Async I/O Considerations
+- Ensure async I/O contention is properly accounted for by:
+  - Using `SemaphoreSlim` for controlling concurrent file access
+  - Implementing thread-safe async read/write operations
+  - Using `Channel<T>` for managing async I/O streams
+  - Carefully managing shared resources in multi-threaded async scenarios

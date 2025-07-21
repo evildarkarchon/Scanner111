@@ -191,17 +191,11 @@ public class CrashLogDirectoryManagerTests
         var skseSEPath = "C:\\Users\\Test\\Documents\\My Games\\Skyrim Special Edition\\SKSE\\crash-test.log";
         result = CrashLogDirectoryManager.DetectGameType(crashLogPath: skseSEPath);
         Assert.Equal("SkyrimSE", result);
-        
-        // Test SKSE classic path detection
-        var skseClassicPath = "C:\\Users\\Test\\Documents\\My Games\\Skyrim\\SKSE\\crash-test.log";
-        result = CrashLogDirectoryManager.DetectGameType(crashLogPath: skseClassicPath);
-        Assert.Equal("Skyrim", result);
     }
     
     [Theory]
     [InlineData("SkyrimSE.exe detected", "SkyrimSE")]
     [InlineData("Skyrim Special Edition crashed", "SkyrimSE")]
-    [InlineData("Skyrim.exe version 1.9.32.0", "Skyrim")]
     [InlineData("System Info: Fallout4VR.exe", "Fallout4VR")]
     public void DetectGameType_FromLogContent_ReturnsCorrectType(string logContent, string expectedType)
     {

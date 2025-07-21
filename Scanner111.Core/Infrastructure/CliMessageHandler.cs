@@ -13,6 +13,7 @@ public class CliMessageHandler : IMessageHandler
     private readonly bool _useColors;
     private readonly string _logDirectory;
     private readonly string _currentLogFile;
+    internal static CliProgress? _activeProgress;
 
     public CliMessageHandler(bool useColors = true)
     {
@@ -113,6 +114,9 @@ public class CliMessageHandler : IMessageHandler
     {
         var timestamp = DateTime.Now.ToString("HH:mm:ss");
         
+        // If there's an active progress bar, interrupt it properly
+        var needsProgressRedraw = _activeProgress?.InterruptForMessage() ?? false;
+        
         if (_useColors)
         {
             Console.Write($"[{timestamp}] ");
@@ -126,6 +130,12 @@ public class CliMessageHandler : IMessageHandler
             // Fallback for terminals that don't support colors
             var cleanPrefix = RemoveEmojis(prefix);
             Console.WriteLine($"[{timestamp}] {cleanPrefix}: {message}");
+        }
+        
+        // Redraw the progress bar if needed
+        if (needsProgressRedraw)
+        {
+            _activeProgress?.RedrawAfterMessage();
         }
     }
 
@@ -212,6 +222,8 @@ public class CliProgress : IProgress<ProgressInfo>
     private readonly int _totalItems;
     private readonly bool _useColors;
     private int _lastPercentage = -1;
+    private ProgressInfo? _currentProgress;
+    private bool _isActive;
 
     public CliProgress(string title, int totalItems, bool useColors)
     {
@@ -220,16 +232,52 @@ public class CliProgress : IProgress<ProgressInfo>
         _useColors = useColors;
         
         Console.WriteLine($"\n{_title}");
+        _isActive = true;
+        CliMessageHandler._activeProgress = this;
     }
 
     public void Report(ProgressInfo value)
     {
+        if (!_isActive) return;
+        
+        _currentProgress = value;
         var percentage = (int)value.Percentage;
         
         // Only update if percentage changed to avoid spam
         if (percentage == _lastPercentage) return;
         _lastPercentage = percentage;
 
+        DrawProgressBar(value);
+        
+        if (percentage >= 100)
+        {
+            Console.WriteLine(); // New line when complete
+            _isActive = false;
+            if (CliMessageHandler._activeProgress == this)
+                CliMessageHandler._activeProgress = null;
+        }
+    }
+
+    public bool InterruptForMessage()
+    {
+        if (!_isActive) return false;
+        
+        // Move to new line if we're currently showing progress on the same line
+        Console.WriteLine();
+        return true;
+    }
+
+    public void RedrawAfterMessage()
+    {
+        if (!_isActive || _currentProgress == null) return;
+        
+        // Redraw the progress bar on a new line
+        DrawProgressBar(_currentProgress);
+    }
+
+    private void DrawProgressBar(ProgressInfo value)
+    {
+        var percentage = (int)value.Percentage;
         var barWidth = 40;
         var filledWidth = (int)(barWidth * (percentage / 100.0));
         var bar = new string('█', filledWidth) + new string('░', barWidth - filledWidth);
@@ -247,11 +295,6 @@ public class CliProgress : IProgress<ProgressInfo>
         else
         {
             Console.Write($"\r[{bar}] {percentage}% - {value.Message}");
-        }
-        
-        if (percentage >= 100)
-        {
-            Console.WriteLine(); // New line when complete
         }
     }
 }
@@ -302,6 +345,10 @@ public class CliProgressContext : IProgressContext
     {
         if (_disposed) return;
         _disposed = true;
+        
+        // Clean up active progress reference
+        if (CliMessageHandler._activeProgress == _progress)
+            CliMessageHandler._activeProgress = null;
         
         // Ensure we end on a new line
         Console.WriteLine();

@@ -156,11 +156,33 @@ public class CrashLogParserTests : IDisposable
     public async Task ParseAsync_HandlesIncompleteLogCorrectly()
     {
         // Arrange
-        // Create a log with the PLUGINS section but no actual plugins listed
-        // Remove the newline before first plugin and all plugin lines
-        var incompleteLog = GenerateValidCrashLog().Replace(
-            "	[00:000]   Fallout4.esm\n	[01:000]   DLCRobot.esm\n	[02:001]   DLCworkshop01.esm\n	[FE:001]   TestPlugin.esp\n",
-            "");
+        // Create a log with the PLUGINS section header but no actual plugin entries
+        var originalLog = GenerateValidCrashLog();
+        var pluginsIndex = originalLog.IndexOf("PLUGINS:");
+        string incompleteLog;
+        
+        if (pluginsIndex >= 0)
+        {
+            // Find and remove all plugin entries (lines starting with [XX:YYY])
+            var lines = originalLog.Split('\n');
+            var filteredLines = new List<string>();
+            
+            foreach (var line in lines)
+            {
+                // Keep the line unless it's a plugin entry
+                if (!line.TrimStart().StartsWith("[") || !line.Contains("]") || !line.Contains(".es"))
+                {
+                    filteredLines.Add(line);
+                }
+            }
+            
+            incompleteLog = string.Join("\n", filteredLines);
+        }
+        else
+        {
+            incompleteLog = originalLog;
+        }
+        
         var crashLogPath = CreateTestCrashLog("incomplete.log", incompleteLog);
         
         // Act

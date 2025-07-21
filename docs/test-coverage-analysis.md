@@ -49,8 +49,7 @@ This report identifies areas of the Scanner111 codebase that currently lack test
 #### Infrastructure (6 critical components)
 | Component | Priority | Risk Level | Impact |
 |-----------|----------|------------|--------|
-| ✅
-`CrashLogParser.cs` | **HIGH** | **Critical** | Core parsing functionality |
+| ~~`CrashLogParser.cs`~~ | **HIGH** | **Critical** | Core parsing functionality |
 | `FormIdDatabaseService.cs` | **HIGH** | **High** | FormID lookup operations |
 | `GamePathDetection.cs` | **HIGH** | **High** | Game installation detection |
 | `SettingsHelper.cs` | **HIGH** | **Medium** | Settings management |
