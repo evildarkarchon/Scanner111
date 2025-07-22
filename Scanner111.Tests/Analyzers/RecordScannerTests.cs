@@ -4,17 +4,26 @@ using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Analyzers;
 
+/// Represents a test suite for verifying the functionality and behavior of the RecordScanner analyzer.
+/// Provides test cases to ensure the correct handling of scenarios such as valid records, empty records,
+/// specific marker-based record extraction, duplicate record counting, and proper reporting format consistency.
+/// The tests validate the `AnalyzeAsync` method by comparing expected results against actual outcomes in different scenarios.
+/// This ensures the robustness and reliability of the RecordScanner implementation as part of the overall analysis pipeline.
 public class RecordScannerTests
 {
     private readonly RecordScanner _analyzer;
-    private readonly TestYamlSettingsProvider _yamlSettings;
 
     public RecordScannerTests()
     {
-        _yamlSettings = new TestYamlSettingsProvider();
-        _analyzer = new RecordScanner(_yamlSettings);
+        var yamlSettings = new TestYamlSettingsProvider();
+        _analyzer = new RecordScanner(yamlSettings);
     }
 
+    /// Tests the AnalyzeAsync method of the RecordScanner class to ensure that when provided with valid crash log records,
+    /// it returns a GenericAnalysisResult object with the expected properties and data.
+    /// <return>Returns a task representing the asynchronous operation, which validates that the returned result is of type
+    /// GenericAnalysisResult with appropriate analyzer name, report lines, and expected data entries, such as "RecordsMatches"
+    /// and "ExtractedRecords".</return>
     [Fact]
     public async Task AnalyzeAsync_WithValidRecords_ReturnsGenericAnalysisResult()
     {
@@ -44,6 +53,11 @@ public class RecordScannerTests
         Assert.Contains("ExtractedRecords", recordResult.Data);
     }
 
+    /// Tests the AnalyzeAsync method of the RecordScanner class to verify that when provided with a CrashLog object containing
+    /// no named records in the call stack, it returns a GenericAnalysisResult indicating no findings and an empty set of relevant data.
+    /// <returns>Returns a task representing the asynchronous operation, which ensures that the result is a GenericAnalysisResult
+    /// with HasFindings set to false, empty "RecordsMatches" and "ExtractedRecords" data, and a report text indicating the absence
+    /// of named records in the provided CrashLog.</returns>
     [Fact]
     public async Task AnalyzeAsync_WithNoRecords_ReturnsEmptyResult()
     {
@@ -75,6 +89,13 @@ public class RecordScannerTests
         Assert.Contains("* COULDN'T FIND ANY NAMED RECORDS *", recordResult.ReportText);
     }
 
+    /// Tests the AnalyzeAsync method of the RecordScanner class to ensure that when provided with a crash log containing
+    /// specific RSP marker lines, it correctly identifies and processes those lines in accordance with the expected logic.
+    /// It validates whether the output contains the respective markers and ensures that findings or reports are consistent
+    /// with the given configuration and logic, even with empty record sets.
+    /// <returns>Returns a task representing the asynchronous operation, which validates that the result is a
+    /// GenericAnalysisResult object. It ensures that the analyzer name, report content, and findings status
+    /// are consistent with the expected behavior for crash logs with RSP marker lines.</returns>
     [Fact]
     public async Task AnalyzeAsync_WithRSPMarkerLines_ExtractsCorrectly()
     {
@@ -106,6 +127,12 @@ public class RecordScannerTests
         Assert.Contains("* COULDN'T FIND ANY NAMED RECORDS *", recordResult.ReportText);
     }
 
+    /// Tests the AnalyzeAsync method of the RecordScanner class to ensure that, when encountering call stack lines
+    /// without the RSP marker, it appropriately processes and extracts records that conform to the expected patterns.
+    /// This test verifies the behavior with a mix of valid records, non-marker lines, and unrelated text to ensure
+    /// the analyzer ignores irrelevant lines and identifies records accurately.
+    /// <returns>Returns a task representing the asynchronous operation, which verifies that the RecordScanner produces
+    /// a GenericAnalysisResult object with no findings due to the absence of RSP marker lines in the input.</returns>
     [Fact]
     public async Task AnalyzeAsync_WithNonRSPMarkerLines_ExtractsCorrectly()
     {
@@ -133,6 +160,9 @@ public class RecordScannerTests
         Assert.False(recordResult.HasFindings);
     }
 
+    /// Tests the AnalyzeAsync method of the RecordScanner class to verify that records are correctly extracted from the call stack of a CrashLog object.
+    /// This test ensures that records residing in specific stack marker lines (e.g., "[RSP+...]") are identified and loaded into the result, even if no matching operation is performed due to empty record sets.
+    /// <returns>Returns a task representing the asynchronous operation, which confirms that extracted records from the call stack are accurately identified and included in the analysis result without performing matching.</returns>
     [Fact]
     public async Task AnalyzeAsync_ExtractsRecordsFromCallStack()
     {
@@ -161,6 +191,10 @@ public class RecordScannerTests
         Assert.Empty(extractedRecords);
     }
 
+    /// Tests the AnalyzeAsync method of the RecordScanner class to ensure that when duplicate crash log records
+    /// are provided in the CallStack, they are correctly counted and handled by the analyzer.
+    /// <returns>Returns a task representing the asynchronous operation, which verifies the accuracy of the analyzer
+    /// in counting duplicate records and producing the expected result, with appropriate handling of record findings.</returns>
     [Fact]
     public async Task AnalyzeAsync_WithDuplicateRecords_CountsCorrectly()
     {
@@ -192,6 +226,11 @@ public class RecordScannerTests
         Assert.False(recordResult.HasFindings); // Empty record sets
     }
 
+    /// Verifies that the AnalyzeAsync method of the RecordScanner class generates a correctly formatted report
+    /// when analyzing a given crash log. It ensures that the report contains expected messages, a valid structure,
+    /// and accurately reflects the analysis results for the provided CrashLog object.
+    /// <returns>Returns a task representing the asynchronous operation, validating that the generated report matches
+    /// the expected format, including specific text content and structural properties such as report lines.</returns>
     [Fact]
     public async Task AnalyzeAsync_GeneratesCorrectReportFormat()
     {
@@ -222,6 +261,10 @@ public class RecordScannerTests
         Assert.Single(recordResult.ReportLines);
     }
 
+    /// Tests the AnalyzeAsync method of the RecordScanner class to verify that when provided with crash logs containing explanatory notes,
+    /// it formats the resulting report correctly by including clear explanations, record counts, crash generator details, and other contextual information.
+    /// <returns>Returns a task representing the asynchronous operation, which ensures the formatted report includes proper structure,
+    /// accurately reflects explanatory notes, and aligns with the generated analysis result.</returns>
     [Fact]
     public async Task AnalyzeAsync_WithExplanatoryNotes_FormatsCorrectly()
     {
@@ -255,6 +298,10 @@ public class RecordScannerTests
         Assert.NotNull(recordResult.ReportLines);
     }
 
+    /// Tests the AnalyzeAsync method of the RecordScanner class to ensure that when a crash log with a specific CrashGen name
+    /// is analyzed, the correct analyzer name is used in the result and explanatory notes are generated as expected when records are found.
+    /// <returns>Returns a task representing the asynchronous operation, validating that the GenericAnalysisResult contains the specified
+    /// analyzer name, "Record Scanner," and includes non-null ReportLines when records are present.</returns>
     [Fact]
     public async Task AnalyzeAsync_WithCrashgenName_UsesCorrectName()
     {
@@ -283,6 +330,10 @@ public class RecordScannerTests
         Assert.NotNull(recordResult.ReportLines);
     }
 
+    /// Validates that the AnalyzeAsync method of the RecordScanner class, when executed multiple times with the same input crash log,
+    /// consistently produces results that match across key properties, including AnalyzerName, ReportLines, and HasFindings.
+    /// <returns>Returns a task representing the asynchronous operation, ensuring that repeated executions of AnalyzeAsync yield
+    /// consistent and equivalent results for the same input data.</returns>
     [Fact]
     public async Task AnalyzeAsync_ReturnsConsistentResults()
     {

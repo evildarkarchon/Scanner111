@@ -4,7 +4,8 @@ using System.Data.SQLite;
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-///     Service for managing FormID database lookups and caching
+/// Interface for the FormID database service, providing methods for querying
+/// database entries and checking database existence status.
 /// </summary>
 public interface IFormIdDatabaseService
 {
@@ -23,7 +24,8 @@ public interface IFormIdDatabaseService
 }
 
 /// <summary>
-///     Implementation of FormID database service with caching
+/// Provides an implementation of the FormID database service. This class supports
+/// querying FormID values from a database with built-in caching for improved performance.
 /// </summary>
 public class FormIdDatabaseService : IFormIdDatabaseService
 {
@@ -32,9 +34,9 @@ public class FormIdDatabaseService : IFormIdDatabaseService
     private readonly ConcurrentDictionary<(string formId, string plugin), string> _queryCache = new();
 
     /// <summary>
-    ///     Initialize the FormID database service
+    /// Provides an implementation of the FormID database service. This class supports
+    /// querying FormID values from a database with built-in caching for improved performance.
     /// </summary>
-    /// <param name="gameName">Game name (e.g., "Fallout4")</param>
     public FormIdDatabaseService(string gameName = "Fallout4")
     {
         _gameName = gameName;
@@ -57,7 +59,7 @@ public class FormIdDatabaseService : IFormIdDatabaseService
     public bool DatabaseExists { get; }
 
     /// <summary>
-    ///     Look up a FormID value in the database
+    /// Look up a FormID value in the database
     /// </summary>
     /// <param name="formId">The FormID to look up (without plugin prefix)</param>
     /// <param name="plugin">The plugin name</param>

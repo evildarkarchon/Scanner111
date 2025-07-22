@@ -3,6 +3,28 @@ using System.Text.Json.Serialization;
 
 namespace Scanner111.GUI.Models;
 
+/// <summary>
+/// Represents a set of configurable user settings for the application.
+/// </summary>
+/// <remarks>
+/// This class is designed to store and manage user preferences related to the
+/// application's behavior and appearance. The settings include paths, UI
+/// preferences, logging configurations, and other relevant options. Most
+/// properties are serialized and deserialized using JSON for ease of
+/// persistence.
+/// </remarks>
+/// <example>
+/// Use this class to load, modify, and save user-specific settings in the
+/// application. It provides various configurable properties such as file
+/// paths, window dimensions, and options for enabling or disabling specific
+/// features.
+/// </example>
+/// <remarks>
+/// The settings can be saved or loaded using a suitable persistence mechanism,
+/// such as a settings service, to enable customization and state management.
+/// Specific helper methods are provided to ease the management of the
+/// "recent items" lists.
+/// </remarks>
 public class UserSettings
 {
     [JsonPropertyName("defaultLogPath")] public string DefaultLogPath { get; set; } = "";
@@ -51,6 +73,10 @@ public class UserSettings
 
     [JsonPropertyName("skipXSECopy")] public bool SkipXseCopy { get; set; } = false;
 
+    /// Adds a specified log file path to the list of recent log files.
+    /// Maintains the maximum number of recent items as defined by MaxRecentItems.
+    /// If the path already exists in the list, it is moved to the most recent position.
+    /// <param name="path">The file path of the log to be added to the recent list.</param>
     public void AddRecentLogFile(string path)
     {
         if (string.IsNullOrEmpty(path)) return;
@@ -61,6 +87,10 @@ public class UserSettings
         while (RecentLogFiles.Count > MaxRecentItems) RecentLogFiles.RemoveAt(RecentLogFiles.Count - 1);
     }
 
+    /// Adds a specified game path to the list of recent game paths.
+    /// Maintains the maximum number of recent items as defined by MaxRecentItems.
+    /// If the path already exists in the list, it is moved to the most recent position.
+    /// <param name="path">The file path of the game to be added to the recent list.</param>
     public void AddRecentGamePath(string path)
     {
         if (string.IsNullOrEmpty(path)) return;
@@ -71,6 +101,10 @@ public class UserSettings
         while (RecentGamePaths.Count > MaxRecentItems) RecentGamePaths.RemoveAt(RecentGamePaths.Count - 1);
     }
 
+    /// Adds a specified directory path to the list of recent scan directories.
+    /// Ensures the list does not exceed the maximum allowed recent items.
+    /// If the directory path already exists in the list, it is moved to the most recent position.
+    /// <param name="path">The directory path to be added to the recent scan directories list.</param>
     public void AddRecentScanDirectory(string path)
     {
         if (string.IsNullOrEmpty(path)) return;

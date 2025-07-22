@@ -4,13 +4,36 @@ using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Tests.Infrastructure;
 
+/// <summary>
+/// Contains unit tests for the <c>YamlSettingsCache</c> class, verifying its behavior in different scenarios.
+/// </summary>
+/// <remarks>
+/// The class includes tests to validate operations such as retrieving settings values,
+/// handling cached data, handling missing files or keys, updating cache values, and
+/// working with various data types and configurations.
+/// </remarks>
+/// <threadsafety>
+/// This test class is not thread-safe as it uses shared resources like the file system
+/// and static cache mechanisms in the <c>YamlSettingsCache</c>.
+/// </threadsafety>
+/// <testsetup>
+/// During setup, the class initializes required services such as a memory cache, a
+/// cache manager, and a YAML settings provider. Moreover, it creates a temporary
+/// YAML test file with predefined settings for testing purposes.
+/// </testsetup>
+/// <testcleanup>
+/// Upon cleanup, the class disposes of services and memory, resets static caches,
+/// and removes any temporary files created during the tests to maintain isolation.
+/// </testcleanup>
+/// <seealso cref="YamlSettingsCache"/>
+/// <seealso cref="MemoryCache"/>
+/// <seealso cref="CacheManager"/>
 public class YamlSettingsCacheTests : IDisposable
 {
     private readonly CacheManager _cacheManager;
     private readonly string _classicDataPath;
     private readonly IMemoryCache _memoryCache;
     private readonly string _testYamlPath;
-    private readonly IYamlSettingsProvider _yamlSettingsService;
 
     public YamlSettingsCacheTests()
     {
@@ -44,12 +67,17 @@ Test_Section:
         // Initialize the service components
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
         _cacheManager = new CacheManager(_memoryCache, NullLogger<CacheManager>.Instance);
-        _yamlSettingsService = new YamlSettingsService(_cacheManager);
+        IYamlSettingsProvider yamlSettingsService = new YamlSettingsService(_cacheManager);
 
         // Initialize the static cache with our service
-        YamlSettingsCache.Initialize(_yamlSettingsService);
+        YamlSettingsCache.Initialize(yamlSettingsService);
     }
 
+    /// Performs cleanup operations for the YamlSettingsCacheTests class.
+    /// This method ensures proper resource management by:<br/>
+    /// - Deleting any test YAML file that might have been created during testing.<br/>
+    /// - Resetting the static cache in YamlSettingsCache to ensure no cached data persists between tests.<br/>
+    /// - Disposing of resources in reverse order of their creation to prevent resource leaks.
     public void Dispose()
     {
         // Clean up test file first
@@ -61,8 +89,17 @@ Test_Section:
         // Dispose in reverse order of creation
         _cacheManager?.Dispose();
         _memoryCache?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
+    /// Validates the retrieval of values from the YAML settings cache when provided with a valid file path.
+    /// The test performs the following steps:<br/>
+    /// - Clears any existing cache to ensure test isolation.<br/>
+    /// - Creates a temporary YAML file in a designated directory for testing.<br/>
+    /// - Writes predefined content to the YAML file, simulating a valid configuration.<br/>
+    /// - Retrieves a specific boolean value from the YAML file using the `YamlSettingsCache`'s `YamlSettings` method.<br/>
+    /// - Verifies that the retrieved value matches the expected result.<br/>
+    /// After the test, any temporary files created are removed to ensure a clean test environment.
     [Fact]
     public void YamlSettingsCache_WithValidPath_ReturnsCorrectValue()
     {
@@ -94,6 +131,12 @@ Test_Section:
         }
     }
 
+    /// Tests the behavior of the YamlSettingsCache when attempting to retrieve a value from a non-existent YAML file.
+    /// This test verifies that, in the absence of the specified file, the method returns the provided default value.
+    /// Ensures the following:<br/>
+    /// - When the YAML file does not exist, no exception is thrown.<br/>
+    /// - The returned value matches the specified default value.<br/>
+    /// - The default behavior is consistent across calls with missing files.
     [Fact]
     public void YamlSettingsCache_WithNonExistentFile_ReturnsDefault()
     {
@@ -102,6 +145,14 @@ Test_Section:
         Assert.Equal("default", result);
     }
 
+    /// Validates that retrieving a non-existent key from a YAML settings file
+    /// returns the specified default value.<br/>
+    /// This test performs the following operations:<br/>
+    /// - Ensures the required test directory exists.<br/>
+    /// - Creates a temporary YAML file with predefined content.<br/>
+    /// - Attempts to retrieve a non-existent key from the YAML settings using YamlSettingsCache.<br/>
+    /// - Asserts that the result matches the provided default value.<br/>
+    /// - Cleans up by deleting the test YAML file after execution.
     [Fact]
     public void YamlSettingsCache_WithNonExistentKey_ReturnsDefault()
     {
@@ -129,6 +180,12 @@ CLASSIC_Settings:
         }
     }
 
+    /// Validates the caching behavior of the YamlSettingsCache class.
+    /// This test ensures that:<br/>
+    /// - The first access to a given setting uses the value from the YAML file.<br/>
+    /// - Subsequent accesses to the same setting return a cached value, even if the file content changes.<br/>
+    /// - The caching mechanism prevents unnecessary reads from the file, maintaining consistent performance and data integrity.<br/>
+    /// The test writes a YAML file, reads the setting twice, modifies the file between reads, and asserts that the cached value remains unchanged.
     [Fact]
     public void YamlSettingsCache_WithCaching_ReturnsCachedValue()
     {
@@ -166,6 +223,14 @@ CLASSIC_Settings:
         }
     }
 
+    /// Verifies that the YamlSettingsCache correctly removes cached values when the cache is cleared.
+    /// Specifically, this test:<br/>
+    /// - Writes an initial YAML content to a test file.<br/>
+    /// - Reads a value from the YAML file, which is then cached.<br/>
+    /// - Updates the YAML file with new content.<br/>
+    /// - Clears the cache using the YamlSettingsCache.ClearCache method.<br/>
+    /// - Reads the updated value from the YAML file, ensuring the cache was successfully invalidated.<br/>
+    /// Ensures proper cleanup by deleting the test file after the test completes.
     [Fact]
     public void YamlSettingsCache_ClearCache_RemovesCachedValues()
     {
@@ -206,6 +271,11 @@ CLASSIC_Settings:
         }
     }
 
+    /// Ensures that the `SetYamlSetting` method of `YamlSettingsCache` correctly updates the cache.
+    /// This test case verifies that:<br/>
+    /// - Setting a value using `SetYamlSetting` updates the in-memory cache.<br/>
+    /// - The updated value can subsequently be retrieved from the cache using the `YamlSettings` method with the same parameters.<br/>
+    /// The functionality is validated using assertions to check that the value retrieved from the cache matches the expected updated value.
     [Fact]
     public void YamlSettingsCache_SetYamlSetting_UpdatesCache()
     {
@@ -217,6 +287,11 @@ CLASSIC_Settings:
         Assert.Equal("new_value", result);
     }
 
+    /// Validates the behavior of the YamlSettingsCache when working with real CLASSIC YAML configuration files.
+    /// This test checks if the cache correctly handles scenarios where specific CLASSIC files exist:<br/>
+    /// - It verifies that the cache can handle settings from the "CLASSIC Fallout4.yaml" file if present.<br/>
+    /// - It ensures proper functionality when interacting with the "CLASSIC Main.yaml" file if available.<br/>
+    /// The test executes only if the defined `_classicDataPath` directory exists, and the associated files are accessible.
     [Fact]
     public void YamlSettingsCache_WithRealClassicFiles_WorksIfExists()
     {
@@ -245,6 +320,19 @@ CLASSIC_Settings:
         }
     }
 
+    /// Tests the functionality of the YamlSettingsCache class to correctly handle and retrieve values of different data types.
+    /// This test creates a temporary YAML file containing keys with various data types, such as:<br/>
+    /// - String<br/>
+    /// - Integer<br/>
+    /// - Boolean<br/>
+    /// - Float<br/>
+    /// The method verifies that the YamlSettingsCache can correctly parse and return values for each type using the appropriate
+    /// key and default value (if applicable).<br/>
+    /// Ensures the following:<br/>
+    /// - The values retrieved match the expected values for each type.<br/>
+    /// - The cache implementation works consistently across all supported types.<br/>
+    /// The test also includes cleanup operations to remove the temporary YAML file that it generates during execution
+    /// to avoid environmental side effects.
     [Fact]
     public void YamlSettingsCache_WithDifferentTypes_WorksCorrectly()
     {

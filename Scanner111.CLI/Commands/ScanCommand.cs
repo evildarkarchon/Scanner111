@@ -24,6 +24,13 @@ public class ScanCommand : ICommand<CliScanOptions>
         _scanResultProcessor = scanResultProcessor;
     }
 
+    /// Executes the scan command asynchronously, handling crash log file scanning based on the given options.
+    /// <param name="options">
+    /// The options provided through the command line, specifying scan parameters like file path, directory, or override settings.
+    /// </param>
+    /// <returns>
+    /// An integer status code indicating the result of the operation. Returns 0 on success, and 1 if a fatal error occurs.
+    /// </returns>
     public async Task<int> ExecuteAsync(CliScanOptions options)
     {
         try
@@ -184,7 +191,7 @@ public class ScanCommand : ICommand<CliScanOptions>
         MessageHandler.MsgInfo($"Clean files: {results.Count(r => !r.AnalysisResults.Any(ar => ar.HasFindings))}");
 
         var filesWithIssues = results.Where(r => r.AnalysisResults.Any(ar => ar.HasFindings)).ToList();
-        if (filesWithIssues.Any())
+        if (filesWithIssues.Count == 0) return;
         {
             MessageHandler.MsgInfo("\nFiles with issues:");
             foreach (var result in filesWithIssues)

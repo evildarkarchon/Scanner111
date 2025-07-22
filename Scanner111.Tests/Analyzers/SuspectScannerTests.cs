@@ -4,17 +4,40 @@ using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Analyzers;
 
+/// Unit test class for validating the functionality of the SuspectScanner class.
+/// This class contains multiple test methods to ensure various aspects of the
+/// AnalyzeAsync method perform as expected under different scenarios.
+/// The tests verify the following cases:
+/// - Proper detection of suspects when valid crash logs are analyzed.
+/// - Correct behavior when the crash log contains no valid suspects.
+/// - Special case handling for DLL crashes.
+/// - Exclusion of specific DLL files like Tbbmalloc.dll.
+/// - Detection of suspects in the main error and stack traces.
+/// - Handling of required main error patterns and minimum occurrences.
+/// - Handling of negative patterns to skip matches.
+/// - Case-insensitive matching behavior.
 public class SuspectScannerTests
 {
     private readonly SuspectScanner _analyzer;
-    private readonly TestYamlSettingsProvider _yamlSettings;
 
     public SuspectScannerTests()
     {
-        _yamlSettings = new TestYamlSettingsProvider();
-        _analyzer = new SuspectScanner(_yamlSettings);
+        var yamlSettings = new TestYamlSettingsProvider();
+        _analyzer = new SuspectScanner(yamlSettings);
     }
 
+    /// Validates that the AnalyzeAsync method returns a valid SuspectAnalysisResult
+    /// when processing a CrashLog containing one or more valid suspects.
+    /// The method specifically tests the behavior of the SuspectScanner class
+    /// to ensure it successfully identifies suspect information from the provided
+    /// crash log and correctly populates the SuspectAnalysisResult object. This
+    /// includes verifying the result type, the analyzer's name, detection of findings,
+    /// and the presence of specific report lines.
+    /// <returns>
+    /// A task representing the asynchronous operation. The task result is a
+    /// SuspectAnalysisResult object containing details of the analysis, including
+    /// findings and generated report lines.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithValidSuspects_ReturnsSuspectAnalysisResult()
     {
@@ -43,6 +66,16 @@ public class SuspectScannerTests
         Assert.NotEmpty(suspectResult.ReportLines);
     }
 
+    /// Validates that the AnalyzeAsync method returns an empty SuspectAnalysisResult
+    /// when processing a CrashLog that does not contain any suspect patterns or findings.
+    /// The method ensures the SuspectScanner correctly identifies the absence of
+    /// relevant errors or stack traces in the provided crash log, and it verifies
+    /// that the result contains no findings or matches.
+    /// <returns>
+    /// A task representing the asynchronous operation. The task result is a
+    /// SuspectAnalysisResult object with HasFindings set to false, and both
+    /// ErrorMatches and StackMatches collections empty.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithNoSuspects_ReturnsEmptyResult()
     {
@@ -69,6 +102,18 @@ public class SuspectScannerTests
         Assert.Empty(suspectResult.StackMatches);
     }
 
+    /// Validates that the AnalyzeAsync method correctly detects and reports a DLL-related crash
+    /// when analyzing a provided CrashLog. This test ensures that the method identifies
+    /// the specific mention of a DLL file in the MainError section of the crash log and
+    /// generates the appropriate warning and notice messages in the report text.
+    /// The method evaluates whether the crash log's details, including relevant errors
+    /// and call stack lines, are accurately processed to identify a DLL as a potential
+    /// cause of the crash.
+    /// <returns>
+    /// A task representing the asynchronous operation. The task result is a
+    /// SuspectAnalysisResult object containing report text with warnings about
+    /// the detected DLL-related crash.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithDllCrash_DetectsIt()
     {
@@ -95,6 +140,14 @@ public class SuspectScannerTests
             suspectResult.ReportText);
     }
 
+    /// Ensures that the AnalyzeAsync method of the SuspectScanner class correctly ignores
+    /// crash logs that report errors involving the tbbmalloc.dll module. This test validates
+    /// that no suspect warnings or report notices are generated for such cases, ensuring
+    /// the correct handling of specific module-related errors.
+    /// <returns>
+    /// A task representing the asynchronous operation. The task result is an AnalysisResult object,
+    /// which in this context should not include any suspect notices related to the tbbmalloc.dll module.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithTbbmallocDll_IgnoresIt()
     {
@@ -119,6 +172,16 @@ public class SuspectScannerTests
             suspectResult.ReportText);
     }
 
+    /// Verifies that the AnalyzeAsync method correctly identifies and detects main error suspects
+    /// when processing a CrashLog with a specified MainError and call stack. The test ensures that
+    /// the analyzer successfully identifies critical keywords or patterns in the provided main error
+    /// message and generates a SuspectAnalysisResult containing proper findings and severity-level details.
+    /// The verification includes checking the presence of specific report lines and ensuring that the analysis
+    /// yields a result with correct findings for the main error suspects.
+    /// <returns>
+    /// A task representing the asynchronous operation. The task result is a SuspectAnalysisResult object,
+    /// which includes details about the findings, associated severity levels, and corresponding report text.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithMainErrorSuspects_DetectsThemCorrectly()
     {
@@ -146,6 +209,17 @@ public class SuspectScannerTests
         Assert.Contains("Severity : 4", suspectResult.ReportText);
     }
 
+    /// Ensures that the AnalyzeAsync method correctly identifies stack-related suspects
+    /// when processing a crash log with suspect patterns in the call stack. This test
+    /// is designed to evaluate the behavior of the SuspectScanner class regarding the
+    /// detection of stack-related issues such as specific error messages or function
+    /// calls. The test verifies that identified suspects are properly categorized
+    /// and included in the result with appropriate severity levels and report details.
+    /// <returns>
+    /// A task representing the asynchronous operation. The task result is a
+    /// SuspectAnalysisResult object containing details of the stack-related findings,
+    /// including identified suspects and the associated severity reported in the output.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithStackSuspects_DetectsThemCorrectly()
     {
@@ -180,6 +254,18 @@ public class SuspectScannerTests
         Assert.Contains("Severity : 4", reportText);
     }
 
+    /// Validates that the AnalyzeAsync method enforces the requirement
+    /// that the main error in the provided CrashLog must match a specific
+    /// required error pattern for certain findings to be detected and included
+    /// in the analysis results. This test specifically ensures that findings related
+    /// to the "ME-REQ" pattern are only reported when the main error in the
+    /// CrashLog explicitly contains the expected pattern. The behavior is tested
+    /// for scenarios both with and without the required pattern in the main error.
+    /// <returns>
+    /// A task representing the asynchronous operation. The task result is a
+    /// SuspectAnalysisResult object. It verifies the presence or absence of findings
+    /// related to the required main error pattern in the generated analysis report.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithRequiredMainErrorPattern_RequiresMainErrorMatch()
     {
@@ -226,6 +312,18 @@ public class SuspectScannerTests
         Assert.DoesNotContain("Stack Overflow", suspectResult2.ReportText);
     }
 
+    /// Validates that the AnalyzeAsync method enforces a minimum occurrence
+    /// requirement for specific patterns in the crash log's call stack. The test
+    /// ensures that a suspect pattern is only flagged as a finding if it meets or
+    /// exceeds the required minimum number of occurrences. Specifically, it verifies
+    /// the behavior when the required count is met versus when it is not met.
+    /// This helps confirm the accuracy of the detection logic in handling numeric
+    /// thresholds for patterns that might occur multiple times in a crash log.
+    /// <returns>
+    /// A task representing the asynchronous operation. The task result is an
+    /// AnalysisResult object indicating whether the minimum occurrence criteria
+    /// were met and including relevant findings if applicable.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithCountPattern_RequiresMinimumOccurrences()
     {
@@ -273,6 +371,18 @@ public class SuspectScannerTests
         Assert.DoesNotContain("Invalid Handle", suspectResult2.ReportText);
     }
 
+    /// Confirms that the AnalyzeAsync method correctly skips analyzing suspect data
+    /// when a specified negative pattern is detected in the crash log. This test verifies
+    /// that the method can filter out entries matching a defined exclusion pattern to
+    /// avoid incorrect or unnecessary findings. It ensures that suspect results are not
+    /// generated for logs containing excluded patterns and that findings are limited
+    /// to valid cases without the negative pattern.
+    /// <returns>
+    /// A task representing the asynchronous operation. The task result is a
+    /// SuspectAnalysisResult object that either includes valid findings and report
+    /// text when no negative patterns are detected, or excludes specific findings when
+    /// the negative pattern is present.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithNegativePattern_SkipsWhenPatternFound()
     {
@@ -320,6 +430,15 @@ public class SuspectScannerTests
         Assert.DoesNotContain("Debug Assert", suspectResult2.ReportText);
     }
 
+    /// Validates that the AnalyzeAsync method performs correctly when handling case-insensitive
+    /// matching for suspect detection. This test ensures that the SuspectScanner can identify
+    /// potential issues, such as critical errors or stack-related problems, regardless of the
+    /// letter casing used in the provided crash log data. It focuses specifically on verifying
+    /// that matching operations are not influenced by character casing in the main error or call stack.
+    /// <returns>
+    /// A task representing the asynchronous operation. The task result is a SuspectAnalysisResult
+    /// object, which should confirm whether the case-insensitive matching detects relevant findings.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithCaseInsensitiveMatching_WorksCorrectly()
     {

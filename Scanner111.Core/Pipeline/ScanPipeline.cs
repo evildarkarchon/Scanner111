@@ -8,6 +8,10 @@ using Scanner111.Core.Models;
 
 namespace Scanner111.Core.Pipeline;
 
+/// <summary>
+/// Represents a pipeline that processes scan operations, allowing single log processing or batch log processing
+/// with analyzers and resource management capabilities.
+/// </summary>
 public class ScanPipeline : IScanPipeline
 {
     private readonly IEnumerable<IAnalyzer> _analyzers;
@@ -30,6 +34,14 @@ public class ScanPipeline : IScanPipeline
         _semaphore = new SemaphoreSlim(Environment.ProcessorCount);
     }
 
+    /// <summary>
+    /// Processes a single crash log file asynchronously, analyzes its contents using configured analyzers,
+    /// and returns the result, including processing status and analysis outcomes.
+    /// </summary>
+    /// <param name="logPath">The path of the crash log file to be processed.</param>
+    /// <param name="cancellationToken">Optional cancellation token to cancel the operation.</param>
+    /// <returns>A <see cref="ScanResult"/> object containing the results of the analysis, processing status,
+    /// and other relevant details.</returns>
     public async Task<ScanResult> ProcessSingleAsync(string logPath, CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -101,6 +113,16 @@ public class ScanPipeline : IScanPipeline
         return result;
     }
 
+    /// <summary>
+    /// Processes a batch of crash log files asynchronously, analyzes their contents using configured analyzers,
+    /// and returns a stream of analysis results.
+    /// </summary>
+    /// <param name="logPaths">A collection of file paths representing the crash logs to process.</param>
+    /// <param name="options">Optional configuration settings for the processing pipeline, such as concurrency limits.</param>
+    /// <param name="progress">Optional progress reporter to track the progress of the batch processing operation.</param>
+    /// <param name="cancellationToken">Optional cancellation token to cancel the batch processing operation.</param>
+    /// <returns>An asynchronous stream of <see cref="ScanResult"/> objects, each representing the outcome of analyzing
+    /// an individual crash log file.</returns>
     public async IAsyncEnumerable<ScanResult> ProcessBatchAsync(
         IEnumerable<string> logPaths,
         ScanOptions? options = null,
@@ -190,15 +212,29 @@ public class ScanPipeline : IScanPipeline
         await producerTask;
     }
 
+    /// <summary>
+    /// Disposes resources used by the <see cref="ScanPipeline"/> asynchronously,
+    /// releasing any unmanaged and managed resources. Ensures that subsequent
+    /// dispose calls are safe and do not lead to repeated disposal.
+    /// </summary>
+    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous disposal operation.</returns>
     public async ValueTask DisposeAsync()
     {
         if (_disposed) return;
 
         _semaphore?.Dispose();
         _disposed = true;
+        GC.SuppressFinalize(this);
         await Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Processes log files read from a channel asynchronously, analyzing each file using configured analyzers
+    /// and yielding the analysis results as they are completed.
+    /// </summary>
+    /// <param name="reader">The channel reader instance to read log file paths from.</param>
+    /// <param name="cancellationToken">Optional cancellation token to cancel the operation.</param>
+    /// <returns>An asynchronous stream of <see cref="ScanResult"/> objects representing the results of the analyzed log files.</returns>
     private async IAsyncEnumerable<ScanResult> ProcessChannelAsync(
         ChannelReader<string> reader,
         [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -217,6 +253,13 @@ public class ScanPipeline : IScanPipeline
         }
     }
 
+    /// <summary>
+    /// Merges multiple asynchronous streams of <see cref="ScanResult"/> into a single unified asynchronous sequence.
+    /// The method ensures that results are streamed without unbounded buffering, maintaining order as they become available.
+    /// </summary>
+    /// <param name="sources">A list of asynchronous enumerables that represent the individual result streams to merge.</param>
+    /// <param name="cancellationToken">A cancellation token to signal cancellation of the operation.</param>
+    /// <returns>An asynchronous enumerable that sequentially yields merged <see cref="ScanResult"/> objects from all sources.</returns>
     private async IAsyncEnumerable<ScanResult> MergeResultsAsync(
         List<IAsyncEnumerable<ScanResult>> sources,
         [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -257,29 +300,27 @@ public class ScanPipeline : IScanPipeline
 
                 var (sourceIndex, hasValue, result) = await completedTask;
 
-                if (hasValue && result != null)
-                {
-                    // Yield the result immediately - no buffering
-                    yield return result;
+                if (!hasValue || result == null) continue;
+                // Yield the result immediately - no buffering
+                yield return result;
 
-                    // Start next read from this source
-                    activeTasks.Add(Task.Run(async () =>
+                // Start next read from this source
+                activeTasks.Add(Task.Run(async () =>
+                {
+                    try
                     {
-                        try
-                        {
-                            var nextHasValue = await enumerators[sourceIndex].MoveNextAsync();
-                            return (sourceIndex, nextHasValue, nextHasValue ? enumerators[sourceIndex].Current : null);
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            return (sourceIndex, false, null);
-                        }
-                        catch
-                        {
-                            return (sourceIndex, false, null);
-                        }
-                    }, cancellationToken));
-                }
+                        var nextHasValue = await enumerators[sourceIndex].MoveNextAsync();
+                        return (sourceIndex, nextHasValue, nextHasValue ? enumerators[sourceIndex].Current : null);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return (sourceIndex, false, null);
+                    }
+                    catch
+                    {
+                        return (sourceIndex, false, null);
+                    }
+                }, cancellationToken));
                 // If hasValue is false, this source is exhausted - don't restart it
             }
         }
@@ -303,6 +344,13 @@ public class ScanPipeline : IScanPipeline
         }
     }
 
+    /// <summary>
+    /// Executes the specified analyzer on the provided crash log asynchronously and returns the analysis result.
+    /// </summary>
+    /// <param name="analyzer">The analyzer to be executed on the crash log.</param>
+    /// <param name="crashLog">The crash log to be analyzed.</param>
+    /// <param name="cancellationToken">Optional cancellation token to cancel the operation.</param>
+    /// <returns>An <see cref="AnalysisResult"/> object containing the analyzer's output, including success status and errors, if any.</returns>
     private async Task<AnalysisResult> RunAnalyzerAsync(
         IAnalyzer analyzer,
         CrashLog crashLog,
@@ -320,7 +368,7 @@ public class ScanPipeline : IScanPipeline
             {
                 AnalyzerName = analyzer.Name,
                 Success = false,
-                Errors = new[] { $"Analyzer failed: {ex.Message}" }
+                Errors = [$"Analyzer failed: {ex.Message}"]
             };
         }
     }

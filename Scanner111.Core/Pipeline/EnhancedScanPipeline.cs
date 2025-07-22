@@ -9,7 +9,9 @@ using Scanner111.Core.Models;
 namespace Scanner111.Core.Pipeline;
 
 /// <summary>
-///     Enhanced scan pipeline with caching, error handling, and detailed progress reporting
+/// Represents an advanced scanning pipeline that integrates multiple analyzers,
+/// supports caching mechanisms, handles errors resiliently, and provides
+/// features for detailed batch and single log processing with progress reporting.
 /// </summary>
 public class EnhancedScanPipeline : IScanPipeline
 {
@@ -39,6 +41,10 @@ public class EnhancedScanPipeline : IScanPipeline
         _semaphore = new SemaphoreSlim(Environment.ProcessorCount);
     }
 
+    /// Asynchronously processes a single log file at the specified path and returns the result of the scan.
+    /// <param name="logPath">The file path of the log to be processed.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <return>A task representing the asynchronous operation and returning a <see cref="ScanResult"/> object containing the result of the scan.</return>
     public async Task<ScanResult> ProcessSingleAsync(string logPath, CancellationToken cancellationToken = default)
     {
         var executionResult = await _resilientExecutor.ExecuteAsync(async ct =>
@@ -98,6 +104,12 @@ public class EnhancedScanPipeline : IScanPipeline
         };
     }
 
+    /// Asynchronously processes a batch of log files specified in the provided paths, yielding scan results as they become available.
+    /// <param name="logPaths">A collection of file paths representing the logs to be processed.</param>
+    /// <param name="options">Optional settings for processing the batch of logs, such as concurrency and other scan configurations.</param>
+    /// <param name="progress">An optional progress reporter used to track the progress of the batch processing.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <return>An asynchronous stream of <see cref="ScanResult"/> objects, each representing the result of processing a log file.</return>
     public async IAsyncEnumerable<ScanResult> ProcessBatchAsync(
         IEnumerable<string> logPaths,
         ScanOptions? options = null,
@@ -171,6 +183,12 @@ public class EnhancedScanPipeline : IScanPipeline
                 case ScanStatus.CompletedWithErrors:
                     incompleteScans++;
                     break;
+                case ScanStatus.Pending:
+                case ScanStatus.InProgress:
+                case ScanStatus.Cancelled:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException("Invalid scan status: " + result.Status);
             }
 
             // Report batch progress for backward compatibility
@@ -209,6 +227,10 @@ public class EnhancedScanPipeline : IScanPipeline
             paths.Count, successfulScans, failedScans, incompleteScans, cacheStats.HitRate);
     }
 
+    /// Asynchronously releases the resources used by the EnhancedScanPipeline instance.
+    /// Ensures all resources such as the semaphore are properly disposed and suppresses finalization of the object.
+    /// Subsequent calls to dispose methods on the same instance will have no effect as disposal is idempotent.
+    /// <return>A value task that represents the asynchronous disposal operation.</return>
     public ValueTask DisposeAsync()
     {
         if (_disposed) return ValueTask.CompletedTask;
@@ -220,6 +242,10 @@ public class EnhancedScanPipeline : IScanPipeline
         return ValueTask.CompletedTask;
     }
 
+    /// Parses a crash log from the specified log file path using caching mechanisms, and returns the parsed result.
+    /// <param name="logPath">The file path of the crash log to be parsed.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <return>A task representing the asynchronous operation, returning a <see cref="CrashLog"/> object if parsing is successful; otherwise, null.</return>
     private async Task<CrashLog?> ParseCrashLogWithCaching(string logPath, CancellationToken cancellationToken)
     {
         return await _resilientExecutor.ExecuteAsync(async ct =>
@@ -235,6 +261,11 @@ public class EnhancedScanPipeline : IScanPipeline
             }, $"ParseCrashLog:{logPath}", cancellationToken);
     }
 
+    /// Executes a set of analyzers on the specified crash log, utilizing caching for efficiency, and updates the provided scan result with the analysis outcomes.
+    /// <param name="result">The result object that will be updated with analysis results.</param>
+    /// <param name="crashLog">The crash log to be analyzed by the configured analyzers.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <return>A task that represents the asynchronous operation of running the analyzers and updating the scan result.</return>
     private async Task RunAnalyzersWithCaching(ScanResult result, CrashLog crashLog,
         CancellationToken cancellationToken)
     {
@@ -262,6 +293,11 @@ public class EnhancedScanPipeline : IScanPipeline
         }
     }
 
+    /// Executes an analyzer on a crash log using caching to improve performance and returns the resulting analysis.
+    /// <param name="analyzer">The analyzer instance to be executed on the crash log.</param>
+    /// <param name="crashLog">The crash log input to be analyzed.</param>
+    /// <param name="cancellationToken">A token to monitor for operation cancellation.</param>
+    /// <return>A task representing the asynchronous operation, returning an <see cref="AnalysisResult"/> object if the analysis succeeds, or null if a cached result is unavailable and no analysis is performed.</return>
     private async Task<AnalysisResult?> RunAnalyzerWithCaching(
         IAnalyzer analyzer,
         CrashLog crashLog,
@@ -269,25 +305,29 @@ public class EnhancedScanPipeline : IScanPipeline
     {
         // Check cache first
         var cachedResult = _cacheManager.GetCachedAnalysisResult(crashLog.FilePath, analyzer.Name);
-        if (cachedResult != null)
-        {
-            _logger.LogTrace("Using cached result for {Analyzer}:{FilePath}", analyzer.Name, crashLog.FilePath);
-            return cachedResult;
-        }
+        if (cachedResult == null)
+            return await _resilientExecutor.ExecuteAsync(async ct =>
+                {
+                    _logger.LogDebug("Running analyzer: {AnalyzerName} on {FilePath}", analyzer.Name,
+                        crashLog.FilePath);
 
-        return await _resilientExecutor.ExecuteAsync(async ct =>
-            {
-                _logger.LogDebug("Running analyzer: {AnalyzerName} on {FilePath}", analyzer.Name, crashLog.FilePath);
+                    var result = await analyzer.AnalyzeAsync(crashLog, ct);
 
-                var result = await analyzer.AnalyzeAsync(crashLog, ct);
+                    // Cache the result if successful
+                    if (result.Success) _cacheManager.CacheAnalysisResult(crashLog.FilePath, analyzer.Name, result);
 
-                // Cache the result if successful
-                if (result.Success) _cacheManager.CacheAnalysisResult(crashLog.FilePath, analyzer.Name, result);
+                    return result;
+                }, $"RunAnalyzer:{analyzer.Name}:{crashLog.FilePath}", cancellationToken);
+        _logger.LogTrace("Using cached result for {Analyzer}:{FilePath}", analyzer.Name, crashLog.FilePath);
+        return cachedResult;
 
-                return result;
-            }, $"RunAnalyzer:{analyzer.Name}:{crashLog.FilePath}", cancellationToken);
     }
 
+    /// Processes log files read from the specified channel and reports detailed progress during processing.
+    /// <param name="reader">The channel reader used to retrieve log file paths.</param>
+    /// <param name="detailedProgress">An object for reporting detailed progress of the operation.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <return>An asynchronous enumerable of <see cref="ScanResult"/> representing the results of processing each log file.</return>
     private async IAsyncEnumerable<ScanResult> ProcessChannelWithProgressAsync(
         ChannelReader<string> reader,
         DetailedProgress detailedProgress,
@@ -313,6 +353,10 @@ public class EnhancedScanPipeline : IScanPipeline
         }
     }
 
+    /// Merges multiple asynchronous sequences of scan results into a single asynchronous sequence in a streaming manner.
+    /// <param name="sources">A list of asynchronous sequences of <see cref="ScanResult"/> objects to be merged.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <return>An asynchronous enumerable sequence containing the merged stream of <see cref="ScanResult"/> objects from all sources.</return>
     private async IAsyncEnumerable<ScanResult> MergeResultsAsync(
         List<IAsyncEnumerable<ScanResult>> sources,
         [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -324,10 +368,8 @@ public class EnhancedScanPipeline : IScanPipeline
         try
         {
             // Start initial MoveNext for all sources
-            for (var i = 0; i < enumerators.Count; i++)
-            {
-                var index = i;
-                activeTasks.Add(Task.Run(async () =>
+            activeTasks.AddRange(enumerators.Select((_, enumeratorIndex) => enumeratorIndex)
+                .Select(index => Task.Run(async () =>
                 {
                     try
                     {
@@ -342,8 +384,7 @@ public class EnhancedScanPipeline : IScanPipeline
                     {
                         return (index, false, null);
                     }
-                }, cancellationToken));
-            }
+                }, cancellationToken)));
 
             // Process results as they become available
             while (activeTasks.Count > 0)

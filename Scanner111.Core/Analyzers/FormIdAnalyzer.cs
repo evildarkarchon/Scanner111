@@ -6,7 +6,8 @@ using Scanner111.Core.Models;
 namespace Scanner111.Core.Analyzers;
 
 /// <summary>
-///     Handles FormID analysis and lookup operations, direct port of Python FormIDAnalyzer
+/// Provides functionality for analyzing and extracting information from FormID entries
+/// in crash logs using a specified pattern and configuration settings.
 /// </summary>
 public class FormIdAnalyzer : IAnalyzer
 {

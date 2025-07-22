@@ -6,7 +6,8 @@ using Scanner111.Core.Models;
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-///     Implementation of IReportWriter for writing scan reports to disk
+/// Provides functionality for writing scan reports to a file system, with support for concurrent write prevention
+/// and logging of operations. Implements the IReportWriter interface.
 /// </summary>
 public class ReportWriter : IReportWriter
 {
@@ -18,13 +19,24 @@ public class ReportWriter : IReportWriter
         _logger = logger;
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Writes a report based on the provided scan result.
+    /// </summary>
+    /// <param name="scanResult">The scan result containing the data for the report.</param>
+    /// <param name="cancellationToken">An optional cancellation token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous write operation. The task result contains a boolean indicating whether the report was written successfully.</returns>
     public async Task<bool> WriteReportAsync(ScanResult scanResult, CancellationToken cancellationToken = default)
     {
         return await WriteReportAsync(scanResult, scanResult.OutputPath, cancellationToken);
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Writes a report to a specified output path based on the provided scan result.
+    /// </summary>
+    /// <param name="scanResult">The scan result containing data to generate the report content.</param>
+    /// <param name="outputPath">The file path where the report will be written.</param>
+    /// <param name="cancellationToken">An optional token to observe while waiting for the task to complete.</param>
+    /// <returns>A task that represents the asynchronous write operation. The task result contains a boolean indicating whether the operation was successful.</returns>
     public async Task<bool> WriteReportAsync(ScanResult scanResult, string outputPath,
         CancellationToken cancellationToken = default)
     {
@@ -57,8 +69,10 @@ public class ReportWriter : IReportWriter
     }
 
     /// <summary>
-    ///     Filter report content to remove OPC-related sections
+    /// Filters the provided report content to remove OPC-related sections.
     /// </summary>
+    /// <param name="reportText">The raw text of the report to be filtered.</param>
+    /// <returns>The filtered text with OPC-related sections removed.</returns>
     private static string FilterReportContent(string reportText)
     {
         if (string.IsNullOrEmpty(reportText))

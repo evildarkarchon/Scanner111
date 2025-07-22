@@ -17,19 +17,21 @@ public class ScanResultViewModel
     public ScanResult ScanResult { get; }
 
     /// <summary>
-    ///     Main description for the UI - shows filename
+    /// Gets the filename extracted from the log file's path for display purposes.
     /// </summary>
     public string Description => Path.GetFileName(ScanResult.LogPath);
 
     /// <summary>
-    ///     Detailed information for the UI
+    /// Gets the detailed information about the scan result.
+    /// If there are errors, returns a concatenated string of error messages.
+    /// Otherwise, displays the total processing time in seconds.
     /// </summary>
     public string Details => ScanResult.HasErrors
         ? string.Join("; ", ScanResult.ErrorMessages)
         : $"Processing time: {ScanResult.ProcessingTime.TotalSeconds:F2}s";
 
     /// <summary>
-    ///     Severity level for color coding
+    /// Gets the severity level of the scan result, representing its status as "ERROR", "WARNING", or "INFO".
     /// </summary>
     public string Severity => ScanResult.Failed
         ? "ERROR"
@@ -38,7 +40,8 @@ public class ScanResultViewModel
             : "INFO";
 
     /// <summary>
-    ///     Severity color for the UI
+    /// Gets the color associated with the severity level of the scan result,
+    /// represented as a hexadecimal ARGB color code string.
     /// </summary>
     public string SeverityColor => Severity switch
     {
@@ -49,10 +52,18 @@ public class ScanResultViewModel
     };
 
     /// <summary>
-    ///     Category for grouping
+    /// Gets the category of the scan result, which represents the current status of the scan.
     /// </summary>
     public string Category => ScanResult.Status.ToString();
-    
+
+    /// <summary>
+    /// Retrieves the first cleaned and potentially truncated line from the report contained in the ScanResult.
+    /// If the report is empty, returns a default message indicating no issues were found.
+    /// </summary>
+    /// <returns>
+    /// A string representing the first line of the report, cleaned for display purposes, or a default message
+    /// if the report is empty.
+    /// </returns>
     public string GetFirstReportLine()
     {
         var firstLine = ScanResult.Report.FirstOrDefault();

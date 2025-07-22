@@ -13,6 +13,13 @@ public class ConfigCommand : ICommand<ConfigOptions>
         _settingsService = settingsService;
     }
 
+    /// <summary>
+    /// Executes the configuration command asynchronously based on the specified options.
+    /// </summary>
+    /// <param name="options">The configuration options provided to the command, which determine the operation to be performed. This includes listing the current configuration, resetting to defaults, showing the configuration file path, or setting a configuration value.</param>
+    /// <returns>
+    /// A task representing the asynchronous operation. The task result contains an integer that indicates the exit code of the command, where 0 typically signifies success.
+    /// </returns>
     public async Task<int> ExecuteAsync(ConfigOptions options)
     {
         var messageHandler = new CliMessageHandler();

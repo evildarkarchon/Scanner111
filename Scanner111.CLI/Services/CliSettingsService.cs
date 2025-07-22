@@ -5,7 +5,7 @@ using Scanner111.Core.Models;
 namespace Scanner111.CLI.Services;
 
 /// <summary>
-///     Service for managing CLI settings persistence - now uses unified ApplicationSettings
+/// Provides functionality for managing and persisting CLI-related settings, including legacy and application-wide configurations.
 /// </summary>
 public interface ICliSettingsService
 {
@@ -19,6 +19,9 @@ public interface ICliSettingsService
     Task SaveCliSettingsAsync(CliSettings settings);
 }
 
+/// <summary>
+/// Implements the functionality for managing and persisting CLI-related settings, ensuring compatibility with both legacy configurations and updated application-wide settings.
+/// </summary>
 public class CliSettingsService : ICliSettingsService
 {
     private readonly IApplicationSettingsService _applicationSettingsService = new ApplicationSettingsService();

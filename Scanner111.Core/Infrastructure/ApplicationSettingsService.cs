@@ -9,6 +9,10 @@ public class ApplicationSettingsService : IApplicationSettingsService
 
     private ApplicationSettings? _cachedSettings;
 
+    /// Asynchronously loads application settings from a predefined file path.
+    /// If the settings file does not exist or is invalid, default settings are loaded and returned.
+    /// The loaded settings are cached for future access.
+    /// <returns>An instance of ApplicationSettings containing the current configuration.</returns>
     public async Task<ApplicationSettings> LoadSettingsAsync()
     {
         var settings = await SettingsHelper.LoadSettingsAsync(SettingsFilePath, GetDefaultSettings);
@@ -16,12 +20,26 @@ public class ApplicationSettingsService : IApplicationSettingsService
         return settings;
     }
 
+    /// Asynchronously saves the provided application settings to a predefined file location.
+    /// The settings are also cached in memory for future access.
+    /// <param name="settings">An instance of ApplicationSettings containing configuration values to be saved.</param>
+    /// <returns>A Task representing the asynchronous save operation.</returns>
     public async Task SaveSettingsAsync(ApplicationSettings settings)
     {
         await SettingsHelper.SaveSettingsAsync(SettingsFilePath, settings);
         _cachedSettings = settings;
     }
 
+    /// Asynchronously updates a specific setting within the application settings file.
+    /// The method identifies the setting by the provided key, updates its value, and saves the changes to the settings file.
+    /// If the key does not match any property in the application settings or the value cannot be converted to the property's type, an exception is thrown.
+    /// <param name="key">The name of the setting to be updated (case-insensitive).</param>
+    /// <param name="value">The new value to assign to the setting. The value must be convertible to the property's data type.</param>
+    /// <returns>A task that represents the asynchronous save operation.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown if the key does not correspond to an existing property of the application settings,
+    /// or if the value cannot be converted to the property's type.
+    /// </exception>
     public async Task SaveSettingAsync(string key, object value)
     {
         var settings = _cachedSettings ?? await LoadSettingsAsync();
@@ -48,6 +66,11 @@ public class ApplicationSettingsService : IApplicationSettingsService
             throw new ArgumentException($"Unknown setting: {key}");
     }
 
+    /// Retrieves an instance of the default application settings with all properties
+    /// initialized to predefined values. These default values include configurations
+    /// for core functionality, paths, output formats, performance, logging, notifications,
+    /// and both CLI- and GUI-specific settings.
+    /// <returns>An instance of ApplicationSettings with default predefined values.</returns>
     public ApplicationSettings GetDefaultSettings()
     {
         return new ApplicationSettings

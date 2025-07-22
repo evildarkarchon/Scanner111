@@ -4,14 +4,15 @@ using Microsoft.Win32;
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-///     Provides game path detection functionality using registry and XSE log parsing
+/// Provides functionality to detect the installation path of a game using various approaches,
+/// including registry checks, log file parsing, and common installation path scanning.
 /// </summary>
 public static class GamePathDetection
 {
     /// <summary>
-    ///     Attempts to detect the game installation path using multiple methods
+    /// Attempts to detect the game installation path using various detection methods.
     /// </summary>
-    /// <returns>The detected game path or empty string if not found</returns>
+    /// <returns>The detected game installation path or an empty string if detection fails.</returns>
     public static string TryDetectGamePath()
     {
         // Try registry detection first (Windows only)
@@ -48,9 +49,9 @@ public static class GamePathDetection
     }
 
     /// <summary>
-    ///     Attempts to get game path from Windows registry
+    /// Attempts to retrieve the installation path of the game from the Windows registry.
     /// </summary>
-    /// <returns>The registry path or empty string if not found</returns>
+    /// <returns>The detected game installation path from the registry or an empty string if no registry entry is found or valid.</returns>
     public static string TryGetGamePathFromRegistry()
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -82,9 +83,9 @@ public static class GamePathDetection
     }
 
     /// <summary>
-    ///     Attempts to get game path from XSE (Script Extender) log files
+    /// Attempts to retrieve the game installation path by parsing XSE (Script Extender) log files.
     /// </summary>
-    /// <returns>The XSE log path or empty string if not found</returns>
+    /// <returns>The detected game installation path from the XSE log files or an empty string if the path cannot be determined.</returns>
     public static string TryGetGamePathFromXseLog()
     {
         try
@@ -129,10 +130,10 @@ public static class GamePathDetection
     }
 
     /// <summary>
-    ///     Validates that a path contains a valid game installation
+    /// Validates whether the specified path contains a valid game installation by checking for required game files.
     /// </summary>
-    /// <param name="path">The path to validate</param>
-    /// <returns>True if the path contains a valid game installation</returns>
+    /// <param name="path">The directory path to validate.</param>
+    /// <returns>True if the directory contains necessary game files; otherwise, false.</returns>
     public static bool ValidateGamePath(string path)
     {
         if (string.IsNullOrEmpty(path) || !Directory.Exists(path))

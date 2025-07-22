@@ -4,6 +4,11 @@ using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Analyzers;
 
+/// <summary>
+/// Unit tests for the <see cref="FormIdAnalyzer"/> class,
+/// verifying its ability to correctly process and analyze crash logs
+/// for identifying and reporting Form IDs.
+/// </summary>
 public class FormIdAnalyzerTests
 {
     private readonly FormIdAnalyzer _analyzer;
@@ -15,6 +20,14 @@ public class FormIdAnalyzerTests
         _analyzer = new FormIdAnalyzer(yamlSettings, formIdDatabase);
     }
 
+    /// <summary>
+    /// Verifies that the <see cref="FormIdAnalyzer.AnalyzeAsync"/> method correctly analyzes
+    /// a crash log containing valid Form IDs and returns an instance of <see cref="FormIdAnalysisResult"/>.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation. The result is a <see cref="FormIdAnalysisResult"/>
+    /// containing the analyzed Form IDs from the crash log.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithValidFormIds_ReturnsFormIdAnalysisResult()
     {
@@ -51,6 +64,14 @@ public class FormIdAnalyzerTests
         Assert.DoesNotContain("Form ID: FF000000", formIdResult.FormIds);
     }
 
+    /// <summary>
+    /// Verifies that the <see cref="FormIdAnalyzer.AnalyzeAsync"/> method processes a crash log
+    /// without any Form IDs and returns an instance of <see cref="FormIdAnalysisResult"/> with no findings.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation. The result is a <see cref="FormIdAnalysisResult"/>
+    /// indicating no Form IDs were identified in the provided crash log.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithNoFormIds_ReturnsEmptyResult()
     {
@@ -77,6 +98,15 @@ public class FormIdAnalyzerTests
         Assert.Contains("* COULDN'T FIND ANY FORM ID SUSPECTS *", formIdResult.ReportText);
     }
 
+    /// <summary>
+    /// Verifies that the <see cref="FormIdAnalyzer.AnalyzeAsync"/> method skips Form IDs
+    /// that start with "FF" when analyzing a crash log and returns a <see cref="FormIdAnalysisResult"/>
+    /// containing only the valid Form IDs.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation. The result is a <see cref="FormIdAnalysisResult"/>
+    /// containing the filtered results with Form IDs that do not start with "FF".
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithFormIdsStartingWithFF_SkipsThose()
     {
@@ -108,6 +138,14 @@ public class FormIdAnalyzerTests
         Assert.DoesNotContain("Form ID: FF000002", formIdResult.FormIds);
     }
 
+    /// <summary>
+    /// Tests that the <see cref="FormIdAnalyzer.AnalyzeAsync"/> method generates a correct report
+    /// when analyzing a crash log with matching plugins.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation. The result is a <see cref="FormIdAnalysisResult"/>
+    /// which includes a detailed report of matched Form IDs with their corresponding plugins.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithMatchingPlugins_GeneratesCorrectReport()
     {
@@ -138,6 +176,15 @@ public class FormIdAnalyzerTests
         Assert.Contains("These Form IDs were caught by Buffout 4", formIdResult.ReportText);
     }
 
+    /// <summary>
+    /// Verifies that the <see cref="FormIdAnalyzer.AnalyzeAsync"/> method correctly counts occurrences
+    /// of duplicate Form IDs in a crash log and returns an accurate <see cref="FormIdAnalysisResult"/>
+    /// report with the count of each Form ID.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation. The result is a <see cref="FormIdAnalysisResult"/>
+    /// containing the frequency count of each unique Form ID detected in the crash log.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithDuplicateFormIds_CountsCorrectly()
     {
@@ -168,6 +215,14 @@ public class FormIdAnalyzerTests
         Assert.Contains("- Form ID: 00067890 | [TestPlugin.esp] | 1", formIdResult.ReportText);
     }
 
+    /// <summary>
+    /// Validates that the <see cref="FormIdAnalyzer.AnalyzeAsync"/> method accurately ignores
+    /// malformed Form IDs in the provided crash log while correctly processing valid ones.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation. The result is a <see cref="FormIdAnalysisResult"/>
+    /// containing only the valid Form IDs from the crash log.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithMalformedFormIds_IgnoresThem()
     {
@@ -198,6 +253,14 @@ public class FormIdAnalyzerTests
         Assert.Contains("Form ID: 00012345", formIdResult.FormIds);
     }
 
+    /// <summary>
+    /// Verifies that the <see cref="FormIdAnalyzer.AnalyzeAsync"/> method correctly processes a crash log
+    /// containing case-insensitive Form IDs, ensuring proper normalization and handling of Form ID values.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation. The result is a <see cref="FormIdAnalysisResult"/>
+    /// where Form IDs are normalized to a consistent format and duplicates differing only by case are treated as equivalent.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithCaseInsensitiveFormIds_HandlesCorrectly()
     {

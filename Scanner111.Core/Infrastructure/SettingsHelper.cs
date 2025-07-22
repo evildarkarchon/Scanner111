@@ -3,7 +3,9 @@ using System.Text.Json;
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-///     Common settings infrastructure for both CLI and GUI applications
+/// Provides utility methods to manage application settings,
+/// including loading, saving, and directory management for
+/// settings files.
 /// </summary>
 public static class SettingsHelper
 {
@@ -17,8 +19,11 @@ public static class SettingsHelper
     };
 
     /// <summary>
-    ///     Gets the Scanner111 settings directory in AppData
+    /// Gets the Scanner111 settings directory in the AppData folder.
     /// </summary>
+    /// <returns>
+    /// The path to the Scanner111 settings directory.
+    /// </returns>
     public static string GetSettingsDirectory()
     {
         return Path.Combine(
@@ -27,7 +32,7 @@ public static class SettingsHelper
     }
 
     /// <summary>
-    ///     Ensures the settings directory exists
+    /// Ensures that the settings directory for the application exists.
     /// </summary>
     public static void EnsureSettingsDirectoryExists()
     {
@@ -36,12 +41,15 @@ public static class SettingsHelper
     }
 
     /// <summary>
-    ///     Loads settings from a JSON file
+    /// Asynchronously loads settings from a JSON file or creates default settings if the file does not exist or fails to load.
     /// </summary>
-    /// <typeparam name="T">The settings type</typeparam>
-    /// <param name="filePath">The path to the settings file</param>
-    /// <param name="defaultFactory">Factory function to create default settings</param>
-    /// <returns>The loaded settings or default if file doesn't exist or fails to load</returns>
+    /// <typeparam name="T">The type of the settings object to load.</typeparam>
+    /// <param name="filePath">The path to the settings file.</param>
+    /// <param name="defaultFactory">A factory function to create default settings if the file cannot be loaded.</param>
+    /// <returns>
+    /// A task representing the asynchronous operation. The result contains the loaded settings,
+    /// or the default settings if the file does not exist or fails to load.
+    /// </returns>
     public static async Task<T> LoadSettingsAsync<T>(string filePath, Func<T> defaultFactory)
         where T : class
     {
@@ -67,11 +75,14 @@ public static class SettingsHelper
     }
 
     /// <summary>
-    ///     Saves settings to a JSON file
+    /// Saves the specified settings to a JSON file asynchronously.
     /// </summary>
-    /// <typeparam name="T">The settings type</typeparam>
-    /// <param name="filePath">The path to the settings file</param>
-    /// <param name="settings">The settings to save</param>
+    /// <typeparam name="T">The type of the settings object.</typeparam>
+    /// <param name="filePath">The file path where the settings will be saved.</param>
+    /// <param name="settings">The settings object to be saved.</param>
+    /// <returns>
+    /// A task that represents the asynchronous save operation.
+    /// </returns>
     public static async Task SaveSettingsAsync<T>(string filePath, T settings)
         where T : class
     {
@@ -90,18 +101,18 @@ public static class SettingsHelper
     }
 
     /// <summary>
-    ///     Converts a string value to the appropriate type for settings
+    /// Converts a value to the specified target type for use in application settings.
     /// </summary>
-    /// <param name="value">The value to convert</param>
-    /// <param name="targetType">The target type</param>
-    /// <returns>The converted value</returns>
+    /// <param name="value">The value to be converted.</param>
+    /// <param name="targetType">The type to which the value should be converted.</param>
+    /// <returns>The converted value of the specified target type.</returns>
     public static object ConvertValue(object value, Type targetType)
     {
-      return value switch
-      {
-        null => null!,
-        // Handle string inputs
-        string stringValue when targetType == typeof(bool) => stringValue.ToLowerInvariant() switch
+        return value switch
+        {
+            null => null!,
+            // Handle string inputs
+            string stringValue when targetType == typeof(bool) => stringValue.ToLowerInvariant() switch
         {
           "true" or "yes" or "1" or "on" => true,
           "false" or "no" or "0" or "off" => false,
@@ -113,10 +124,10 @@ public static class SettingsHelper
     }
 
     /// <summary>
-    ///     Converts a string to PascalCase for property matching
+    /// Converts an input string to PascalCase format.
     /// </summary>
-    /// <param name="input">The input string</param>
-    /// <returns>The PascalCase string</returns>
+    /// <param name="input">The input string to be converted.</param>
+    /// <returns>The input string converted to PascalCase format.</returns>
     public static string ToPascalCase(string input)
     {
         if (string.IsNullOrEmpty(input))

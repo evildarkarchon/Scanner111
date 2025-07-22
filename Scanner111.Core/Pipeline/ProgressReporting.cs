@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 namespace Scanner111.Core.Pipeline;
 
 /// <summary>
-///     Detailed progress information for scan operations
+/// Represents detailed progress reporting for scanning operations, capable of capturing file and analyzer states during the process.
 /// </summary>
 public class DetailedProgress : IProgress<DetailedProgressInfo>
 {
@@ -16,12 +16,16 @@ public class DetailedProgress : IProgress<DetailedProgressInfo>
         _innerProgress = innerProgress;
     }
 
+    /// Reports progress information.
+    /// <param name="value">The current progress information to report.</param>
     public void Report(DetailedProgressInfo value)
     {
         _currentProgress = value;
         _innerProgress?.Report(value);
     }
 
+    /// Reports the start of processing for a specific file.
+    /// <param name="filePath">The path of the file being processed.</param>
     public void ReportFileStart(string filePath)
     {
         var progress = _currentProgress with
@@ -33,6 +37,9 @@ public class DetailedProgress : IProgress<DetailedProgressInfo>
         Report(progress);
     }
 
+    /// Reports the completion status of a file processing operation.
+    /// <param name="filePath">The path of the file that was processed.</param>
+    /// <param name="success">A boolean indicating whether the file processing was successful.</param>
     public void ReportFileComplete(string filePath, bool success)
     {
         var progress = _currentProgress with
@@ -51,6 +58,9 @@ public class DetailedProgress : IProgress<DetailedProgressInfo>
         Report(progress);
     }
 
+    /// Starts tracking the progress of an analyzer for a specific file.
+    /// <param name="analyzerName">The name of the analyzer to track.</param>
+    /// <param name="filePath">The path of the file being analyzed.</param>
     public void ReportAnalyzerStart(string analyzerName, string filePath)
     {
         _analyzerProgress[GetKey(analyzerName, filePath)] = new AnalyzerProgress
@@ -64,6 +74,11 @@ public class DetailedProgress : IProgress<DetailedProgressInfo>
         UpdateAnalyzerProgress();
     }
 
+    /// Completes the progress reporting for an analyzer by updating its status,
+    /// end time, and duration.
+    /// <param name="analyzerName">The name of the analyzer whose progress is being completed.</param>
+    /// <param name="filePath">The file that was being analyzed by the specified analyzer.</param>
+    /// <param name="success">Indicates whether the analyzer finished successfully or encountered an error.</param>
     public void ReportAnalyzerComplete(string analyzerName, string filePath, bool success)
     {
         var key = GetKey(analyzerName, filePath);
@@ -77,6 +92,10 @@ public class DetailedProgress : IProgress<DetailedProgressInfo>
         UpdateAnalyzerProgress();
     }
 
+    /// Updates the progress information of currently running analyzers for detailed progress tracking.
+    /// Simultaneously calculates and reports the current state of active analyzers.
+    /// This method updates the list of active analyzers, sorting them by their start time,
+    /// and includes the latest updates for progress reporting.
     private void UpdateAnalyzerProgress()
     {
         var analyzerProgresses = _analyzerProgress.Values
@@ -93,6 +112,12 @@ public class DetailedProgress : IProgress<DetailedProgressInfo>
         Report(progress);
     }
 
+    /// <summary>
+    /// Combines the analyzer name and file path into a unique key.
+    /// </summary>
+    /// <param name="analyzerName">The name of the analyzer.</param>
+    /// <param name="filePath">The path of the file being analyzed.</param>
+    /// <returns>A string key that uniquely identifies the analyzer and file combination.</returns>
     private static string GetKey(string analyzerName, string filePath)
     {
         return $"{analyzerName}:{filePath}";
@@ -100,7 +125,8 @@ public class DetailedProgress : IProgress<DetailedProgressInfo>
 }
 
 /// <summary>
-///     Detailed progress information
+/// Represents detailed information about the progress of a scanning operation, including file processing status,
+/// analyzer progress, timing, and performance metrics.
 /// </summary>
 public record DetailedProgressInfo
 {
@@ -133,7 +159,8 @@ public record DetailedProgressInfo
 }
 
 /// <summary>
-///     Progress for individual analyzer
+/// Represents the progress of an individual analyzer, capturing details such as the analyzer's name, associated file, status,
+/// start time, end time, and duration of execution.
 /// </summary>
 public class AnalyzerProgress
 {
@@ -146,7 +173,7 @@ public class AnalyzerProgress
 }
 
 /// <summary>
-///     Status of file processing
+/// Represents the status of a file during its processing lifecycle.
 /// </summary>
 public enum FileProcessingStatus
 {
@@ -158,7 +185,7 @@ public enum FileProcessingStatus
 }
 
 /// <summary>
-///     Status of analyzer execution
+/// Represents the execution status of an analyzer in a scanning or processing pipeline.
 /// </summary>
 public enum AnalyzerStatus
 {

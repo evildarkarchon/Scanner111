@@ -4,17 +4,30 @@ using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Analyzers;
 
+/// <summary>
+/// Unit tests for the PluginAnalyzer class, focusing on its ability to analyze plugin-related crash logs
+/// and produce PluginAnalysisResult objects based on various scenarios.
+/// </summary>
 public class PluginAnalyzerTests
 {
     private readonly PluginAnalyzer _analyzer;
-    private readonly TestYamlSettingsProvider _yamlSettings;
 
     public PluginAnalyzerTests()
     {
-        _yamlSettings = new TestYamlSettingsProvider();
-        _analyzer = new PluginAnalyzer(_yamlSettings);
+        var yamlSettings = new TestYamlSettingsProvider();
+        _analyzer = new PluginAnalyzer(yamlSettings);
     }
 
+    /// <summary>
+    /// Ensures that the PluginAnalyzer's AnalyzeAsync method correctly processes a crash log containing
+    /// valid plugin data and returns a PluginAnalysisResult. The test verifies that plugins mentioned
+    /// in the call stack are appropriately identified, counted, and included in the result.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation. The resulting PluginAnalysisResult contains the
+    /// correct analyzer name, indicates that findings were detected, and includes a list of the detected
+    /// plugins with their respective occurrence counts.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithValidPlugins_ReturnsPluginAnalysisResult()
     {
@@ -48,6 +61,17 @@ public class PluginAnalyzerTests
         Assert.Equal(2, pluginResult.Plugins.Count);
     }
 
+    /// <summary>
+    /// Validates that the PluginAnalyzer's AnalyzeAsync method correctly processes a crash log
+    /// that contains no plugin data and returns an empty PluginAnalysisResult. The test ensures
+    /// that no findings are detected, no plugins are included in the result, and the report text
+    /// contains an appropriate message indicating the absence of plugin suspects.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation. The resulting PluginAnalysisResult confirms
+    /// no findings were detected, the plugin list is empty, and the report text includes a message
+    /// about the lack of plugin suspects.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithNoPlugins_ReturnsEmptyResult()
     {
@@ -74,6 +98,17 @@ public class PluginAnalyzerTests
         Assert.Contains("* COULDN'T FIND ANY PLUGIN SUSPECTS *", pluginResult.ReportText);
     }
 
+    /// <summary>
+    /// Tests whether the PluginAnalyzer's AnalyzeAsync method accurately counts the occurrences
+    /// of plugins mentioned in a crash log's call stack and produces a PluginAnalysisResult with
+    /// the correct findings. The test ensures that each plugin is identified and its occurrence
+    /// count is reflected in the result.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation. The resulting PluginAnalysisResult confirms
+    /// that findings were detected, and the ReportText includes the identified plugins and their
+    /// respective occurrence counts, sorted properly in the output.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithPluginMatches_CountsCorrectly()
     {
@@ -106,6 +141,16 @@ public class PluginAnalyzerTests
         Assert.Contains("These Plugins were caught by Buffout 4", pluginResult.ReportText);
     }
 
+    /// <summary>
+    /// Verifies that the PluginAnalyzer's AnalyzeAsync method correctly processes a crash log
+    /// by identifying and filtering out plugins specified as ignored. The test ensures that
+    /// ignored plugins do not contribute to the analysis results or appear in the generated report.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation. The resulting PluginAnalysisResult confirms
+    /// that ignored plugins are excluded from the findings while valid plugins are accurately identified
+    /// and included in the analysis.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithIgnoredPlugins_FiltersThemOut()
     {
@@ -139,6 +184,17 @@ public class PluginAnalyzerTests
         Assert.DoesNotContain("- ignored.esp", pluginResult.ReportText);
     }
 
+    /// <summary>
+    /// Verifies that the PluginAnalyzer's AnalyzeAsync method correctly processes crash log call stack entries
+    /// by filtering out unnecessary "modified by" lines while accurately counting the occurrences of relevant plugins.
+    /// The test ensures that unwanted lines are excluded, and the resulting PluginAnalysisResult accurately reflects
+    /// the plugin data.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation. The resulting PluginAnalysisResult indicates that findings
+    /// were detected and contains a report that correctly counts plugin occurrences, excluding lines that begin
+    /// with "modified by".
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithModifiedByLines_FiltersThemOut()
     {
@@ -168,6 +224,15 @@ public class PluginAnalyzerTests
         Assert.Contains("- testplugin.esp | 2", pluginResult.ReportText);
     }
 
+    /// <summary>
+    /// Verifies that the PluginAnalyzer's AnalyzeAsync method properly handles case-insensitive plugin name matching
+    /// within a crash log. The test ensures that plugin names are matched correctly regardless of letter casing
+    /// and that occurrences are counted accurately in the result.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation. The resulting PluginAnalysisResult confirms that findings
+    /// were detected, with case-insensitive matches appropriately aggregated and reported.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithCaseInsensitiveMatching_WorksCorrectly()
     {
@@ -196,6 +261,15 @@ public class PluginAnalyzerTests
         Assert.Contains("- testplugin.esp | 3", pluginResult.ReportText);
     }
 
+    /// <summary>
+    /// Tests the AnalyzeAsync method of the PluginAnalyzer to ensure that when provided with a crash log containing
+    /// multiple plugin mentions, it correctly sorts the results by the number of occurrences in descending order,
+    /// and then alphabetically by plugin name in ascending order for ties.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation. The resulting PluginAnalysisResult contains
+    /// a correctly ordered list of plugins based on the specified sorting criteria.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithMultiplePlugins_SortsByCountThenName()
     {
@@ -230,14 +304,25 @@ public class PluginAnalyzerTests
         var reportText = pluginResult.ReportText;
 
         // Should be sorted by count (descending) then by name (ascending)
-        var charlieIndex = reportText.IndexOf("- charlie.esp | 3");
-        var alphaIndex = reportText.IndexOf("- alpha.esp | 2");
-        var betaIndex = reportText.IndexOf("- beta.esp | 1");
+        var charlieIndex = reportText.IndexOf("- charlie.esp | 3", StringComparison.Ordinal);
+        var alphaIndex = reportText.IndexOf("- alpha.esp | 2", StringComparison.Ordinal);
+        var betaIndex = reportText.IndexOf("- beta.esp | 1", StringComparison.Ordinal);
 
         Assert.True(charlieIndex < alphaIndex); // Charlie (3) before Alpha (2)
         Assert.True(alphaIndex < betaIndex); // Alpha (2) before Beta (1)
     }
 
+    /// <summary>
+    /// Verifies that the PluginAnalyzer's AnalyzeAsync method integrates information from a crash log
+    /// with a loadorder.txt file to determine and utilize the plugins listed in the file. The test
+    /// ensures that, in the absence of the loadorder.txt file, the plugins found in the crash log
+    /// are accurately processed and included in the analysis.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation. The resulting PluginAnalysisResult contains
+    /// the analyzer name and a list of plugins, demonstrating the ability to process either loadorder.txt
+    /// file data or fallback to crash log plugin data.
+    /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithLoadorderTxtFile_UsesLoadorderPlugins()
     {

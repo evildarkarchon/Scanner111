@@ -4,7 +4,8 @@ using CliScanOptions = Scanner111.CLI.Models.ScanOptions;
 namespace Scanner111.CLI.Services;
 
 /// <summary>
-///     Data container for file scan results
+/// Represents a container for managing file scan data,
+/// including the list of files to be scanned and a collection of copied files.
 /// </summary>
 public class FileScanData
 {
@@ -13,7 +14,7 @@ public class FileScanData
 }
 
 /// <summary>
-///     Service for collecting files to scan and handling XSE crash log copying
+/// Defines a service for collecting files for scanning and managing crash log copying operations.
 /// </summary>
 public interface IFileScanService
 {

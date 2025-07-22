@@ -2,9 +2,25 @@ using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Tests.Infrastructure;
 
+/// <summary>
+/// Provides additional test cases for the CrashLogParser class.
+/// </summary>
+/// <remarks>
+/// This class contains unit tests for verifying the parsing logic of crash logs,
+/// including scenarios such as logs with no plugins and logs containing empty lines.
+/// </remarks>
 public class CrashLogParserAdditionalTests
 {
-    [Fact]
+	/// <summary>
+	/// Verifies that the crash log parser correctly identifies a log with no plugins
+	/// and marks the result as incomplete.
+	/// </summary>
+	/// <returns>
+	/// A task representing the asynchronous operation. The task result
+	/// is a parsed <see cref="CrashLog"/> instance indicating the log details,
+	/// including whether the log is incomplete and its associated metadata.
+	/// </returns>
+	[Fact]
     public async Task ParseAsync_CrashLogWithNoPlugins_IsMarkedIncomplete()
     {
         // Arrange
@@ -61,7 +77,16 @@ PLUGINS:
         }
     }
 
-    [Fact]
+	/// <summary>
+	/// Verifies that the crash log parser correctly processes a log containing empty lines,
+	/// ensuring they are ignored during the parsing process.
+	/// </summary>
+	/// <returns>
+	/// A task representing the asynchronous operation. The task result
+	/// is a parsed <see cref="CrashLog"/> instance that excludes empty lines
+	/// and correctly identifies the list of plugins.
+	/// </returns>
+	[Fact]
     public async Task ParseAsync_CrashLogWithEmptyLines_IgnoresEmptyLines()
     {
         // Arrange

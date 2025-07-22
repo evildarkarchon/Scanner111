@@ -24,7 +24,7 @@ public class PluginAnalyzer : IAnalyzer
         var ignorePluginsList =
             _yamlSettings.GetSetting("CLASSIC Fallout4", "Crashlog_Plugins_Exclude", new List<string>());
         _lowerPluginsIgnore = new HashSet<string>(
-            ignorePluginsList?.Select(p => p.ToLower()) ?? Array.Empty<string>(),
+            ignorePluginsList?.Select(p => p.ToLower()) ?? [],
             StringComparer.OrdinalIgnoreCase);
     }
 
@@ -44,11 +44,11 @@ public class PluginAnalyzer : IAnalyzer
     public bool CanRunInParallel => true;
 
     /// <summary>
-    ///     Analyze a crash log for plugin information
+    /// Analyzes a crash log for plugin-related information asynchronously.
     /// </summary>
-    /// <param name="crashLog">Crash log to analyze</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Plugin analysis result</returns>
+    /// <param name="crashLog">The crash log containing data to analyze.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>An analysis result with information about the detected plugins.</returns>
     public async Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask; // Make it async-ready

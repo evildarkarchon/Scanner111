@@ -2,8 +2,18 @@ using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Tests.Infrastructure;
 
+/// <summary>
+/// Test suite for verifying the functionality of the CrashLogDirectoryManager class.
+/// Validates methods responsible for managing crash log directories, detecting game types,
+/// and handling crash log files effectively.
+/// </summary>
 public class CrashLogDirectoryManagerTests
 {
+    /// <summary>
+    /// Tests the GetDefaultCrashLogsDirectory method to verify it returns a valid and
+    /// non-empty path pointing to the default crash logs directory.
+    /// Ensures the path includes expected directory names like "Scanner111" and "Crash Logs".
+    /// </summary>
     [Fact]
     public void GetDefaultCrashLogsDirectory_ReturnsValidPath()
     {
@@ -15,6 +25,13 @@ public class CrashLogDirectoryManagerTests
         Assert.Contains("Crash Logs", result);
     }
 
+    /// <summary>
+    /// Verifies that the DetectGameType method correctly identifies the game type based on the provided
+    /// game installation path. Tests various game paths to ensure that the correct game type is detected
+    /// and returned from the method.
+    /// </summary>
+    /// <param name="gamePath">The file path to the game installation directory. This path typically contains the game's executable file.</param>
+    /// <param name="expectedType">The expected game type to be detected, corresponding to the game installation directory provided.</param>
     [Theory]
     [InlineData(@"C:\Games\Fallout4", "Fallout4")]
     [InlineData(@"C:\Games\Fallout4VR", "Fallout4VR")]
@@ -46,6 +63,11 @@ public class CrashLogDirectoryManagerTests
         }
     }
 
+    /// <summary>
+    /// Tests the DetectGameType method when no game path or crash log path is provided.
+    /// Verifies that the method defaults to returning "Fallout4",
+    /// which represents the expected default game type.
+    /// </summary>
     [Fact]
     public void DetectGameType_NoGamePath_ReturnsDefaultFallout4()
     {
@@ -54,6 +76,11 @@ public class CrashLogDirectoryManagerTests
         Assert.Equal("Fallout4", result);
     }
 
+    /// <summary>
+    /// Tests the GetGameSpecificDirectory method to verify it correctly combines the base directory
+    /// and game type into a valid and expected path for storing game-specific crash logs.
+    /// Ensures the returned path adheres to the expected format with proper concatenation of input arguments.
+    /// </summary>
     [Fact]
     public void GetGameSpecificDirectory_CombinesPathsCorrectly()
     {
@@ -65,6 +92,12 @@ public class CrashLogDirectoryManagerTests
         Assert.Equal("C:\\CrashLogs\\Fallout4", result);
     }
 
+    /// <summary>
+    /// Verifies that the EnsureDirectoryExists method successfully creates a directory
+    /// at the specified base path with the given game type as a subdirectory. Ensures
+    /// the method returns the correct path and that the directory is properly created
+    /// in the file system.
+    /// </summary>
     [Fact]
     public void EnsureDirectoryExists_CreatesDirectory()
     {
@@ -85,6 +118,11 @@ public class CrashLogDirectoryManagerTests
         }
     }
 
+    /// <summary>
+    /// Verifies that the GetTargetPath method generates the correct target path based on the provided base directory,
+    /// game type, and original file name. Ensures the resulting path combines these elements appropriately
+    /// and that the necessary directories are created if they do not already exist.
+    /// </summary>
     [Fact]
     public void GetTargetPath_ReturnsCorrectPath()
     {
@@ -107,6 +145,12 @@ public class CrashLogDirectoryManagerTests
         }
     }
 
+    /// <summary>
+    /// Validates the CopyCrashLog method to ensure it copies a specified crash log file
+    /// from a source directory to the correct target location within the base directory
+    /// under the provided game type. Verifies that the resulting file path is accurate,
+    /// the file exists at the target location, and its content matches the original file.
+    /// </summary>
     [Fact]
     public void CopyCrashLog_CopiesFileToCorrectLocation()
     {
@@ -138,6 +182,13 @@ public class CrashLogDirectoryManagerTests
         }
     }
 
+    /// <summary>
+    /// Verifies the CopyCrashLog method's ability to automatically detect the game type
+    /// from a source crash log file's contents and copy the file to the correct game-specific
+    /// directory under the provided base directory.
+    /// Ensures the returned path points to the expected location and the file is created
+    /// in the correct directory.
+    /// </summary>
     [Fact]
     public void CopyCrashLog_AutoDetectsGameType()
     {
@@ -168,6 +219,11 @@ public class CrashLogDirectoryManagerTests
         }
     }
 
+    /// <summary>
+    /// Verifies that the DetectGameType method correctly identifies the game type
+    /// based on the provided crash log paths associated with game-specific Scripting Extender (e.g., F4SE, SKSE).
+    /// Ensures accurate detection for Fallout4, Fallout4VR, and Skyrim Special Edition.
+    /// </summary>
     [Fact]
     public void DetectGameType_FromXSEPath_ReturnsCorrectType()
     {
@@ -187,6 +243,13 @@ public class CrashLogDirectoryManagerTests
         Assert.Equal("SkyrimSE", result);
     }
 
+    /// <summary>
+    /// Tests the DetectGameType method using log content to verify it correctly identifies
+    /// and returns the expected game type based on the crash log content.
+    /// Validates the detection logic for specific game-related keywords within the log content.
+    /// </summary>
+    /// <param name="logContent">The content of the crash log as a string, which contains game-related information.</param>
+    /// <param name="expectedType">The expected game type that should be returned based on the log content.</param>
     [Theory]
     [InlineData("SkyrimSE.exe detected", "SkyrimSE")]
     [InlineData("Skyrim Special Edition crashed", "SkyrimSE")]

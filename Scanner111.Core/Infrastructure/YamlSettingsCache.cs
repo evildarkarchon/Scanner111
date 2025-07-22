@@ -33,13 +33,13 @@ public static class YamlSettingsCache
     }
 
     /// <summary>
-    ///     Get a setting value from a YAML file with caching
+    /// Provides functionality for caching and retrieving setting values from YAML files.
     /// </summary>
-    /// <typeparam name="T">Type of value to return</typeparam>
-    /// <param name="yamlFile">YAML filename (without extension)</param>
-    /// <param name="keyPath">Dot-separated path to the setting (e.g., "CLASSIC_Settings.Show FormID Values")</param>
-    /// <param name="defaultValue">Default value if not found</param>
-    /// <returns>The setting value or default</returns>
+    /// <typeparam name="T">Type of the value being retrieved from the settings.</typeparam>
+    /// <param name="yamlFile">The name of the YAML file (without file extension) to load settings from.</param>
+    /// <param name="keyPath">The dot-separated key path used to identify the specific setting in the YAML file.</param>
+    /// <param name="defaultValue">The default value to return if the key is not found in the YAML file.</param>
+    /// <returns>The value of the requested setting if found; otherwise, the provided default value.</returns>
     public static T? YamlSettings<T>(string yamlFile, string keyPath, T? defaultValue = default)
     {
         if (_instance == null)
@@ -50,7 +50,7 @@ public static class YamlSettingsCache
     }
 
     /// <summary>
-    ///     Set a setting value in memory cache
+    /// Set a setting value in memory cache
     /// </summary>
     /// <typeparam name="T">Type of value to set</typeparam>
     /// <param name="yamlFile">YAML filename (without extension)</param>
@@ -66,7 +66,7 @@ public static class YamlSettingsCache
     }
 
     /// <summary>
-    ///     Clear the settings cache
+    /// Clear the settings cache
     /// </summary>
     public static void ClearCache()
     {

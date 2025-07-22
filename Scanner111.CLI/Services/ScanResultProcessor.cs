@@ -6,6 +6,16 @@ namespace Scanner111.CLI.Services;
 
 public class ScanResultProcessor : IScanResultProcessor
 {
+    /// <summary>
+    /// Processes the scan result and performs operations such as displaying findings,
+    /// and auto-saving reports based on the provided options and application settings.
+    /// </summary>
+    /// <param name="result">The result of the scan containing analysis and log details.</param>
+    /// <param name="options">The scan options specifying how the results should be handled.</param>
+    /// <param name="reportWriter">The writer used to persist the scan report to a file.</param>
+    /// <param name="xseCopiedFiles">A set of file paths representing logs copied from XSE logs.</param>
+    /// <param name="settings">The application settings controlling behavior such as report auto-saving.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task ProcessScanResultAsync(ScanResult result, CliScanOptions options, IReportWriter reportWriter,
         HashSet<string> xseCopiedFiles, ApplicationSettings settings)
     {
