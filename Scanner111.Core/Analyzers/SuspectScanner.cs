@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 
@@ -12,14 +13,17 @@ namespace Scanner111.Core.Analyzers;
 public class SuspectScanner : IAnalyzer
 {
     private readonly IYamlSettingsProvider _yamlSettings;
+    private readonly ILogger<SuspectScanner> _logger;
 
     /// <summary>
     ///     Initialize the suspect scanner
     /// </summary>
     /// <param name="yamlSettings">YAML settings provider for configuration</param>
-    public SuspectScanner(IYamlSettingsProvider yamlSettings)
+    /// <param name="logger">Logger for internal diagnostics</param>
+    public SuspectScanner(IYamlSettingsProvider yamlSettings, ILogger<SuspectScanner> logger)
     {
         _yamlSettings = yamlSettings;
+        _logger = logger;
     }
 
     /// <summary>
@@ -63,8 +67,9 @@ public class SuspectScanner : IAnalyzer
 
         // Scan call stack for suspects
         var callStackIntact = string.Join("\n", crashLog.CallStack);
-        MessageHandler.MsgDebug(
-            $"Call stack has {crashLog.CallStack.Count} lines, joined length: {callStackIntact.Length}");
+        _logger.LogDebug(
+            "Call stack has {CallStackCount} lines, joined length: {CallStackLength}", 
+            crashLog.CallStack.Count, callStackIntact.Length);
         var stackFound = SuspectScanStack(crashLog.MainError, callStackIntact, reportLines, maxWarnLength);
         if (stackFound) stackMatches.Add(callStackIntact);
 
@@ -103,14 +108,14 @@ public class SuspectScanner : IAnalyzer
         var fullData = _yamlSettings.LoadYaml<Dictionary<string, object>>("CLASSIC Fallout4");
         if (fullData == null || !fullData.TryGetValue("Crashlog_Error_Check", out var value1))
         {
-            MessageHandler.MsgDebug("Could not load YAML or Crashlog_Error_Check section not found");
+            _logger.LogDebug("Could not load YAML or Crashlog_Error_Check section not found");
             return false;
         }
 
         var rawSuspectsData = value1 as Dictionary<object, object>;
         if (rawSuspectsData == null)
         {
-            MessageHandler.MsgDebug("Crashlog_Error_Check section is not a dictionary");
+            _logger.LogDebug("Crashlog_Error_Check section is not a dictionary");
             return false;
         }
 
@@ -131,7 +136,7 @@ public class SuspectScanner : IAnalyzer
             suspectsErrorList[description] = (severity, criteria);
         }
 
-        MessageHandler.MsgDebug($"Loaded {suspectsErrorList.Count} suspects from YAML");
+        _logger.LogDebug("Loaded {SuspectCount} suspects from YAML", suspectsErrorList.Count);
         foreach (var (errorName, (severity, signal)) in suspectsErrorList)
         {
             // Skip checking if signal not in crash log
@@ -189,18 +194,19 @@ public class SuspectScanner : IAnalyzer
                 suspectsStackList[key.ToString() ?? ""] = stringList;
             }
 
-        MessageHandler.MsgDebug($"Found {suspectsStackList.Count} stack patterns to check");
-        MessageHandler.MsgDebug(
-            $"Call stack preview: '{segmentCallstackIntact.Substring(0, Math.Min(200, segmentCallstackIntact.Length))}'");
+        _logger.LogDebug("Found {StackPatternCount} stack patterns to check", suspectsStackList.Count);
+        _logger.LogDebug(
+            "Call stack preview: '{CallStackPreview}'", 
+            segmentCallstackIntact.Substring(0, Math.Min(200, segmentCallstackIntact.Length)));
         foreach (var (errorKey, signalList) in suspectsStackList)
         {
             // Parse error information from the key format: "6 | BA2 Limit Crash"
             var keyStr = errorKey;
-            MessageHandler.MsgDebug($"Processing stack pattern: '{keyStr}' with {signalList.Count} signals");
+            _logger.LogDebug("Processing stack pattern: '{PatternKey}' with {SignalCount} signals", keyStr, signalList.Count);
             var parts = keyStr.Split(" | ", 2);
             if (parts.Length < 2)
             {
-                MessageHandler.MsgDebug($"Skipping malformed stack pattern key: '{keyStr}'");
+                _logger.LogDebug("Skipping malformed stack pattern key: '{PatternKey}'", keyStr);
                 continue;
             }
 
@@ -220,10 +226,10 @@ public class SuspectScanner : IAnalyzer
             var shouldSkipError = false;
             foreach (var signal in signalList)
             {
-                MessageHandler.MsgDebug($"Processing signal '{signal}' for pattern '{errorName}'");
+                _logger.LogDebug("Processing signal '{Signal}' for pattern '{ErrorName}'", signal, errorName);
                 // Process the signal and update match_status accordingly
                 if (!ProcessSignal(signal, crashlogMainError, segmentCallstackIntact, matchStatus)) continue;
-                MessageHandler.MsgDebug($"Signal '{signal}' triggered skip (NOT condition met)");
+                _logger.LogDebug("Signal '{Signal}' triggered skip (NOT condition met)", signal);
                 shouldSkipError = true;
                 break;
             }
@@ -252,7 +258,7 @@ public class SuspectScanner : IAnalyzer
     /// <returns>
     /// A boolean value indicating whether a "NOT" condition is met in the signal, triggering a skip in further processing.
     /// </returns>
-    private static bool ProcessSignal(string signal, string crashlogMainError, string segmentCallstackIntact,
+    private bool ProcessSignal(string signal, string crashlogMainError, string segmentCallstackIntact,
         Dictionary<string, bool> matchStatus)
     {
         // Constants for signal modifiers
@@ -263,15 +269,15 @@ public class SuspectScanner : IAnalyzer
         if (!signal.Contains("|"))
         {
             // Simple case: direct string match in callstack
-            MessageHandler.MsgDebug($"Simple signal check: '{signal}' in call stack");
+            _logger.LogDebug("Simple signal check: '{Signal}' in call stack", signal);
             if (segmentCallstackIntact.Contains(signal))
             {
-                MessageHandler.MsgDebug($"FOUND simple signal '{signal}' in call stack!");
+                _logger.LogDebug("FOUND simple signal '{Signal}' in call stack!", signal);
                 matchStatus["stack_found"] = true;
             }
             else
             {
-                MessageHandler.MsgDebug($"Simple signal '{signal}' NOT found in call stack");
+                _logger.LogDebug("Simple signal '{Signal}' NOT found in call stack", signal);
             }
 
             return false;

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Data.SQLite;
 using System.Reflection;
 using Scanner111.Core.Infrastructure;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Infrastructure;
 
@@ -394,7 +395,8 @@ internal class TestFormIdDatabaseService : IFormIdDatabaseService
         var cacheField = typeof(FormIdDatabaseService).GetField("_queryCache",
             BindingFlags.NonPublic | BindingFlags.Instance);
 
-        _inner = new FormIdDatabaseService(gameName);
+        var logger = new TestLogger<FormIdDatabaseService>();
+        _inner = new FormIdDatabaseService(gameName, logger);
 
         if (field != null)
             field.SetValue(_inner, databasePaths);

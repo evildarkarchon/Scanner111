@@ -67,9 +67,9 @@ public static class SettingsHelper
 
             return settings ?? defaultFactory();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            MessageHandler.MsgDebug($"Error loading settings from {filePath}: {ex.Message}");
+            // Return default settings on error
             return defaultFactory();
         }
     }
@@ -93,9 +93,9 @@ public static class SettingsHelper
             var json = JsonSerializer.Serialize(settings, JsonOptions);
             await File.WriteAllTextAsync(filePath, json);
         }
-        catch (Exception ex)
+        catch
         {
-            MessageHandler.MsgDebug($"Error saving settings to {filePath}: {ex.Message}");
+            // Re-throw to let calling code handle the error
             throw;
         }
     }

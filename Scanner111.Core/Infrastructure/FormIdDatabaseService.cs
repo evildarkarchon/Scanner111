@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Data.SQLite;
+using Microsoft.Extensions.Logging;
 
 namespace Scanner111.Core.Infrastructure;
 
@@ -31,14 +32,16 @@ public class FormIdDatabaseService : IFormIdDatabaseService
 {
     private readonly string[] _databasePaths;
     private readonly string _gameName;
+    private readonly ILogger<FormIdDatabaseService>? _logger;
     private readonly ConcurrentDictionary<(string formId, string plugin), string> _queryCache = new();
 
     /// <summary>
     /// Provides an implementation of the FormID database service. This class supports
     /// querying FormID values from a database with built-in caching for improved performance.
     /// </summary>
-    public FormIdDatabaseService(string gameName = "Fallout4")
+    public FormIdDatabaseService(string gameName = "Fallout4", ILogger<FormIdDatabaseService>? logger = null)
     {
+        _logger = logger;
         _gameName = gameName;
 
         // Set up potential database paths
@@ -95,7 +98,7 @@ public class FormIdDatabaseService : IFormIdDatabaseService
             catch (Exception ex)
             {
                 // Log error but continue to next database
-                MessageHandler.MsgDebug($"Error accessing FormID database {dbPath}: {ex.Message}");
+                _logger?.LogError(ex, "Error accessing FormID database {DatabasePath}", dbPath);
             }
 
         return null;

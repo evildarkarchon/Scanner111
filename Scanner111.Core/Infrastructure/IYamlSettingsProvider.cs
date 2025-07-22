@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.Logging;
 using YamlDotNet.Serialization;
 
 namespace Scanner111.Core.Infrastructure;
@@ -36,10 +37,12 @@ public class YamlSettingsService : IYamlSettingsProvider
 {
     private readonly ICacheManager _cacheManager;
     private readonly IDeserializer _deserializer;
+    private readonly ILogger<YamlSettingsService> _logger;
 
-    public YamlSettingsService(ICacheManager cacheManager)
+    public YamlSettingsService(ICacheManager cacheManager, ILogger<YamlSettingsService> logger)
     {
         _cacheManager = cacheManager;
+        _logger = logger;
         _deserializer = new DeserializerBuilder()
             .Build();
     }
@@ -77,14 +80,14 @@ public class YamlSettingsService : IYamlSettingsProvider
         try
         {
             var yamlPath = Path.Combine("Data", $"{yamlFile}.yaml");
-            MessageHandler.MsgDebug($"Looking for YAML file: {yamlPath} (yamlFile='{yamlFile}', keyPath='{keyPath}')");
+            _logger.LogDebug("Looking for YAML file: {YamlPath} (yamlFile='{YamlFile}', keyPath='{KeyPath}')", yamlPath, yamlFile, keyPath);
             if (!File.Exists(yamlPath))
             {
-                MessageHandler.MsgDebug($"YAML file not found: {yamlPath}");
+                _logger.LogDebug("YAML file not found: {YamlPath}", yamlPath);
                 return defaultValue;
             }
 
-            MessageHandler.MsgDebug($"YAML file found: {yamlPath}");
+            _logger.LogDebug("YAML file found: {YamlPath}", yamlPath);
 
             var yaml = File.ReadAllText(yamlPath, Encoding.UTF8);
             var data = _deserializer.Deserialize<Dictionary<string, object>>(yaml);

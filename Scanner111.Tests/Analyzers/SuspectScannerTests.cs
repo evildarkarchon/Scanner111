@@ -23,7 +23,8 @@ public class SuspectScannerTests
     public SuspectScannerTests()
     {
         var yamlSettings = new TestYamlSettingsProvider();
-        _analyzer = new SuspectScanner(yamlSettings);
+        var logger = new TestLogger<SuspectScanner>();
+        _analyzer = new SuspectScanner(yamlSettings, logger);
     }
 
     /// Validates that the AnalyzeAsync method returns a valid SuspectAnalysisResult

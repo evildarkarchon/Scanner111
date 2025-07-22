@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Infrastructure;
 
@@ -67,7 +68,8 @@ Test_Section:
         // Initialize the service components
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
         _cacheManager = new CacheManager(_memoryCache, NullLogger<CacheManager>.Instance);
-        IYamlSettingsProvider yamlSettingsService = new YamlSettingsService(_cacheManager);
+        var logger = new TestLogger<YamlSettingsService>();
+        IYamlSettingsProvider yamlSettingsService = new YamlSettingsService(_cacheManager, logger);
 
         // Initialize the static cache with our service
         YamlSettingsCache.Initialize(yamlSettingsService);
