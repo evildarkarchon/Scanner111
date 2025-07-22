@@ -33,6 +33,7 @@ namespace Scanner111.GUI.ViewModels;
 public class MainWindowViewModel : ViewModelBase
 {
     private readonly ISettingsService _settingsService;
+    private readonly GuiMessageHandlerService _messageHandlerService;
     private UserSettings _currentSettings;
     private bool _isScanning;
     private IMessageHandler? _messageHandler;
@@ -49,10 +50,14 @@ public class MainWindowViewModel : ViewModelBase
     private string _selectedScanDirectory = "";
     private string _statusText = "Ready";
 
-    public MainWindowViewModel()
+    public MainWindowViewModel(ISettingsService settingsService, GuiMessageHandlerService messageHandlerService)
     {
-        _settingsService = new SettingsService();
+        _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
+        _messageHandlerService = messageHandlerService ?? throw new ArgumentNullException(nameof(messageHandlerService));
         _currentSettings = new UserSettings();
+
+        // Set this view model in the message handler service
+        _messageHandlerService.SetViewModel(this);
 
         // Initialize commands first - defer pipeline creation to avoid threading issues
         SelectLogFileCommand = ReactiveCommand.CreateFromTask(SelectLogFile);
@@ -266,7 +271,7 @@ public class MainWindowViewModel : ViewModelBase
     private void EnsurePipelineInitialized()
     {
         if (_scanPipeline != null) return;
-        _messageHandler = new GuiMessageHandler(this);
+        _messageHandler = _messageHandlerService;
 
         _scanPipeline = new ScanPipelineBuilder()
             .AddDefaultAnalyzers()
@@ -552,22 +557,16 @@ public class MainWindowViewModel : ViewModelBase
                 ? _currentSettings.CrashLogsDirectory
                 : CrashLogDirectoryManager.GetDefaultCrashLogsDirectory();
 
-            // Look for XSE crash logs in common locations (F4SE and SKSE)
+            // Look for F4SE crash logs in common locations (prioritizing Fallout 4 only)
             var xsePaths = new[]
             {
-                // F4SE paths
+                // F4SE paths only
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Fallout4",
                     "F4SE"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Fallout4VR",
                     "F4SE"),
-                // SKSE paths (including GOG version)
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games",
-                    "Skyrim Special Edition", "SKSE"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games",
-                    "Skyrim Special Edition GOG", "SKSE"),
                 // Also check game path if provided
-                !string.IsNullOrEmpty(SelectedGamePath) ? Path.Combine(SelectedGamePath, "Data", "F4SE") : null,
-                !string.IsNullOrEmpty(SelectedGamePath) ? Path.Combine(SelectedGamePath, "Data", "SKSE") : null
+                !string.IsNullOrEmpty(SelectedGamePath) ? Path.Combine(SelectedGamePath, "Data", "F4SE") : null
             }.Where(path => path != null && Directory.Exists(path)).ToArray();
 
             var copiedCount = 0;

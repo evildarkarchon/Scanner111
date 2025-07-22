@@ -80,22 +80,16 @@ public class FileScanService : IFileScanService
             if (string.IsNullOrEmpty(crashLogsBaseDir))
                 crashLogsBaseDir = CrashLogDirectoryManager.GetDefaultCrashLogsDirectory();
 
-            // Look for XSE crash logs in common locations (F4SE and SKSE)
+            // Look for F4SE crash logs in common locations (prioritizing Fallout 4 only)
             var xsePaths = new[]
             {
-                // F4SE paths
+                // F4SE paths only
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Fallout4",
                     "F4SE"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games", "Fallout4VR",
                     "F4SE"),
-                // SKSE paths (including GOG version)
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games",
-                    "Skyrim Special Edition", "SKSE"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "My Games",
-                    "Skyrim Special Edition GOG", "SKSE"),
                 // Also check game path if provided
-                !string.IsNullOrEmpty(options.GamePath) ? Path.Combine(options.GamePath, "Data", "F4SE") : null,
-                !string.IsNullOrEmpty(options.GamePath) ? Path.Combine(options.GamePath, "Data", "SKSE") : null
+                !string.IsNullOrEmpty(options.GamePath) ? Path.Combine(options.GamePath, "Data", "F4SE") : null
             }.Where(path => path != null && Directory.Exists(path)).ToArray();
 
             var copiedCount = 0;

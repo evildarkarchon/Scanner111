@@ -66,7 +66,7 @@ public class UserSettings
     [JsonPropertyName("autoSaveResults")] public bool AutoSaveResults { get; set; } = true;
 
     [JsonPropertyName("defaultOutputFormat")]
-    public string DefaultOutputFormat { get; set; } = "detailed";
+    public string DefaultOutputFormat { get; set; } = "text"; // Hardcoded to text - JSON/XML formats not implemented
 
     [JsonPropertyName("crashLogsDirectory")]
     public string CrashLogsDirectory { get; set; } = "";

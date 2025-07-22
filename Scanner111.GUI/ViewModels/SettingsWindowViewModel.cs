@@ -19,7 +19,7 @@ public class SettingsWindowViewModel : ViewModelBase
     private bool _autoSaveResults = true;
     private string _defaultGamePath = "";
     private string _defaultLogPath = "";
-    private string _defaultOutputFormat = "detailed";
+    private string _defaultOutputFormat = "text"; // Hardcoded to text - JSON/XML formats not yet implemented
     private string _defaultScanDirectory = "";
     private bool _enableDebugLogging;
     private bool _enableProgressNotifications = true;

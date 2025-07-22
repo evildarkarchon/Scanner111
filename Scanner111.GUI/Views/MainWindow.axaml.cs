@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Scanner111.GUI.ViewModels;
+using Scanner111.GUI.Services;
 
 namespace Scanner111.GUI.Views;
 
@@ -18,13 +19,30 @@ namespace Scanner111.GUI.Views;
 /// architectural pattern to separate the user interface from business logic.
 /// </remarks>
 /// <example>
-/// This class is automatically initialized and displayed when the application starts.
-/// It is not designed to be instantiated manually.
+/// This class is initialized through dependency injection when the application starts.
 /// </example>
 public partial class MainWindow : Window
 {
+    private readonly MainWindowViewModel _viewModel;
+
+    // Parameterless constructor for XAML runtime loader and design-time support
     public MainWindow()
     {
+        // Create design-time services
+        var settingsService = new SettingsService();
+        var messageHandler = new GuiMessageHandlerService();
+
+        _viewModel = new MainWindowViewModel(settingsService, messageHandler);
+        InitializeComponent();
+
+        // Wire up file picker events
+        Loaded += MainWindow_Loaded;
+    }
+
+    // Constructor for dependency injection
+    public MainWindow(MainWindowViewModel viewModel)
+    {
+        _viewModel = viewModel;
         InitializeComponent();
 
         // Wire up file picker events
@@ -39,17 +57,13 @@ public partial class MainWindow : Window
     /// <param name="e">The event data associated with the Loaded event.</param>
     private void MainWindow_Loaded(object? sender, RoutedEventArgs e)
     {
-        // Create ViewModel on UI thread after window is loaded
-        var viewModel = new MainWindowViewModel
-        {
-            // Set up file picker delegates
-            ShowFilePickerAsync = ShowFilePickerAsync,
-            ShowFolderPickerAsync = ShowFolderPickerAsync,
-            TopLevel = this
-        };
+        // Configure the ViewModel with file picker delegates
+        _viewModel.ShowFilePickerAsync = ShowFilePickerAsync;
+        _viewModel.ShowFolderPickerAsync = ShowFolderPickerAsync;
+        _viewModel.TopLevel = this;
 
         // Set DataContext
-        DataContext = viewModel;
+        DataContext = _viewModel;
     }
 
     /// <summary>

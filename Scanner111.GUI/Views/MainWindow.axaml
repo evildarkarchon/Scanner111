@@ -38,13 +38,26 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <!-- Traditional Menu Bar -->
+        <Menu Grid.Row="0" Background="#FF3c3c3c">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Settings..." Command="{Binding OpenSettingsCommand}" />
+                <Separator />
+                <MenuItem Header="E_xit" />
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_About" />
+            </MenuItem>
+        </Menu>
+
         <!-- Header and Controls -->
-        <Border Grid.Row="0" Background="#FF0e639c" Padding="15">
+        <Border Grid.Row="1" Background="#FF0e639c" Padding="15">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" MinWidth="200" />
@@ -102,6 +115,8 @@
                     </Grid>
 
                     <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                        <Button Content="Settings" Command="{Binding OpenSettingsCommand}"
+                                Background="#FF666666" Foreground="White" Padding="15,5" />
                         <Button Content="Scan" Command="{Binding ScanCommand}"
                                 Background="#FF0e639c" Foreground="White"
                                 Padding="15,5" FontWeight="Bold" />
@@ -115,7 +130,7 @@
         </Border>
 
         <!-- Main Content Area -->
-        <TabControl Grid.Row="1" Background="#FF2d2d30">
+        <TabControl Grid.Row="2" Background="#FF2d2d30">
             <!-- Scan Results Tab -->
             <TabItem Header="Scan Results">
                 <Grid>
@@ -340,7 +355,7 @@
         </TabControl>
 
         <!-- Progress Bar -->
-        <Border Grid.Row="2"
+        <Border Grid.Row="3"
                 Background="#FF3c3c3c"
                 Padding="10"
                 IsVisible="{Binding ProgressVisible}">
@@ -370,7 +385,7 @@
         </Border>
 
         <!-- Status Bar -->
-        <Border Grid.Row="3" Background="#FF444444" Padding="10,5">
+        <Border Grid.Row="4" Background="#FF444444" Padding="10,5">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />

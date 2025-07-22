@@ -35,7 +35,7 @@ public class ApplicationSettings
     // === Output Settings ===
 
     [JsonPropertyName("defaultOutputFormat")]
-    public string DefaultOutputFormat { get; set; } = "detailed";
+    public string DefaultOutputFormat { get; set; } = "text"; // Hardcoded to text - JSON/XML formats not implemented
 
     [JsonPropertyName("autoSaveResults")] public bool AutoSaveResults { get; set; } = true;
 

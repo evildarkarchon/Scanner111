@@ -95,9 +95,7 @@ public static class GamePathDetection
             var xsePaths = new[]
             {
                 Path.Combine(documentsPath, "My Games", "Fallout4", "F4SE", "f4se.log"),
-                Path.Combine(documentsPath, "My Games", "Fallout4VR", "F4SE", "f4se.log"),
-                Path.Combine(documentsPath, "My Games", "Skyrim Special Edition", "SKSE", "skse64.log"),
-                Path.Combine(documentsPath, "My Games", "Skyrim", "SKSE", "skse.log")
+                Path.Combine(documentsPath, "My Games", "Fallout4VR", "F4SE", "f4se.log")
             };
 
             foreach (var logPath in xsePaths)
@@ -139,8 +137,8 @@ public static class GamePathDetection
         if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
             return false;
 
-        // Check for game executables
-        var executables = new[] { "Fallout4.exe", "Fallout4VR.exe", "SkyrimSE.exe", "Skyrim.exe" };
+        // Check for game executables - prioritize Fallout 4 only
+        var executables = new[] { "Fallout4.exe", "Fallout4VR.exe" };
         return executables.Any(exe => File.Exists(Path.Combine(path, exe)));
     }
 }

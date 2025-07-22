@@ -61,6 +61,22 @@ public class SettingsScanner : IAnalyzer
                        xseModules.Contains("x-cell-ng2.dll");
         var hasBakaScrapheap = xseModules.Contains("bakascrapheap.dll");
 
+        // Dynamically modify ignore list based on installed mods (matching Python implementation)
+        if (hasXCell)
+        {
+            // When X-Cell is installed, these settings should be ignored if disabled
+            crashgenIgnore.Add("MemoryManager");
+            crashgenIgnore.Add("HavokMemorySystem");
+            crashgenIgnore.Add("BSTextureStreamerLocalHeap");
+            crashgenIgnore.Add("ScaleformAllocator");
+            crashgenIgnore.Add("SmallBlockAllocator");
+        }
+        else if (hasBakaScrapheap)
+        {
+            // When only Baka ScrapHeap is installed, only MemoryManager should be ignored
+            crashgenIgnore.Add("MemoryManager");
+        }
+
         // Perform various settings validations
         ScanBuffoutAchievementsSetting(reportLines, xseModules, crashgenSettings);
         ScanBuffoutMemoryManagementSettings(reportLines, crashgenSettings, hasXCell, hasBakaScrapheap);
