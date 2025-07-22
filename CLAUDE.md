@@ -186,3 +186,31 @@ The CLI supports various options for the scan command:
 - **Progress Reporting**: Use IProgress<T> for long-running operations
 - **File I/O**: Always use UTF-8 encoding with error handling
 - **Logging**: Use ILogger abstraction, not console writes
+
+## High-Level Architecture
+
+### Analyzer Pipeline Flow
+1. **CrashLogParser** reads and parses crash log files
+2. **IScanPipeline** orchestrates the analysis process:
+   - Loads analyzers sorted by priority
+   - Executes analyzers in parallel groups
+   - Streams results via IAsyncEnumerable
+3. **Analyzers** examine different aspects:
+   - **FormIdAnalyzer**: Detects problematic FormIDs using FormIdDatabaseService
+   - **PluginAnalyzer**: Analyzes plugin load order and conflicts
+   - **RecordScanner**: Scans for problematic record types
+   - **SettingsScanner**: Checks game settings
+   - **SuspectScanner**: Identifies known problematic mods
+4. **ReportWriter** formats results matching Python output
+
+### Cross-Cutting Concerns
+- **IYamlSettingsProvider**: Centralized access to YAML configuration data
+- **IApplicationSettingsService**: Application-wide settings management
+- **IMessageHandler**: UI-agnostic progress/status reporting
+- **GamePathDetection**: Auto-detects game installations from registry/common paths
+
+### Key Implementation Details
+- All I/O operations use async patterns with ConfigureAwait(false)
+- Channels used for producer/consumer patterns in batch processing
+- SemaphoreSlim guards concurrent file access
+- Priority-based analyzer execution allows critical checks first

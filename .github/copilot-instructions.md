@@ -24,6 +24,7 @@ await foreach (var result in pipeline.ProcessBatchAsync(logPaths, options, progr
 - **Analyzers**: `FormIdAnalyzer`, `PluginAnalyzer`, `RecordScanner`, `SettingsScanner`, `SuspectScanner`
 - **Execution order**: Priority-based with parallel execution support for independent analyzers
 - **Location**: `Scanner111.Core/Analyzers/`
+- **Return type**: All analyzers return `Task<AnalysisResult>`, not generic results
 
 ### Message Handler Abstraction
 - **UI-agnostic communication** via `IMessageHandler`
@@ -34,12 +35,14 @@ await foreach (var result in pipeline.ProcessBatchAsync(logPaths, options, progr
 ## Critical Implementation Requirements
 
 ### String Preservation Rules
-- **Output format must match Python reference exactly** - see `crash-*-AUTOSCAN.md` files in root
+- **Output format must match Python reference exactly** - see `sample_logs/crash-*-AUTOSCAN.md` files
+- **YAML keys**: Never modify YAML key names in `Data/` files - they match Python implementation
 
 ### File I/O Standards
 - **Always UTF-8 encoding** with error handling for corrupted game files
 - **Use `async` file operations** throughout - no blocking I/O
 - **Pattern**: `File.ReadAllLinesAsync(path, Encoding.UTF8, cancellationToken)`
+- **Console encoding**: Set UTF-8 explicitly in `Program.cs` for Windows compatibility
 
 ### Dependency Injection
 - **Constructor injection** for all services - no static dependencies
@@ -71,11 +74,20 @@ Scanner111.Tests/        # xUnit test project
 
 ### Testing with Sample Data
 ```bash
-# Use root-level crash logs for testing - each has expected AUTOSCAN.md output
+# Use sample_logs/ for testing - each .log has expected -AUTOSCAN.md output
 dotnet test --filter "ClassName=FormIdAnalyzerTests"
 
-# Verify output matches expected format in crash-*-AUTOSCAN.md files
-dotnet run --project Scanner111.CLI -- scan -l "crash-2023-09-15-01-54-49.log"
+# Verify output matches expected format in sample_logs/*-AUTOSCAN.md files
+dotnet run --project Scanner111.CLI -- scan -l "sample_logs/crash-2023-09-15-01-54-49.log"
+```
+
+### CommandLineParser Integration
+```bash
+# CLI uses verb-based commands with CommandLineParser
+dotnet run --project Scanner111.CLI -- scan -l "path/to/crash.log" --verbose
+dotnet run --project Scanner111.CLI -- demo  # Shows sample analysis
+dotnet run --project Scanner111.CLI -- config  # Manages settings
+dotnet run --project Scanner111.CLI -- about   # Version info
 ```
 
 ### Building and Running
@@ -83,10 +95,10 @@ dotnet run --project Scanner111.CLI -- scan -l "crash-2023-09-15-01-54-49.log"
 # Build solution
 dotnet build
 
-# Run GUI (default)
+# Run GUI (Avalonia, no DI container in App.axaml.cs yet)
 dotnet run --project Scanner111.GUI
 
-# Run CLI with specific options
+# Run CLI with dependency injection via ServiceCollection
 dotnet run --project Scanner111.CLI -- scan -l "path/to/crash.log" --verbose
 ```
 
@@ -111,8 +123,15 @@ dotnet run --project Scanner111.CLI -- scan -l "path/to/crash.log" --verbose
 
 ## Reference Implementation
 - **Python source**: `Code to Port/` directory contains original implementation
-- **Expected outputs**: Root-level `crash-*-AUTOSCAN.md` files show exact format requirements
+- **Expected outputs**: `sample_logs/` contains crash logs with expected `-AUTOSCAN.md` outputs
 - **Sample logs**: Use for testing - outputs must match exactly
+- **YAML databases**: `Data/CLASSIC Main.yaml` and `Data/CLASSIC Fallout4.yaml` contain lookup tables
+
+## Testing Patterns
+- **TestHelpers/TestImplementations.cs**: Mock services for unit tests
+- **xUnit framework**: All test projects use xUnit with proper async patterns
+- **Integration tests**: `Scanner111.Tests/Integration/` for end-to-end scenarios
+- **Test data**: Use `sample_logs/` files to verify analyzer output format exactly matches expected
 
 ## UI Patterns
 
@@ -125,3 +144,4 @@ dotnet run --project Scanner111.CLI -- scan -l "path/to/crash.log" --verbose
 - **CommandLineParser**: Use verbs pattern (`scan`, `demo`, `config`, `about`)
 - **Options classes**: In `Scanner111.CLI/Models/` with proper attributes
 - **Async execution**: All commands implement `ICommand` with async execution
+- **DI setup**: CLI uses `ServiceCollection` in `Program.cs` with proper service registration
