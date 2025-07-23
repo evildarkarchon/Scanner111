@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
+using Scanner111.Core.Models;
+using Scanner111.Core.Models.Yaml;
 
 namespace Scanner111.Tests.TestHelpers;
 
@@ -16,6 +18,7 @@ public class TestYamlSettingsProvider : IYamlSettingsProvider
     /// <param name="keyPath">The key path within the YAML file to locate the setting.</param>
     /// <param name="defaultValue">An optional default value to return if the key does not exist or cannot be fetched.</param>
     /// <returns>The value of the setting of the specified type if found; otherwise, returns the default value.</returns>
+    [Obsolete("Use LoadYaml<T> method instead for strongly-typed YAML access")]
     public T? GetSetting<T>(string yamlFile, string keyPath, T? defaultValue = default)
     {
         // Return test values for specific settings
@@ -52,6 +55,7 @@ public class TestYamlSettingsProvider : IYamlSettingsProvider
     /// <param name="yamlFile">The path or name of the YAML file where the setting is stored.</param>
     /// <param name="keyPath">The key path within the YAML file where the setting is to be updated or added.</param>
     /// <param name="value">The value to be set for the specified key path in the YAML file.</param>
+    [Obsolete("YAML data files are read-only. Use LoadYaml<T> method for reading YAML data")]
     public void SetSetting<T>(string yamlFile, string keyPath, T value)
     {
         // Test implementation - do nothing
@@ -63,8 +67,69 @@ public class TestYamlSettingsProvider : IYamlSettingsProvider
     /// <returns>An object of type <typeparamref name="T"/> populated with data from the YAML file if successful; otherwise, returns null.</returns>
     public T? LoadYaml<T>(string yamlFile) where T : class
     {
-        if (yamlFile != "CLASSIC Fallout4" || typeof(T) != typeof(Dictionary<string, object>)) return null;
-        var yamlData = new Dictionary<string, object>
+        return yamlFile switch
+        {
+            "CLASSIC Main" when typeof(T) == typeof(ClassicMainYaml) => CreateTestMainYaml() as T,
+            "CLASSIC Fallout4" when typeof(T) == typeof(ClassicFallout4Yaml) => CreateTestFallout4Yaml() as T,
+            "CLASSIC Fallout4" when typeof(T) == typeof(Dictionary<string, object>) => CreateTestFallout4Dictionary() as T,
+            _ => null
+        };
+    }
+
+    private ClassicMainYaml CreateTestMainYaml()
+    {
+        return new ClassicMainYaml
+        {
+            ClassicInfo = new ClassicInfo
+            {
+                Version = "CLASSIC v7.35.0",
+                VersionDate = "25.06.11",
+                IsPrerelease = true,
+                DefaultSettings = "Test settings",
+                DefaultLocalYaml = "Test local yaml",
+                DefaultIgnorefile = "Test ignore file"
+            },
+            CatchLogRecords = new List<string> { ".bgsm", ".dds", ".dll+" },
+            ExcludeLogRecords = new List<string> { "(Main*)", "(size_t)" },
+            CatchLogErrors = new List<string> { "critical", "error", "failed" },
+            ExcludeLogErrors = new List<string> { "failed to get next record", "failed to open pdb" },
+            ExcludeLogFiles = new List<string> { "cbpfo4", "crash-", "CreationKit" }
+        };
+    }
+
+    private ClassicFallout4Yaml CreateTestFallout4Yaml()
+    {
+        return new ClassicFallout4Yaml
+        {
+            GameInfo = new GameInfo
+            {
+                MainRootName = "Fallout 4",
+                MainDocsName = "Fallout4",
+                MainSteamId = 377160,
+                CrashgenLogName = "Buffout 4",
+                CrashgenIgnore = new List<string> { "F4EE", "WaitForDebugger", "Achievements" }
+            },
+            CrashlogRecordsExclude = new List<string> { "\"\"", "...", "FE:" },
+            CrashlogPluginsExclude = new List<string> { "Buffout4.dll", "Fallout4.esm", "DLCCoast.esm" },
+            CrashlogErrorCheck = new Dictionary<string, string>
+            {
+                { "5 | Access Violation", "access violation" },
+                { "4 | Null Pointer", "null pointer" },
+                { "3 | Memory Error", "memory error" },
+                { "6 | Stack Overflow Crash", "EXCEPTION_STACK_OVERFLOW" }
+            },
+            CrashlogStackCheck = new Dictionary<string, List<string>>
+            {
+                { "5 | Stack Overflow", new List<string> { "stack overflow", "ME-REQ|overflow" } },
+                { "4 | Invalid Handle", new List<string> { "invalid handle", "2|bad handle" } },
+                { "3 | Debug Assert", new List<string> { "debug assert", "NOT|release mode" } }
+            }
+        };
+    }
+
+    private Dictionary<string, object> CreateTestFallout4Dictionary()
+    {
+        return new Dictionary<string, object>
         {
             ["Crashlog_Error_Check"] = new Dictionary<object, object>
             {
@@ -80,8 +145,6 @@ public class TestYamlSettingsProvider : IYamlSettingsProvider
                 { "3 | Debug Assert", new List<object> { "debug assert", "NOT|release mode" } }
             }
         };
-        return (T)(object)yamlData;
-
     }
 
     /// Clears any cached settings or data within the provider implementation.
@@ -368,5 +431,41 @@ public class TestProgressContext : IProgressContext
 
     public void Complete()
     {
+    }
+}
+
+/// <summary>
+/// A test implementation of the IApplicationSettingsService interface for use in testing scenarios.
+/// Provides methods for simulating application settings behavior in tests.
+/// </summary>
+public class TestApplicationSettingsService : IApplicationSettingsService
+{
+    private readonly ApplicationSettings _settings = new()
+    {
+        ShowFormIdValues = true,
+        FcxMode = false,
+        SimplifyLogs = false,
+        MoveUnsolvedLogs = true,
+        VrMode = false
+    };
+
+    public Task<ApplicationSettings> LoadSettingsAsync()
+    {
+        return Task.FromResult(_settings);
+    }
+
+    public Task SaveSettingsAsync(ApplicationSettings settings)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task SaveSettingAsync(string key, object value)
+    {
+        return Task.CompletedTask;
+    }
+
+    public ApplicationSettings GetDefaultSettings()
+    {
+        return new ApplicationSettings();
     }
 }

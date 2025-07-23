@@ -1,5 +1,6 @@
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
+using Scanner111.Core.Models.Yaml;
 
 namespace Scanner111.Core.Analyzers;
 
@@ -9,6 +10,7 @@ namespace Scanner111.Core.Analyzers;
 public class SettingsScanner : IAnalyzer
 {
     private readonly IYamlSettingsProvider _yamlSettings;
+    private readonly Lazy<string> _crashgenLogName;
 
     /// <summary>
     ///     Initialize the settings scanner
@@ -17,6 +19,11 @@ public class SettingsScanner : IAnalyzer
     public SettingsScanner(IYamlSettingsProvider yamlSettings)
     {
         _yamlSettings = yamlSettings;
+        _crashgenLogName = new Lazy<string>(() =>
+        {
+            var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+            return fallout4Yaml?.GameInfo?.CrashgenLogName ?? "Crash Logger";
+        });
     }
 
     /// <summary>
@@ -50,9 +57,8 @@ public class SettingsScanner : IAnalyzer
         var xseModules = crashLog.XseModules;
         var crashgenSettings = crashLog.CrashgenSettings;
 
-        var crashgenIgnoreList =
-            _yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_Ignore",
-                new List<string>()) ?? new List<string>();
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        var crashgenIgnoreList = fallout4Yaml?.GameInfo?.CrashgenIgnore ?? new List<string>();
         var crashgenIgnore = new HashSet<string>(crashgenIgnoreList, StringComparer.OrdinalIgnoreCase);
 
         // Check for X-Cell and Baka ScrapHeap (matching Python implementation)
@@ -111,11 +117,11 @@ public class SettingsScanner : IAnalyzer
             (xseModules.Contains("achievements.dll") || xseModules.Contains("unlimitedsurvivalmode.dll")))
             autoscanReport.AddRange([
                 "# ❌ CAUTION : The Achievements Mod and/or Unlimited Survival Mode is installed, but Achievements is set to TRUE # \n",
-                $" FIX: Open {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")}'s TOML file and change Achievements to FALSE, this prevents conflicts with {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")}.\n-----\n"
+                $" FIX: Open {_crashgenLogName.Value}'s TOML file and change Achievements to FALSE, this prevents conflicts with {_crashgenLogName.Value}.\n-----\n"
             ]);
         else
             autoscanReport.Add(
-                $"✔️ Achievements parameter is correctly configured in your {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")} settings! \n-----\n");
+                $"✔️ Achievements parameter is correctly configured in your {_crashgenLogName.Value} settings! \n-----\n");
     }
 
     /// <summary>
@@ -133,7 +139,7 @@ public class SettingsScanner : IAnalyzer
         const string successPrefix = "✔️ ";
         const string warningPrefix = "# ❌ CAUTION : ";
         const string fixPrefix = " FIX: ";
-        var crashgenName = _yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger");
+        var crashgenName = _crashgenLogName.Value;
 
         void AddSuccessMessage(string message)
         {
@@ -215,11 +221,11 @@ public class SettingsScanner : IAnalyzer
         if (crashgenArchiveLimit is true)
             autoscanReport.AddRange([
                 "# ❌ CAUTION : ArchiveLimit is set to TRUE, this setting is known to cause instability. # \n",
-                $" FIX: Open {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")}'s TOML file and change ArchiveLimit to FALSE.\n-----\n"
+                $" FIX: Open {_crashgenLogName.Value}'s TOML file and change ArchiveLimit to FALSE.\n-----\n"
             ]);
         else
             autoscanReport.Add(
-                $"✔️ ArchiveLimit parameter is correctly configured in your {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")} settings! \n-----\n");
+                $"✔️ ArchiveLimit parameter is correctly configured in your {_crashgenLogName.Value} settings! \n-----\n");
     }
 
     /// <summary>
@@ -237,11 +243,11 @@ public class SettingsScanner : IAnalyzer
             if (crashgenF4Ee is not true && xseModules.Contains("f4ee.dll"))
                 autoscanReport.AddRange([
                     "# ❌ CAUTION : Looks Menu is installed, but F4EE parameter under [Compatibility] is set to FALSE # \n",
-                    $" FIX: Open {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")}'s TOML file and change F4EE to TRUE, this prevents bugs and crashes from Looks Menu.\n-----\n"
+                    $" FIX: Open {_crashgenLogName.Value}'s TOML file and change F4EE to TRUE, this prevents bugs and crashes from Looks Menu.\n-----\n"
                 ]);
             else
                 autoscanReport.Add(
-                    $"✔️ F4EE (Looks Menu) parameter is correctly configured in your {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")} settings! \n-----\n");
+                    $"✔️ F4EE (Looks Menu) parameter is correctly configured in your {_crashgenLogName.Value} settings! \n-----\n");
         }
     }
 
@@ -263,7 +269,7 @@ public class SettingsScanner : IAnalyzer
 
                 if (!isIgnored)
                     autoscanReport.Add(
-                        $"* NOTICE : {settingName} is disabled in your {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")} settings, is this intentional? * \n-----\n");
+                        $"* NOTICE : {settingName} is disabled in your {_crashgenLogName.Value} settings, is this intentional? * \n-----\n");
             }
     }
 }

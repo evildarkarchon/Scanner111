@@ -1,6 +1,6 @@
 # FALLOUT 4 DATABASE for Crash Log Auto Scanner & Setup Integrity Checker (CLASSIC) v7.00+
 
-Game_Info:
+game_info:
   Main_Root_Name: Fallout 4
   Main_Docs_Name: Fallout4
   Main_SteamID: 377160
@@ -30,7 +30,7 @@ Game_Info:
   XSE_Ver_Latest_NG: 0.7.2
   XSE_FileCount: 29
 
-  XSE_HashedScripts: # SHA-256 from https://f4se.silverlock.org/
+  xse_hashed_scripts: # SHA-256 from https://f4se.silverlock.org/
     Actor.pex: 9333aa9b33d6009933afc3a1234a89ca93b5522ea186b44bc6c78846ed5a82c4
     ActorBase.pex: cb5d29fead7df77eca8674101abdc57349a8cf345f18c3ddd6ef8d94ad254da7
     Armor.pex: 2bc34ab0d58f701e8684fc911742257e0768bd3e63b1eb8bdb2e043e7b67346b
@@ -61,7 +61,7 @@ Game_Info:
     WaterType.pex: c4f8589ed33f72265e95a6bec2c9cab58667795e972bcf5f7d17c40deed43207
     Weapon.pex: f39cf899d90d47d694873ccaa2a72308c6717f5e36a302d6f95243e53672d77d
 
-XSE_HashedScriptsNew:
+xse_hashed_scripts_new:
   Actor.pex: 12175169977977bf382631272ae6dfda03f002c268434144eedf8653000b2b90
   ActorBase.pex: 6c7f6b82306ef541673ebb31142c5f69d32f574d81f932d957e3e7f3b649863f
   Armor.pex: ddc0e2f1b84351932cd357d4917e50faa3e262e93e4d153ec3f88a819f6711ec
@@ -92,7 +92,7 @@ XSE_HashedScriptsNew:
   WaterType.pex: 7a1d41e063bdd8179a72b97869d27e636469988d088420c85f5297dcb1488d7a
   Weapon.pex: e6eee491b5a59f285a1482eb625ffb18bc63ed398bf5f8a4babca0b7edac918c
 
-GameVR_Info:
+game_vr_info:
   Main_Root_Name: Fallout 4 VR
   Main_Docs_Name: Fallout4VR
   Main_SteamID: 611660
@@ -121,7 +121,7 @@ GameVR_Info:
   XSE_Ver_Latest: 0.6.20
   XSE_FileCount: 29
 
-  XSE_HashedScripts: # SHA-256 from https://f4se.silverlock.org/
+  xse_hashed_scripts: # SHA-256 from https://f4se.silverlock.org/
     Actor.pex: dfd7177ad93b78e3adf91a4a18ad26a9d8e4447e3dc173269798977054b82f17
     ActorBase.pex: 659acecc1146734cf691d6d572f4c30edbbbc3ea3efb2502fd14bb91425828c8
     Armor.pex: 3995537c4b5925b82079291d383da4bda6a284787794e65ee33a65752741f027
@@ -154,7 +154,7 @@ GameVR_Info:
 
 # =============== GAME FILES BACKUP ==============
 
-Backup ENB: # BACKUP FOR ENB
+backup_enb: # BACKUP FOR ENB
   - enbseries
   - d3d11.dll
   - d3dcompiler_46e.dll
@@ -171,12 +171,12 @@ Backup ENB: # BACKUP FOR ENB
   - license_en.txt
   - readme_en.txt
 
-Backup RESHADE: # BACKUP FOR RESHADE
+backup_reshade: # BACKUP FOR RESHADE
   - ReShade.ini
   - ReShadePreset.ini
   - reshade-shaders
 
-Backup VULKAN: # BACKUP FOR VULKAN RENDERER
+backup_vulkan: # BACKUP FOR VULKAN RENDERER
   - Vulkan.msi
   - vulkan_d3d11.dll
   - d3d11_vulkan.dll
@@ -188,7 +188,7 @@ Backup VULKAN: # BACKUP FOR VULKAN RENDERER
   - VulkanRT
   - MAGPIE
 
-Backup XSE: # BACKUP FOR SCRIPT EXTENDER
+backup_xse: # BACKUP FOR SCRIPT EXTENDER
   - CustomControlMap.txt
   - f4se_loader.exe
   - f4se_readme.txt
@@ -197,7 +197,7 @@ Backup XSE: # BACKUP FOR SCRIPT EXTENDER
   - f4se
   - src
 
-Game_Hints:
+game_hints:
   - "Random Hint: [Ctrl] + [F] is a handy-dandy key combination. You should use it more often. Please."
   - "Random Hint: Patrolling the Buffout 4 Nexus Page almost makes you wish this joke was more overused."
   - "Random Hint: Buffout crash logs are generated in your Documents/My Games/Fallout4/F4SE(VR) folder by default."
@@ -209,7 +209,7 @@ Game_Hints:
   - "Random Hint: Revisit both Buffout 4 Crash Article and CLASSIC Nexus Page from time to time in case there are updates."
   - "Random Hint: When posting crash logs, it is helpful to mention the last thing you were doing before the crash happened."
 
-Default_CustomINI:
+default_custom_ini:
   | # Default settings for *Fallout4Custom.ini* if that file doesn't already exist.
   [Archive]
   ; Enable Archive Invalidation
@@ -229,7 +229,7 @@ Default_CustomINI:
   ; Increase Shadow Quality Transition Distance
   fBlendSplitDirShadow=256
 
-Default_FIDMods:
+default_fid_mods:
   | # Default text for *FO4 FID Mods.yaml* if that file doesn't already exist.
   >>> THIS IS ONLY A PLACEHOLDER | YOU NEED TO GENERATE THIS FILE WITH FO4EDIT!
 
@@ -257,7 +257,7 @@ Default_FIDMods:
       - To stop CLASSIC from checking the FormID List, either delete, rename or move your generated *FO4 FID Mods.txt* file somewhere else.
       CLASSIC will simply create this placeholder file again if needed and stop checking FormID values until a new FormID List is provided.
 
-Warnings_CRASHGEN:
+warnings_crashgen:
   Warn_TOML_Achievements: |
     ❌ CAUTION : Achievements Mod and/or Unlimited Survival Mode is installed, but Achievements parameter is set to TRUE #
     FIX: Open *Buffout4.toml* and change Achievements parameter to FALSE, this prevents conflicts with Buffout 4.
@@ -290,7 +290,7 @@ Warnings_CRASHGEN:
       CLASSIC cannot perform the full scan. Provide or scan a different crash log
       OR copy-paste your *loadorder.txt* into your main CLASSIC folder.
 
-Warnings_XSE:
+warnings_xse:
   Warn_Outdated: |
     [!] CAUTION : YOUR F4SE VERSION MIGHT BE OUT OF DATE, UPDATE F4SE IF NECESSARY
       FALLOUT 4 SCRIPT EXTENDER (F4SE): (Download Latest Build) https://f4se.silverlock.org
@@ -311,7 +311,7 @@ Warnings_XSE:
       Extract all files inside *f4se_0_06_XX* folder into your Fallout 4 root game folder.
     -----
 
-Warnings_MODS:
+warnings_mods:
   Warn_ADLIB_Missing: |
     [!] CAUTION : CANNOT FIND REQUIRED ADDRESS LIBRARY FILE, IT SHOULD BE MANUALLY INSTALLED!
       ADDRESS LIBRARY: (Use MANUAL DOWNLOAD) https://www.nexusmods.com/fallout4/mods/47327
@@ -334,7 +334,7 @@ Warnings_MODS:
     WB Link (Use MANUAL DOWNLOAD): https://www.nexusmods.com/fallout4/mods/20032
     -----
 
-Crashlog_Records_Exclude: # EXCLUDE lines that contain *these* strings from the Call Stack in Crash Logs.
+crashlog_records_exclude: # EXCLUDE lines that contain *these* strings from the Call Stack in Crash Logs.
   - '""'
   - "..."
   - "FE:"
@@ -362,7 +362,7 @@ Crashlog_Records_Exclude: # EXCLUDE lines that contain *these* strings from the 
   - vrclient_x64.dll+
   - win32u
 
-Crashlog_Plugins_Exclude: # EXCLUDE *these* plugins from Crash Logs when performing certain checks.
+crashlog_plugins_exclude: # EXCLUDE *these* plugins from Crash Logs when performing certain checks.
   - Buffout4.dll
   - Fallout4.esm
   - Fallout4VR.esm
@@ -378,7 +378,7 @@ Crashlog_Plugins_Exclude: # EXCLUDE *these* plugins from Crash Logs when perform
 # If even ONE Stack Condition is found, move to dict directly below.
 # INT in every main key is required and used for 'Severity' value assignment.
 # Reminder: Items starting with 0x must be quoted so they aren't converted to HexInt.
-Crashlog_Error_Check:
+crashlog_error_check:
   5 | Stack Overflow Crash: EXCEPTION_STACK_OVERFLOW
 
   5 | Active Effects Crash: "0x000100000000"
@@ -400,7 +400,7 @@ Crashlog_Error_Check:
 # Add INT to set least number of times the item has to repeat in the Call Stack. Ex: [3|UIMessage]
 # Add NOT to ignore crash suspect warning completely if the Call Stack also contains this item.
 # If no condition is specified, it checks if the item appears at least once in the Call Stack.
-Crashlog_Stack_Check:
+crashlog_stack_check:
   5 | Scaleform Gfx Crash:
     [
       ME-OPT|Scaleform::Gfx::Value::ObjectInterface,
@@ -600,7 +600,7 @@ Crashlog_Stack_Check:
 
 # IMPORTANT: AVOID KEY NESTING BY JUST SPLITTING THE KEY WITH A SPECIFIC CHAR
 
-Mods_CORE: # 0) MODS THAT EVERY PLAYER SHOULD HAVE INSTALLED
+mods_core: # 0) MODS THAT EVERY PLAYER SHOULD HAVE INSTALLED
   CanarySaveFileMonitor | Canary Save File Monitor: |
     This is a highly recommended mod that can detect save file corruption.
     Link: https://www.nexusmods.com/fallout4/mods/44949?tab=files
@@ -621,7 +621,7 @@ Mods_CORE: # 0) MODS THAT EVERY PLAYER SHOULD HAVE INSTALLED
     This is a mandatory patch / fix required for almost all Nvidia GPUs.
     Link: https://www.nexusmods.com/fallout4/mods/48078?tab=files
 
-Mods_CORE_FOLON:
+mods_core_folon:
   CanarySaveFileMonitor | Canary Save File Monitor: |
     This is a highly recommended mod that can detect save file corruption.
     Link: https://www.nexusmods.com/fallout4/mods/44949?tab=files
@@ -632,7 +632,7 @@ Mods_CORE_FOLON:
     This is a mandatory patch / fix required for almost all Nvidia GPUs.
     Link: https://www.nexusmods.com/fallout4/mods/48078?tab=files
 
-Mods_FREQ: # 1) MODS THAT CAN CAUSE FREQUENT CRASHES
+mods_freq: # 1) MODS THAT CAN CAUSE FREQUENT CRASHES
   DamageThresholdFramework: |
     Damage Threshold Framework
         - Can cause crashes in combat on some occasions due to how damage calculations are done.
@@ -715,7 +715,7 @@ Mods_FREQ: # 1) MODS THAT CAN CAUSE FREQUENT CRASHES
         - New Calibers Patch for this mod is outdated and can frequently crash the game. Check if there is a newer patch.
         -----
 
-Mods_CONF: # 2) MODS THAT CONFLICT WITH OTHER MODS
+mods_conf: # 2) MODS THAT CONFLICT WITH OTHER MODS
   betterpowerarmor | Knockout Framework: |
     Better Power Armor Redux ❌ CONFLICTS WITH : Knockout Framework
         Both mods use the same script hooks. This can crash the game or cause weird mod behavior.
@@ -818,7 +818,7 @@ Mods_CONF: # 2) MODS THAT CONFLICT WITH OTHER MODS
         You can download a compatibility patch here: https://www.nexusmods.com/fallout4/mods/84930
         -----
 
-Mods_SOLU: # 3) MODS WITH SOLUTIONS & COMMUNITY PATCHES
+mods_solu: # 3) MODS WITH SOLUTIONS & COMMUNITY PATCHES
   DLCUltraHighResolution: |
     High Resolution DLC. I STRONGLY ADVISE AGAINST USING IT!
         - Right click on Fallout 4 in your Steam Library folder, then select Properties
@@ -1032,7 +1032,7 @@ Mods_SOLU: # 3) MODS WITH SOLUTIONS & COMMUNITY PATCHES
           Patch Link: https://www.nexusmods.com/fallout4/mods/61080?tab=files
         -----
 
-Mods_OPC2: # 4) MODS PATCHED THROUGH OPC INSTALLER
+mods_opc2: # 4) MODS PATCHED THROUGH OPC INSTALLER
   3DNPC_FO4: |
     Tales from the Commonwealth
   3DNPC_FO4Settler: |

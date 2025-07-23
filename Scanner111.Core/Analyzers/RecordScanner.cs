@@ -1,5 +1,6 @@
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
+using Scanner111.Core.Models.Yaml;
 
 namespace Scanner111.Core.Analyzers;
 
@@ -105,14 +106,12 @@ public class RecordScanner : IAnalyzer
     private void FindMatchingRecords(List<string> segmentCallstack, List<string> recordsMatches, string rspMarker,
         int rspOffset)
     {
-        var recordsList =
-            _yamlSettings.GetSetting("CLASSIC Main", "catch_log_records", new List<string>()) ??
-            [];
+        var mainYaml = _yamlSettings.LoadYaml<ClassicMainYaml>("CLASSIC Main");
+        var recordsList = mainYaml?.CatchLogRecords ?? [];
         var lowerRecords = recordsList.Select(r => r.ToLower()).ToHashSet();
 
-        var ignoredList =
-            _yamlSettings.GetSetting("CLASSIC Fallout4", "Crashlog_Records_Exclude",
-                new List<string>()) ?? [];
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        var ignoredList = fallout4Yaml?.CrashlogRecordsExclude ?? [];
         var lowerIgnore = ignoredList.Select(r => r.ToLower()).ToHashSet();
 
         foreach (var line in from line in segmentCallstack
@@ -149,10 +148,13 @@ public class RecordScanner : IAnalyzer
         foreach (var (record, count) in recordsFound) autoscanReport.Add($"- {record} | {count}\n");
 
         // Add explanatory notes
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        var crashgenLogName = fallout4Yaml?.GameInfo?.CrashgenLogName ?? "Crash Logger";
+        
         var explanatoryNotes = new[]
         {
             "\n[Last number counts how many times each Named Record shows up in the crash log.]\n",
-            $"These records were caught by {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")} and some of them might be related to this crash.\n",
+            $"These records were caught by {crashgenLogName} and some of them might be related to this crash.\n",
             "Named records should give extra info on involved game objects, record types or mod files.\n\n"
         };
         autoscanReport.AddRange(explanatoryNotes);

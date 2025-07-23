@@ -1,6 +1,6 @@
 # DYNAMIC DATABASE for Crash Log Auto Scanner & Setup Integrity Checker (CLASSIC) v7.0+
 
-CLASSIC_Info:
+classic_info:
   # ========================================================================================
   # CAUTION: DO NOT CHANGE YOUR SETTINGS HERE! OPEN & EDIT CLASSIC Settings.yaml instead!
   # ========================================================================================
@@ -100,7 +100,7 @@ CLASSIC_Info:
 # Create backups of *these* files from the game root folder.
 # Only files in the game root folder are valid for this list.
 
-CLASSIC_AutoBackup:
+classic_auto_backup:
   - Fallout4.exe
   - Fallout4VR.exe
   - Fallout4Launcher.exe
@@ -108,7 +108,7 @@ CLASSIC_AutoBackup:
 
 # =============== CLASSIC INTERFACE ===============
 
-CLASSIC_Interface:
+classic_interface:
   start_message: |
     PRESS THE *SCAN CRASH LOGS* BUTTON TO SCAN ALL AVAILABLE CRASH LOGS
 
@@ -180,7 +180,7 @@ CLASSIC_Interface:
 
 # ================= GAME WARNINGS =================
 
-Warnings_GAME:
+warnings_game:
   warn_root_path: |
     ❌ CAUTION : YOUR GAME FILES ARE INSTALLED INSIDE OF THE DEFAULT PROGRAM FILES FOLDER!
       Having the game installed here may cause Windows UAC to prevent some mods from working correctly.
@@ -195,7 +195,7 @@ Warnings_GAME:
 
 # =============== WRYE BASH WARNINGS ==============
 
-Warnings_WRYE:
+warnings_wrye:
   Corrupted: |
 
     ❓ Wrye Bash could not read these plugins, there's a high chance they are corrupted.
@@ -286,7 +286,7 @@ Warnings_WRYE:
 
 # =================== MODS SCAN WARNINGS ==================
 
-Mods_Warn:
+mods_warn:
   Mods_Reminders: |
     =================== MOD FILES SCAN ===================
     -- REMINDERS --

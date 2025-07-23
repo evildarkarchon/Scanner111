@@ -17,7 +17,8 @@ public class FormIdAnalyzerTests
     {
         var yamlSettings = new TestYamlSettingsProvider();
         var formIdDatabase = new TestFormIdDatabaseService();
-        _analyzer = new FormIdAnalyzer(yamlSettings, formIdDatabase);
+        var appSettings = new TestApplicationSettingsService();
+        _analyzer = new FormIdAnalyzer(yamlSettings, formIdDatabase, appSettings);
     }
 
     /// <summary>

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
+using Scanner111.Core.Models.Yaml;
 
 namespace Scanner111.Core.Analyzers;
 
@@ -15,16 +16,19 @@ public class FormIdAnalyzer : IAnalyzer
     private readonly IFormIdDatabaseService _formIdDatabase;
     private readonly Regex _formIdPattern;
     private readonly IYamlSettingsProvider _yamlSettings;
+    private readonly IApplicationSettingsService _appSettings;
 
     /// <summary>
     ///     Initialize the FormID analyzer
     /// </summary>
     /// <param name="yamlSettings">YAML settings provider for configuration</param>
     /// <param name="formIdDatabase">FormID database service for lookups</param>
-    public FormIdAnalyzer(IYamlSettingsProvider yamlSettings, IFormIdDatabaseService formIdDatabase)
+    /// <param name="appSettings">Application settings service</param>
+    public FormIdAnalyzer(IYamlSettingsProvider yamlSettings, IFormIdDatabaseService formIdDatabase, IApplicationSettingsService appSettings)
     {
         _yamlSettings = yamlSettings;
         _formIdDatabase = formIdDatabase;
+        _appSettings = appSettings;
 
         // Pattern to match FormID format in crash logs (cached)
         const string patternKey = "formid_pattern";
@@ -62,8 +66,9 @@ public class FormIdAnalyzer : IAnalyzer
         var formIds = ExtractFormIds(crashLog.CallStack);
         var reportLines = new List<string>();
 
-        // Load settings on-demand with caching
-        var showFormIdValues = _yamlSettings.GetSetting("CLASSIC Main", "CLASSIC_Settings.Show FormID Values", false);
+        // Load settings from ApplicationSettingsService
+        var settings = await _appSettings.LoadSettingsAsync();
+        var showFormIdValues = settings.ShowFormIdValues;
         var formIdDbExists = _formIdDatabase.DatabaseExists;
 
         GenerateFormIdReport(formIds, crashLog.Plugins, reportLines, showFormIdValues, formIdDbExists);
@@ -151,7 +156,7 @@ public class FormIdAnalyzer : IAnalyzer
 
             autoscanReport.AddRange([
               "\n[Last number counts how many times each Form ID shows up in the crash log.]\n",
-                $"These Form IDs were caught by {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")} and some of them might be related to this crash.\n",
+                $"These Form IDs were caught by {GetCrashgenLogName()} and some of them might be related to this crash.\n",
                 "You can try searching any listed Form IDs in xEdit and see if they lead to relevant records.\n\n"
             ]);
         }
@@ -174,5 +179,11 @@ public class FormIdAnalyzer : IAnalyzer
     private string? LookupFormIdValue(string formId, string plugin)
     {
         return _formIdDatabase.GetEntry(formId, plugin);
+    }
+
+    private string GetCrashgenLogName()
+    {
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        return fallout4Yaml?.GameInfo?.CrashgenLogName ?? "Crash Logger";
     }
 }

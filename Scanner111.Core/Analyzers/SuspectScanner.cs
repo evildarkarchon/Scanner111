@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
+using Scanner111.Core.Models.Yaml;
 
 namespace Scanner111.Core.Analyzers;
 
@@ -104,36 +105,26 @@ public class SuspectScanner : IAnalyzer
     {
         var foundSuspect = false;
 
-        // Load the entire YAML file and access the section directly
-        var fullData = _yamlSettings.LoadYaml<Dictionary<string, object>>("CLASSIC Fallout4");
-        if (fullData == null || !fullData.TryGetValue("Crashlog_Error_Check", out var value1))
+        // Load the strongly-typed YAML model
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        if (fallout4Yaml?.CrashlogErrorCheck == null)
         {
-            _logger.LogDebug("Could not load YAML or Crashlog_Error_Check section not found");
-            return false;
-        }
-
-        var rawSuspectsData = value1 as Dictionary<object, object>;
-        if (rawSuspectsData == null)
-        {
-            _logger.LogDebug("Crashlog_Error_Check section is not a dictionary");
+            _logger.LogDebug("Could not load YAML or CrashlogErrorCheck section not found");
             return false;
         }
 
         // Parse the special format: "5 | Stack Overflow Crash: EXCEPTION_STACK_OVERFLOW"
         var suspectsErrorList = new Dictionary<string, (string severity, string criteria)>();
-        foreach (var (key, value) in rawSuspectsData)
+        foreach (var (key, value) in fallout4Yaml.CrashlogErrorCheck)
         {
-            var keyStr = key.ToString() ?? "";
-            var criteria = value.ToString() ?? "";
-
             // Parse the key format: "5 | Stack Overflow Crash"
-            var parts = keyStr.Split(" | ", 2);
+            var parts = key.Split(" | ", 2);
             if (parts.Length != 2) continue;
             var severity = parts[0].Trim();
             var description = parts[1].Trim();
 
             // Use description as key and store both severity and criteria
-            suspectsErrorList[description] = (severity, criteria);
+            suspectsErrorList[description] = (severity, value);
         }
 
         _logger.LogDebug("Loaded {SuspectCount} suspects from YAML", suspectsErrorList.Count);
@@ -171,28 +162,12 @@ public class SuspectScanner : IAnalyzer
     {
         var anySuspectFound = false;
 
-        // Load the entire YAML file and access the section directly
-        var fullData = _yamlSettings.LoadYaml<Dictionary<string, object>>("CLASSIC Fallout4");
-        if (fullData == null || !fullData.TryGetValue("Crashlog_Stack_Check", out var value1)) return false;
+        // Load the strongly-typed YAML model
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        if (fallout4Yaml?.CrashlogStackCheck == null) return false;
 
-        var rawStackData = value1 as Dictionary<object, object>;
-
-        // Parse the special format similar to error check
-        var suspectsStackList = new Dictionary<string, List<string>>();
-        if (rawStackData != null)
-            foreach (var (key, value) in rawStackData)
-            {
-                List<string> stringList = value switch
-                {
-                    // Handle both single string and list formats
-                    List<object> listValue => listValue.Select(item => item.ToString() ?? "").ToList(),
-                    // Single string value, treat as single-item list
-                    string stringValue => [stringValue],
-                    _ => [value.ToString() ?? ""]
-                };
-
-                suspectsStackList[key.ToString() ?? ""] = stringList;
-            }
+        // Use the already properly typed CrashlogStackCheck
+        var suspectsStackList = fallout4Yaml.CrashlogStackCheck;
 
         _logger.LogDebug("Found {StackPatternCount} stack patterns to check", suspectsStackList.Count);
         _logger.LogDebug(

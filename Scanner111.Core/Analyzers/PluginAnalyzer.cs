@@ -1,6 +1,7 @@
 using System.Text;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
+using Scanner111.Core.Models.Yaml;
 
 namespace Scanner111.Core.Analyzers;
 
@@ -21,10 +22,10 @@ public class PluginAnalyzer : IAnalyzer
         _yamlSettings = yamlSettings;
 
         // Initialize plugin ignore list from YAML settings
-        var ignorePluginsList =
-            _yamlSettings.GetSetting("CLASSIC Fallout4", "Crashlog_Plugins_Exclude", new List<string>());
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        var ignorePluginsList = fallout4Yaml?.CrashlogPluginsExclude ?? new List<string>();
         _lowerPluginsIgnore = new HashSet<string>(
-            ignorePluginsList?.Select(p => p.ToLower()) ?? [],
+            ignorePluginsList.Select(p => p.ToLower()),
             StringComparer.OrdinalIgnoreCase);
     }
 
@@ -182,7 +183,7 @@ public class PluginAnalyzer : IAnalyzer
 
             autoscanReport.AddRange([
               "\n[Last number counts how many times each Plugin Suspect shows up in the crash log.]\n",
-                $"These Plugins were caught by {_yamlSettings.GetSetting("CLASSIC Fallout4", "Game_Info.CRASHGEN_LogName", "Crash Logger")} and some of them might be responsible for this crash.\n",
+                $"These Plugins were caught by {GetCrashgenLogName()} and some of them might be responsible for this crash.\n",
                 "You can try disabling these plugins and check if the game still crashes, though this method can be unreliable.\n\n"
             ]);
         }
@@ -201,7 +202,7 @@ public class PluginAnalyzer : IAnalyzer
     private Dictionary<string, string> FilterIgnoredPlugins(Dictionary<string, string> crashlogPlugins)
     {
         var ignorePluginsList =
-            _yamlSettings.GetSetting("CLASSIC Fallout4", "Crashlog_Plugins_Exclude", new List<string>());
+            GetPluginsExcludeList();
 
         if (ignorePluginsList == null || ignorePluginsList.Count == 0) return crashlogPlugins;
 
@@ -217,5 +218,17 @@ public class PluginAnalyzer : IAnalyzer
                 filteredPlugins.Remove(originalKey);
 
         return filteredPlugins;
+    }
+
+    private string GetCrashgenLogName()
+    {
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        return fallout4Yaml?.GameInfo?.CrashgenLogName ?? "Crash Logger";
+    }
+
+    private List<string> GetPluginsExcludeList()
+    {
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        return fallout4Yaml?.CrashlogPluginsExclude ?? new List<string>();
     }
 }
