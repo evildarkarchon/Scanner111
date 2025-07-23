@@ -114,9 +114,6 @@ public class ScanPipelineBuilder
         // Build service provider
         var serviceProvider = _services.BuildServiceProvider();
 
-        // Initialize static YamlSettingsCache with the service instance
-        var yamlSettingsProvider = serviceProvider.GetRequiredService<IYamlSettingsProvider>();
-        YamlSettingsCache.Initialize(yamlSettingsProvider);
 
         // Create analyzers
         var analyzers = _analyzerTypes

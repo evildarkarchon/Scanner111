@@ -12,54 +12,6 @@ namespace Scanner111.Tests.TestHelpers;
 /// </summary>
 public class TestYamlSettingsProvider : IYamlSettingsProvider
 {
-    /// Retrieves a specific setting from a YAML file based on the provided key path.
-    /// <typeparam name="T">The type of the setting value to be returned.</typeparam>
-    /// <param name="yamlFile">The path or name of the YAML file containing the settings.</param>
-    /// <param name="keyPath">The key path within the YAML file to locate the setting.</param>
-    /// <param name="defaultValue">An optional default value to return if the key does not exist or cannot be fetched.</param>
-    /// <returns>The value of the setting of the specified type if found; otherwise, returns the default value.</returns>
-    [Obsolete("Use LoadYaml<T> method instead for strongly-typed YAML access")]
-    public T? GetSetting<T>(string yamlFile, string keyPath, T? defaultValue = default)
-    {
-        // Return test values for specific settings
-        if (keyPath == "catch_log_records" && typeof(T) == typeof(List<string>)) return (T)(object)new List<string>();
-        if (keyPath == "Crashlog_Records_Exclude" && typeof(T) == typeof(List<string>))
-            return (T)(object)new List<string> { "excluded_record" };
-        if (keyPath == "catch_log_settings" && typeof(T) == typeof(List<string>))
-            return (T)(object)new List<string> { "test_setting", "another_setting" };
-        if (keyPath == "Crashlog_Settings_Exclude" && typeof(T) == typeof(List<string>))
-            return (T)(object)new List<string> { "excluded_setting" };
-        if (keyPath == "Crashlog_Plugins_Exclude" && typeof(T) == typeof(List<string>))
-            return (T)(object)new List<string> { "ignored.esp" };
-        if (keyPath == "suspects_error_list" && typeof(T) == typeof(Dictionary<string, string>))
-            return (T)(object)new Dictionary<string, string>
-            {
-                { "HIGH | Access Violation", "access violation" },
-                { "MEDIUM | Null Pointer", "null pointer" },
-                { "LOW | Memory Error", "memory error" }
-            };
-        if (keyPath == "suspects_stack_list" && typeof(T) == typeof(Dictionary<string, List<string>>))
-            return (T)(object)new Dictionary<string, List<string>>
-            {
-                { "HIGH | Stack Overflow", new List<string> { "stack overflow", "ME-REQ|overflow" } },
-                { "MEDIUM | Invalid Handle", new List<string> { "invalid handle", "2|bad handle" } },
-                { "LOW | Debug Assert", new List<string> { "debug assert", "NOT|release mode" } }
-            };
-        if (keyPath == "CLASSIC_Settings.Show FormID Values" && typeof(T) == typeof(bool)) return (T)(object)true;
-        if (keyPath == "Game_Info.CRASHGEN_LogName" && typeof(T) == typeof(string)) return (T)(object)"Buffout 4";
-        return defaultValue;
-    }
-
-    /// Updates or sets a specific setting in a YAML file at the specified key path.
-    /// <typeparam name="T">The type of the setting value to be updated or set.</typeparam>
-    /// <param name="yamlFile">The path or name of the YAML file where the setting is stored.</param>
-    /// <param name="keyPath">The key path within the YAML file where the setting is to be updated or added.</param>
-    /// <param name="value">The value to be set for the specified key path in the YAML file.</param>
-    [Obsolete("YAML data files are read-only. Use LoadYaml<T> method for reading YAML data")]
-    public void SetSetting<T>(string yamlFile, string keyPath, T value)
-    {
-        // Test implementation - do nothing
-    }
 
     /// Loads and deserializes data from a YAML file into a specified object type.
     /// <typeparam name="T">The type of the object to deserialize the YAML content into. Must be a reference class.</typeparam>

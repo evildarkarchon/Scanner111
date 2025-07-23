@@ -756,35 +756,6 @@ SETTINGS:
     /// <seealso cref="IYamlSettingsProvider"/>
     private class TestYamlSettingsProvider : IYamlSettingsProvider
     {
-        /// <summary>
-        /// Retrieves a setting value from a YAML file based on the specified key path.
-        /// </summary>
-        /// <typeparam name="T">The type of the setting value to be retrieved.</typeparam>
-        /// <param name="yamlFile">The name or path of the YAML file to retrieve the setting from.</param>
-        /// <param name="keyPath">The key path within the YAML file to locate the desired setting.</param>
-        /// <param name="defaultValue">The default value to return if the setting is not found or cannot be retrieved.</param>
-        /// <returns>The setting value of type <typeparamref name="T"/> if found, or the specified <paramref name="defaultValue"/> if not.</returns>
-        public T? GetSetting<T>(string yamlFile, string keyPath, T? defaultValue = default)
-        {
-            return defaultValue;
-        }
-
-        /// <summary>
-        /// Updates a specific setting in a YAML file with a given value.
-        /// </summary>
-        /// <typeparam name="T">The type of the value to set for the specified key in the YAML file.</typeparam>
-        /// <param name="yamlFile">The path to the YAML file where the setting is located.</param>
-        /// <param name="keyPath">The key path in the YAML file that identifies the setting to be updated.</param>
-        /// <param name="value">The new value to assign to the specified key in the YAML file.</param>
-        /// <remarks>
-        /// This method is used to update or assign values to specific settings in a YAML file.
-        /// The implementation does not perform any real file manipulation in the test environment
-        /// but can be extended to include actual file handling in a production implementation.
-        /// </remarks>
-        public void SetSetting<T>(string yamlFile, string keyPath, T value)
-        {
-            // Test implementation - do nothing
-        }
 
         /// <summary>
         /// Loads a YAML file, deserializes it, and converts the data into an object of type T.

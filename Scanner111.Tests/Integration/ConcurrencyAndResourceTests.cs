@@ -390,52 +390,6 @@ public class ConcurrencyAndResourceTests : IDisposable
     }
 
     /// <summary>
-    /// Verifies that the <see cref="YamlSettingsCache"/> class can be safely initialized
-    /// from multiple threads simultaneously without data corruption or exceptions.
-    /// Ensures that concurrent initialization and concurrent access to cached settings
-    /// work as intended under a multithreaded environment.
-    /// </summary>
-    /// <remarks>
-    /// This test initializes the cache with multiple providers from different threads at the same time
-    /// and validates the integrity of the cached data. Afterward, it performs concurrent reads to
-    /// ensure thread-safe access. The test confirms that no exceptions are thrown and the data remains consistent.
-    /// </remarks>
-    /// <returns>
-    /// A task representing the asynchronous operation of the test.
-    /// </returns>
-    [Fact]
-    public async Task YamlSettingsCache_ConcurrentInitialization_ShouldBeThreadSafe()
-    {
-        // Arrange
-        YamlSettingsCache.Reset(); // Ensure clean state
-        var providers = new List<IYamlSettingsProvider>();
-
-        // Create multiple providers
-        for (var i = 0; i < 10; i++)
-            providers.Add(new TestYamlSettingsProvider());
-
-        // Act - Initialize from multiple threads simultaneously
-        var initializationTasks = providers.Select(localProvider => Task.Run(() => YamlSettingsCache.Initialize(localProvider))).ToList();
-
-        await Task.WhenAll(initializationTasks);
-
-        // Assert - Cache should be initialized and functional
-        Assert.NotNull(YamlSettingsCache.YamlSettings<string>("test", "test.key", "default"));
-
-        // Should not throw exceptions when accessed concurrently
-        var accessTasks = new List<Task>();
-        for (var i = 0; i < 20; i++)
-            accessTasks.Add(Task.Run(() =>
-            {
-                var value = YamlSettingsCache.YamlSettings<string>("test", "test.key", "default");
-                Assert.NotNull(value);
-            }));
-
-        // Should complete without exceptions
-        await Task.WhenAll(accessTasks);
-    }
-
-    /// <summary>
     /// Validates that concurrent operations on the CacheManager do not result in data corruption or
     /// unexpected behavior. Ensures that cache operations such as insertion, retrieval, and updates
     /// remain thread-safe and consistent under high levels of contention.

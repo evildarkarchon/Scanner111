@@ -226,11 +226,7 @@ public static class YamlSettingsCompatibility
             return mainYaml.CatchLogRecords;
         }
         
-        // Fallback to old way if needed
-        return yamlSettings.GetSetting<List<string>>(
-            "CLASSIC Main", 
-            "catch_log_records", 
-            new List<string>()
-        ) ?? new List<string>();
+        // Return empty list if YAML data couldn't be loaded
+        return new List<string>();
     }
 }
