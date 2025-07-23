@@ -15,6 +15,7 @@ using ReactiveUI;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
+using Scanner111.Core.Services;
 using Scanner111.GUI.Models;
 using Scanner111.GUI.Services;
 using Scanner111.GUI.Views;
@@ -34,6 +35,7 @@ public class MainWindowViewModel : ViewModelBase
 {
     private readonly ISettingsService _settingsService;
     private readonly GuiMessageHandlerService _messageHandlerService;
+    private readonly IUpdateService _updateService;
     private UserSettings _currentSettings;
     private bool _isScanning;
     private IMessageHandler? _messageHandler;
@@ -50,10 +52,11 @@ public class MainWindowViewModel : ViewModelBase
     private string _selectedScanDirectory = "";
     private string _statusText = "Ready";
 
-    public MainWindowViewModel(ISettingsService settingsService, GuiMessageHandlerService messageHandlerService)
+    public MainWindowViewModel(ISettingsService settingsService, GuiMessageHandlerService messageHandlerService, IUpdateService updateService)
     {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _messageHandlerService = messageHandlerService ?? throw new ArgumentNullException(nameof(messageHandlerService));
+        _updateService = updateService ?? throw new ArgumentNullException(nameof(updateService));
         _currentSettings = new UserSettings();
 
         // Set this view model in the message handler service
@@ -74,8 +77,8 @@ public class MainWindowViewModel : ViewModelBase
 
         StatusText = "Ready - Select a crash log file to begin";
 
-        // Load settings asynchronously
-        _ = LoadSettingsAsync();
+        // Load settings asynchronously and perform update check
+        _ = InitializeAsync();
     }
 
     /// <summary>
@@ -723,6 +726,43 @@ public class MainWindowViewModel : ViewModelBase
             action();
         else
             Dispatcher.UIThread.InvokeAsync(action);
+    }
+
+    /// <summary>
+    /// Initializes the ViewModel by loading settings and performing startup tasks like update checking.
+    /// </summary>
+    /// <returns>A task representing the asynchronous initialization.</returns>
+    private async Task InitializeAsync()
+    {
+        await LoadSettingsAsync();
+        await PerformStartupUpdateCheckAsync();
+    }
+
+    /// <summary>
+    /// Performs an update check during startup, respecting user configuration settings.
+    /// </summary>
+    /// <returns>A task representing the asynchronous update check operation.</returns>
+    private async Task PerformStartupUpdateCheckAsync()
+    {
+        try
+        {
+            // Check if update checking is enabled in settings
+            if (_currentSettings.EnableUpdateCheck)
+            {
+                AddLogMessage("Checking for application updates...");
+                await _updateService.IsLatestVersionAsync(quiet: false);
+            }
+        }
+        catch (UpdateCheckException ex)
+        {
+            // Handle update check specific exceptions (e.g., update available)
+            AddLogMessage($"Update check completed: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            // Log other errors but don't fail the application
+            AddLogMessage($"Update check failed: {ex.Message}");
+        }
     }
 
     /// <summary>

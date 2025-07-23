@@ -144,7 +144,9 @@ public class SettingsService : ISettingsService
             AutoSaveResults = appSettings.AutoSaveResults,
             DefaultOutputFormat = appSettings.DefaultOutputFormat,
             CrashLogsDirectory = appSettings.CrashLogsDirectory,
-            SkipXseCopy = appSettings.SkipXseCopy
+            SkipXseCopy = appSettings.SkipXseCopy,
+            EnableUpdateCheck = appSettings.EnableUpdateCheck,
+            UpdateSource = appSettings.UpdateSource
         };
     }
 
@@ -181,5 +183,7 @@ public class SettingsService : ISettingsService
         appSettings.DefaultOutputFormat = userSettings.DefaultOutputFormat;
         appSettings.CrashLogsDirectory = userSettings.CrashLogsDirectory;
         appSettings.SkipXseCopy = userSettings.SkipXseCopy;
+        appSettings.EnableUpdateCheck = userSettings.EnableUpdateCheck;
+        appSettings.UpdateSource = userSettings.UpdateSource;
     }
 }

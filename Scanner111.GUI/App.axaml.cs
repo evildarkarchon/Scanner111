@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Pipeline;
+using Scanner111.Core.Services;
 using Scanner111.GUI.Services;
 using Scanner111.GUI.ViewModels;
 using Scanner111.GUI.Views;
@@ -75,6 +76,7 @@ public class App : Application
 
         // Register Core services
         services.AddSingleton<IApplicationSettingsService, ApplicationSettingsService>();
+        services.AddSingleton<IUpdateService, UpdateService>();
         services.AddSingleton<FormIdDatabaseService>();
         services.AddTransient<IReportWriter, ReportWriter>();
 

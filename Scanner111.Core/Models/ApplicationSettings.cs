@@ -67,6 +67,14 @@ public class ApplicationSettings
     [JsonPropertyName("enableProgressNotifications")]
     public bool EnableProgressNotifications { get; set; } = true;
 
+    // === Update Check Settings ===
+
+    [JsonPropertyName("enableUpdateCheck")]
+    public bool EnableUpdateCheck { get; set; } = true;
+
+    [JsonPropertyName("updateSource")]
+    public string UpdateSource { get; set; } = "Both"; // "Both", "GitHub", "Nexus"
+
     // === CLI-Specific Display Settings ===
 
     [JsonPropertyName("disableColors")] public bool DisableColors { get; set; }

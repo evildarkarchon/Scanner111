@@ -29,6 +29,8 @@ public class SettingsWindowViewModel : ViewModelBase
     private bool _rememberWindowSize = true;
     private double _windowHeight = 800;
     private double _windowWidth = 1200;
+    private bool _enableUpdateCheck = true;
+    private string _updateSource = "Both";
 
     public SettingsWindowViewModel() : this(new SettingsService())
     {
@@ -194,6 +196,26 @@ public class SettingsWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _defaultOutputFormat, value);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether automatic update checking is enabled.
+    /// When enabled, the application will check for updates on startup.
+    /// </summary>
+    public bool EnableUpdateCheck
+    {
+        get => _enableUpdateCheck;
+        set => this.RaiseAndSetIfChanged(ref _enableUpdateCheck, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the update source for checking new versions.
+    /// Valid values are "Both", "GitHub", or "Nexus".
+    /// </summary>
+    public string UpdateSource
+    {
+        get => _updateSource;
+        set => this.RaiseAndSetIfChanged(ref _updateSource, value);
+    }
+
     public ObservableCollection<string> RecentLogFiles { get; } = [];
     public ObservableCollection<string> RecentGamePaths { get; } = [];
     public ObservableCollection<string> RecentScanDirectories { get; } = [];
@@ -244,7 +266,9 @@ public class SettingsWindowViewModel : ViewModelBase
             AutoSaveResults = source.AutoSaveResults,
             DefaultOutputFormat = source.DefaultOutputFormat,
             CrashLogsDirectory = source.CrashLogsDirectory,
-            SkipXseCopy = source.SkipXseCopy
+            SkipXseCopy = source.SkipXseCopy,
+            EnableUpdateCheck = source.EnableUpdateCheck,
+            UpdateSource = source.UpdateSource
         };
 
         // Deep copy the lists
@@ -300,7 +324,9 @@ public class SettingsWindowViewModel : ViewModelBase
                 AutoSaveResults = defaultSettings.AutoSaveResults,
                 DefaultOutputFormat = defaultSettings.DefaultOutputFormat,
                 CrashLogsDirectory = defaultSettings.CrashLogsDirectory,
-                SkipXseCopy = defaultSettings.SkipXseCopy
+                SkipXseCopy = defaultSettings.SkipXseCopy,
+                EnableUpdateCheck = defaultSettings.EnableUpdateCheck,
+                UpdateSource = defaultSettings.UpdateSource
             };
             _originalSettings = CreateDeepCopy(userDefaults);
             ResetToDefaults();
@@ -331,6 +357,8 @@ public class SettingsWindowViewModel : ViewModelBase
         MaxRecentItems = settings.MaxRecentItems;
         AutoSaveResults = settings.AutoSaveResults;
         DefaultOutputFormat = settings.DefaultOutputFormat;
+        EnableUpdateCheck = settings.EnableUpdateCheck;
+        UpdateSource = settings.UpdateSource;
 
         RecentLogFiles.Clear();
         foreach (var file in settings.RecentLogFiles)
@@ -374,7 +402,9 @@ public class SettingsWindowViewModel : ViewModelBase
             EnableDebugLogging = EnableDebugLogging,
             MaxRecentItems = MaxRecentItems,
             AutoSaveResults = AutoSaveResults,
-            DefaultOutputFormat = DefaultOutputFormat
+            DefaultOutputFormat = DefaultOutputFormat,
+            EnableUpdateCheck = EnableUpdateCheck,
+            UpdateSource = UpdateSource
         };
 
         foreach (var file in RecentLogFiles)
@@ -481,7 +511,9 @@ public class SettingsWindowViewModel : ViewModelBase
             AutoSaveResults = appSettings.AutoSaveResults,
             DefaultOutputFormat = appSettings.DefaultOutputFormat,
             CrashLogsDirectory = appSettings.CrashLogsDirectory,
-            SkipXseCopy = appSettings.SkipXseCopy
+            SkipXseCopy = appSettings.SkipXseCopy,
+            EnableUpdateCheck = appSettings.EnableUpdateCheck,
+            UpdateSource = appSettings.UpdateSource
         };
         LoadFromSettings(defaultSettings);
     }

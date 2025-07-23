@@ -68,6 +68,8 @@ public class ConfigCommand : ICommand<ConfigOptions>
         MessageHandler.MsgInfo($"Default Output Format: {settings.DefaultOutputFormat}");
         MessageHandler.MsgInfo($"Default Game Path: {settings.DefaultGamePath}");
         MessageHandler.MsgInfo($"Default Scan Directory: {settings.DefaultScanDirectory}");
+        MessageHandler.MsgInfo($"Enable Update Check: {settings.EnableUpdateCheck}");
+        MessageHandler.MsgInfo($"Update Source: {settings.UpdateSource}");
     }
 
     private async Task<int> SetConfiguration(string setOption)
@@ -99,6 +101,7 @@ public class ConfigCommand : ICommand<ConfigOptions>
             MessageHandler.MsgInfo("  FcxMode, ShowFormIdValues, SimplifyLogs, MoveUnsolvedLogs");
             MessageHandler.MsgInfo("  AudioNotifications, VrMode, DisableColors, DisableProgress");
             MessageHandler.MsgInfo("  DefaultOutputFormat, DefaultGamePath, DefaultScanDirectory, CrashLogsDirectory");
+            MessageHandler.MsgInfo("  EnableUpdateCheck, UpdateSource");
             return 1;
         }
 

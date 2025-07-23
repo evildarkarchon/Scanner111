@@ -79,6 +79,27 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Update Settings Section -->
+                <Border Background="#3c3c3c" CornerRadius="5" Padding="15">
+                    <StackPanel Spacing="15">
+                        <TextBlock Text="Update Settings" FontSize="16" FontWeight="Bold" Foreground="#0e639c" />
+                        
+                        <CheckBox Content="Enable automatic update checking on startup" 
+                                  IsChecked="{Binding EnableUpdateCheck}" />
+                        
+                        <!-- Update Source -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Update Source:" />
+                            <ComboBox SelectedItem="{Binding UpdateSource}" Width="200"
+                                      HorizontalAlignment="Left">
+                                <ComboBoxItem Content="Both" />
+                                <ComboBoxItem Content="GitHub" />
+                                <ComboBoxItem Content="Nexus" />
+                            </ComboBox>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
                 <!-- Interface Settings Section -->
                 <Border Background="#3c3c3c" CornerRadius="5" Padding="15">
                     <StackPanel Spacing="15">

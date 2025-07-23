@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Scanner111.Core.Services;
 using Scanner111.GUI.ViewModels;
 using Scanner111.GUI.Services;
 
@@ -31,8 +32,9 @@ public partial class MainWindow : Window
         // Create design-time services
         var settingsService = new SettingsService();
         var messageHandler = new GuiMessageHandlerService();
+        var updateService = new DesignTimeUpdateService();
 
-        _viewModel = new MainWindowViewModel(settingsService, messageHandler);
+        _viewModel = new MainWindowViewModel(settingsService, messageHandler, updateService);
         InitializeComponent();
 
         // Wire up file picker events

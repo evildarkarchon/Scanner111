@@ -73,6 +73,10 @@ public class UserSettings
 
     [JsonPropertyName("skipXSECopy")] public bool SkipXseCopy { get; set; } = false;
 
+    [JsonPropertyName("enableUpdateCheck")] public bool EnableUpdateCheck { get; set; } = true;
+
+    [JsonPropertyName("updateSource")] public string UpdateSource { get; set; } = "Both"; // "Both", "GitHub", "Nexus"
+
     /// Adds a specified log file path to the list of recent log files.
     /// Maintains the maximum number of recent items as defined by MaxRecentItems.
     /// If the path already exists in the list, it is moved to the most recent position.

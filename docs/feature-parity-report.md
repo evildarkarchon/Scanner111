@@ -33,35 +33,29 @@ Scanner111 currently implements the core crash log analysis functionality but la
 
 1. **Advanced Analysis Features**
    - ❌ FCX (File Check Xtended) mode for game integrity checking
-   - ❌ Comprehensive FormID value lookups with mod details
-   - ❌ Complete suspect pattern database
-   - ❌ Stack trace analysis with known crash patterns
-   - ❌ Mod conflict detection
+   - ~~❌ Comprehensive FormID value lookups with mod details~~
+   - ~~❌ Complete suspect pattern database~~
+   - ~~❌ Stack trace analysis with known crash patterns~~
+   - ~~❌ Mod conflict detection~~
 
 2. **File Management**
    - ❌ Move unsolved logs functionality
    - ❌ Simplify logs feature (removing redundant information)
-   - ❌ Backup/restore functionality for game files
-   - ❌ Custom scan directory support
+   - ~~❌ Backup/restore functionality for game files~~
+   - ~~❌ Custom scan directory support~~
 
 3. **Integration Features**
-   - ❌ Mod Organizer 2 integration
-   - ❌ Vortex mod manager integration
-   - ❌ VR mode support
-   - ❌ Auto-update checking via GitHub
+   - ~~❌ Mod Organizer 2 integration~~
+   - ~~❌ Vortex mod manager integration~~
+   - ~~❌ VR mode support~~
+   - ✅ Auto-update checking via GitHub and Nexus
 
 4. **User Experience**
    - ❌ Audio notifications
-   - ❌ Statistical logging and reporting
-   - ❌ Recent items management (files, paths)
-   - ❌ Progress bars for batch operations
-   - ❌ Comprehensive error descriptions with solutions
 
 5. **Database/Configuration**
    - ❌ Complete YAML databases (CLASSIC Main.yaml, CLASSIC Fallout4.yaml)
    - ❌ Hashed script verification
-   - ❌ Known mod incompatibilities database
-   - ❌ Crash suspect descriptions and solutions
 
 ## Phased Implementation Plan
 
@@ -179,7 +173,7 @@ Scanner111 currently implements the core crash log analysis functionality but la
 2. Complete FormID database
 3. Move unsolved logs
 4. Mod manager integration
-5. Auto-update checking
+5. ~~Auto-update checking~~ ✅ Completed
 
 ### Medium Priority (Should Have)
 1. Simplify logs
