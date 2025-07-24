@@ -33,20 +33,13 @@ Scanner111 currently implements the core crash log analysis functionality but la
 
 1. **Advanced Analysis Features**
    - ❌ FCX (File Check Xtended) mode for game integrity checking
-   - ~~❌ Comprehensive FormID value lookups with mod details~~
-   - ~~❌ Complete suspect pattern database~~
-   - ~~❌ Stack trace analysis with known crash patterns~~
-   - ~~❌ Mod conflict detection~~
 
 2. **File Management**
    - ❌ Move unsolved logs functionality
-   - ❌ Simplify logs feature (removing redundant information)
-   - ~~❌ Backup/restore functionality for game files~~
-   - ~~❌ Custom scan directory support~~
 
 3. **Integration Features**
-   - ~~❌ Mod Organizer 2 integration~~
-   - ~~❌ Vortex mod manager integration~~
+   - ❌ Mod Organizer 2 integration
+   - ❌ Vortex mod manager integration
    - ~~❌ VR mode support~~
    - ✅ Auto-update checking via GitHub and Nexus
 
@@ -54,7 +47,6 @@ Scanner111 currently implements the core crash log analysis functionality but la
    - ❌ Audio notifications
 
 5. **Database/Configuration**
-   - ❌ Complete YAML databases (CLASSIC Main.yaml, CLASSIC Fallout4.yaml)
    - ❌ Hashed script verification
 
 ## Phased Implementation Plan
@@ -85,14 +77,9 @@ Scanner111 currently implements the core crash log analysis functionality but la
   - [ ] Script verification against known hashes
   - [ ] Missing file detection
 - [ ] Enhance FormIdAnalyzer with value lookups
-- [ ] Complete suspect pattern database integration
-- [ ] Add mod conflict detection logic
-- [ ] Implement stack trace pattern matching
 
 #### Deliverables:
 - FCX mode fully functional
-- Enhanced crash analysis matching Python output
-- Mod conflict reports
 
 ### Phase 3: File Management & Utilities (2-3 weeks)
 
@@ -100,8 +87,6 @@ Scanner111 currently implements the core crash log analysis functionality but la
 
 #### Tasks:
 - [ ] Implement "Move Unsolved Logs" functionality
-- [ ] Add "Simplify Logs" feature with configurable rules
-- [ ] Create backup/restore system for game files
 - [ ] Add custom scan directory support
 - [ ] Implement batch processing with progress tracking
 
@@ -123,12 +108,9 @@ Scanner111 currently implements the core crash log analysis functionality but la
   - [ ] Detect Vortex installation
   - [ ] Read staging folder configuration
 - [ ] VR mode support (detect and analyze VR-specific crashes)
-- [ ] Auto-update checking via GitHub API
 
 #### Deliverables:
 - Seamless mod manager integration
-- VR crash log support
-- Auto-update notifications
 
 ### Phase 5: User Experience Enhancements (2-3 weeks)
 

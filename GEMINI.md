@@ -1,4 +1,4 @@
-# GitHub Copilot Instructions for Scanner111
+# Gemini Instructions for Scanner111
 
 ## Project Overview
 Scanner111 is a C# port of a Python crash log analyzer for Bethesda games (Fallout 4, Skyrim). It analyzes crash dumps to identify problematic game modifications using multiple analyzer engines in a streaming pipeline architecture.
