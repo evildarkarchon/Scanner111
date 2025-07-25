@@ -219,12 +219,12 @@ public interface IBackupService
 
 ### 5.2 Mod Conflict Detection
 - **Port mod scanning logic** from `CLASSIC_ScanGame.py`
-- **Implement archive scanning** (BSA/BA2 files)
+- **Implement archive scanning** (BSA/BA2 files) (Consider using either `Mutagen.Bethesda` and/or `BSArch.exe` for archive handling)
 - **Create conflict analyzer** using existing analyzer pattern
 
 ### 5.3 Report Generation
 - **Extend `ScanResult.GenerateReport()`** to include FCX results
-- **Maintain exact output format** from Python version
+- **Maintain exact output format** from Python version (There might be a bug in the Python version of FCX that caused the report to show, at least some of its output twice)
 - **Add FCX-specific report sections**
 - **Include version-specific information**:
   - Detected game version with platform (Steam/GOG)

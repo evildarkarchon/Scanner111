@@ -16,6 +16,7 @@ public class ScanPipelineBuilder
     private bool _enableCaching = true;
     private bool _enableEnhancedErrorHandling = true;
     private bool _enablePerformanceMonitoring;
+    private bool _enableFcx;
 
     public ScanPipelineBuilder()
     {
@@ -94,6 +95,18 @@ public class ScanPipelineBuilder
         return this;
     }
 
+    /// <summary>
+    /// Enables or disables FCX (File Integrity Check) mode for the pipeline.
+    /// When enabled, the pipeline will perform file integrity checks before analyzing crash logs.
+    /// </summary>
+    /// <param name="enable">A boolean indicating whether to enable FCX mode. Defaults to <c>true</c>.</param>
+    /// <returns>The current instance of <see cref="ScanPipelineBuilder"/> to allow method chaining.</returns>
+    public ScanPipelineBuilder WithFcxMode(bool enable = true)
+    {
+        _enableFcx = enable;
+        return this;
+    }
+
 
     /// <summary>
     /// Configures logging for the scan pipeline.
@@ -146,6 +159,25 @@ public class ScanPipelineBuilder
             pipeline = new ScanPipeline(analyzers, logger, messageHandler, settingsProvider);
         }
 
+        // Wrap with FCX pipeline if enabled
+        if (_enableFcx)
+        {
+            var fcxLogger = serviceProvider.GetRequiredService<ILogger<FcxEnabledPipeline>>();
+            var hashService = serviceProvider.GetRequiredService<IHashValidationService>();
+            var settingsService = serviceProvider.GetRequiredService<IApplicationSettingsService>();
+            var yamlSettings = serviceProvider.GetRequiredService<IYamlSettingsProvider>();
+            var messageHandler = serviceProvider.GetRequiredService<IMessageHandler>();
+            
+            pipeline = new FcxEnabledPipeline(
+                pipeline,
+                settingsService,
+                hashService,
+                fcxLogger,
+                messageHandler,
+                yamlSettings);
+        }
+
+        // Wrap with performance monitoring if enabled
         if (_enablePerformanceMonitoring)
         {
             var perfLogger = serviceProvider.GetRequiredService<ILogger>();
