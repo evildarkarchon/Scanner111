@@ -45,11 +45,7 @@ public class ApplicationSettingsService : IApplicationSettingsService
         var settings = _cachedSettings ?? await LoadSettingsAsync();
 
         // Update the specific setting using reflection
-        var property = typeof(ApplicationSettings).GetProperty(key);
-        if (property == null)
-            // Try with different casing conventions
-            property = typeof(ApplicationSettings).GetProperty(SettingsHelper.ToPascalCase(key));
-
+        var property = typeof(ApplicationSettings).GetProperty(key) ?? typeof(ApplicationSettings).GetProperty(SettingsHelper.ToPascalCase(key));
         if (property != null && property.CanWrite)
             try
             {
