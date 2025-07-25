@@ -84,6 +84,37 @@ public class CrashLog
     /// </summary>
     public bool IsIncomplete { get; set; }
 
+    // FCX-specific metadata
+    /// <summary>
+    ///     Detected game type (Fallout4, Skyrim, etc.)
+    /// </summary>
+    public string GameType { get; set; } = string.Empty;
+
+    /// <summary>
+    ///     Detected game installation path
+    /// </summary>
+    public string GamePath { get; set; } = string.Empty;
+
+    /// <summary>
+    ///     Detected game platform (Steam, GOG, Epic, etc.)
+    /// </summary>
+    public string GamePlatform { get; set; } = string.Empty;
+
+    /// <summary>
+    ///     XSE (F4SE/SKSE) version if detected
+    /// </summary>
+    public string XseVersion { get; set; } = string.Empty;
+
+    /// <summary>
+    ///     Documents folder path for INI files
+    /// </summary>
+    public string DocumentsPath { get; set; } = string.Empty;
+
+    /// <summary>
+    ///     Executable file hash (SHA256) for version verification
+    /// </summary>
+    public string ExecutableHash { get; set; } = string.Empty;
+
     /// <summary>
     ///     Release memory used by original lines after analysis is complete
     /// </summary>
