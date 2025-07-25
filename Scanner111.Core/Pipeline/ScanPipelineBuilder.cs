@@ -46,6 +46,7 @@ public class ScanPipelineBuilder
         AddAnalyzer<SuspectScanner>();
         AddAnalyzer<SettingsScanner>();
         AddAnalyzer<RecordScanner>();
+        AddAnalyzer<FileIntegrityAnalyzer>();
         return this;
     }
 
@@ -168,6 +169,8 @@ public class ScanPipelineBuilder
         _services.AddSingleton<IAnalyzerFactory, AnalyzerFactory>();
         _services.AddSingleton<IFormIdDatabaseService, FormIdDatabaseService>();
         _services.AddSingleton<IReportWriter, ReportWriter>();
+        _services.AddSingleton<IHashValidationService, HashValidationService>();
+        _services.AddSingleton<IApplicationSettingsService, ApplicationSettingsService>();
 
         // Add caching services if enabled
         if (_enableCaching)

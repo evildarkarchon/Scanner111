@@ -74,11 +74,17 @@ public class App : Application
             builder.SetMinimumLevel(LogLevel.Information);
         });
 
+        // Add memory cache for CacheManager
+        services.AddMemoryCache();
+
         // Register Core services
         services.AddSingleton<IApplicationSettingsService, ApplicationSettingsService>();
         services.AddSingleton<IUpdateService, UpdateService>();
         services.AddSingleton<FormIdDatabaseService>();
         services.AddTransient<IReportWriter, ReportWriter>();
+        services.AddSingleton<IYamlSettingsProvider, YamlSettingsService>();
+        services.AddSingleton<ICacheManager, CacheManager>();
+        services.AddSingleton<IHashValidationService, HashValidationService>();
 
         // Register Pipeline services
         services.AddTransient<IScanPipeline, ScanPipeline>();
@@ -90,6 +96,7 @@ public class App : Application
         services.AddTransient<RecordScanner>();
         services.AddTransient<SettingsScanner>();
         services.AddTransient<SuspectScanner>();
+        services.AddTransient<FileIntegrityAnalyzer>();
 
         // Register GUI services
         services.AddSingleton<ISettingsService, SettingsService>();

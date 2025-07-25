@@ -22,7 +22,8 @@ public class AnalyzerFactory : IAnalyzerFactory
             ["Plugin"] = typeof(PluginAnalyzer),
             ["Suspect"] = typeof(SuspectScanner),
             ["Settings"] = typeof(SettingsScanner),
-            ["Record"] = typeof(RecordScanner)
+            ["Record"] = typeof(RecordScanner),
+            ["FileIntegrity"] = typeof(FileIntegrityAnalyzer)
         };
     }
 
