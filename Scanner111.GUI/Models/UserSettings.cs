@@ -83,6 +83,8 @@ public class UserSettings
 
     [JsonPropertyName("iniFolder")] public string IniFolder { get; set; } = "";
 
+    [JsonPropertyName("backupDirectory")] public string BackupDirectory { get; set; } = "";
+
     /// Adds a specified log file path to the list of recent log files.
     /// Maintains the maximum number of recent items as defined by MaxRecentItems.
     /// If the path already exists in the list, it is moved to the most recent position.

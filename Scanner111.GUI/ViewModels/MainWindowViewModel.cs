@@ -12,6 +12,7 @@ using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using ReactiveUI;
+using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
@@ -36,6 +37,7 @@ public class MainWindowViewModel : ViewModelBase
     private readonly ISettingsService _settingsService;
     private readonly GuiMessageHandlerService _messageHandlerService;
     private readonly IUpdateService _updateService;
+    private readonly ICacheManager _cacheManager;
     private UserSettings _currentSettings;
     private bool _isScanning;
     private IMessageHandler? _messageHandler;
@@ -53,11 +55,12 @@ public class MainWindowViewModel : ViewModelBase
     private string _selectedScanDirectory = "";
     private string _statusText = "Ready";
 
-    public MainWindowViewModel(ISettingsService settingsService, GuiMessageHandlerService messageHandlerService, IUpdateService updateService)
+    public MainWindowViewModel(ISettingsService settingsService, GuiMessageHandlerService messageHandlerService, IUpdateService updateService, ICacheManager cacheManager)
     {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _messageHandlerService = messageHandlerService ?? throw new ArgumentNullException(nameof(messageHandlerService));
         _updateService = updateService ?? throw new ArgumentNullException(nameof(updateService));
+        _cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
         _currentSettings = new UserSettings();
 
         // Set this view model in the message handler service
@@ -300,16 +303,36 @@ public class MainWindowViewModel : ViewModelBase
         if (_scanPipeline != null) return;
         _messageHandler = _messageHandlerService;
 
-        _scanPipeline = new ScanPipelineBuilder()
+        var pipelineBuilder = new ScanPipelineBuilder()
             .AddDefaultAnalyzers()
             .WithMessageHandler(_messageHandler)
             .WithCaching()
             .WithEnhancedErrorHandling()
-            .WithLogging(builder => builder.AddConsole())
-            .Build();
+            .WithLogging(builder => builder.AddConsole());
+            
+        // Enable FCX mode if configured in settings
+        if (_currentSettings.FcxMode)
+        {
+            pipelineBuilder.WithFcxMode(true);
+        }
+        
+        _scanPipeline = pipelineBuilder.Build();
 
         // Initialize report writer with null logger (GUI doesn't need console logging)
         _reportWriter = new ReportWriter(NullLogger<ReportWriter>.Instance);
+    }
+
+    /// <summary>
+    /// Resets the scan pipeline, forcing it to be recreated with current settings.
+    /// This should be called when FCX mode or other pipeline-affecting settings change.
+    /// </summary>
+    private async Task ResetPipelineAsync()
+    {
+        if (_scanPipeline != null)
+        {
+            await _scanPipeline.DisposeAsync();
+            _scanPipeline = null;
+        }
     }
 
     /// <summary>
@@ -810,6 +833,7 @@ public class MainWindowViewModel : ViewModelBase
     {
         try
         {
+            var previousFcxMode = _currentSettings.FcxMode;
             _currentSettings = await _settingsService.LoadUserSettingsAsync();
 
             // Apply default paths from settings if current paths are empty
@@ -822,6 +846,13 @@ public class MainWindowViewModel : ViewModelBase
             if (string.IsNullOrEmpty(SelectedScanDirectory) &&
                 !string.IsNullOrEmpty(_currentSettings.DefaultScanDirectory))
                 SelectedScanDirectory = _currentSettings.DefaultScanDirectory;
+                
+            // Reset pipeline if FCX mode has changed
+            if (previousFcxMode != _currentSettings.FcxMode)
+            {
+                await ResetPipelineAsync();
+                AddLogMessage($"FCX mode {(_currentSettings.FcxMode ? "enabled" : "disabled")} - scan pipeline updated");
+            }
         }
         catch (Exception ex)
         {
@@ -1036,43 +1067,110 @@ public class MainWindowViewModel : ViewModelBase
             ProgressVisible = true;
             ProgressValue = 0;
             ProgressText = "Initializing FCX scan...";
+            IsScanning = true;
 
-            // For now, create a mock FCX result until the actual FCX scan is implemented
-            // This will be replaced with actual FCX scanning logic in Phase 3
-            await Task.Delay(1000); // Simulate scanning
+            _scanCancellationTokenSource = new CancellationTokenSource();
 
-            var fcxResult = new FcxScanResult
+            // Create a FileIntegrityAnalyzer for FCX scanning
+            var hashService = new HashValidationService(NullLogger<HashValidationService>.Instance);
+            var yamlSettings = new YamlSettingsService(_cacheManager, NullLogger<YamlSettingsService>.Instance);
+            
+            // Create an adapter for settings service
+            var appSettingsService = new GuiApplicationSettingsAdapter(_settingsService);
+            
+            var fileIntegrityAnalyzer = new FileIntegrityAnalyzer(
+                hashService,
+                appSettingsService,
+                yamlSettings,
+                _messageHandler ?? _messageHandlerService);
+
+            // Create a synthetic crash log with the game path
+            var crashLog = new CrashLog
             {
-                Success = true,
-                AnalyzerName = "FCX File Integrity",
-                GameStatus = GameIntegrityStatus.Good,
-                FileChecks = new List<FileIntegrityCheck>
-                {
-                    new FileIntegrityCheck
-                    {
-                        FilePath = Path.Combine(SelectedGamePath, "Fallout4.exe"),
-                        FileType = "Executable",
-                        Exists = true,
-                        IsValid = true,
-                        FileSize = 28762112
-                    }
-                },
-                HashValidations = new List<HashValidation>(),
-                VersionWarnings = new List<string>(),
-                RecommendedFixes = new List<string>()
+                FilePath = "FCX_SCAN",
+                GamePath = SelectedGamePath
             };
 
-            FcxResult = new FcxResultViewModel(fcxResult);
-            
-            ProgressVisible = false;
-            StatusText = "FCX scan completed";
-            AddLogMessage($"FCX scan completed: {fcxResult.GameStatus}");
+            ProgressText = "Checking game files integrity...";
+            ProgressValue = 25;
+
+            // Run the file integrity analysis
+            var analysisResult = await fileIntegrityAnalyzer.AnalyzeAsync(crashLog, _scanCancellationTokenSource.Token);
+
+            if (analysisResult is FcxScanResult fcxResult)
+            {
+                // Update progress
+                ProgressValue = 75;
+                ProgressText = "Processing results...";
+
+                // Set the FCX result for display
+                FcxResult = new FcxResultViewModel(fcxResult);
+
+                // Update status based on results
+                switch (fcxResult.GameStatus)
+                {
+                    case GameIntegrityStatus.Good:
+                        StatusText = "FCX scan completed - All checks passed";
+                        AddLogMessage("✅ FCX scan completed: Game integrity is good");
+                        break;
+                    case GameIntegrityStatus.Warning:
+                        StatusText = "FCX scan completed - Minor issues found";
+                        AddLogMessage($"⚠️ FCX scan completed: {fcxResult.VersionWarnings.Count} warnings found");
+                        foreach (var warning in fcxResult.VersionWarnings)
+                        {
+                            AddLogMessage($"   • {warning}");
+                        }
+                        break;
+                    case GameIntegrityStatus.Critical:
+                        StatusText = "FCX scan completed - Critical issues found";
+                        AddLogMessage($"❌ FCX scan completed: Critical issues detected");
+                        foreach (var fix in fcxResult.RecommendedFixes)
+                        {
+                            AddLogMessage($"   • Recommended: {fix}");
+                        }
+                        break;
+                    case GameIntegrityStatus.Invalid:
+                        StatusText = "FCX scan failed - Invalid game installation";
+                        AddLogMessage("❌ FCX scan failed: Game installation not found or invalid");
+                        break;
+                }
+
+                // Log file check details
+                var failedChecks = fcxResult.FileChecks.Where(fc => !fc.IsValid).ToList();
+                if (failedChecks.Any())
+                {
+                    AddLogMessage($"Failed file checks: {failedChecks.Count}");
+                    foreach (var check in failedChecks.Take(5)) // Show first 5 failures
+                    {
+                        AddLogMessage($"   • {Path.GetFileName(check.FilePath)}: {check.ErrorMessage}");
+                    }
+                }
+            }
+            else
+            {
+                StatusText = "FCX scan completed with unexpected result";
+                AddLogMessage("FCX scan completed but result format was unexpected");
+            }
+
+            ProgressValue = 100;
+            await Task.Delay(500); // Brief pause to show completion
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "FCX scan cancelled";
+            AddLogMessage("FCX scan was cancelled by user.");
         }
         catch (Exception ex)
         {
-            ProgressVisible = false;
             StatusText = "FCX scan failed";
             AddLogMessage($"Error during FCX scan: {ex.Message}");
+        }
+        finally
+        {
+            IsScanning = false;
+            ProgressVisible = false;
+            _scanCancellationTokenSource?.Dispose();
+            _scanCancellationTokenSource = null;
         }
     }
 
@@ -1091,16 +1189,92 @@ public class MainWindowViewModel : ViewModelBase
             }
 
             StatusText = "Backing up game files...";
-            AddLogMessage("Game file backup functionality will be implemented in Phase 5.");
+            ProgressVisible = true;
+            ProgressValue = 0;
+            ProgressText = "Preparing backup...";
+            IsScanning = true;
+
+            _scanCancellationTokenSource = new CancellationTokenSource();
+
+            // Create backup service
+            var appSettingsService = new GuiApplicationSettingsAdapter(_settingsService);
+            var backupService = new BackupService(NullLogger<BackupService>.Instance, appSettingsService);
             
-            // This will be implemented in Phase 5 with IBackupService
-            await Task.Delay(100);
-            
-            StatusText = "Backup feature coming soon";
+            // Create progress reporter
+            var progress = new Progress<BackupProgress>(p =>
+            {
+                ProgressValue = p.PercentComplete;
+                ProgressText = $"Backing up {Path.GetFileName(p.CurrentFile)}... ({p.ProcessedFiles}/{p.TotalFiles})";
+            });
+
+            AddLogMessage("Starting backup of critical game files...");
+
+            // Perform full backup of critical files
+            var result = await backupService.CreateFullBackupAsync(
+                SelectedGamePath, 
+                progress, 
+                _scanCancellationTokenSource.Token);
+
+            if (result.Success)
+            {
+                StatusText = "Backup completed successfully";
+                AddLogMessage($"✅ Backup completed successfully!");
+                AddLogMessage($"   • Location: {result.BackupPath}");
+                AddLogMessage($"   • Files backed up: {result.BackedUpFiles.Count}");
+                AddLogMessage($"   • Total size: {result.TotalSize:N0} bytes ({result.TotalSize / 1024.0 / 1024.0:F1} MB)");
+                
+                // Show some of the backed up files
+                var importantFiles = result.BackedUpFiles
+                    .Where(f => f.EndsWith(".exe") || f.EndsWith(".dll") || f.EndsWith(".esm"))
+                    .Take(5)
+                    .ToList();
+                    
+                if (importantFiles.Any())
+                {
+                    AddLogMessage("   • Important files included:");
+                    foreach (var file in importantFiles)
+                    {
+                        AddLogMessage($"     - {file}");
+                    }
+                }
+
+                // Offer to open backup folder
+                if (ShowFolderPickerAsync != null)
+                {
+                    var backupDir = Path.GetDirectoryName(result.BackupPath);
+                    AddLogMessage($"\nBackup saved to: {backupDir}");
+                }
+            }
+            else
+            {
+                StatusText = "Backup failed";
+                AddLogMessage($"❌ Backup failed: {result.ErrorMessage}");
+                
+                if (result.BackedUpFiles.Count > 0)
+                {
+                    AddLogMessage($"   • Partially backed up {result.BackedUpFiles.Count} files before failure");
+                }
+            }
+
+            ProgressValue = 100;
+            await Task.Delay(500); // Brief pause to show completion
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "Backup cancelled";
+            AddLogMessage("Backup was cancelled by user.");
         }
         catch (Exception ex)
         {
+            StatusText = "Backup failed";
             AddLogMessage($"Error during backup: {ex.Message}");
+        }
+        finally
+        {
+            IsScanning = false;
+            ProgressVisible = false;
+            _scanCancellationTokenSource?.Dispose();
+            _scanCancellationTokenSource = null;
         }
     }
 
@@ -1119,16 +1293,164 @@ public class MainWindowViewModel : ViewModelBase
             }
 
             StatusText = "Validating game installation...";
-            AddLogMessage("Game validation functionality will be implemented in Phase 2.");
+            ProgressVisible = true;
+            ProgressValue = 0;
+            ProgressText = "Preparing validation...";
+            IsScanning = true;
+
+            _scanCancellationTokenSource = new CancellationTokenSource();
+
+            var hashService = new HashValidationService(NullLogger<HashValidationService>.Instance);
             
-            // This will be implemented with hash validation service
-            await Task.Delay(100);
+            // Define critical game files to validate
+            var criticalFiles = new Dictionary<string, string>
+            {
+                ["Fallout4.exe"] = "Main game executable",
+                ["Fallout4.cdx"] = "Game content index",
+                ["Fallout4 - Animations.ba2"] = "Animation archive",
+                ["Fallout4 - Interface.ba2"] = "Interface archive",
+                ["Fallout4 - Materials.ba2"] = "Materials archive",
+                ["Fallout4 - Meshes.ba2"] = "Meshes archive",
+                ["Fallout4 - MeshesExtra.ba2"] = "Extra meshes archive",
+                ["Fallout4 - Misc.ba2"] = "Miscellaneous archive",
+                ["Fallout4 - Shaders.ba2"] = "Shaders archive",
+                ["Fallout4 - Sounds.ba2"] = "Sounds archive",
+                ["Fallout4 - Startup.ba2"] = "Startup archive",
+                ["Fallout4 - Textures1.ba2"] = "Textures archive 1",
+                ["Fallout4 - Textures2.ba2"] = "Textures archive 2",
+                ["Fallout4 - Textures3.ba2"] = "Textures archive 3"
+            };
+
+            var validationResults = new List<string>();
+            var missingFiles = new List<string>();
+            var corruptedFiles = new List<string>();
+            var totalFiles = criticalFiles.Count;
+            var processedFiles = 0;
+
+            AddLogMessage($"Validating {totalFiles} critical game files...");
+
+            foreach (var (fileName, description) in criticalFiles)
+            {
+                if (_scanCancellationTokenSource.Token.IsCancellationRequested)
+                    break;
+
+                var filePath = Path.Combine(SelectedGamePath, fileName);
+                processedFiles++;
+                
+                ProgressValue = (processedFiles * 100.0) / totalFiles;
+                ProgressText = $"Checking {fileName}...";
+
+                if (!File.Exists(filePath))
+                {
+                    missingFiles.Add($"{fileName} ({description})");
+                    validationResults.Add($"❌ Missing: {fileName}");
+                }
+                else
+                {
+                    try
+                    {
+                        // Check file size and basic integrity
+                        var fileInfo = new FileInfo(filePath);
+                        
+                        // Minimum size checks for BA2 archives
+                        if (fileName.EndsWith(".ba2", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (fileInfo.Length < 1024 * 1024) // Less than 1MB is suspicious for BA2
+                            {
+                                corruptedFiles.Add($"{fileName} ({description}) - File too small");
+                                validationResults.Add($"⚠️ Suspicious: {fileName} - Size: {fileInfo.Length:N0} bytes");
+                            }
+                            else
+                            {
+                                validationResults.Add($"✅ Valid: {fileName} - Size: {fileInfo.Length:N0} bytes");
+                            }
+                        }
+                        else if (fileName == "Fallout4.exe")
+                        {
+                            // Calculate hash for the executable
+                            var hash = await hashService.CalculateFileHashAsync(filePath, _scanCancellationTokenSource.Token);
+                            var shortHash = hash.Length > 8 ? hash.Substring(0, 8) : hash;
+                            validationResults.Add($"✅ Valid: {fileName} - Hash: {shortHash}...");
+                        }
+                        else
+                        {
+                            validationResults.Add($"✅ Valid: {fileName}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        corruptedFiles.Add($"{fileName} ({description}) - {ex.Message}");
+                        validationResults.Add($"❌ Error: {fileName} - {ex.Message}");
+                    }
+                }
+
+                // Small delay to show progress
+                await Task.Delay(50, _scanCancellationTokenSource.Token);
+            }
+
+            // Report results
+            AddLogMessage($"\nValidation Results:");
+            AddLogMessage($"Total files checked: {processedFiles}");
+            AddLogMessage($"✅ Valid files: {processedFiles - missingFiles.Count - corruptedFiles.Count}");
             
-            StatusText = "Validation feature coming soon";
+            if (missingFiles.Count > 0)
+            {
+                AddLogMessage($"❌ Missing files: {missingFiles.Count}");
+                foreach (var file in missingFiles.Take(5))
+                {
+                    AddLogMessage($"   • {file}");
+                }
+                if (missingFiles.Count > 5)
+                {
+                    AddLogMessage($"   ... and {missingFiles.Count - 5} more");
+                }
+            }
+            
+            if (corruptedFiles.Count > 0)
+            {
+                AddLogMessage($"⚠️ Suspicious files: {corruptedFiles.Count}");
+                foreach (var file in corruptedFiles.Take(5))
+                {
+                    AddLogMessage($"   • {file}");
+                }
+            }
+
+            // Overall status
+            if (missingFiles.Count == 0 && corruptedFiles.Count == 0)
+            {
+                StatusText = "Game validation passed - All files valid";
+                AddLogMessage("\n✅ Game installation is valid!");
+            }
+            else if (missingFiles.Count > 0)
+            {
+                StatusText = $"Game validation failed - {missingFiles.Count} files missing";
+                AddLogMessage($"\n❌ Game installation has issues. Consider verifying game files through Steam/GOG.");
+            }
+            else
+            {
+                StatusText = $"Game validation completed with warnings";
+                AddLogMessage($"\n⚠️ Game installation may have issues. Consider verifying game files.");
+            }
+
+            ProgressValue = 100;
+            await Task.Delay(500); // Brief pause to show completion
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "Validation cancelled";
+            AddLogMessage("Game validation was cancelled by user.");
         }
         catch (Exception ex)
         {
+            StatusText = "Validation failed";
             AddLogMessage($"Error during validation: {ex.Message}");
+        }
+        finally
+        {
+            IsScanning = false;
+            ProgressVisible = false;
+            _scanCancellationTokenSource?.Dispose();
+            _scanCancellationTokenSource = null;
         }
     }
 }

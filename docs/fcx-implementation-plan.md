@@ -219,7 +219,7 @@ public interface IBackupService
 
 ### 5.2 Mod Conflict Detection
 - **Port mod scanning logic** from `CLASSIC_ScanGame.py`
-- **Implement archive scanning** (BSA/BA2 files) (Consider using either `Mutagen.Bethesda` and/or `BSArch.exe` for archive handling)
+- **Implement archive scanning** (BSA/BA2 files) using `BSArch.exe` as the archive tool
 - **Create conflict analyzer** using existing analyzer pattern
 
 ### 5.3 Report Generation

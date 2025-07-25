@@ -32,6 +32,15 @@ public class ApplicationSettings
     [JsonPropertyName("crashLogsDirectory")]
     public string CrashLogsDirectory { get; set; } = "";
 
+    [JsonPropertyName("backupDirectory")]
+    public string BackupDirectory { get; set; } = "";
+
+    [JsonPropertyName("modsFolder")]
+    public string ModsFolder { get; set; } = "";
+
+    [JsonPropertyName("iniFolder")]
+    public string IniFolder { get; set; } = "";
+
     // === Output Settings ===
 
     [JsonPropertyName("defaultOutputFormat")]
