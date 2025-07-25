@@ -76,7 +76,7 @@ public class ScanPipelineTests : IDisposable
     public async Task ProcessSingleAsync_WithValidCrashLog_ShouldReturnCompletedResult()
     {
         // Arrange
-        var logPath = SetupTestCrashLog("test.log", "Sample crash log content");
+        var logPath = SetupTestCrashLog("test.log", GenerateValidCrashLog());
 
         // Act
         var result = await _pipeline.ProcessSingleAsync(logPath);
@@ -130,7 +130,7 @@ public class ScanPipelineTests : IDisposable
     public async Task ProcessSingleAsync_WithCancellation_ShouldReturnCancelledResult()
     {
         // Arrange
-        var logPath = SetupTestCrashLog("test.log", "Sample crash log content");
+        var logPath = SetupTestCrashLog("test.log", GenerateValidCrashLog());
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
@@ -155,7 +155,7 @@ public class ScanPipelineTests : IDisposable
     public async Task ProcessSingleAsync_ShouldRunAnalyzersInCorrectOrder()
     {
         // Arrange
-        var logPath = SetupTestCrashLog("test.log", "Sample crash log content");
+        var logPath = SetupTestCrashLog("test.log", GenerateValidCrashLog());
 
         // Act
         var result = await _pipeline.ProcessSingleAsync(logPath);
@@ -192,9 +192,9 @@ public class ScanPipelineTests : IDisposable
         // Arrange
         var logPaths = new[]
         {
-            SetupTestCrashLog("log1.log", "Crash log 1"),
-            SetupTestCrashLog("log2.log", "Crash log 2"),
-            SetupTestCrashLog("log3.log", "Crash log 3")
+            SetupTestCrashLog("log1.log", GenerateValidCrashLog()),
+            SetupTestCrashLog("log2.log", GenerateValidCrashLog()),
+            SetupTestCrashLog("log3.log", GenerateValidCrashLog())
         };
 
         var results = new List<ScanResult>();
@@ -227,7 +227,7 @@ public class ScanPipelineTests : IDisposable
     public async Task ProcessBatchAsync_WithDuplicatePaths_ShouldDeduplicateInput()
     {
         // Arrange
-        var logPath = SetupTestCrashLog("duplicate.log", "Duplicate content");
+        var logPath = SetupTestCrashLog("duplicate.log", GenerateValidCrashLog());
         var logPaths = new[] { logPath, logPath, logPath }; // Same path repeated
 
         var results = new List<ScanResult>();
@@ -256,11 +256,11 @@ public class ScanPipelineTests : IDisposable
         // Arrange
         var logPaths = new[]
         {
-            SetupTestCrashLog("log1.log", "Crash log 1"),
-            SetupTestCrashLog("log2.log", "Crash log 2"),
-            SetupTestCrashLog("log3.log", "Crash log 3"),
-            SetupTestCrashLog("log4.log", "Crash log 4"),
-            SetupTestCrashLog("log5.log", "Crash log 5")
+            SetupTestCrashLog("log1.log", GenerateValidCrashLog()),
+            SetupTestCrashLog("log2.log", GenerateValidCrashLog()),
+            SetupTestCrashLog("log3.log", GenerateValidCrashLog()),
+            SetupTestCrashLog("log4.log", GenerateValidCrashLog()),
+            SetupTestCrashLog("log5.log", GenerateValidCrashLog())
         };
 
         using var cts = new CancellationTokenSource();
@@ -303,9 +303,9 @@ public class ScanPipelineTests : IDisposable
         // Arrange
         var logPaths = new[]
         {
-            SetupTestCrashLog("log1.log", "Crash log 1"),
-            SetupTestCrashLog("log2.log", "Crash log 2"),
-            SetupTestCrashLog("log3.log", "Crash log 3")
+            SetupTestCrashLog("log1.log", GenerateValidCrashLog()),
+            SetupTestCrashLog("log2.log", GenerateValidCrashLog()),
+            SetupTestCrashLog("log3.log", GenerateValidCrashLog())
         };
 
         var progressReports = new List<BatchProgress>();
@@ -395,10 +395,10 @@ public class ScanPipelineTests : IDisposable
         // Arrange
         var logPaths = new[]
         {
-            SetupTestCrashLog("log1.log", "Crash log 1"),
-            SetupTestCrashLog("log2.log", "Crash log 2"),
-            SetupTestCrashLog("log3.log", "Crash log 3"),
-            SetupTestCrashLog("log4.log", "Crash log 4")
+            SetupTestCrashLog("log1.log", GenerateValidCrashLog()),
+            SetupTestCrashLog("log2.log", GenerateValidCrashLog()),
+            SetupTestCrashLog("log3.log", GenerateValidCrashLog()),
+            SetupTestCrashLog("log4.log", GenerateValidCrashLog())
         };
 
         var options = new ScanOptions { MaxConcurrency = 1 }; // Force sequential processing
@@ -428,6 +428,46 @@ public class ScanPipelineTests : IDisposable
         var tempPath = Path.GetTempFileName();
         File.WriteAllText(tempPath, content);
         return tempPath;
+    }
+
+    private static string GenerateValidCrashLog()
+    {
+        return @"Fallout 4 v1.10.163
+Buffout 4 v1.26.2
+
+Unhandled exception ""EXCEPTION_ACCESS_VIOLATION"" at 0x7FF798889DFA
+
+	[Compatibility]
+	F4EE: true
+	Buffout4: 1
+	
+SYSTEM SPECS:
+	OS: Microsoft Windows 10 Pro v10.0.19044
+	CPU: GenuineIntel 11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz
+	GPU: NVIDIA GeForce RTX 3080
+	
+PROBABLE CALL STACK:
+	[0] 0x7FF798889DFA Fallout4.exe+2479DFA
+	[1] 0x7FF7988899FF Fallout4.exe+24799FF
+	[2] 0x7FF798889912 Fallout4.exe+2479912
+	
+MODULES:
+	Fallout4.exe 0x7FF796410000
+	KERNEL32.DLL 0x7FFE38D80000
+	
+XSE PLUGINS:
+	f4se_1_10_163.dll v2.0.17
+	buffout4.dll v1.26.2
+	
+PLUGINS:
+	[00:000] Fallout4.esm
+	[01:000] DLCRobot.esm
+	[02:000] DLCworkshop01.esm
+	[03:000] DLCCoast.esm
+	[04:000] DLCworkshop02.esm
+	[05:000] DLCworkshop03.esm
+	[06:000] DLCNukaWorld.esm
+	[07:000] Unofficial Fallout 4 Patch.esp";
     }
 }
 

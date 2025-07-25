@@ -390,8 +390,6 @@ internal class TestFormIdDatabaseService : IFormIdDatabaseService
         // Use reflection to create the service with custom paths for testing
         var field = typeof(FormIdDatabaseService).GetField("_databasePaths",
             BindingFlags.NonPublic | BindingFlags.Instance);
-        var existsField = typeof(FormIdDatabaseService).GetField("_databasesExist",
-            BindingFlags.NonPublic | BindingFlags.Instance);
         var cacheField = typeof(FormIdDatabaseService).GetField("_queryCache",
             BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -400,8 +398,6 @@ internal class TestFormIdDatabaseService : IFormIdDatabaseService
 
         if (field != null)
             field.SetValue(_inner, databasePaths);
-        if (existsField != null)
-            existsField.SetValue(_inner, databasePaths.Any(File.Exists));
         if (cacheField != null)
             _queryCache = (ConcurrentDictionary<(string formId, string plugin), string>)cacheField.GetValue(_inner)!;
     }

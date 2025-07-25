@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Pipeline;
+using Scanner111.Tests.Analyzers;
 using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Pipeline;
@@ -38,6 +39,8 @@ public class AnalyzerFactoryTests
         services.AddTransient<IFormIdDatabaseService, TestFormIdDatabaseService>();
         services.AddTransient<IMessageHandler, TestMessageHandler>();
         services.AddTransient<ICacheManager, TestCacheManager>();
+        services.AddTransient<IApplicationSettingsService, TestApplicationSettingsService>();
+        services.AddTransient<IHashValidationService, TestHashValidationService>();
 
         // Add analyzers
         services.AddTransient<FormIdAnalyzer>();
@@ -45,6 +48,7 @@ public class AnalyzerFactoryTests
         services.AddTransient<SuspectScanner>();
         services.AddTransient<SettingsScanner>();
         services.AddTransient<RecordScanner>();
+        services.AddTransient<FileIntegrityAnalyzer>();
 
         IServiceProvider serviceProvider = services.BuildServiceProvider();
         _factory = new AnalyzerFactory(serviceProvider);
@@ -64,12 +68,13 @@ public class AnalyzerFactoryTests
         var analyzers = _factory.CreateAnalyzers("Fallout4").ToList();
 
         // Assert
-        Assert.Equal(5, analyzers.Count);
+        Assert.Equal(6, analyzers.Count);
         Assert.Contains(analyzers, a => a is FormIdAnalyzer);
         Assert.Contains(analyzers, a => a is PluginAnalyzer);
         Assert.Contains(analyzers, a => a is SuspectScanner);
         Assert.Contains(analyzers, a => a is SettingsScanner);
         Assert.Contains(analyzers, a => a is RecordScanner);
+        Assert.Contains(analyzers, a => a is FileIntegrityAnalyzer);
     }
 
     /// Ensures that the CreateAnalyzers method of the AnalyzerFactory returns a list of analyzers ordered by their priority values.
@@ -149,12 +154,13 @@ public class AnalyzerFactoryTests
         var availableAnalyzers = _factory.GetAvailableAnalyzers().ToList();
 
         // Assert
-        Assert.Equal(5, availableAnalyzers.Count);
+        Assert.Equal(6, availableAnalyzers.Count);
         Assert.Contains("FormId", availableAnalyzers);
         Assert.Contains("Plugin", availableAnalyzers);
         Assert.Contains("Suspect", availableAnalyzers);
         Assert.Contains("Settings", availableAnalyzers);
         Assert.Contains("Record", availableAnalyzers);
+        Assert.Contains("FileIntegrity", availableAnalyzers);
     }
 
     /// Verifies that the CreateAnalyzers method of the AnalyzerFactory produces analyzers with consistent types regardless

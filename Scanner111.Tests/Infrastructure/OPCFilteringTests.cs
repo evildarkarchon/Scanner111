@@ -350,10 +350,10 @@ public class OpcFilteringTests : IDisposable
     private string? InvokeFilterReportContent(string? reportContent)
     {
         var method = typeof(ReportWriter).GetMethod("FilterReportContent",
-            BindingFlags.NonPublic | BindingFlags.Instance);
+            BindingFlags.NonPublic | BindingFlags.Static);
 
         if (method == null) throw new InvalidOperationException("FilterReportContent method not found on ReportWriter");
 
-        return (string?)method.Invoke(_reportWriter, new object?[] { reportContent });
+        return (string?)method.Invoke(null, new object?[] { reportContent });
     }
 }

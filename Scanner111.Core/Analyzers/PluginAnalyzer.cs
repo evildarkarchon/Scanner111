@@ -69,7 +69,7 @@ public class PluginAnalyzer : IAnalyzer
                     LoadOrder = origin
                 });
         else
-            // Use crash log plugins if no loadorder.txt
+            // Use crash log plugins if no loadorder.txt (unfiltered)
             foreach (var (pluginName, loadOrder) in crashLog.Plugins)
                 plugins.Add(new Plugin
                 {
@@ -77,7 +77,7 @@ public class PluginAnalyzer : IAnalyzer
                     LoadOrder = loadOrder
                 });
 
-        // Filter ignored plugins
+        // Filter ignored plugins for matching
         var filteredPlugins = FilterIgnoredPlugins(crashLog.Plugins);
 
         // Perform plugin matching

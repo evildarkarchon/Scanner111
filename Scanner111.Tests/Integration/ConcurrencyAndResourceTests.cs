@@ -117,7 +117,9 @@ public class ConcurrencyAndResourceTests : IDisposable
             {
                 FilePath = $"test_{i}.log",
                 OriginalLines = [$"Sample crash log content {i}"],
-                CallStack = [$"  Call stack entry {i}"]
+                CallStack = [$"  Call stack entry {i}"],
+                MainError = $"Test error {i}",
+                CrashGenVersion = "Buffout 4 v1.26.2"
             };
 
             var scanResult = new ScanResult
@@ -132,6 +134,7 @@ public class ConcurrencyAndResourceTests : IDisposable
             {
                 AnalyzerName = $"TestAnalyzer_{i}",
                 Success = true,
+                HasFindings = true,
                 ReportLines = [$"Test analysis result for item {i}\n"]
             });
 
@@ -195,10 +198,10 @@ public class ConcurrencyAndResourceTests : IDisposable
         {
             var pipeline = CreateTestPipeline();
             pipelines.Add(pipeline);
-            _disposables.Add(pipeline); // Track for disposal
+            // Don't track in _disposables - we'll dispose manually
 
             // Use the pipeline briefly
-            var testLogPath = CreateTempCrashLog($"test_{i}.log", "Sample crash log content");
+            var testLogPath = CreateTempCrashLog($"test_{i}.log", GenerateValidCrashLog());
             var result = await pipeline.ProcessSingleAsync(testLogPath);
             Assert.NotNull(result);
         }
@@ -661,6 +664,46 @@ public class ConcurrencyAndResourceTests : IDisposable
         {
             return 0; // Return 0 if we can't get handle count (some platforms don't support it)
         }
+    }
+
+    private static string GenerateValidCrashLog()
+    {
+        return @"Fallout 4 v1.10.163
+Buffout 4 v1.26.2
+
+Unhandled exception ""EXCEPTION_ACCESS_VIOLATION"" at 0x7FF798889DFA
+
+	[Compatibility]
+	F4EE: true
+	Buffout4: 1
+	
+SYSTEM SPECS:
+	OS: Microsoft Windows 10 Pro v10.0.19044
+	CPU: GenuineIntel 11th Gen Intel(R) Core(TM) i7-11700K @ 3.60GHz
+	GPU: NVIDIA GeForce RTX 3080
+	
+PROBABLE CALL STACK:
+	[0] 0x7FF798889DFA Fallout4.exe+2479DFA
+	[1] 0x7FF7988899FF Fallout4.exe+24799FF
+	[2] 0x7FF798889912 Fallout4.exe+2479912
+	
+MODULES:
+	Fallout4.exe 0x7FF796410000
+	KERNEL32.DLL 0x7FFE38D80000
+	
+XSE PLUGINS:
+	f4se_1_10_163.dll v2.0.17
+	buffout4.dll v1.26.2
+	
+PLUGINS:
+	[00:000] Fallout4.esm
+	[01:000] DLCRobot.esm
+	[02:000] DLCworkshop01.esm
+	[03:000] DLCCoast.esm
+	[04:000] DLCworkshop02.esm
+	[05:000] DLCworkshop03.esm
+	[06:000] DLCNukaWorld.esm
+	[07:000] Unofficial Fallout 4 Patch.esp";
     }
 }
 

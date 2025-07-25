@@ -51,15 +51,12 @@ public class FormIdDatabaseService : IFormIdDatabaseService
           Path.Combine(dataPath, $"{_gameName} FormIDs Main.db"),
             Path.Combine(dataPath, $"{_gameName} FormIDs Local.db")
         ];
-
-        // Check if any databases exist
-        DatabaseExists = _databasePaths.Any(File.Exists);
     }
 
     /// <summary>
     ///     Check if FormID databases exist
     /// </summary>
-    public bool DatabaseExists { get; }
+    public bool DatabaseExists => _databasePaths?.Any(File.Exists) ?? false;
 
     /// <summary>
     /// Look up a FormID value in the database

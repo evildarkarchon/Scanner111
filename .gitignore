@@ -460,4 +460,5 @@ $RECYCLE.BIN/
 docs/fcx-analyzer-example.cs
 docs/game-configuration-models.cs
 docs/multi-game-path-detection.cs
-docs/analyzer-implementation-example.cs
+docs/analyzer-implementation-example.cstest_results/
+test_results/

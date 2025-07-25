@@ -62,7 +62,7 @@ public class TestYamlSettingsProvider : IYamlSettingsProvider
                 CrashgenIgnore = new List<string> { "F4EE", "WaitForDebugger", "Achievements" }
             },
             CrashlogRecordsExclude = new List<string> { "\"\"", "...", "FE:" },
-            CrashlogPluginsExclude = new List<string> { "Buffout4.dll", "Fallout4.esm", "DLCCoast.esm" },
+            CrashlogPluginsExclude = new List<string> { "Buffout4.dll", "Fallout4.esm", "DLCCoast.esm", "ignored.esp" },
             CrashlogErrorCheck = new Dictionary<string, string>
             {
                 { "5 | Access Violation", "access violation" },

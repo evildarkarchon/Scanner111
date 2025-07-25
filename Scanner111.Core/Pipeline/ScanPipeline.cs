@@ -86,7 +86,9 @@ public class ScanPipeline : IScanPipeline
                 foreach (var analysisResult in parallelResults) result.AddAnalysisResult(analysisResult);
             }
 
-            result.Status = result.HasErrors ? ScanStatus.CompletedWithErrors : ScanStatus.Completed;
+            // Check if any analyzers failed
+            var hasAnalyzerErrors = result.AnalysisResults.Any(ar => !ar.Success);
+            result.Status = result.HasErrors || hasAnalyzerErrors ? ScanStatus.CompletedWithErrors : ScanStatus.Completed;
 
             // Free memory immediately after analysis is complete
             result.CrashLog?.DisposeOriginalLines();

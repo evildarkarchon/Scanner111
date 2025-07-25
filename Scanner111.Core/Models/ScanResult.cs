@@ -44,9 +44,9 @@ public class ScanResult
     public bool Failed => Status == ScanStatus.Failed;
 
     /// <summary>
-    ///     True if there were any errors
+    ///     True if there were any errors (including analyzer failures)
     /// </summary>
-    public bool HasErrors => ErrorMessages.Any();
+    public bool HasErrors => ErrorMessages.Any() || AnalysisResults.Any(ar => !ar.Success);
 
     /// <summary>
     ///     Time taken to process
@@ -194,6 +194,20 @@ public class ScanResult
         else
             report.Add("* COULDN'T FIND ANY NAMED RECORDS *\n");
         report.Add("\n\n");
+
+        // Include any other analyzer results not already handled
+        var handledAnalyzers = new[] { "Suspect Scanner", "Settings Scanner", "Plugin Analyzer", "FormId Analyzer", "Record Scanner" };
+        var otherAnalyzers = AnalysisResults.Where(r => !handledAnalyzers.Contains(r.AnalyzerName) && r.HasFindings).ToList();
+        if (otherAnalyzers.Any())
+        {
+            report.Add("# OTHER ANALYSIS RESULTS #\n");
+            foreach (var analyzer in otherAnalyzers)
+            {
+                report.Add($"[{analyzer.AnalyzerName}]\n");
+                report.AddRange(analyzer.ReportLines);
+            }
+            report.Add("\n");
+        }
 
         // Footer
         var footer = GenerateFooter();
