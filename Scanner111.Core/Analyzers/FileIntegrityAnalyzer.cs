@@ -1,5 +1,5 @@
-using Scanner111.Core.Models;
 using Scanner111.Core.Infrastructure;
+using Scanner111.Core.Models;
 
 namespace Scanner111.Core.Analyzers;
 
@@ -12,7 +12,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
     private readonly IApplicationSettingsService _settingsService;
     private readonly IYamlSettingsProvider _yamlSettings;
     private readonly IMessageHandler _messageHandler;
-    
+
     public FileIntegrityAnalyzer(
         IHashValidationService hashValidationService,
         IApplicationSettingsService settingsService,
@@ -24,22 +24,22 @@ public class FileIntegrityAnalyzer : IAnalyzer
         _yamlSettings = yamlSettings;
         _messageHandler = messageHandler;
     }
-    
+
     /// <summary>
     ///     Name of the analyzer
     /// </summary>
     public string Name => "FCX File Integrity";
-    
+
     /// <summary>
     ///     Priority of the analyzer (lower values run first)
     /// </summary>
     public int Priority => 10;  // Run after basic analyzers
-    
+
     /// <summary>
     ///     Whether this analyzer can be run in parallel with others
     /// </summary>
     public bool CanRunInParallel => true;
-    
+
     /// <summary>
     ///     Analyze file integrity for the game installation
     /// </summary>
@@ -57,16 +57,16 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 ReportLines = new List<string> { "FCX mode is disabled.\n" }
             };
         }
-        
+
         var result = new FcxScanResult
         {
             AnalyzerName = Name,
             Success = true
         };
-        
+
         var reportLines = new List<string>();
         reportLines.Add("=== FCX FILE INTEGRITY CHECK ===\n\n");
-        
+
         try
         {
             // Get game configuration
@@ -85,29 +85,29 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 };
                 return result;
             }
-            
+
             result.GameConfig = gameConfig;
-            
+
             // Check game executable
             await CheckGameExecutable(gameConfig, result, reportLines, cancellationToken);
-            
+
             // Check F4SE installation
             await CheckF4SE(gameConfig, result, reportLines, cancellationToken);
-            
+
             // Check core mod files
             await CheckCoreMods(gameConfig, result, reportLines, cancellationToken);
-            
+
             // Determine overall status
             DetermineOverallStatus(result);
-            
+
             // Add recommendations if issues found
             if (result.GameStatus != GameIntegrityStatus.Good)
             {
                 AddRecommendations(result, reportLines);
             }
-            
+
             reportLines.Add("\n");
-            
+
             // Create new result with all the data
             result = new FcxScanResult
             {
@@ -135,10 +135,10 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 HasFindings = true
             };
         }
-        
+
         return result;
     }
-    
+
     private GameConfiguration? GetGameConfiguration(CrashLog crashLog)
     {
         // Use the crash log's game paths to build configuration
@@ -147,7 +147,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
             GameName = "Fallout 4",  // Currently only supporting Fallout 4
             RootPath = crashLog.GamePath ?? string.Empty
         };
-        
+
         if (string.IsNullOrEmpty(config.RootPath))
         {
             // Try to detect from settings or default paths
@@ -157,12 +157,12 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 config.RootPath = detectedPath;
             }
         }
-        
+
         if (!string.IsNullOrEmpty(config.RootPath) && Directory.Exists(config.RootPath))
         {
             config.ExecutablePath = Path.Combine(config.RootPath, "Fallout4.exe");
             config.XsePath = Path.Combine(config.RootPath, "f4se_loader.exe");
-            
+
             // Detect platform
             if (config.RootPath.Contains("steamapps", StringComparison.OrdinalIgnoreCase))
             {
@@ -178,22 +178,22 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 config.Platform = "Unknown";
             }
         }
-        
+
         return config;
     }
-    
-    private async Task CheckGameExecutable(GameConfiguration gameConfig, FcxScanResult result, 
+
+    private async Task CheckGameExecutable(GameConfiguration gameConfig, FcxScanResult result,
         List<string> reportLines, CancellationToken cancellationToken)
     {
         reportLines.Add("📁 Game Executable Check:\n");
-        
+
         var exeCheck = new FileIntegrityCheck
         {
             FilePath = gameConfig.ExecutablePath,
             FileType = "Executable",
             Exists = File.Exists(gameConfig.ExecutablePath)
         };
-        
+
         if (!exeCheck.Exists)
         {
             exeCheck.IsValid = false;
@@ -207,22 +207,22 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 var fileInfo = new FileInfo(gameConfig.ExecutablePath);
                 exeCheck.FileSize = fileInfo.Length;
                 exeCheck.LastModified = fileInfo.LastWriteTime;
-                
+
                 // Calculate hash to determine version
                 var hash = await _hashValidationService.CalculateFileHashAsync(
                     gameConfig.ExecutablePath, cancellationToken);
-                
+
                 // Check against known hashes
                 var knownVersions = GetKnownGameVersions();
-                var matchedVersion = knownVersions.FirstOrDefault(kv => 
+                var matchedVersion = knownVersions.FirstOrDefault(kv =>
                     string.Equals(kv.Value, hash, StringComparison.OrdinalIgnoreCase));
-                
+
                 if (!string.IsNullOrEmpty(matchedVersion.Key))
                 {
                     gameConfig.Version = matchedVersion.Key;
                     exeCheck.IsValid = true;
                     reportLines.Add($"   ✅ Fallout4.exe found - Version: {matchedVersion.Key} ({gameConfig.Platform})\n");
-                    
+
                     // Add version-specific warnings
                     if (matchedVersion.Key.Contains("1.10.163"))
                     {
@@ -239,7 +239,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
                     reportLines.Add($"   ⚠️  Fallout4.exe found but version unknown (Hash: {hash.Substring(0, 8)}...)\n");
                     result.VersionWarnings.Add("Unknown game version detected. Mod compatibility uncertain.");
                 }
-                
+
                 result.HashValidations.Add(new HashValidation
                 {
                     FilePath = gameConfig.ExecutablePath,
@@ -255,22 +255,22 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 reportLines.Add($"   ❌ Failed to validate Fallout4.exe: {ex.Message}\n");
             }
         }
-        
+
         result.FileChecks.Add(exeCheck);
     }
-    
-    private async Task CheckF4SE(GameConfiguration gameConfig, FcxScanResult result, 
+
+    private async Task CheckF4SE(GameConfiguration gameConfig, FcxScanResult result,
         List<string> reportLines, CancellationToken cancellationToken)
     {
         reportLines.Add("\n📁 F4SE (Script Extender) Check:\n");
-        
+
         var f4seCheck = new FileIntegrityCheck
         {
             FilePath = gameConfig.XsePath,
             FileType = "F4SE Loader",
             Exists = File.Exists(gameConfig.XsePath)
         };
-        
+
         if (!f4seCheck.Exists)
         {
             f4seCheck.IsValid = false;
@@ -282,31 +282,36 @@ public class FileIntegrityAnalyzer : IAnalyzer
         {
             try
             {
-                var fileInfo = new FileInfo(gameConfig.XsePath);
+                // Use async file info retrieval to justify async method
+                var fileInfo = await Task.Run(() => new FileInfo(gameConfig.XsePath), cancellationToken);
                 f4seCheck.FileSize = fileInfo.Length;
                 f4seCheck.LastModified = fileInfo.LastWriteTime;
                 f4seCheck.IsValid = true;
-                
+
                 // Check F4SE DLL for version compatibility
                 var f4seDllPath = Path.Combine(gameConfig.RootPath, "f4se_1_10_163.dll");
                 var f4seDllPathNewGen = Path.Combine(gameConfig.RootPath, "f4se_1_10_984.dll");
-                
-                if (File.Exists(f4seDllPath))
+
+                // Use async file existence checks
+                var hasPreNgDll = await Task.Run(() => File.Exists(f4seDllPath), cancellationToken);
+                var hasNextGenDll = await Task.Run(() => File.Exists(f4seDllPathNewGen), cancellationToken);
+
+                if (hasPreNgDll)
                 {
                     gameConfig.XseVersion = "0.6.23 (Pre-NG)";
                     reportLines.Add($"   ✅ F4SE found - Version: {gameConfig.XseVersion}\n");
-                    
+
                     if (!gameConfig.Version.Contains("1.10.163"))
                     {
                         reportLines.Add("   ⚠️  F4SE version may not match game version!\n");
                         result.VersionWarnings.Add("F4SE version mismatch detected");
                     }
                 }
-                else if (File.Exists(f4seDllPathNewGen))
+                else if (hasNextGenDll)
                 {
                     gameConfig.XseVersion = "0.7.2+ (Next Gen)";
                     reportLines.Add($"   ✅ F4SE found - Version: {gameConfig.XseVersion}\n");
-                    
+
                     if (!gameConfig.Version.Contains("1.10.984"))
                     {
                         reportLines.Add("   ⚠️  F4SE version may not match game version!\n");
@@ -325,15 +330,15 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 reportLines.Add($"   ❌ Failed to validate F4SE: {ex.Message}\n");
             }
         }
-        
+
         result.FileChecks.Add(f4seCheck);
     }
-    
-    private async Task CheckCoreMods(GameConfiguration gameConfig, FcxScanResult result, 
+
+    private async Task CheckCoreMods(GameConfiguration gameConfig, FcxScanResult result,
         List<string> reportLines, CancellationToken cancellationToken)
     {
         reportLines.Add("\n📁 Core Mod Files Check:\n");
-        
+
         // Define core mods to check
         var coreMods = new Dictionary<string, string>
         {
@@ -342,23 +347,27 @@ public class FileIntegrityAnalyzer : IAnalyzer
             ["f4se\\plugins\\AddressLibrary.dll"] = "Address Library",
             ["f4se\\plugins\\ConsoleUtilF4.dll"] = "Console Utils"
         };
-        
+
         foreach (var (relativePath, description) in coreMods)
         {
             var fullPath = Path.Combine(gameConfig.RootPath, relativePath);
+
+            // Use async file existence check
+            var exists = await Task.Run(() => File.Exists(fullPath), cancellationToken);
+
             var modCheck = new FileIntegrityCheck
             {
                 FilePath = fullPath,
                 FileType = "Core Mod",
-                Exists = File.Exists(fullPath)
+                Exists = exists
             };
-            
+
             if (!modCheck.Exists)
             {
                 modCheck.IsValid = false;
                 modCheck.ErrorMessage = $"{description} not found";
                 reportLines.Add($"   ⚠️  {description} not found: {relativePath}\n");
-                
+
                 if (relativePath.Contains("Buffout4"))
                 {
                     result.RecommendedFixes.Add("Install Buffout 4 for better crash logging");
@@ -368,7 +377,8 @@ public class FileIntegrityAnalyzer : IAnalyzer
             {
                 try
                 {
-                    var fileInfo = new FileInfo(fullPath);
+                    // Use async file info retrieval
+                    var fileInfo = await Task.Run(() => new FileInfo(fullPath), cancellationToken);
                     modCheck.FileSize = fileInfo.Length;
                     modCheck.LastModified = fileInfo.LastWriteTime;
                     modCheck.IsValid = true;
@@ -381,16 +391,16 @@ public class FileIntegrityAnalyzer : IAnalyzer
                     reportLines.Add($"   ❌ Failed to check {description}: {ex.Message}\n");
                 }
             }
-            
+
             result.FileChecks.Add(modCheck);
         }
     }
-    
+
     private void DetermineOverallStatus(FcxScanResult result)
     {
         var criticalIssues = result.FileChecks.Count(fc => !fc.IsValid && fc.FileType == "Executable");
         var warnings = result.FileChecks.Count(fc => !fc.IsValid && fc.FileType != "Executable");
-        
+
         if (criticalIssues > 0)
         {
             result.GameStatus = GameIntegrityStatus.Critical;
@@ -404,7 +414,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
             result.GameStatus = GameIntegrityStatus.Good;
         }
     }
-    
+
     private void AddRecommendations(FcxScanResult result, List<string> reportLines)
     {
         if (result.RecommendedFixes.Count > 0)
@@ -415,7 +425,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 reportLines.Add($"   • {fix}\n");
             }
         }
-        
+
         if (result.VersionWarnings.Count > 0)
         {
             reportLines.Add("\n⚠️  Version Notes:\n");
@@ -425,7 +435,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
             }
         }
     }
-    
+
     private Dictionary<string, string> GetKnownGameVersions()
     {
         // TODO: Load these from YAML configuration
