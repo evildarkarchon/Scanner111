@@ -31,6 +31,9 @@ public class SettingsWindowViewModel : ViewModelBase
     private double _windowWidth = 1200;
     private bool _enableUpdateCheck = true;
     private string _updateSource = "Both";
+    private bool _fcxMode;
+    private string _modsFolder = "";
+    private string _iniFolder = "";
 
     public SettingsWindowViewModel() : this(new SettingsService())
     {
@@ -44,6 +47,8 @@ public class SettingsWindowViewModel : ViewModelBase
         BrowseLogPathCommand = ReactiveCommand.CreateFromTask(BrowseLogPath);
         BrowseGamePathCommand = ReactiveCommand.CreateFromTask(BrowseGamePath);
         BrowseScanDirectoryCommand = ReactiveCommand.CreateFromTask(BrowseScanDirectory);
+        BrowseModsFolderCommand = ReactiveCommand.CreateFromTask(BrowseModsFolder);
+        BrowseIniFolderCommand = ReactiveCommand.CreateFromTask(BrowseIniFolder);
         ClearRecentFilesCommand = ReactiveCommand.Create(ClearRecentFiles);
         ResetToDefaultsCommand = ReactiveCommand.Create(ResetToDefaults);
         SaveCommand = ReactiveCommand.CreateFromTask(SaveSettings);
@@ -216,6 +221,34 @@ public class SettingsWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _updateSource, value);
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether FCX mode is enabled.
+    /// When enabled, additional file integrity checks are performed during scanning.
+    /// </summary>
+    public bool FcxMode
+    {
+        get => _fcxMode;
+        set => this.RaiseAndSetIfChanged(ref _fcxMode, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the path to the mods folder for FCX integrity checking.
+    /// </summary>
+    public string ModsFolder
+    {
+        get => _modsFolder;
+        set => this.RaiseAndSetIfChanged(ref _modsFolder, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the path to the INI folder for FCX configuration validation.
+    /// </summary>
+    public string IniFolder
+    {
+        get => _iniFolder;
+        set => this.RaiseAndSetIfChanged(ref _iniFolder, value);
+    }
+
     public ObservableCollection<string> RecentLogFiles { get; } = [];
     public ObservableCollection<string> RecentGamePaths { get; } = [];
     public ObservableCollection<string> RecentScanDirectories { get; } = [];
@@ -227,6 +260,8 @@ public class SettingsWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> BrowseLogPathCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowseGamePathCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowseScanDirectoryCommand { get; }
+    public ReactiveCommand<Unit, Unit> BrowseModsFolderCommand { get; }
+    public ReactiveCommand<Unit, Unit> BrowseIniFolderCommand { get; }
     public ReactiveCommand<Unit, Unit> ClearRecentFilesCommand { get; }
     public ReactiveCommand<Unit, Unit> ResetToDefaultsCommand { get; }
     public ReactiveCommand<Unit, Unit> SaveCommand { get; }
@@ -268,7 +303,10 @@ public class SettingsWindowViewModel : ViewModelBase
             CrashLogsDirectory = source.CrashLogsDirectory,
             SkipXseCopy = source.SkipXseCopy,
             EnableUpdateCheck = source.EnableUpdateCheck,
-            UpdateSource = source.UpdateSource
+            UpdateSource = source.UpdateSource,
+            FcxMode = source.FcxMode,
+            ModsFolder = source.ModsFolder,
+            IniFolder = source.IniFolder
         };
 
         // Deep copy the lists
@@ -326,7 +364,10 @@ public class SettingsWindowViewModel : ViewModelBase
                 CrashLogsDirectory = defaultSettings.CrashLogsDirectory,
                 SkipXseCopy = defaultSettings.SkipXseCopy,
                 EnableUpdateCheck = defaultSettings.EnableUpdateCheck,
-                UpdateSource = defaultSettings.UpdateSource
+                UpdateSource = defaultSettings.UpdateSource,
+                FcxMode = false,
+                ModsFolder = "",
+                IniFolder = ""
             };
             _originalSettings = CreateDeepCopy(userDefaults);
             ResetToDefaults();
@@ -359,6 +400,9 @@ public class SettingsWindowViewModel : ViewModelBase
         DefaultOutputFormat = settings.DefaultOutputFormat;
         EnableUpdateCheck = settings.EnableUpdateCheck;
         UpdateSource = settings.UpdateSource;
+        FcxMode = settings.FcxMode;
+        ModsFolder = settings.ModsFolder;
+        IniFolder = settings.IniFolder;
 
         RecentLogFiles.Clear();
         foreach (var file in settings.RecentLogFiles)
@@ -404,7 +448,10 @@ public class SettingsWindowViewModel : ViewModelBase
             AutoSaveResults = AutoSaveResults,
             DefaultOutputFormat = DefaultOutputFormat,
             EnableUpdateCheck = EnableUpdateCheck,
-            UpdateSource = UpdateSource
+            UpdateSource = UpdateSource,
+            FcxMode = FcxMode,
+            ModsFolder = ModsFolder,
+            IniFolder = IniFolder
         };
 
         foreach (var file in RecentLogFiles)
@@ -471,6 +518,38 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Opens a folder picker dialog to allow the user to select the mods folder.
+    /// This folder is used for FCX integrity checking of installed mods.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation of browsing and potentially updating the ModsFolder property.
+    /// </returns>
+    private async Task BrowseModsFolder()
+    {
+        if (ShowFolderPickerAsync != null)
+        {
+            var result = await ShowFolderPickerAsync("Select Mods Folder");
+            if (!string.IsNullOrEmpty(result)) ModsFolder = result;
+        }
+    }
+
+    /// <summary>
+    /// Opens a folder picker dialog to allow the user to select the INI folder.
+    /// This folder contains game configuration files used for FCX validation.
+    /// </summary>
+    /// <returns>
+    /// A task representing the asynchronous operation of browsing and potentially updating the IniFolder property.
+    /// </returns>
+    private async Task BrowseIniFolder()
+    {
+        if (ShowFolderPickerAsync != null)
+        {
+            var result = await ShowFolderPickerAsync("Select INI Folder");
+            if (!string.IsNullOrEmpty(result)) IniFolder = result;
+        }
+    }
+
+    /// <summary>
     /// Clears all recent file paths stored in the ViewModel, including recent log files,
     /// recent game paths, and recent scan directories. After clearing these collections,
     /// it updates the associated properties that indicate the presence of recent items.
@@ -513,7 +592,10 @@ public class SettingsWindowViewModel : ViewModelBase
             CrashLogsDirectory = appSettings.CrashLogsDirectory,
             SkipXseCopy = appSettings.SkipXseCopy,
             EnableUpdateCheck = appSettings.EnableUpdateCheck,
-            UpdateSource = appSettings.UpdateSource
+            UpdateSource = appSettings.UpdateSource,
+            FcxMode = false,
+            ModsFolder = "",
+            IniFolder = ""
         };
         LoadFromSettings(defaultSettings);
     }

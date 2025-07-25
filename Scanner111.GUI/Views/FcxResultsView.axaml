@@ -1,0 +1,168 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Scanner111.GUI.ViewModels"
+             x:Class="Scanner111.GUI.Views.FcxResultsView"
+             x:DataType="vm:FcxResultViewModel">
+             
+    <Design.DataContext>
+        <vm:FcxResultViewModel />
+    </Design.DataContext>
+
+    <Border Background="#3c3c3c" CornerRadius="5" Padding="15" Margin="5">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0" 
+                           Text="{Binding StatusIcon}" 
+                           FontSize="24" 
+                           VerticalAlignment="Center" 
+                           Margin="0,0,10,0" />
+                
+                <TextBlock Grid.Column="1" 
+                           Text="FCX File Integrity Check Results" 
+                           FontSize="18" 
+                           FontWeight="Bold" 
+                           Foreground="#0e639c" 
+                           VerticalAlignment="Center" />
+                
+                <TextBlock Grid.Column="2" 
+                           Text="{Binding OverallStatus}" 
+                           FontSize="14" 
+                           Foreground="{Binding StatusColor}" 
+                           VerticalAlignment="Center" />
+            </Grid>
+
+            <!-- Summary -->
+            <TextBlock Grid.Row="1" 
+                       Text="{Binding Summary}" 
+                       FontSize="14" 
+                       Margin="0,10,0,0" 
+                       Foreground="#CCC" />
+
+            <!-- Statistics Grid -->
+            <Grid Grid.Row="2" Margin="0,15,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- File Checks -->
+                <Border Grid.Column="0" Background="#2d2d30" CornerRadius="3" Padding="10" Margin="0,0,5,0">
+                    <StackPanel>
+                        <TextBlock Text="File Checks" FontWeight="Bold" Margin="0,0,0,5" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Total:" Margin="0,0,10,0" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding TotalFileChecks}" />
+                            
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Passed:" Margin="0,0,10,0" Foreground="#51CF66" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding PassedChecks}" Foreground="#51CF66" />
+                            
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Failed:" Margin="0,0,10,0" Foreground="#FF6B6B" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding FailedChecks}" Foreground="#FF6B6B" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Hash Validations -->
+                <Border Grid.Column="1" Background="#2d2d30" CornerRadius="3" Padding="10" Margin="5,0,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Hash Validations" FontWeight="Bold" Margin="0,0,0,5" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Total:" Margin="0,0,10,0" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding TotalHashValidations}" />
+                            
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Passed:" Margin="0,0,10,0" Foreground="#51CF66" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding PassedValidations}" Foreground="#51CF66" />
+                            
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Failed:" Margin="0,0,10,0" Foreground="#FF6B6B" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding FailedValidations}" Foreground="#FF6B6B" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Detailed Results (if needed) -->
+            <ScrollViewer Grid.Row="3" Margin="0,15,0,0" MaxHeight="300" IsVisible="{Binding HasIssues}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Issues Found:" FontWeight="Bold" Foreground="#FF6B6B" />
+                    
+                    <!-- Failed File Checks -->
+                    <ItemsControl ItemsSource="{Binding FcxResult.FileChecks}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#2d2d30" 
+                                        CornerRadius="3" 
+                                        Padding="8" 
+                                        Margin="0,2"
+                                        IsVisible="{Binding !IsValid}">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding FilePath}" FontWeight="Bold" />
+                                        <TextBlock Text="{Binding ErrorMessage}" Foreground="#FF6B6B" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    
+                    <!-- Failed Hash Validations -->
+                    <ItemsControl ItemsSource="{Binding FcxResult.HashValidations}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#2d2d30" 
+                                        CornerRadius="3" 
+                                        Padding="8" 
+                                        Margin="0,2"
+                                        IsVisible="{Binding !IsValid}">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding FilePath}" FontWeight="Bold" />
+                                        <TextBlock Foreground="#FF6B6B" TextWrapping="Wrap">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="Expected: {0}, Actual: {1}">
+                                                    <Binding Path="ExpectedHash" />
+                                                    <Binding Path="ActualHash" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>

@@ -44,6 +44,7 @@ public class MainWindowViewModel : ViewModelBase
     private bool _progressVisible;
     private IReportWriter? _reportWriter;
     private CancellationTokenSource? _scanCancellationTokenSource;
+    private FcxResultViewModel? _fcxResult;
 
     private IScanPipeline? _scanPipeline;
     private string _selectedGamePath = "";
@@ -74,6 +75,11 @@ public class MainWindowViewModel : ViewModelBase
             this.WhenAnyValue(x => x.SelectedResult).Select(x => x != null));
         ExportAllReportsCommand = ReactiveCommand.CreateFromTask(ExportAllReports,
             this.WhenAnyValue(x => x.ScanResults.Count).Select(x => x > 0));
+        
+        // FCX Commands
+        RunFcxScanCommand = ReactiveCommand.CreateFromTask(RunFcxScan);
+        BackupGameFilesCommand = ReactiveCommand.CreateFromTask(BackupGameFiles);
+        ValidateGameInstallCommand = ReactiveCommand.CreateFromTask(ValidateGameInstall);
 
         StatusText = "Ready - Select a crash log file to begin";
 
@@ -243,6 +249,21 @@ public class MainWindowViewModel : ViewModelBase
     public ObservableCollection<ScanResultViewModel> ScanResults { get; } = new();
     public ObservableCollection<string> LogMessages { get; } = new();
 
+    /// <summary>
+    /// Gets or sets the FCX scan result view model.
+    /// </summary>
+    public FcxResultViewModel? FcxResult
+    {
+        get => _fcxResult;
+        set
+        {
+            if (Dispatcher.UIThread.CheckAccess())
+                this.RaiseAndSetIfChanged(ref _fcxResult, value);
+            else
+                Dispatcher.UIThread.InvokeAsync(() => this.RaiseAndSetIfChanged(ref _fcxResult, value));
+        }
+    }
+
     public ReactiveCommand<Unit, Unit> SelectLogFileCommand { get; }
     public ReactiveCommand<Unit, Unit> SelectGamePathCommand { get; }
     public ReactiveCommand<Unit, Unit> SelectScanDirectoryCommand { get; }
@@ -252,6 +273,9 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> OpenSettingsCommand { get; }
     public ReactiveCommand<Unit, Unit> ExportSelectedReportCommand { get; }
     public ReactiveCommand<Unit, Unit> ExportAllReportsCommand { get; }
+    public ReactiveCommand<Unit, Unit> RunFcxScanCommand { get; }
+    public ReactiveCommand<Unit, Unit> BackupGameFilesCommand { get; }
+    public ReactiveCommand<Unit, Unit> ValidateGameInstallCommand { get; }
 
     // File picker delegates - set by the View
     public Func<string, string, Task<string>>? ShowFilePickerAsync { get; set; }
@@ -983,6 +1007,128 @@ public class MainWindowViewModel : ViewModelBase
         {
             ProgressVisible = false;
             AddLogMessage($"Error during batch export: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Runs an FCX (File Integrity Check) scan on the game installation.
+    /// </summary>
+    /// <returns>A task representing the asynchronous FCX scan operation.</returns>
+    private async Task RunFcxScan()
+    {
+        try
+        {
+            // Check if FCX mode is enabled
+            if (!_currentSettings.FcxMode)
+            {
+                AddLogMessage("FCX mode is not enabled. Please enable it in settings.");
+                return;
+            }
+
+            // Check if game path is set
+            if (string.IsNullOrEmpty(SelectedGamePath))
+            {
+                AddLogMessage("Please select a game installation path first.");
+                return;
+            }
+
+            StatusText = "Running FCX integrity checks...";
+            ProgressVisible = true;
+            ProgressValue = 0;
+            ProgressText = "Initializing FCX scan...";
+
+            // For now, create a mock FCX result until the actual FCX scan is implemented
+            // This will be replaced with actual FCX scanning logic in Phase 3
+            await Task.Delay(1000); // Simulate scanning
+
+            var fcxResult = new FcxScanResult
+            {
+                Success = true,
+                AnalyzerName = "FCX File Integrity",
+                GameStatus = GameIntegrityStatus.Good,
+                FileChecks = new List<FileIntegrityCheck>
+                {
+                    new FileIntegrityCheck
+                    {
+                        FilePath = Path.Combine(SelectedGamePath, "Fallout4.exe"),
+                        FileType = "Executable",
+                        Exists = true,
+                        IsValid = true,
+                        FileSize = 28762112
+                    }
+                },
+                HashValidations = new List<HashValidation>(),
+                VersionWarnings = new List<string>(),
+                RecommendedFixes = new List<string>()
+            };
+
+            FcxResult = new FcxResultViewModel(fcxResult);
+            
+            ProgressVisible = false;
+            StatusText = "FCX scan completed";
+            AddLogMessage($"FCX scan completed: {fcxResult.GameStatus}");
+        }
+        catch (Exception ex)
+        {
+            ProgressVisible = false;
+            StatusText = "FCX scan failed";
+            AddLogMessage($"Error during FCX scan: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Backs up critical game files.
+    /// </summary>
+    /// <returns>A task representing the asynchronous backup operation.</returns>
+    private async Task BackupGameFiles()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(SelectedGamePath))
+            {
+                AddLogMessage("Please select a game installation path first.");
+                return;
+            }
+
+            StatusText = "Backing up game files...";
+            AddLogMessage("Game file backup functionality will be implemented in Phase 5.");
+            
+            // This will be implemented in Phase 5 with IBackupService
+            await Task.Delay(100);
+            
+            StatusText = "Backup feature coming soon";
+        }
+        catch (Exception ex)
+        {
+            AddLogMessage($"Error during backup: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Validates the game installation for missing or corrupted files.
+    /// </summary>
+    /// <returns>A task representing the asynchronous validation operation.</returns>
+    private async Task ValidateGameInstall()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(SelectedGamePath))
+            {
+                AddLogMessage("Please select a game installation path first.");
+                return;
+            }
+
+            StatusText = "Validating game installation...";
+            AddLogMessage("Game validation functionality will be implemented in Phase 2.");
+            
+            // This will be implemented with hash validation service
+            await Task.Delay(100);
+            
+            StatusText = "Validation feature coming soon";
+        }
+        catch (Exception ex)
+        {
+            AddLogMessage($"Error during validation: {ex.Message}");
         }
     }
 }

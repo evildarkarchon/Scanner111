@@ -77,6 +77,12 @@ public class UserSettings
 
     [JsonPropertyName("updateSource")] public string UpdateSource { get; set; } = "Both"; // "Both", "GitHub", "Nexus"
 
+    [JsonPropertyName("fcxMode")] public bool FcxMode { get; set; } = false;
+
+    [JsonPropertyName("modsFolder")] public string ModsFolder { get; set; } = "";
+
+    [JsonPropertyName("iniFolder")] public string IniFolder { get; set; } = "";
+
     /// Adds a specified log file path to the list of recent log files.
     /// Maintains the maximum number of recent items as defined by MaxRecentItems.
     /// If the path already exists in the list, it is moved to the most recent position.

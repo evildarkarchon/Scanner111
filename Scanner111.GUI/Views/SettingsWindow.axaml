@@ -79,6 +79,37 @@
                     </StackPanel>
                 </Border>
 
+                <!-- FCX Settings Section -->
+                <Border Background="#3c3c3c" CornerRadius="5" Padding="15">
+                    <StackPanel Spacing="15">
+                        <TextBlock Text="FCX (File Integrity Check) Settings" FontSize="16" FontWeight="Bold" Foreground="#0e639c" />
+
+                        <CheckBox Content="Enable FCX Mode" IsChecked="{Binding FcxMode}" />
+
+                        <!-- Mods Folder -->
+                        <StackPanel Spacing="5" IsVisible="{Binding FcxMode}">
+                            <TextBlock Text="Mods Folder:" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBox Grid.Column="0" Text="{Binding ModsFolder}"
+                                         Watermark="Select mods folder for integrity checking..." />
+                                <Button Grid.Column="1" Content="Browse" Margin="5,0,0,0" Width="80"
+                                        Command="{Binding BrowseModsFolderCommand}" />
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- INI Folder -->
+                        <StackPanel Spacing="5" IsVisible="{Binding FcxMode}">
+                            <TextBlock Text="INI Configuration Folder:" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBox Grid.Column="0" Text="{Binding IniFolder}"
+                                         Watermark="Select INI folder for configuration validation..." />
+                                <Button Grid.Column="1" Content="Browse" Margin="5,0,0,0" Width="80"
+                                        Command="{Binding BrowseIniFolderCommand}" />
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
                 <!-- Update Settings Section -->
                 <Border Background="#3c3c3c" CornerRadius="5" Padding="15">
                     <StackPanel Spacing="15">

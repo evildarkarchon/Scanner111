@@ -3,6 +3,7 @@
         xmlns:vm="using:Scanner111.GUI.ViewModels"
         xmlns:models="using:Scanner111.GUI.Models"
         xmlns:converters="using:Scanner111.GUI.Converters"
+        xmlns:views="using:Scanner111.GUI.Views"
         xmlns:system="clr-namespace:System;assembly=System.Runtime"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -351,6 +352,73 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                 </Border>
+            </TabItem>
+
+            <!-- FCX (File Integrity Check) Tab -->
+            <TabItem Header="FCX Integrity Check">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- FCX Controls -->
+                    <Border Grid.Row="0" Background="#FF3c3c3c" Padding="15" Margin="5">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="File Integrity Check (FCX)" 
+                                       FontSize="16" FontWeight="Bold" 
+                                       Foreground="#FF0e639c" />
+                            
+                            <TextBlock Text="Verify game installation integrity and check for missing or corrupted files"
+                                       Foreground="#FFCCCCCC" />
+                            
+                            <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left">
+                                <Button Content="Run FCX Scan" 
+                                        Command="{Binding RunFcxScanCommand}"
+                                        Background="#FF0e639c" 
+                                        Foreground="White"
+                                        Padding="15,5" />
+                                
+                                <Button Content="Validate Game Install" 
+                                        Command="{Binding ValidateGameInstallCommand}"
+                                        Background="#FF666666" 
+                                        Foreground="White"
+                                        Padding="15,5" />
+                                
+                                <Button Content="Backup Game Files" 
+                                        Command="{Binding BackupGameFilesCommand}"
+                                        Background="#FF666666" 
+                                        Foreground="White"
+                                        Padding="15,5" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- FCX Status -->
+                    <Border Grid.Row="1" Background="#FF3c3c3c" Padding="10" Margin="5,0,5,5" 
+                            IsVisible="{Binding FcxResult, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <StackPanel Orientation="Horizontal" Spacing="20">
+                            <TextBlock Text="FCX Status:" Foreground="White" FontWeight="Bold" />
+                            <TextBlock Text="{Binding FcxResult.OverallStatus}" 
+                                       Foreground="{Binding FcxResult.StatusColor}" 
+                                       FontWeight="Bold" />
+                            <Separator Width="1" Background="#FF666666" />
+                            <TextBlock Text="{Binding FcxResult.Summary}" Foreground="#FFCCCCCC" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- FCX Results -->
+                    <ScrollViewer Grid.Row="2" Margin="5">
+                        <ContentControl Content="{Binding FcxResult}">
+                            <ContentControl.ContentTemplate>
+                                <DataTemplate DataType="{x:Type vm:FcxResultViewModel}">
+                                    <views:FcxResultsView />
+                                </DataTemplate>
+                            </ContentControl.ContentTemplate>
+                        </ContentControl>
+                    </ScrollViewer>
+                </Grid>
             </TabItem>
         </TabControl>
 
