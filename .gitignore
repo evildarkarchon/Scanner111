@@ -457,3 +457,6 @@ $RECYCLE.BIN/
 *.code-workspace
 *-AUTOSCAN.md
 !sample_logs/*-AUTOSCAN.md
+docs/fcx-analyzer-example.cs
+docs/game-configuration-models.cs
+docs/multi-game-path-detection.cs

@@ -44,7 +44,7 @@ public interface ICacheManager
 /// <summary>
 ///     Implementation of cache manager
 /// </summary>
-public class CacheManager : ICacheManager, IDisposable
+public class CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger) : ICacheManager, IDisposable
 {
     // Cache key prefixes
     private const string YamlPrefix = "yaml:";
@@ -53,16 +53,10 @@ public class CacheManager : ICacheManager, IDisposable
     private readonly ConcurrentDictionary<string, int> _cacheHits = new();
     private readonly ConcurrentDictionary<string, int> _cacheMisses = new();
     private readonly ConcurrentDictionary<string, DateTime> _fileModificationTimes = new();
-    private readonly ILogger<CacheManager> _logger;
-    private readonly IMemoryCache _memoryCache;
+    private readonly ILogger<CacheManager> _logger = logger;
+    private readonly IMemoryCache _memoryCache = memoryCache;
     private readonly object _statsLock = new();
     private bool _disposed;
-
-    public CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger)
-    {
-        _memoryCache = memoryCache;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Retrieves a YAML setting from the cache or sets it using the provided factory function if not cached.
