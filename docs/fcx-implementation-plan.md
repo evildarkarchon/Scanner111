@@ -1,44 +1,5 @@
 # FCX and Game Integrity Implementation Plan
 
-## Goals:
-### 1. Multi-Version Support
-
-Fallout 4: 2 versions (1.10.163.0 and 1.10.984.0)
-Skyrim SE: 4 versions including platform variants (Steam vs GOG)
-Each version has specific hash identification and compatibility notes
-
-### 2. Version Detection System
-
-SHA256 hash-based version identification
-Platform detection (Steam/GOG)
-Clear reporting of which version is installed
-Mod compatibility guidance based on version
-
-### 3. XSE Compatibility Management
-
-Version-specific Script Extender requirements
-Compatibility warnings for mismatched XSE versions
-Recommendations for the correct XSE version per game version
-
-### 4. User-Friendly Reporting
-The system respects that many modders intentionally stay on older versions:
-
-Shows "best mod compatibility" notes for legacy versions
-No pressure to update - just informative messages
-Clear version identification in reports
-
-### 5. Code Architecture
-
-GameVersionInfo class for version metadata
-XseVersionRequirement for version-specific requirements
-Static data classes for easy maintenance
-Extensible design for future versions
-
-## Summary
-The FCX implementation will provide robust support for multiple game versions, ensuring modders can work with their preferred setups without compatibility issues. The design will focus on clear reporting, version detection, and user-friendly features, while maintaining a clean architecture that allows for easy extension in the future.
-
-Note: The SHA256 hashes in the code are placeholders and will need to be collected from verified game installations before deployment.
-
 ## Phase 1: Core Infrastructure Setup (Week 1-2)
 
 ### 1.1 Extend Models and Data Structures
@@ -62,7 +23,7 @@ Note: The SHA256 hashes in the code are placeholders and will need to be collect
   }
   ```
 
-### 1.2 Port YAML Configuration System (Some of this is already done, but could need extending, existing names might be different)
+### 1.2 Port YAML Configuration System
 - **Leverage existing `IYamlSettingsProvider`** infrastructure
 - **Create game-specific YAML models**:
   ```csharp
@@ -77,26 +38,28 @@ Note: The SHA256 hashes in the code are placeholders and will need to be collect
   public class ClassicGameYaml  // For Fallout4, Skyrim, etc.
   {
       public Dictionary<string, string> XseHashedScripts { get; set; }
+      public List<string> BackupFiles { get; set; }
       // ... game-specific data
   }
   ```
 
 ### 1.3 Extend Game Path Detection
 - **Enhance existing `GamePathDetection` class**:
-  - Add support for multiple games (Fallout 4 and Skyrim SE)
-  - Implement XSE log parsing for all supported games
+  - Improve Fallout 4 detection (already partially implemented)
+  - Add F4SE log parsing for better path detection
   - Add Steam/GOG/Epic Games launcher detection
   - Implement Documents folder detection for INI files
+  - Design with extensibility for future games
 
 ### 1.4 Version Detection System
 - **Create comprehensive version detection**:
-  - Support multiple game versions per title
-  - Track version-specific requirements (XSE compatibility)
+  - Support multiple Fallout 4 versions
+  - Track version-specific requirements (F4SE compatibility)
   - Store SHA256 hashes for all known versions
   - Provide mod compatibility guidance based on version
-- **Supported versions**:
-  - Fallout 4: 1.10.163.0, 1.10.984.0
-  - Skyrim SE: 1.5.97.0, 1.6.640.0 (Steam), 1.6.1170.0 (Steam), 1.6.1179.0 (GOG)
+- **Supported Fallout 4 versions**:
+  - 1.10.163.0 - Pre-Next Gen Update (most mod compatible)
+  - 1.10.984.0 - Next Gen Update (latest version)
 
 ## Phase 2: FCX Core Functionality (Week 2-3)
 
@@ -134,20 +97,22 @@ public interface IHashValidationService
 
 ### 2.3 Port Core FCX Checks
 - **Game executable validation** (version checking via hash)
-  - Detect specific game version from known hashes
+  - Detect specific Fallout 4 version from known hashes
   - Report version-specific mod compatibility notes
   - Warn about unofficial/pirated versions
-- **XSE (Script Extender) validation**:
-  - F4SE for Fallout 4 (version-specific requirements)
-  - SKSE for Skyrim SE (version-specific requirements)
-  - Check XSE version compatibility with game version
-  - Provide download links for correct XSE version
-- **Core mod file validation** (Buffout, Address Library, etc.)
+- **F4SE (Script Extender) validation**:
+  - Check F4SE installation and version
+  - Verify compatibility with detected game version
+  - Provide download links for correct F4SE version
+- **Core mod file validation**:
+  - Buffout 4 (crash logger)
+  - Address Library
+  - Other essential framework mods
 - **INI file validation** (syntax and required settings)
 
 ## Phase 3: Integration with Scanner111 Pipeline (Week 3-4)
 
-### 3.1 Create FCX Pipeline Decorator (Use Enhanced Scan Pipeline as Base)
+### 3.1 Create FCX Pipeline Decorator
 ```csharp
 public class FcxEnabledPipeline : IScanPipeline
 {
@@ -214,7 +179,8 @@ public class SettingsViewModel : ViewModelBase
     [Reactive] public bool FcxMode { get; set; }
     [Reactive] public string ModsFolder { get; set; }
     [Reactive] public string IniFolder { get; set; }
-    [Reactive] public GameType SelectedGame { get; set; }
+    // Game selection prepared for future but hidden in UI for now
+    // Only Fallout 4 is currently supported
 }
 ```
 
@@ -253,7 +219,7 @@ public interface IBackupService
 
 ### 5.2 Mod Conflict Detection
 - **Port mod scanning logic** from `CLASSIC_ScanGame.py`
-- **Implement archive scanning** (BSA/BA2 files), requires `BSArch.exe`
+- **Implement archive scanning** (BSA/BA2 files)
 - **Create conflict analyzer** using existing analyzer pattern
 
 ### 5.3 Report Generation
@@ -358,8 +324,7 @@ public class FcxCommand : ICommand
 ## Migration Considerations
 
 1. **Maintain Python compatibility** - outputs must match exactly
-2. **Preserve YAML structure** - use same schema as Python
-3. **Handle encoding issues** - UTF-8 everywhere with fallbacks
-4. **Support relative paths** - for portable installations
-5. **Async throughout** - no blocking operations
-6. **Version hash collection** - need to collect actual SHA256 hashes for all game versions from the community
+2. **Handle encoding issues** - UTF-8 everywhere with fallbacks
+3. **Support relative paths** - for portable installations
+4. **Async throughout** - no blocking operations
+5. **Version hash collection** - need to collect actual SHA256 hashes for all game versions from the community
