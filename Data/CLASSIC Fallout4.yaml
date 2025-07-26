@@ -222,13 +222,13 @@ warnings_crashgen:
   Warn_Outdated: |
     # [!] CAUTION : YOUR BUFFOUT 4 VERSION MIGHT BE OUT OF DATE, UPDATE BO4 IF NECESSARY #
       Original Buffout Version: https://www.nexusmods.com/fallout4/mods/47359
-      Buffout VR / NG Version: https://www.nexusmods.com/fallout4/mods/64880
+      Buffout 4 NG (works with all game versions): https://www.nexusmods.com/fallout4/mods/64880
       Buffout 4 Guide: https://www.nexusmods.com/fallout4/articles/3115
 
   Warn_Missing: |
     # [!] CAUTION : SOME BUFFOUT 4 FILES MIGHT BE MISSING OR HAVE BEEN INCORRECTLY INSTALLED #
       Original Buffout Version: https://www.nexusmods.com/fallout4/mods/47359
-      Buffout VR / NG Version: https://www.nexusmods.com/fallout4/mods/64880
+      Buffout 4 NG (works with all game versions): https://www.nexusmods.com/fallout4/mods/64880
       Buffout 4 Guide: https://www.nexusmods.com/fallout4/articles/3115
 
   Warn_NOPlugins: |

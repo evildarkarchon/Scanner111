@@ -23,7 +23,8 @@ public class AnalyzerFactory : IAnalyzerFactory
             ["Suspect"] = typeof(SuspectScanner),
             ["Settings"] = typeof(SettingsScanner),
             ["Record"] = typeof(RecordScanner),
-            ["FileIntegrity"] = typeof(FileIntegrityAnalyzer)
+            ["FileIntegrity"] = typeof(FileIntegrityAnalyzer),
+            ["BuffoutVersion"] = typeof(BuffoutVersionAnalyzerV2)
         };
     }
 

@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Scanner111 is a C# port of a Python crash log analyzer for Bethesda games (Fallout 4, Skyrim, etc.). The application analyzes crash logs to identify problematic game modifications. It provides both GUI (Avalonia) and CLI interfaces.
 
+## Memories
+
+- The files in `Code to Port` should be considered read only as they are just reference.
+
 ## Key Commands
 
 ### Build & Run
