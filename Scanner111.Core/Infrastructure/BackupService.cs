@@ -49,8 +49,8 @@ public class BackupService : IBackupService
             var backupDir = await GetBackupDirectoryAsync();
             Directory.CreateDirectory(backupDir);
 
-            // Create backup filename with timestamp
-            var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+            // Create backup filename with timestamp including milliseconds
+            var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss-fff");
             var backupName = $"Fallout4_Backup_{timestamp}.zip";
             var backupPath = Path.Combine(backupDir, backupName);
 
@@ -120,6 +120,15 @@ public class BackupService : IBackupService
                 }
                 result.ErrorMessage = "No files were backed up";
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Clean up partial backup
+            if (File.Exists(result.BackupPath))
+            {
+                try { File.Delete(result.BackupPath); } catch { }
+            }
+            throw; // Re-throw to let the caller handle cancellation
         }
         catch (Exception ex)
         {

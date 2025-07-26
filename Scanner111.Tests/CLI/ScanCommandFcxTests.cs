@@ -14,17 +14,18 @@ public class ScanCommandFcxTests
     public void ScanOptions_FcxModeOption_ParsesCorrectly()
     {
         // Arrange
-        var args = new[] { "scan", "--fcx-mode", "-l", "crash.log" };
+        var args = new[] { "scan", "--fcx-mode", "true", "-l", "crash.log" };
         var parser = new CommandLine.Parser(with => with.HelpWriter = null);
         
         // Act
-        var result = parser.ParseArguments<Scanner111.CLI.Models.ScanOptions>(args);
+        var result = parser.ParseArguments<Scanner111.CLI.Models.ScanOptions, DemoOptions, ConfigOptions, AboutOptions, FcxOptions>(args);
         
         // Assert
-        Assert.True(result.Tag == CommandLine.ParserResultType.Parsed);
+        Assert.Equal(CommandLine.ParserResultType.Parsed, result.Tag);
         result.WithParsed<Scanner111.CLI.Models.ScanOptions>(opts =>
         {
-            Assert.True(opts.FcxMode);
+            Assert.True(opts.FcxMode.HasValue);
+            Assert.True(opts.FcxMode.Value);
             Assert.Equal("crash.log", opts.LogFile);
         });
     }
@@ -37,10 +38,10 @@ public class ScanCommandFcxTests
         var parser = new CommandLine.Parser(with => with.HelpWriter = null);
         
         // Act
-        var result = parser.ParseArguments<Scanner111.CLI.Models.ScanOptions>(args);
+        var result = parser.ParseArguments<Scanner111.CLI.Models.ScanOptions, DemoOptions, ConfigOptions, AboutOptions, FcxOptions>(args);
         
         // Assert
-        Assert.True(result.Tag == CommandLine.ParserResultType.Parsed);
+        Assert.Equal(CommandLine.ParserResultType.Parsed, result.Tag);
         result.WithParsed<Scanner111.CLI.Models.ScanOptions>(opts =>
         {
             Assert.Null(opts.FcxMode);

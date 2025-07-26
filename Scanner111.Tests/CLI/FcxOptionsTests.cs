@@ -147,16 +147,21 @@ public class FcxOptionsTests
         });
     }
     
-    [Fact]
-    public void Parse_InvalidVerb_ReturnsError()
+    [Fact] 
+    public void Parse_WithoutVerb_UsesDefaultScanVerb()
     {
         // Arrange
-        var args = new[] { "invalid-verb" };
+        var args = new[] { "-l", "some-file.log" };
         
         // Act
-        var result = _parser.ParseArguments<FcxOptions>(args);
+        // Since "scan" is the default verb, we can use scan options without specifying the verb
+        var result = _parser.ParseArguments<ScanOptions, DemoOptions, ConfigOptions, AboutOptions, FcxOptions>(args);
         
         // Assert
-        Assert.True(result.Tag == ParserResultType.NotParsed);
+        Assert.Equal(ParserResultType.Parsed, result.Tag);
+        result.WithParsed<ScanOptions>(opts =>
+        {
+            Assert.Equal("some-file.log", opts.LogFile);
+        });
     }
 }
