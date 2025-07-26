@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Models.Yaml;
@@ -12,17 +13,20 @@ public class PluginAnalyzer : IAnalyzer
 {
     private readonly HashSet<string> _lowerPluginsIgnore;
     private readonly IYamlSettingsProvider _yamlSettings;
+    private readonly ILogger<PluginAnalyzer> _logger;
 
     /// <summary>
     ///     Initialize the plugin analyzer
     /// </summary>
     /// <param name="yamlSettings">YAML settings provider for configuration</param>
-    public PluginAnalyzer(IYamlSettingsProvider yamlSettings)
+    /// <param name="logger">Logger for debug output</param>
+    public PluginAnalyzer(IYamlSettingsProvider yamlSettings, ILogger<PluginAnalyzer> logger)
     {
         _yamlSettings = yamlSettings;
+        _logger = logger;
 
         // Initialize plugin ignore list from YAML settings
-        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4YamlV2>("CLASSIC Fallout4");
         var ignorePluginsList = fallout4Yaml?.CrashlogPluginsExclude ?? new List<string>();
         _lowerPluginsIgnore = new HashSet<string>(
             ignorePluginsList.Select(p => p.ToLower()),
@@ -79,6 +83,10 @@ public class PluginAnalyzer : IAnalyzer
 
         // Filter ignored plugins for matching
         var filteredPlugins = FilterIgnoredPlugins(crashLog.Plugins);
+
+        // Debug: log plugin count
+        _logger.LogDebug("Crash log plugins: {OriginalCount}, filtered: {FilteredCount}", 
+            crashLog.Plugins.Count, filteredPlugins.Count);
 
         // Perform plugin matching
         var crashlogPluginsLower = filteredPlugins.Keys.Select(k => k.ToLower()).ToHashSet();
@@ -157,6 +165,20 @@ public class PluginAnalyzer : IAnalyzer
     private void PluginMatch(List<string> segmentCallstackLower, HashSet<string> crashlogPluginsLower,
         List<string> autoscanReport)
     {
+        // Check if plugins list is empty - this indicates missing plugin information
+        if (crashlogPluginsLower.Count == 0)
+        {
+            // Still check for XSE plugins in the call stack
+            CheckXsePluginsInCallStack(segmentCallstackLower, autoscanReport);
+            
+            // If no XSE plugins found either, report no suspects
+            if (autoscanReport.Count == 0)
+            {
+                autoscanReport.Add("* COULDN'T FIND ANY PLUGIN SUSPECTS *\n\n");
+            }
+            return;
+        }
+
         // Pre-filter call stack lines that won't match
         var relevantLines = segmentCallstackLower.Where(line => !line.Contains("modified by:")).ToList();
 
@@ -222,13 +244,60 @@ public class PluginAnalyzer : IAnalyzer
 
     private string GetCrashgenLogName()
     {
-        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4YamlV2>("CLASSIC Fallout4");
         return fallout4Yaml?.GameInfo?.CrashgenLogName ?? "Crash Logger";
     }
 
     private List<string> GetPluginsExcludeList()
     {
-        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4YamlV2>("CLASSIC Fallout4");
         return fallout4Yaml?.CrashlogPluginsExclude ?? new List<string>();
+    }
+
+    /// <summary>
+    /// Checks for XSE (F4SE) plugins in the call stack when regular plugin list is missing
+    /// </summary>
+    /// <param name="segmentCallstackLower">Lowercased call stack lines</param>
+    /// <param name="autoscanReport">Report to add findings to</param>
+    private void CheckXsePluginsInCallStack(List<string> segmentCallstackLower, List<string> autoscanReport)
+    {
+        // Common XSE plugin patterns to look for
+        var xsePluginPatterns = new[]
+        {
+            ".dll+", "f4se_", "xse_", "_f4se", "_xse",
+            "achievements.dll", "buffout4.dll", "x-cell-og.dll",
+            "looksmenu.dll", "mcm.dll", "powerarmor.dll"
+        };
+
+        var foundXsePlugins = new HashSet<string>();
+        
+        foreach (var line in segmentCallstackLower)
+        {
+            foreach (var pattern in xsePluginPatterns)
+            {
+                if (line.Contains(pattern))
+                {
+                    // Extract the DLL name from the line
+                    var parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var part in parts)
+                    {
+                        if (part.Contains(".dll") && !foundXsePlugins.Contains(part))
+                        {
+                            foundXsePlugins.Add(part);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (foundXsePlugins.Count > 0)
+        {
+            autoscanReport.Add("The following XSE PLUGINS were found in the CRASH STACK:\n");
+            foreach (var plugin in foundXsePlugins.OrderBy(x => x))
+            {
+                autoscanReport.Add($"- {plugin}\n");
+            }
+            autoscanReport.Add("\n[XSE plugins found in call stack when regular plugin list unavailable]\n\n");
+        }
     }
 }

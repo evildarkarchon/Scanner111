@@ -11,72 +11,72 @@ classic_info:
   default_settings: |
     # This file contains settings for CLASSIC v7.00+, used by both source scripts and the executable.
 
-    CLASSIC_Settings:
+    classic_settings:
 
     # Set the game that you want CLASSIC to currently manage. (Fallout 4 | Skyrim SE | Starfield)
-      Managed Game: Fallout 4
+      managed_game: Fallout 4
 
     # Set to true if you want CLASSIC to periodically check for its own updates online through GitHub.
-      Update Check: true
+      update_check: true
 
     # Set to true if you want CLASSIC to prioritize scanning the Virtual Reality version of your game.
-      VR Mode: false
+      vr_mode: false
 
     # FCX - File Check Xtended | Set to true if you want CLASSIC to check the integrity of your game files and core mods.
-      FCX Mode: true
+      fcx_mode: true
 
     # Set to true if you want CLASSIC to remove some unnecessary lines and redundant information from your crash log files.
     # CAUTION: Changes will be permanent for each crash log you scan after. May hide info useful for debugger programs.
-      Simplify Logs: false
+      simplify_logs: false
 
     # Set to true if you want CLASSIC to show extra stats about scanned logs in the command line / terminal window.
     # NOTICE: This setting currently has no effect, crash log stats will be fully implemented in a future update.
-      Show Statistics: false
+      show_statistics: false
 
     # Set to true if you want CLASSIC to look up FormID values (names) automatically while scanning crash logs.
     # This will show some extra details for Possible FormID Suspects at the expense of longer scanning times.
-      Show FormID Values: false
+      show_formid_values: false
 
     # Set to true if you want CLASSIC to move all unsolved crash logs and their autoscans to CLASSIC UNSOLVED folder.
     # Unsolved logs are all crash logs that are incomplete or in the wrong format.
-      Move Unsolved Logs: true
+      move_unsolved_logs: true
 
     # Copy-paste your INI folder path below, where your main game INI files are located (Documents\My Games\*game*)
     # If you are using MO2, I recommend disabling Profile Specific Game INI Files, located in Tools > Profiles
     # This is only required if CLASSIC has problems detecting your game files or is scanning the wrong game.
-      INI Folder Path:
+      ini_folder_path:
 
     # Copy-paste your staging mods folder path below. (Folder where your mod manager keeps all extracted mod files).
     # MO2 Ex. MODS Folder Path: C:\Mod Organizer 2\*game*\mods | Vortex Ex. MODS Folder Path: C:\Vortex Mods\*game*
     # You can also set this path to your game's Data folder, but then the scan results will be much less accurate.
-      MODS Folder Path:
+      mods_folder_path:
 
     # Copy-paste your custom crash logs folder path below. Ex. SCAN Custom Path: C:\My Crash Logs
     # Crash logs are generated in Documents\My Games\*game*\XSE folder by default. If no path is set,
     # crash logs from that Scrip Extender folder and where the CLASSIC.exe is located will be scanned.
-      SCAN Custom Path:
+      scan_custom_path:
 
     # Toggle audio notifications for when CLASSIC finishes scanning your crash logs and mod files.
-      Audio Notifications: true
+      audio_notifications: true
 
     # Set the source where CLASSIC will check for updates. (Nexus | GitHub)
-      Update Source: Both
+      update_source: Both
 
     # Enable or disable the use of an asynchronous pipeline for processing. This setting should not be changed and is primarily for testing purposes.
     # If you are not a developer or do not know what this means, leave it as is.
-      Use Async Pipeline: true
+      use_async_pipeline: true
     
     # Set to true if you want CLASSIC to disable progress bars when running in command line mode.
     # This can be useful for cleaner output when running CLASSIC in scripts or automated environments.
-      Disable CLI Progress: false
+      disable_cli_progress: false
 
 
   default_localyaml: |
-    Game_Info:
-      Root_Folder_Game:
+    game_info:
+      root_folder_game:
 
-    GameVR_Info:
-      Root_Folder_Game:
+    gamevr_info:
+      root_folder_game:
 
 
   default_ignorefile: |
@@ -86,12 +86,12 @@ classic_info:
     # To add plugin names yourself, make sure each plugin starts with a dash followed by a space,
     # AND ends with either .esm | .esp | .esl | .dll | Uppercase / lowercase does not matter.
 
-    CLASSIC_Ignore_Fallout4:
+    classic_ignore_fallout4:
       - Example Plugin.esp
       - Another Example.esl
       - Example_DLL.dll
 
-    CLASSIC_Ignore_SkyrimSE:
+    classic_ignore_skyrimse:
       - Example Plugin.esp
       - Another Example.esl
       - Example_DLL.dll
@@ -161,16 +161,16 @@ classic_interface:
 
     CLASSIC Unofficial : https://www.github.com/evildarkarchon/CLASSIC-Fallout4/releases/latest
 
-  update_warning_Fallout4: |
+  update_warning_fallout4: |
     ❌ WARNING : YOUR FALLOUT 4 CLASSIC VERSION IS OUT OF DATE!
     YOU CAN GET THE LATEST FALLOUT 4 CLASSIC VERSION FROM HERE:
     https://www.nexusmods.com/fallout4/mods/56255
 
-  update_unable_Fallout4: |
+  update_unable_fallout4: |
     ❌ WARNING : CLASSIC WAS UNABLE TO CHECK FOR UPDATES AT THIS TIME, TRY AGAIN LATER
     CHECK FOR NEW CLASSIC VERSIONS HERE: https://www.nexusmods.com/fallout4/mods/56255
 
-  autoscan_text_Fallout4: |
+  autoscan_text_fallout4: |
     FOR FULL LIST OF MODS THAT CAUSE PROBLEMS, THEIR ALTERNATIVES AND DETAILED SOLUTIONS
     VISIT THE BUFFOUT 4 CRASH ARTICLE: https://www.nexusmods.com/fallout4/articles/3115
     ===============================================================================
@@ -196,75 +196,75 @@ warnings_game:
 # =============== WRYE BASH WARNINGS ==============
 
 warnings_wrye:
-  Corrupted: |
+  corrupted: |
 
     ❓ Wrye Bash could not read these plugins, there's a high chance they are corrupted.
       Resave them in Creation Kit and run Plugin Checker again to see if anything changed.
       If corruption persists, consider completely removing these plugins and their mod files.
       -----
 
-  Incorrect ESL Flag: |
+  incorrect_esl_flag: |
 
     ❓ These plugins have an incorrectly assigned ESL flag or extension.
       To fix, remove the ESL flag with xEdit or rename the extension to .esp.
       They can frequently cause the game to crash if you don't fix these plugins.
       -----
 
-  Missing Masters: |
+  missing_masters: |
 
     ❓ These plugins have missing requirements (required mods cannot be found).
       Either install all missing requirements or completely remove these plugins.
       Plugins with missing requirements won't work correctly and can crash the game.
       -----
 
-  Delinquent Masters: |
+  delinquent_masters: |
 
     ❓ These plugins are not in the correct load order. You should run Wrye Bash
       and reorder plugins with orange checkboxes until they turn green or yellow.
       Incorrect load order will either crash the game or break some ingame items.
       -----
 
-  Old Header Form Versions: |
+  old_header_form_versions: |
 
     ❓ These plugins have a header that is older than the valid Creation Kit version.
       Such plugins need to be resaved in Creation Kit to fix the incorrect header.
       -----
 
-  Deleted Navmeshes: |
+  deleted_navmeshes: |
 
     ❓ These plugins have deleted navmeshes. These can often cause a crash
       in specific areas. Try to find a patch that fixes their navmeshes
       or disable these plugins first if you ever get a navmesh crash.
       -----
 
-  Deleted Base Records: |
+  deleted_base_records: |
 
     ❓ These plugins have deleted base records. These might cause a crash
       and deleted records can only be manually restored with xEdit.
       -----
 
-  HITMEs: |
+  hitmes: |
 
     ❓ These plugins contain Higher Index Than Master-list Entries, which are mainly
       caused by improper xEdit or CK edits. Resave these plugins with Creation Kit.
       If HITMEs persist, such plugins may not work correctly and can crash the game.
       -----
 
-  Duplicate FormIDs: |
+  duplicate_formids: |
 
     ❓ These Form IDs occur at least twice in the listed plugins. This is undefined behavior
       that may result in crashes or unpredictable issues and this can only be fixed with xEdit.
       Contact the mod authors and consider uninstalling these plugins if you encounter problems.
       -----
 
-  Record Type Collisions: |
+  record_type_collisions: |
 
     ❓ These Records are overriding each other, but have different record types. This behavior
       can often lead to crashes or cause various issues and this can only be fixed with xEdit.
       Contact the mod authors and consider uninstalling these plugins if you encounter problems.
       -----
 
-  Probable Injected Collisions: |
+  probable_injected_collisions: |
 
     ❓ These Injected Records are overriding each other, but have different Editor IDs.
       This can cause some problems and their Editor IDs should be renamed to match each other.
@@ -272,13 +272,13 @@ warnings_wrye:
       -----
 
 # ================= WN SEARCH IN TITLE =================
-  Invalid: |
+  invalid: |
 
     ❓ These plugins were made with a non-standard or invalid Creation Kit version.
       Resave these plugins in Creation Kit and check if problems or errors persist.
       -----
 
-  Cleaning With: |
+  cleaning_with: |
 
     ❓ These plugins contain ITMs and/or UDRs which should be cleaned manually with
       Quick Auto Clean (QAC) or automatically with Plugin Auto Cleaning Tool (PACT).
@@ -287,7 +287,7 @@ warnings_wrye:
 # =================== MODS SCAN WARNINGS ==================
 
 mods_warn:
-  Mods_Reminders: |
+  mods_reminders: |
     =================== MOD FILES SCAN ===================
     -- REMINDERS --
     ❓ (-FORMAT-) -> Any files with an incorrect file format will not work.
@@ -311,23 +311,23 @@ mods_warn:
       read your AUTOSCAN report files after scanning your crash logs.
     -----
 
-  Mods_Path_Invalid: |
+  mods_path_invalid: |
     ❌ ERROR : YOUR MODS FOLDER PATH IS INVALID! PLEASE OPEN *CLASSIC Settings.yaml*
     AND ENTER A VALID FOLDER PATH FOR *MODS Folder Path* FROM YOUR MOD MANAGER.
     -----
 
-  Mods_Path_Missing: |
+  mods_path_missing: |
     ❌ MODS FOLDER PATH NOT PROVIDED! TO SCAN ALL YOUR MOD FILES, PLEASE OPEN
     *CLASSIC Settings.yaml* AND ENTER A FOLDER PATH FOR *MODS Folder Path*.
     -----
 
-  Mods_BSArch_Missing: |
+  mods_bsarch_missing: |
     ❌ BSARCH EXECUTABLE CANNOT BE FOUND. TO SCAN ALL YOUR MOD ARCHIVES, PLEASE DOWNLOAD
     THE LATEST VERSION OF BSARCH AND EXTRACT ITS EXE INTO THE *CLASSIC Data* FOLDER
     BSArch Link: https://www.nexusmods.com/newvegas/mods/64745?tab=files
     -----
 
-  Mods_Plugin_Limit: |
+  mods_plugin_limit: |
     # [!] CAUTION : ONE OF YOUR PLUGINS HAS THE [FF] PLUGIN INDEX VALUE #
     * THIS MEANS YOU ALMOST CERTAINLY WENT OVER THE GAME PLUGIN LIMIT! *
     Disable some of your esm/esp plugins and re-run the Crash Logs Scan.

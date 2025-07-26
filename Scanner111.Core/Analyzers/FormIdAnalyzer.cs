@@ -183,7 +183,7 @@ public class FormIdAnalyzer : IAnalyzer
 
     private string GetCrashgenLogName()
     {
-        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4YamlV2>("CLASSIC Fallout4");
         return fallout4Yaml?.GameInfo?.CrashgenLogName ?? "Crash Logger";
     }
 }

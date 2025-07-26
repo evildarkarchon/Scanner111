@@ -91,12 +91,6 @@ public static class GamePathDetection
             if (regKey?.GetValue("installed path") is string bethesdaPath && ValidateGamePath(bethesdaPath))
                 return bethesdaPath;
 
-            // Try Fallout4VR if regular Fallout4 not found
-            using var regKeyVr =
-                Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\Bethesda Softworks\Fallout4VR");
-            if (regKeyVr?.GetValue("installed path") is string bethesdaVrPath && ValidateGamePath(bethesdaVrPath))
-                return bethesdaVrPath;
-
             // Try GOG registry key
             using var regKeyGog = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\GOG.com\Games\1998527297");
             if (regKeyGog?.GetValue("path") is string gogPath && ValidateGamePath(gogPath)) return gogPath;
@@ -121,8 +115,7 @@ public static class GamePathDetection
             var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             var xsePaths = new[]
             {
-                Path.Combine(documentsPath, "My Games", "Fallout4", "F4SE", "f4se.log"),
-                Path.Combine(documentsPath, "My Games", "Fallout4VR", "F4SE", "f4se.log")
+                Path.Combine(documentsPath, "My Games", "Fallout4", "F4SE", "f4se.log")
             };
 
             foreach (var logPath in xsePaths)
@@ -164,8 +157,8 @@ public static class GamePathDetection
         if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
             return false;
 
-        // Check for game executables - prioritize Fallout 4 only
-        var executables = new[] { "Fallout4.exe", "Fallout4VR.exe" };
+        // Check for game executables - Fallout 4 only
+        var executables = new[] { "Fallout4.exe" };
         return executables.Any(exe => File.Exists(Path.Combine(path, exe)));
     }
     
@@ -365,7 +358,6 @@ public static class GamePathDetection
         return gameType switch
         {
             "Fallout4" => Path.Combine(documentsPath, "My Games", "Fallout4"),
-            "Fallout4VR" => Path.Combine(documentsPath, "My Games", "Fallout4VR"),
             "Skyrim" => Path.Combine(documentsPath, "My Games", "Skyrim Special Edition"),
             _ => ""
         };

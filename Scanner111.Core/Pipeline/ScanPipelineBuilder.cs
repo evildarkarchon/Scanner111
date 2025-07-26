@@ -42,6 +42,7 @@ public class ScanPipelineBuilder
     /// <returns>The current instance of <see cref="ScanPipelineBuilder"/> for method chaining.</returns>
     public ScanPipelineBuilder AddDefaultAnalyzers()
     {
+        AddAnalyzer<BuffoutVersionAnalyzerV2>();
         AddAnalyzer<FormIdAnalyzer>();
         AddAnalyzer<PluginAnalyzer>();
         AddAnalyzer<SuspectScanner>();

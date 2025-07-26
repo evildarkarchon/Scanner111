@@ -110,7 +110,7 @@ public class RecordScanner : IAnalyzer
         var recordsList = mainYaml?.CatchLogRecords ?? [];
         var lowerRecords = recordsList.Select(r => r.ToLower()).ToHashSet();
 
-        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4YamlV2>("CLASSIC Fallout4");
         var ignoredList = fallout4Yaml?.CrashlogRecordsExclude ?? [];
         var lowerIgnore = ignoredList.Select(r => r.ToLower()).ToHashSet();
 
@@ -148,7 +148,7 @@ public class RecordScanner : IAnalyzer
         foreach (var (record, count) in recordsFound) autoscanReport.Add($"- {record} | {count}\n");
 
         // Add explanatory notes
-        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4YamlV2>("CLASSIC Fallout4");
         var crashgenLogName = fallout4Yaml?.GameInfo?.CrashgenLogName ?? "Crash Logger";
         
         var explanatoryNotes = new[]

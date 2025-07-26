@@ -110,17 +110,20 @@ public class ScanResult
         report.Add("====================================================\n");
         report.Add("\n");
 
-        // Main error and version info
-        if (CrashLog != null)
+        // Main error and version info are now handled by BuffoutVersionAnalyzer
+        var versionResult = AnalysisResults.FirstOrDefault(r => r.AnalyzerName == "Buffout Version Analyzer");
+        if (versionResult != null && versionResult.ReportLines.Any())
         {
+            report.AddRange(versionResult.ReportLines);
+        }
+        else if (CrashLog != null)
+        {
+            // Fallback if analyzer didn't run
             report.Add($"Main Error: {CrashLog.MainError}\n");
             if (!string.IsNullOrEmpty(CrashLog.CrashGenVersion))
             {
                 report.Add($"Detected Buffout 4 Version: {CrashLog.CrashGenVersion} \n");
-                // TODO: Add version comparison logic
-                report.Add("* You have the latest version of Buffout 4! *\n");
             }
-
             report.Add("\n");
         }
 
@@ -178,16 +181,56 @@ public class ScanResult
             }
         }
 
+        // Check if plugin list is missing
+        var isPluginListMissing = CrashLog?.Plugins.Count == 0;
+        
         // Additional sections
         report.Add("====================================================\n");
         report.Add("CHECKING FOR MODS THAT CAN CAUSE FREQUENT CRASHES...\n");
         report.Add("====================================================\n");
+        if (isPluginListMissing)
+        {
+            report.Add("* [!] NOTICE : THE CRASH LOG GENERATOR WAS NOT ABLE TO LOAD THE PLUGIN LIST FOR THIS CRASH LOG! *\n");
+            report.Add("  Scanner 111 cannot perform the full scan. Provide or scan a different crash log\n");
+            report.Add("  OR copy-paste your *loadorder.txt* into your main Scanner 111 folder.\n");
+        }
 
         report.Add("====================================================\n");
         report.Add("CHECKING FOR MODS THAT CONFLICT WITH OTHER MODS...\n");
         report.Add("====================================================\n");
-        report.Add("# FOUND NO MODS THAT ARE INCOMPATIBLE OR CONFLICT WITH YOUR OTHER MODS # \n");
-        report.Add("\n");
+        if (isPluginListMissing)
+        {
+            report.Add("* [!] NOTICE : THE CRASH LOG GENERATOR WAS NOT ABLE TO LOAD THE PLUGIN LIST FOR THIS CRASH LOG! *\n");
+            report.Add("  Scanner 111 cannot perform the full scan. Provide or scan a different crash log\n");
+            report.Add("  OR copy-paste your *loadorder.txt* into your main Scanner 111 folder.\n");
+        }
+        else
+        {
+            report.Add("# FOUND NO MODS THAT ARE INCOMPATIBLE OR CONFLICT WITH YOUR OTHER MODS # \n");
+            report.Add("\n");
+        }
+
+        report.Add("====================================================\n");
+        report.Add("CHECKING FOR MODS THAT HAVE SOLUTIONS & COMMUNITY PATCHES...\n");
+        report.Add("====================================================\n");
+        if (isPluginListMissing)
+        {
+            report.Add("* [!] NOTICE : THE CRASH LOG GENERATOR WAS NOT ABLE TO LOAD THE PLUGIN LIST FOR THIS CRASH LOG! *\n");
+            report.Add("  Scanner 111 cannot perform the full scan. Provide or scan a different crash log\n");
+            report.Add("  OR copy-paste your *loadorder.txt* into your main Scanner 111 folder.\n");
+        }
+
+        // Skip OPC section - it's filtered out by ReportWriter
+
+        report.Add("====================================================\n");
+        report.Add("CHECKING FOR MODS THAT IF IMPORTANT PATCHES & FIXES ARE INSTALLED...\n");
+        report.Add("====================================================\n");
+        if (isPluginListMissing)
+        {
+            report.Add("* [!] NOTICE : THE CRASH LOG GENERATOR WAS NOT ABLE TO LOAD THE PLUGIN LIST FOR THIS CRASH LOG! *\n");
+            report.Add("  Scanner 111 cannot perform the full scan. Provide or scan a different crash log\n");
+            report.Add("  OR copy-paste your *loadorder.txt* into your main Scanner 111 folder.\n");
+        }
 
         // Plugin and FormID analysis
         var pluginResult = AnalysisResults.FirstOrDefault(r => r.AnalyzerName == "Plugin Analyzer");

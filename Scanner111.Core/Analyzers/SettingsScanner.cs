@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Models.Yaml;
@@ -10,18 +11,21 @@ namespace Scanner111.Core.Analyzers;
 public class SettingsScanner : IAnalyzer
 {
     private readonly IYamlSettingsProvider _yamlSettings;
+    private readonly ILogger<SettingsScanner> _logger;
     private readonly Lazy<string> _crashgenLogName;
 
     /// <summary>
     ///     Initialize the settings scanner
     /// </summary>
     /// <param name="yamlSettings">YAML settings provider for configuration</param>
-    public SettingsScanner(IYamlSettingsProvider yamlSettings)
+    /// <param name="logger">Logger for debug output</param>
+    public SettingsScanner(IYamlSettingsProvider yamlSettings, ILogger<SettingsScanner> logger)
     {
         _yamlSettings = yamlSettings;
+        _logger = logger;
         _crashgenLogName = new Lazy<string>(() =>
         {
-            var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+            var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4YamlV2>("CLASSIC Fallout4");
             return fallout4Yaml?.GameInfo?.CrashgenLogName ?? "Crash Logger";
         });
     }
@@ -57,7 +61,7 @@ public class SettingsScanner : IAnalyzer
         var xseModules = crashLog.XseModules;
         var crashgenSettings = crashLog.CrashgenSettings;
 
-        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4YamlV2>("CLASSIC Fallout4");
         var crashgenIgnoreList = fallout4Yaml?.GameInfo?.CrashgenIgnore ?? new List<string>();
         var crashgenIgnore = new HashSet<string>(crashgenIgnoreList, StringComparer.OrdinalIgnoreCase);
 

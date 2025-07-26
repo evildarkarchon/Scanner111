@@ -57,7 +57,7 @@ public class SuspectScanner : IAnalyzer
         var stackMatches = new List<string>();
         var matchDescriptions = new List<string>();
 
-        const int maxWarnLength = 40;
+        const int maxWarnLength = 25;
 
         // Check for DLL crashes first
         CheckDllCrash(crashLog.MainError, reportLines);
@@ -106,7 +106,7 @@ public class SuspectScanner : IAnalyzer
         var foundSuspect = false;
 
         // Load the strongly-typed YAML model
-        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4YamlV2>("CLASSIC Fallout4");
         if (fallout4Yaml?.CrashlogErrorCheck == null)
         {
             _logger.LogDebug("Could not load YAML or CrashlogErrorCheck section not found");
@@ -163,7 +163,7 @@ public class SuspectScanner : IAnalyzer
         var anySuspectFound = false;
 
         // Load the strongly-typed YAML model
-        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4YamlV2>("CLASSIC Fallout4");
         if (fallout4Yaml?.CrashlogStackCheck == null) return false;
 
         // Use the already properly typed CrashlogStackCheck

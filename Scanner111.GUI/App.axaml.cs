@@ -97,6 +97,7 @@ public class App : Application
         services.AddTransient<SettingsScanner>();
         services.AddTransient<SuspectScanner>();
         services.AddTransient<FileIntegrityAnalyzer>();
+        services.AddTransient<BuffoutVersionAnalyzerV2>();
 
         // Register GUI services
         services.AddSingleton<ISettingsService, SettingsService>();
