@@ -7,6 +7,12 @@ namespace Scanner111.Core.Models;
 /// </summary>
 public class CrashLog
 {
+    // Static properties for FCX functionality
+    public static string GameRootPath { get; set; } = string.Empty;
+    public static string PluginsDirectory { get; set; } = string.Empty;
+    public static string IniDirectory { get; set; } = string.Empty;
+    public static GameType Game { get; set; }
+
     /// <summary>
     ///     Full path to the crash log file
     /// </summary>

@@ -7,6 +7,9 @@ using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Services;
+using Scanner111.Core.Analyzers;
+using Scanner111.Core.FCX;
+using Scanner111.Core.Pipeline;
 
 // Ensure UTF-8 encoding for Windows console
 if (OperatingSystem.IsWindows())
@@ -25,13 +28,14 @@ await PerformStartupUpdateCheckAsync(serviceProvider);
 
 // Parse command line arguments
 var parser = new Parser(with => with.HelpWriter = Console.Error);
-var result = parser.ParseArguments<ScanOptions, DemoOptions, ConfigOptions, AboutOptions>(args);
+var result = parser.ParseArguments<Scanner111.CLI.Models.ScanOptions, DemoOptions, ConfigOptions, AboutOptions, FcxOptions>(args);
 
 return await result.MapResult(
-    async (ScanOptions opts) => await serviceProvider.GetRequiredService<ScanCommand>().ExecuteAsync(opts),
+    async (Scanner111.CLI.Models.ScanOptions opts) => await serviceProvider.GetRequiredService<ScanCommand>().ExecuteAsync(opts),
     async (DemoOptions opts) => await serviceProvider.GetRequiredService<DemoCommand>().ExecuteAsync(opts),
     async (ConfigOptions opts) => await serviceProvider.GetRequiredService<ConfigCommand>().ExecuteAsync(opts),
     async (AboutOptions opts) => await serviceProvider.GetRequiredService<AboutCommand>().ExecuteAsync(opts),
+    async (FcxOptions opts) => await serviceProvider.GetRequiredService<FcxCommand>().ExecuteAsync(opts),
     async errs => await Task.FromResult(1));
 
 static void ConfigureServices(IServiceCollection services)
@@ -46,6 +50,7 @@ static void ConfigureServices(IServiceCollection services)
     // Register Core services
     services.AddSingleton<IApplicationSettingsService, ApplicationSettingsService>();
     services.AddSingleton<IUpdateService, UpdateService>();
+    services.AddSingleton<ICacheManager, CacheManager>();
 
     // Register CLI services
     services.AddSingleton<ICliSettingsService, CliSettingsService>();
@@ -53,11 +58,19 @@ static void ConfigureServices(IServiceCollection services)
     services.AddSingleton<IScanResultProcessor, ScanResultProcessor>();
     services.AddSingleton<IMessageHandler, CliMessageHandler>();
 
+    // Register FCX services
+    services.AddSingleton<IHashValidationService, HashValidationService>();
+    services.AddSingleton<IBackupService, BackupService>();
+    services.AddSingleton<IYamlSettingsProvider, YamlSettingsService>();
+    services.AddSingleton<IModScanner, ModScanner>();
+    services.AddSingleton<IModCompatibilityService, ModCompatibilityService>();
+    
     // Register commands
     services.AddTransient<ScanCommand>();
     services.AddTransient<DemoCommand>();
     services.AddTransient<ConfigCommand>();
     services.AddTransient<AboutCommand>();
+    services.AddTransient<FcxCommand>();
 }
 
 static async Task PerformStartupUpdateCheckAsync(IServiceProvider serviceProvider)

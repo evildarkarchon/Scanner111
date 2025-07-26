@@ -26,6 +26,8 @@ public class ApplicationSettings
 
     [JsonPropertyName("defaultGamePath")] public string DefaultGamePath { get; set; } = "";
 
+    [JsonPropertyName("gamePath")] public string GamePath { get; set; } = "";
+
     [JsonPropertyName("defaultScanDirectory")]
     public string DefaultScanDirectory { get; set; } = "";
 

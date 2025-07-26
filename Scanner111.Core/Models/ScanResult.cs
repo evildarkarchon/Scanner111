@@ -1,5 +1,6 @@
 using System.Reflection;
 using Scanner111.Core.Analyzers;
+using Scanner111.Core.FCX;
 
 namespace Scanner111.Core.Models;
 
@@ -136,19 +137,45 @@ public class ScanResult
             report.Add("\n");
         }
 
-        // Settings section  
+        // Settings and FCX section  
         var settingsResult = AnalysisResults.FirstOrDefault(r => r.AnalyzerName == "Settings Scanner");
-        if (settingsResult is { HasFindings: true })
+        var fcxAnalyzer = AnalysisResults.FirstOrDefault(r => r.AnalyzerName == "FCX Analyzer");
+        var modConflictAnalyzer = AnalysisResults.FirstOrDefault(r => r.AnalyzerName == "Mod Conflict Analyzer");
+        var versionAnalyzer = AnalysisResults.FirstOrDefault(r => r.AnalyzerName == "Version Analyzer");
+        
+        var hasFcxFindings = fcxAnalyzer?.HasFindings == true || 
+                            modConflictAnalyzer?.HasFindings == true || 
+                            versionAnalyzer?.HasFindings == true;
+        
+        if (settingsResult is { HasFindings: true } || hasFcxFindings)
         {
             report.Add("====================================================\n");
             report.Add("CHECKING IF NECESSARY FILES/SETTINGS ARE CORRECT...\n");
             report.Add("====================================================\n");
-            // TODO: Add FCX mode notice
-            report.Add(
-                "* NOTICE: FCX MODE IS DISABLED. YOU CAN ENABLE IT TO DETECT PROBLEMS IN YOUR MOD & GAME FILES * \n");
-            report.Add("[ FCX Mode can be enabled in the Scanner 111 application settings. ] \n");
-            report.Add("\n");
-            report.AddRange(settingsResult.ReportLines);
+            
+            // Add FCX report sections if FCX mode is enabled and has findings
+            if (hasFcxFindings)
+            {
+                report.AddFcxReportSections(this);
+            }
+            else if (fcxAnalyzer != null)
+            {
+                // FCX is enabled but no findings
+                report.Add(FcxReportExtensions.GenerateFcxSectionForSettings(true));
+                report.Add("\n");
+            }
+            else
+            {
+                // FCX is not enabled
+                report.Add(FcxReportExtensions.GenerateFcxSectionForSettings(false));
+                report.Add("\n");
+            }
+            
+            // Add settings scanner results if available
+            if (settingsResult?.HasFindings == true)
+            {
+                report.AddRange(settingsResult.ReportLines);
+            }
         }
 
         // Additional sections
@@ -196,7 +223,7 @@ public class ScanResult
         report.Add("\n\n");
 
         // Include any other analyzer results not already handled
-        var handledAnalyzers = new[] { "Suspect Scanner", "Settings Scanner", "Plugin Analyzer", "FormId Analyzer", "Record Scanner" };
+        var handledAnalyzers = new[] { "Suspect Scanner", "Settings Scanner", "Plugin Analyzer", "FormId Analyzer", "Record Scanner", "FCX Analyzer", "Mod Conflict Analyzer", "Version Analyzer" };
         var otherAnalyzers = AnalysisResults.Where(r => !handledAnalyzers.Contains(r.AnalyzerName) && r.HasFindings).ToList();
         if (otherAnalyzers.Any())
         {

@@ -36,6 +36,115 @@ public class FcxScanResult : AnalysisResult
     ///     Recommended fixes for detected issues
     /// </summary>
     public List<string> RecommendedFixes { get; set; } = new();
+    
+    /// <summary>
+    ///     Messages generated during FCX analysis
+    /// </summary>
+    public List<string> Messages { get; set; } = new();
+    
+    /// <summary>
+    ///     Generate a formatted report of the FCX scan results
+    /// </summary>
+    public string GenerateReport()
+    {
+        var report = new System.Text.StringBuilder();
+        
+        report.AppendLine("FCX Scan Results");
+        report.AppendLine("================");
+        report.AppendLine($"Game Status: {GameStatus}");
+        report.AppendLine();
+        
+        if (FileChecks.Any())
+        {
+            report.AppendLine("File Integrity Checks:");
+            foreach (var check in FileChecks)
+            {
+                report.AppendLine($"  - {check.FilePath}: {(check.IsValid ? "OK" : "FAILED")}");
+                if (!check.IsValid && !string.IsNullOrEmpty(check.ErrorMessage))
+                {
+                    report.AppendLine($"    Error: {check.ErrorMessage}");
+                }
+            }
+            report.AppendLine();
+        }
+        
+        if (HashValidations.Any())
+        {
+            report.AppendLine("Hash Validations:");
+            foreach (var validation in HashValidations)
+            {
+                report.AppendLine($"  - {validation.FilePath}: {(validation.IsValid ? "OK" : "MISMATCH")}");
+            }
+            report.AppendLine();
+        }
+        
+        if (VersionWarnings.Any())
+        {
+            report.AppendLine("Version Warnings:");
+            foreach (var warning in VersionWarnings)
+            {
+                report.AppendLine($"  - {warning}");
+            }
+            report.AppendLine();
+        }
+        
+        if (RecommendedFixes.Any())
+        {
+            report.AppendLine("Recommended Fixes:");
+            foreach (var fix in RecommendedFixes)
+            {
+                report.AppendLine($"  - {fix}");
+            }
+            report.AppendLine();
+        }
+        
+        if (Messages.Any())
+        {
+            report.AppendLine("Analysis Messages:");
+            foreach (var message in Messages)
+            {
+                report.AppendLine($"  - {message}");
+            }
+        }
+        
+        return report.ToString();
+    }
+}
+
+/// <summary>
+///     Status of file integrity check
+/// </summary>
+public enum FileStatus
+{
+    /// <summary>
+    ///     File exists and is valid
+    /// </summary>
+    Valid,
+    
+    /// <summary>
+    ///     File is missing
+    /// </summary>
+    Missing,
+    
+    /// <summary>
+    ///     File exists but is invalid/corrupted
+    /// </summary>
+    Invalid,
+    
+    /// <summary>
+    ///     File exists but with wrong version
+    /// </summary>
+    WrongVersion,
+    
+    /// <summary>
+    ///     File has been modified
+    /// </summary>
+    Modified,
+    
+    /// <summary>
+    ///     Unknown status
+    /// </summary>
+    Unknown
 }
 
 /// <summary>
@@ -77,6 +186,16 @@ public class FileIntegrityCheck
     ///     File last modified date
     /// </summary>
     public DateTime? LastModified { get; set; }
+    
+    /// <summary>
+    ///     Status of the file check
+    /// </summary>
+    public FileStatus Status { get; set; }
+    
+    /// <summary>
+    ///     Detailed message about the check result
+    /// </summary>
+    public string Message { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -206,4 +325,9 @@ public class BackupProgress
     ///     Percentage complete
     /// </summary>
     public double PercentComplete => TotalFiles > 0 ? (double)ProcessedFiles / TotalFiles * 100 : 0;
+    
+    /// <summary>
+    ///     Progress as a value between 0 and 1
+    /// </summary>
+    public double Progress => TotalFiles > 0 ? (double)ProcessedFiles / TotalFiles : 0;
 }

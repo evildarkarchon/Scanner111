@@ -98,6 +98,12 @@ public class ScanCommand : ICommand<CliScanOptions>
             .WithMessageHandler(messageHandler)
             .WithCaching()
             .WithEnhancedErrorHandling();
+        
+        // Enable FCX mode if specified
+        if (options.FcxMode == true)
+        {
+            pipelineBuilder.WithFcxMode(true);
+        }
 
         if (options.Verbose)
             pipelineBuilder.WithLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Debug));
