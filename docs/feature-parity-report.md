@@ -56,11 +56,11 @@ Scanner111 currently implements the core crash log analysis functionality but la
 **Goal**: Establish the foundation for advanced features by implementing comprehensive YAML database support.
 
 #### Tasks:
-- [ ] Port CLASSIC Main.yaml and CLASSIC Fallout4.yaml databases
-- [ ] Implement comprehensive YamlSettingsCache with caching
-- [ ] Create FormID database with full mod lookup capabilities
-- [ ] Add hashed script verification system
-- [ ] Implement settings migration from CLASSIC Python
+- [x] Port CLASSIC Main.yaml and CLASSIC Fallout4.yaml databases
+- [x] Implement comprehensive YamlSettingsCache with caching
+- [x] Create FormID database with full mod lookup capabilities
+- [x] Add hashed script verification system
+- [x] Implement settings migration from CLASSIC Python
 
 #### Deliverables:
 - Complete YAML database infrastructure
@@ -72,11 +72,11 @@ Scanner111 currently implements the core crash log analysis functionality but la
 **Goal**: Achieve parity in crash log analysis capabilities.
 
 #### Tasks:
-- [ ] Implement FCX (File Check Xtended) mode
-  - [ ] Game file integrity checking
-  - [ ] Script verification against known hashes
-  - [ ] Missing file detection
-- [ ] Enhance FormIdAnalyzer with value lookups
+- [x] Implement FCX (File Check Xtended) mode
+  - [x] Game file integrity checking
+  - [x] Script verification against known hashes
+  - [x] Missing file detection
+- [x] Enhance FormIdAnalyzer with value lookups
 
 #### Deliverables:
 - FCX mode fully functional
@@ -86,9 +86,9 @@ Scanner111 currently implements the core crash log analysis functionality but la
 **Goal**: Implement file management features for better user workflow.
 
 #### Tasks:
-- [ ] Implement "Move Unsolved Logs" functionality
-- [ ] Add custom scan directory support
-- [ ] Implement batch processing with progress tracking
+- [x] Implement "Move Unsolved Logs" functionality
+- [x] Add custom scan directory support
+- [x] Implement batch processing with progress tracking
 
 #### Deliverables:
 - Complete file management system
