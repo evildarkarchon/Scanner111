@@ -107,7 +107,6 @@ Scanner111 currently implements the core crash log analysis functionality but la
 - [ ] Vortex integration
   - [ ] Detect Vortex installation
   - [ ] Read staging folder configuration
-- [ ] VR mode support (detect and analyze VR-specific crashes)
 
 #### Deliverables:
 - Seamless mod manager integration

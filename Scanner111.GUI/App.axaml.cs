@@ -85,6 +85,7 @@ public class App : Application
         services.AddSingleton<IYamlSettingsProvider, YamlSettingsService>();
         services.AddSingleton<ICacheManager, CacheManager>();
         services.AddSingleton<IHashValidationService, HashValidationService>();
+        services.AddSingleton<IUnsolvedLogsMover, UnsolvedLogsMover>();
 
         // Register Pipeline services
         services.AddTransient<IScanPipeline, ScanPipeline>();

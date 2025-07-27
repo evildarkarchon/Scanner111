@@ -43,4 +43,5 @@ public class ScanOptions
 
     [Option('o', "output-format", Default = "detailed", HelpText = "Output format: detailed or summary")]
     public string OutputFormat { get; set; } = "detailed";
+
 }

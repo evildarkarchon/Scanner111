@@ -79,6 +79,8 @@ public class UserSettings
 
     [JsonPropertyName("fcxMode")] public bool FcxMode { get; set; } = false;
 
+    [JsonPropertyName("moveUnsolvedLogs")] public bool MoveUnsolvedLogs { get; set; } = false;
+
     [JsonPropertyName("modsFolder")] public string ModsFolder { get; set; } = "";
 
     [JsonPropertyName("iniFolder")] public string IniFolder { get; set; } = "";

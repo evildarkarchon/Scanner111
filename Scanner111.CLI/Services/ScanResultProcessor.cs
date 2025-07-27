@@ -6,6 +6,12 @@ namespace Scanner111.CLI.Services;
 
 public class ScanResultProcessor : IScanResultProcessor
 {
+    private readonly IUnsolvedLogsMover _unsolvedLogsMover;
+
+    public ScanResultProcessor(IUnsolvedLogsMover unsolvedLogsMover)
+    {
+        _unsolvedLogsMover = unsolvedLogsMover;
+    }
     /// <summary>
     /// Processes the scan result and performs operations such as displaying findings,
     /// and auto-saving reports based on the provided options and application settings.
@@ -51,5 +57,11 @@ public class ScanResultProcessor : IScanResultProcessor
             {
                 MessageHandler.MsgError($"Error saving report: {ex.Message}");
             }
+
+        // Move unsolved logs if enabled and scan failed
+        if (settings.MoveUnsolvedLogs && (result.Failed || result.Status == ScanStatus.Failed || result.HasErrors))
+        {
+            await _unsolvedLogsMover.MoveUnsolvedLogAsync(result.LogPath, settings);
+        }
     }
 }

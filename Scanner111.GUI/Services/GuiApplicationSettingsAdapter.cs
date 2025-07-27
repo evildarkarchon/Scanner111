@@ -27,7 +27,7 @@ public class GuiApplicationSettingsAdapter : IApplicationSettingsService
             FcxMode = userSettings.FcxMode,
             ShowFormIdValues = false, // Not in UserSettings
             SimplifyLogs = false, // Not in UserSettings
-            MoveUnsolvedLogs = false, // Not in UserSettings
+            MoveUnsolvedLogs = userSettings.MoveUnsolvedLogs,
             VrMode = false, // Not in UserSettings
             
             // Path Settings
@@ -86,6 +86,7 @@ public class GuiApplicationSettingsAdapter : IApplicationSettingsService
         
         // Update UserSettings with values from ApplicationSettings
         userSettings.FcxMode = settings.FcxMode;
+        userSettings.MoveUnsolvedLogs = settings.MoveUnsolvedLogs;
         userSettings.DefaultLogPath = settings.DefaultLogPath;
         userSettings.DefaultGamePath = settings.DefaultGamePath;
         userSettings.DefaultScanDirectory = settings.DefaultScanDirectory;

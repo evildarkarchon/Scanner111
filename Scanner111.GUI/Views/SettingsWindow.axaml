@@ -74,6 +74,7 @@
                         <CheckBox Content="Enable progress notifications"
                                   IsChecked="{Binding EnableProgressNotifications}" />
                         <CheckBox Content="Auto-save scan results" IsChecked="{Binding AutoSaveResults}" />
+                        <CheckBox Content="Move unsolved logs to separate folder" IsChecked="{Binding MoveUnsolvedLogs}" />
                         <CheckBox Content="Enable debug logging" IsChecked="{Binding EnableDebugLogging}" />
                         <CheckBox Content="Remember window size and position" IsChecked="{Binding RememberWindowSize}" />
                     </StackPanel>

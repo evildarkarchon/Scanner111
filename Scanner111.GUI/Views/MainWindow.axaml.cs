@@ -34,8 +34,9 @@ public partial class MainWindow : Window
         var messageHandler = new GuiMessageHandlerService();
         var updateService = new DesignTimeUpdateService();
         var cacheManager = new Scanner111.Core.Infrastructure.NullCacheManager();
+        var unsolvedLogsMover = new Scanner111.Core.Infrastructure.NullUnsolvedLogsMover();
 
-        _viewModel = new MainWindowViewModel(settingsService, messageHandler, updateService, cacheManager);
+        _viewModel = new MainWindowViewModel(settingsService, messageHandler, updateService, cacheManager, unsolvedLogsMover);
         InitializeComponent();
 
         // Wire up file picker events

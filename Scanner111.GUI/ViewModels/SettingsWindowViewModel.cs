@@ -32,6 +32,7 @@ public class SettingsWindowViewModel : ViewModelBase
     private bool _enableUpdateCheck = true;
     private string _updateSource = "Both";
     private bool _fcxMode;
+    private bool _moveUnsolvedLogs = false;
     private string _modsFolder = "";
     private string _iniFolder = "";
 
@@ -232,6 +233,16 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Gets or sets a value indicating whether unsolved logs should be moved to a separate folder.
+    /// When enabled, crash logs that fail analysis are moved to a backup directory.
+    /// </summary>
+    public bool MoveUnsolvedLogs
+    {
+        get => _moveUnsolvedLogs;
+        set => this.RaiseAndSetIfChanged(ref _moveUnsolvedLogs, value);
+    }
+
+    /// <summary>
     /// Gets or sets the path to the mods folder for FCX integrity checking.
     /// </summary>
     public string ModsFolder
@@ -305,6 +316,7 @@ public class SettingsWindowViewModel : ViewModelBase
             EnableUpdateCheck = source.EnableUpdateCheck,
             UpdateSource = source.UpdateSource,
             FcxMode = source.FcxMode,
+            MoveUnsolvedLogs = source.MoveUnsolvedLogs,
             ModsFolder = source.ModsFolder,
             IniFolder = source.IniFolder
         };
@@ -366,6 +378,7 @@ public class SettingsWindowViewModel : ViewModelBase
                 EnableUpdateCheck = defaultSettings.EnableUpdateCheck,
                 UpdateSource = defaultSettings.UpdateSource,
                 FcxMode = false,
+                MoveUnsolvedLogs = false,
                 ModsFolder = "",
                 IniFolder = ""
             };
@@ -401,6 +414,7 @@ public class SettingsWindowViewModel : ViewModelBase
         EnableUpdateCheck = settings.EnableUpdateCheck;
         UpdateSource = settings.UpdateSource;
         FcxMode = settings.FcxMode;
+        MoveUnsolvedLogs = settings.MoveUnsolvedLogs;
         ModsFolder = settings.ModsFolder;
         IniFolder = settings.IniFolder;
 
@@ -450,6 +464,7 @@ public class SettingsWindowViewModel : ViewModelBase
             EnableUpdateCheck = EnableUpdateCheck,
             UpdateSource = UpdateSource,
             FcxMode = FcxMode,
+            MoveUnsolvedLogs = MoveUnsolvedLogs,
             ModsFolder = ModsFolder,
             IniFolder = IniFolder
         };
@@ -594,6 +609,7 @@ public class SettingsWindowViewModel : ViewModelBase
             EnableUpdateCheck = appSettings.EnableUpdateCheck,
             UpdateSource = appSettings.UpdateSource,
             FcxMode = false,
+            MoveUnsolvedLogs = false,
             ModsFolder = "",
             IniFolder = ""
         };

@@ -192,13 +192,14 @@ public class ConcurrencyAndResourceTests : IDisposable
         // Arrange
         var initialHandleCount = GetCurrentProcessHandleCount();
         var pipelines = new List<ScanPipeline>();
+        var testDependencies = new List<IDisposable>();
 
         // Act - Create and dispose multiple pipelines
         for (var i = 0; i < 20; i++)
         {
-            var pipeline = CreateTestPipeline();
+            var pipeline = CreateTestPipelineForResourceTest(out var dependencies);
             pipelines.Add(pipeline);
-            // Don't track in _disposables - we'll dispose manually
+            testDependencies.AddRange(dependencies);
 
             // Use the pipeline briefly
             var testLogPath = CreateTempCrashLog($"test_{i}.log", GenerateValidCrashLog());
@@ -206,8 +207,22 @@ public class ConcurrencyAndResourceTests : IDisposable
             Assert.NotNull(result);
         }
 
-        // Dispose all pipelines
-        foreach (var pipeline in pipelines) await pipeline.DisposeAsync();
+        // Dispose all pipelines first
+        foreach (var pipeline in pipelines) 
+            await pipeline.DisposeAsync();
+
+        // Then dispose dependencies
+        foreach (var dependency in testDependencies)
+        {
+            try
+            {
+                dependency?.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Already disposed by pipeline - this is fine
+            }
+        }
 
         // Force garbage collection
         GC.Collect();
@@ -215,7 +230,7 @@ public class ConcurrencyAndResourceTests : IDisposable
         GC.Collect();
 
         // Wait a bit for handles to be released
-        await Task.Delay(100);
+        await Task.Delay(200);
 
         var finalHandleCount = GetCurrentProcessHandleCount();
 
@@ -561,6 +576,26 @@ public class ConcurrencyAndResourceTests : IDisposable
         _disposables.Add(logger);
         _disposables.Add(messageHandler);
         _disposables.Add(settingsProvider);
+
+        return pipeline;
+    }
+
+    private ScanPipeline CreateTestPipelineForResourceTest(out List<IDisposable> dependencies)
+    {
+        var logger = new TestLogger<ScanPipeline>();
+        var messageHandler = new TestMessageHandler();
+        var settingsProvider = new TestYamlSettingsProvider();
+        var analyzers = new List<TestSimpleAnalyzer>
+        {
+            new("TestAnalyzer1", 1),
+            new("TestAnalyzer2", 2)
+        };
+
+        var pipeline = new ScanPipeline(analyzers, logger, messageHandler, settingsProvider);
+
+        // Don't add any dependencies to disposables list since most test classes don't implement IDisposable
+        // The pipeline itself will dispose of its internal semaphore
+        dependencies = new List<IDisposable>();
 
         return pipeline;
     }

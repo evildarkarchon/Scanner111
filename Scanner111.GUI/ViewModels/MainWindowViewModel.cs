@@ -47,6 +47,7 @@ public class MainWindowViewModel : ViewModelBase
     private IReportWriter? _reportWriter;
     private CancellationTokenSource? _scanCancellationTokenSource;
     private FcxResultViewModel? _fcxResult;
+    private IUnsolvedLogsMover? _unsolvedLogsMover;
 
     private IScanPipeline? _scanPipeline;
     private string _selectedGamePath = "";
@@ -55,12 +56,13 @@ public class MainWindowViewModel : ViewModelBase
     private string _selectedScanDirectory = "";
     private string _statusText = "Ready";
 
-    public MainWindowViewModel(ISettingsService settingsService, GuiMessageHandlerService messageHandlerService, IUpdateService updateService, ICacheManager cacheManager)
+    public MainWindowViewModel(ISettingsService settingsService, GuiMessageHandlerService messageHandlerService, IUpdateService updateService, ICacheManager cacheManager, IUnsolvedLogsMover unsolvedLogsMover)
     {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _messageHandlerService = messageHandlerService ?? throw new ArgumentNullException(nameof(messageHandlerService));
         _updateService = updateService ?? throw new ArgumentNullException(nameof(updateService));
         _cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
+        _unsolvedLogsMover = unsolvedLogsMover ?? throw new ArgumentNullException(nameof(unsolvedLogsMover));
         _currentSettings = new UserSettings();
 
         // Set this view model in the message handler service
@@ -953,6 +955,23 @@ public class MainWindowViewModel : ViewModelBase
         catch (Exception ex)
         {
             AddLogMessage($"Auto-save failed for {Path.GetFileName(result.LogPath)}: {ex.Message}");
+        }
+
+        // Move unsolved logs if enabled and scan failed
+        if (_currentSettings.MoveUnsolvedLogs && (result.Failed || result.Status == ScanStatus.Failed || result.HasErrors))
+        {
+            try
+            {
+                if (_unsolvedLogsMover != null)
+                {
+                    var moved = await _unsolvedLogsMover.MoveUnsolvedLogAsync(result.LogPath);
+                    if (moved) AddLogMessage($"Moved unsolved log: {Path.GetFileName(result.LogPath)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                AddLogMessage($"Failed to move unsolved log: {ex.Message}");
+            }
         }
     }
 

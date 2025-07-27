@@ -51,6 +51,7 @@ static void ConfigureServices(IServiceCollection services)
     services.AddSingleton<IApplicationSettingsService, ApplicationSettingsService>();
     services.AddSingleton<IUpdateService, UpdateService>();
     services.AddSingleton<ICacheManager, CacheManager>();
+    services.AddSingleton<IUnsolvedLogsMover, UnsolvedLogsMover>();
 
     // Register CLI services
     services.AddSingleton<ICliSettingsService, CliSettingsService>();

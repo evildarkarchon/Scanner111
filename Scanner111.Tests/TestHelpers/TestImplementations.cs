@@ -4,6 +4,7 @@ using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Models.Yaml;
 using Scanner111.Core.Pipeline;
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 
 namespace Scanner111.Tests.TestHelpers;
@@ -25,6 +26,7 @@ public class TestYamlSettingsProvider : IYamlSettingsProvider
         {
             "CLASSIC Main" when typeof(T) == typeof(ClassicMainYaml) => CreateTestMainYaml() as T,
             "CLASSIC Fallout4" when typeof(T) == typeof(ClassicFallout4Yaml) => CreateTestFallout4Yaml() as T,
+            "CLASSIC Fallout4" when typeof(T) == typeof(ClassicFallout4YamlV2) => CreateTestFallout4YamlV2() as T,
             "CLASSIC Fallout4" when typeof(T) == typeof(Dictionary<string, object>) => CreateTestFallout4Dictionary() as T,
             _ => null
         };
@@ -56,6 +58,36 @@ public class TestYamlSettingsProvider : IYamlSettingsProvider
         return new ClassicFallout4Yaml
         {
             GameInfo = new GameInfo
+            {
+                MainRootName = "Fallout 4",
+                MainDocsName = "Fallout4",
+                MainSteamId = 377160,
+                CrashgenLogName = "Buffout 4",
+                CrashgenIgnore = new List<string> { "F4EE", "WaitForDebugger", "Achievements" }
+            },
+            CrashlogRecordsExclude = new List<string> { "\"\"", "...", "FE:" },
+            CrashlogPluginsExclude = new List<string> { "Buffout4.dll", "Fallout4.esm", "DLCCoast.esm", "ignored.esp" },
+            CrashlogErrorCheck = new Dictionary<string, string>
+            {
+                { "5 | Access Violation", "access violation" },
+                { "4 | Null Pointer", "null pointer" },
+                { "3 | Memory Error", "memory error" },
+                { "6 | Stack Overflow Crash", "EXCEPTION_STACK_OVERFLOW" }
+            },
+            CrashlogStackCheck = new Dictionary<string, List<string>>
+            {
+                { "5 | Stack Overflow", new List<string> { "stack overflow", "ME-REQ|overflow" } },
+                { "4 | Invalid Handle", new List<string> { "invalid handle", "2|bad handle" } },
+                { "3 | Debug Assert", new List<string> { "debug assert", "NOT|release mode" } }
+            }
+        };
+    }
+
+    private ClassicFallout4YamlV2 CreateTestFallout4YamlV2()
+    {
+        return new ClassicFallout4YamlV2
+        {
+            GameInfo = new GameInfoV2
             {
                 MainRootName = "Fallout 4",
                 MainDocsName = "Fallout4",
@@ -258,7 +290,8 @@ public class TestMessageHandler : IMessageHandler
 /// </summary>
 public class TestCacheManager : ICacheManager
 {
-    private readonly Dictionary<string, AnalysisResult> _cache = new();
+    private readonly ConcurrentDictionary<string, AnalysisResult> _cache = new();
+    private readonly ConcurrentDictionary<string, object> _yamlCache = new();
 
     /// Retrieves a cached analysis result based on the specified file path and analyzer name.
     /// <param name="filePath">The path of the file for which the analysis result was cached.</param>
@@ -306,6 +339,7 @@ public class TestCacheManager : ICacheManager
     public void ClearCache()
     {
         _cache.Clear();
+        _yamlCache.Clear();
     }
 
     /// Retrieves or sets a YAML setting value based on the provided key path, using a factory function for initialization if the value does not exist.
@@ -317,8 +351,20 @@ public class TestCacheManager : ICacheManager
     /// <returns>The value of the setting of the specified type if found or generated; otherwise, returns null if the factory does not produce a value.</returns>
     public T? GetOrSetYamlSetting<T>(string yamlFile, string keyPath, Func<T?> factory, TimeSpan? expiry = null)
     {
-        // For testing, just call the factory
-        return factory();
+        var cacheKey = $"{yamlFile}:{keyPath}";
+        
+        if (_yamlCache.TryGetValue(cacheKey, out var cached))
+        {
+            return (T?)cached;
+        }
+        
+        var result = factory();
+        if (result != null)
+        {
+            _yamlCache[cacheKey] = result;
+        }
+        
+        return result;
     }
 }
 

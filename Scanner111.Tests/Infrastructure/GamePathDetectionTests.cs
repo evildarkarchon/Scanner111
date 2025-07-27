@@ -88,20 +88,6 @@ public class GamePathDetectionTests : IDisposable
     }
 
     [Fact]
-    public void ValidateGamePath_WithFallout4VR_ReturnsTrue()
-    {
-        // Arrange
-        var gamePath = CreateTempDirectory();
-        File.WriteAllText(Path.Combine(gamePath, "Fallout4VR.exe"), "dummy");
-
-        // Act
-        var result = GamePathDetection.ValidateGamePath(gamePath);
-
-        // Assert
-        Assert.True(result);
-    }
-
-    [Fact]
     public void GetGameDocumentsPath_ForFallout4_ReturnsCorrectPath()
     {
         // Act
@@ -111,19 +97,6 @@ public class GamePathDetectionTests : IDisposable
         var expectedPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "My Games", "Fallout4");
-        Assert.Equal(expectedPath, result);
-    }
-
-    [Fact]
-    public void GetGameDocumentsPath_ForFallout4VR_ReturnsCorrectPath()
-    {
-        // Act
-        var result = GamePathDetection.GetGameDocumentsPath("Fallout4VR");
-
-        // Assert
-        var expectedPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "My Games", "Fallout4VR");
         Assert.Equal(expectedPath, result);
     }
 

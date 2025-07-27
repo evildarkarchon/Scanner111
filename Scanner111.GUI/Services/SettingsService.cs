@@ -146,7 +146,11 @@ public class SettingsService : ISettingsService
             CrashLogsDirectory = appSettings.CrashLogsDirectory,
             SkipXseCopy = appSettings.SkipXseCopy,
             EnableUpdateCheck = appSettings.EnableUpdateCheck,
-            UpdateSource = appSettings.UpdateSource
+            UpdateSource = appSettings.UpdateSource,
+            FcxMode = appSettings.FcxMode,
+            MoveUnsolvedLogs = appSettings.MoveUnsolvedLogs,
+            ModsFolder = appSettings.ModsFolder,
+            IniFolder = appSettings.IniFolder
         };
     }
 
@@ -185,5 +189,9 @@ public class SettingsService : ISettingsService
         appSettings.SkipXseCopy = userSettings.SkipXseCopy;
         appSettings.EnableUpdateCheck = userSettings.EnableUpdateCheck;
         appSettings.UpdateSource = userSettings.UpdateSource;
+        appSettings.FcxMode = userSettings.FcxMode;
+        appSettings.MoveUnsolvedLogs = userSettings.MoveUnsolvedLogs;
+        appSettings.ModsFolder = userSettings.ModsFolder;
+        appSettings.IniFolder = userSettings.IniFolder;
     }
 }
