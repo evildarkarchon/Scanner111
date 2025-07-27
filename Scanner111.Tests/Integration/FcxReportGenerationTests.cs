@@ -333,7 +333,7 @@ public class FcxReportGenerationTests : IDisposable
 
         // Act
         var result = await fcxPipeline.ProcessSingleAsync(crashLogPath);
-        var fullReport = result.GenerateReport();
+        var fullReport = string.Join(Environment.NewLine, result.Report);
 
         // Assert
         Assert.NotNull(fullReport);
@@ -553,9 +553,7 @@ internal class TestHashValidationService : IHashValidationService
         {
             FilePath = filePath,
             ExpectedHash = expected,
-            ActualHash = actualHash,
-            HashType = "SHA256",
-            IsValid = actualHash == expected
+            ActualHash = actualHash
         };
     }
     

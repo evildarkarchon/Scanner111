@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
@@ -20,7 +22,8 @@ public class SettingsScannerTests
     public SettingsScannerTests()
     {
         var yamlSettings = new TestYamlSettingsProvider();
-        _analyzer = new SettingsScanner(yamlSettings);
+        var logger = NullLogger<SettingsScanner>.Instance;
+        _analyzer = new SettingsScanner(yamlSettings, logger);
     }
 
     /// Tests the `AnalyzeAsync` method of the `SettingsScanner` class with a valid `CrashLog`.
@@ -321,7 +324,8 @@ public class SettingsScannerTests
     {
         // Arrange
         var customYamlSettings = new TestYamlSettingsProvider();
-        var customAnalyzer = new SettingsScanner(customYamlSettings);
+        var logger = NullLogger<SettingsScanner>.Instance;
+        var customAnalyzer = new SettingsScanner(customYamlSettings, logger);
 
         var crashLog = new CrashLog
         {

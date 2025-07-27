@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -611,7 +612,7 @@ namespace Scanner111.Core.FCX
             }
         }
 
-        private async IAsyncEnumerable<DirectoryInfo> EnumerateDirectoriesAsync(string path, CancellationToken ct)
+        private async IAsyncEnumerable<DirectoryInfo> EnumerateDirectoriesAsync(string path, [EnumeratorCancellation] CancellationToken ct)
         {
             await Task.Yield();
             
@@ -623,7 +624,7 @@ namespace Scanner111.Core.FCX
             }
         }
 
-        private async IAsyncEnumerable<FileInfo> EnumerateFilesAsync(string path, string pattern, CancellationToken ct)
+        private async IAsyncEnumerable<FileInfo> EnumerateFilesAsync(string path, string pattern, [EnumeratorCancellation] CancellationToken ct)
         {
             await Task.Yield();
             

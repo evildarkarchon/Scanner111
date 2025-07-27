@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
@@ -15,7 +17,8 @@ public class PluginAnalyzerTests
     public PluginAnalyzerTests()
     {
         var yamlSettings = new TestYamlSettingsProvider();
-        _analyzer = new PluginAnalyzer(yamlSettings);
+        var logger = NullLogger<PluginAnalyzer>.Instance;
+        _analyzer = new PluginAnalyzer(yamlSettings, logger);
     }
 
     /// <summary>

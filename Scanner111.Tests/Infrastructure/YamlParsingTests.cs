@@ -1,5 +1,8 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models.Yaml;
+using Scanner111.Tests.TestHelpers;
 using System.Text;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -11,16 +14,19 @@ namespace Scanner111.Tests.Infrastructure;
 /// </summary>
 public class YamlParsingTests : IDisposable
 {
-    private readonly YamlSettingsProvider _yamlProvider;
+    private readonly YamlSettingsService _yamlProvider;
     private readonly List<string> _tempFiles;
     private readonly string _testDataPath;
+    private readonly ICacheManager _cacheManager;
     
     public YamlParsingTests()
     {
         _testDataPath = Path.Combine(Path.GetTempPath(), "YamlParsingTests", Guid.NewGuid().ToString());
         Directory.CreateDirectory(_testDataPath);
         
-        _yamlProvider = new YamlSettingsProvider(_testDataPath);
+        _cacheManager = new TestCacheManager();
+        var logger = NullLogger<YamlSettingsService>.Instance;
+        _yamlProvider = new YamlSettingsService(_cacheManager, logger);
         _tempFiles = new List<string>();
     }
     
@@ -41,8 +47,8 @@ public class YamlParsingTests : IDisposable
         var yamlContent = @"
 ClassicInfo:
   Version: 1.0.0
-  Author: Test Author
-  Description: Test Description
+  VersionDate: 2024-01-01
+  IsPrerelease: false
 
 ClassicAutoBackup:
   - backup1.dll
@@ -98,7 +104,8 @@ ExcludeLogFiles:
         Assert.NotNull(result);
         Assert.NotNull(result.ClassicInfo);
         Assert.Equal("1.0.0", result.ClassicInfo.Version);
-        Assert.Equal("Test Author", result.ClassicInfo.Author);
+        // Author property removed from model, checking Version instead
+        Assert.Equal("1.0.0", result.ClassicInfo.Version);
         
         Assert.NotNull(result.ClassicAutoBackup);
         Assert.Equal(2, result.ClassicAutoBackup.Count);
@@ -122,14 +129,14 @@ ExcludeLogFiles:
         // Arrange
         var yamlContent = @"
 GameInfo:
-  Name: Fallout 4
-  Version: 1.10.163.0
-  ExecutableName: Fallout4.exe
+  MainRootName: Fallout 4
+  GameVersion: 1.10.163.0
+  MainDocsName: Fallout4
 
 GameVrInfo:
-  Name: Fallout 4 VR
-  Version: 1.2.72.0
-  ExecutableName: Fallout4VR.exe
+  MainRootName: Fallout 4 VR
+  GameVersion: 1.2.72.0
+  MainDocsName: Fallout4VR
 
 XseHashedScripts:
   'f4se_1_10_163.dll': 'ABC123DEF456'
@@ -232,14 +239,14 @@ ModsOpc2:
         
         // Game Info
         Assert.NotNull(result.GameInfo);
-        Assert.Equal("Fallout 4", result.GameInfo.Name);
-        Assert.Equal("1.10.163.0", result.GameInfo.Version);
-        Assert.Equal("Fallout4.exe", result.GameInfo.ExecutableName);
+        Assert.Equal("Fallout 4", result.GameInfo.MainRootName);
+        Assert.Equal("1.10.163.0", result.GameInfo.GameVersion);
+        Assert.Equal("Fallout4", result.GameInfo.MainDocsName);
         
         // Game VR Info
         Assert.NotNull(result.GameVrInfo);
-        Assert.Equal("Fallout 4 VR", result.GameVrInfo.Name);
-        Assert.Equal("Fallout4VR.exe", result.GameVrInfo.ExecutableName);
+        Assert.Equal("Fallout 4 VR", result.GameVrInfo.MainRootName);
+        Assert.Equal("Fallout4VR", result.GameVrInfo.MainDocsName);
         
         // XSE Hashes
         Assert.NotNull(result.XseHashedScripts);
@@ -262,7 +269,7 @@ ModsOpc2:
         // Mod configurations
         Assert.NotNull(result.ModsCore);
         Assert.Equal(2, result.ModsCore.Count);
-        Assert.ContainsKey("Buffout4.dll", result.ModsCore);
+        Assert.True(result.ModsCore.ContainsKey("Buffout4.dll"));
         
         // Crash log configurations
         Assert.NotNull(result.CrashlogErrorCheck);
@@ -271,7 +278,7 @@ ModsOpc2:
         
         Assert.NotNull(result.CrashlogStackCheck);
         Assert.Equal(2, result.CrashlogStackCheck.Count);
-        Assert.ContainsKey("Buffout4.dll", result.CrashlogStackCheck);
+        Assert.True(result.CrashlogStackCheck.ContainsKey("Buffout4.dll"));
         Assert.Equal(2, result.CrashlogStackCheck["Buffout4.dll"].Count);
     }
     
@@ -352,8 +359,8 @@ CatchLogErrors:
         // Arrange
         var complexYaml = @"
 GameInfo:
-  Name: Fallout 4
-  Version: 1.10.163.0
+  MainRootName: Fallout 4
+  GameVersion: 1.10.163.0
 
 CrashlogStackCheck:
   'Module1.dll':
@@ -466,9 +473,9 @@ ClassicInfo:
         // Arrange
         var fallout4Yaml = @"
 GameInfo:
-  Name: Fallout 4
-  Version: 1.10.163.0
-  ExecutableName: Fallout4.exe
+  MainRootName: Fallout 4
+  GameVersion: 1.10.163.0
+  MainDocsName: Fallout4
 ";
         
         var skyrimYaml = @"
@@ -487,8 +494,8 @@ GameInfo:
         
         // Assert
         Assert.NotNull(fallout4Result);
-        Assert.Equal("Fallout 4", fallout4Result.GameInfo.Name);
-        Assert.Equal("Fallout4.exe", fallout4Result.GameInfo.ExecutableName);
+        Assert.Equal("Fallout 4", fallout4Result.GameInfo.MainRootName);
+        Assert.Equal("Fallout4", fallout4Result.GameInfo.MainDocsName);
     }
     
     [Theory]
@@ -514,7 +521,7 @@ GameInfo:
         var dict = serializer.Deserialize<Dictionary<string, string>>(yamlContent);
         
         // Assert
-        Assert.ContainsKey(yamlKey, dict);
+        Assert.True(dict.ContainsKey(yamlKey));
         Assert.Equal("Test Value", dict[yamlKey]);
     }
     

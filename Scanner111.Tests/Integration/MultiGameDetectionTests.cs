@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;

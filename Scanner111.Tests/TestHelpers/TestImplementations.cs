@@ -3,6 +3,8 @@ using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Models.Yaml;
+using Scanner111.Core.Pipeline;
+using System.Runtime.CompilerServices;
 
 namespace Scanner111.Tests.TestHelpers;
 
@@ -401,6 +403,8 @@ public class TestApplicationSettingsService : IApplicationSettingsService
         VrMode = false
     };
 
+    public ApplicationSettings Settings => _settings;
+
     public Task<ApplicationSettings> LoadSettingsAsync()
     {
         return Task.FromResult(_settings);
@@ -419,5 +423,71 @@ public class TestApplicationSettingsService : IApplicationSettingsService
     public ApplicationSettings GetDefaultSettings()
     {
         return new ApplicationSettings();
+    }
+}
+
+/// <summary>
+/// Test implementation of IScanPipeline for testing purposes
+/// </summary>
+public class TestScanPipeline : IScanPipeline
+{
+    private readonly List<ScanResult> _results = new();
+    
+    public List<string> ProcessedPaths { get; } = new();
+    public bool IsDisposed { get; private set; }
+
+    public void SetResult(ScanResult result)
+    {
+        _results.Clear();
+        _results.Add(result);
+    }
+
+    public void SetBatchResults(IEnumerable<ScanResult> results)
+    {
+        _results.Clear();
+        _results.AddRange(results);
+    }
+
+    public Task<ScanResult> ProcessSingleAsync(string logPath, CancellationToken cancellationToken = default)
+    {
+        ProcessedPaths.Add(logPath);
+        return Task.FromResult(_results.FirstOrDefault() ?? new ScanResult
+        {
+            LogPath = logPath,
+            AnalysisResults = new List<AnalysisResult>()
+        });
+    }
+
+    public async IAsyncEnumerable<ScanResult> ProcessBatchAsync(
+        IEnumerable<string> logPaths, 
+        ScanOptions? options = null,
+        IProgress<BatchProgress>? progress = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        foreach (var path in logPaths)
+        {
+            ProcessedPaths.Add(path);
+            cancellationToken.ThrowIfCancellationRequested();
+            
+            var result = _results.FirstOrDefault() ?? new ScanResult
+            {
+                LogPath = path,
+                AnalysisResults = new List<AnalysisResult>()
+            };
+            
+            yield return result;
+            await Task.Yield();
+        }
+    }
+
+    public void Dispose()
+    {
+        IsDisposed = true;
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        IsDisposed = true;
+        return ValueTask.CompletedTask;
     }
 }
