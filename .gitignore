@@ -462,3 +462,4 @@ docs/game-configuration-models.cs
 docs/multi-game-path-detection.cs
 docs/analyzer-implementation-example.cstest_results/
 test_results/
+*.bak
