@@ -102,7 +102,7 @@ public class CliSettingsService : ICliSettingsService
         appSettings.MaxConcurrentScans = cliSettings.MaxConcurrentScans;
         appSettings.CacheEnabled = cliSettings.CacheEnabled;
         appSettings.CrashLogsDirectory = cliSettings.CrashLogsDirectory;
-        appSettings.RecentScanDirectories = cliSettings.RecentScanPaths;
+        appSettings.RecentScanDirectories = cliSettings.RecentScanPaths ?? new List<string>();
         appSettings.MaxRecentItems = cliSettings.MaxRecentPaths;
     }
 }

@@ -93,11 +93,19 @@ public class GameVersionDetection
     /// </summary>
     public static async Task<string> CalculateFileHashAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        using var sha256 = SHA256.Create();
-        using var stream = File.OpenRead(filePath);
-        
-        var hashBytes = await sha256.ComputeHashAsync(stream, cancellationToken);
-        return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+        try
+        {
+            using var sha256 = SHA256.Create();
+            using var stream = File.OpenRead(filePath);
+            
+            var hashBytes = await sha256.ComputeHashAsync(stream, cancellationToken);
+            return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+        }
+        catch (OperationCanceledException)
+        {
+            // Re-throw as TaskCanceledException for consistency
+            throw new TaskCanceledException();
+        }
     }
     
     /// <summary>

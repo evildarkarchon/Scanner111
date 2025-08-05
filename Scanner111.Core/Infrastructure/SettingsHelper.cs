@@ -88,7 +88,12 @@ public static class SettingsHelper
     {
         try
         {
-            EnsureSettingsDirectoryExists();
+            // Ensure the directory exists for the specific file path
+            var directory = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
 
             var json = JsonSerializer.Serialize(settings, JsonOptions);
             await File.WriteAllTextAsync(filePath, json);

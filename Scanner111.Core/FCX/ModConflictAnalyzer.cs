@@ -100,7 +100,7 @@ namespace Scanner111.Core.FCX
                         "",
                         "Affected mods:"
                     }.Concat(issues.Select(i => $"  - {i.FilePath}")).ToList();
-                    return ("⚠️ MODS CONTAIN LOOSE PRECOMBINE / PREVIS FILES ⚠️", details);
+                    return ("🔧 PREVIS FILES DETECTED 🔧", details);
                     
                 case ModIssueType.AnimationData:
                     details = new List<string>
@@ -111,7 +111,7 @@ namespace Scanner111.Core.FCX
                         "",
                         "Affected mods:"
                     }.Concat(issues.Select(i => $"  - {i.FilePath}")).ToList();
-                    return ("❓ MODS CONTAIN CUSTOM ANIMATION FILE DATA ❓", details);
+                    return ("💀 BROKEN ANIMATION DATA FILES 💀", details);
                     
                 case ModIssueType.ArchiveFormatIncorrect:
                     details = new List<string>
@@ -125,8 +125,13 @@ namespace Scanner111.Core.FCX
                     return ("❓ BA2 ARCHIVES HAVE INCORRECT FORMAT ❓", details);
                     
                 case ModIssueType.CleanupFile:
-                    // Don't create a result for cleanup files, they're just informational
-                    return (string.Empty, new List<string>());
+                    details = new List<string>
+                    {
+                        "▶️ These files are unintended and can be safely deleted.",
+                        "",
+                        "Affected files:"
+                    }.Concat(issues.Select(i => $"  - {i.FilePath}")).ToList();
+                    return ("🗑️ DETECTED UNINTENDED FILES 🗑️", details);
                     
                 default:
                     return (string.Empty, new List<string>());
@@ -195,10 +200,7 @@ namespace Scanner111.Core.FCX
                     {
                         reportLines.Add(summary + "\n");
                         reportLines.AddRange(details.Select(d => d + "\n"));
-                        if (group.Key != ModIssueType.CleanupFile)
-                        {
-                            reportLines.Add("\n");
-                        }
+                        reportLines.Add("\n");
                     }
                 }
                 

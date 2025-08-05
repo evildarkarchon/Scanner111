@@ -127,7 +127,7 @@ public class ApplicationSettings
 
     public void AddRecentLogFile(string path)
     {
-        if (string.IsNullOrEmpty(path)) return;
+        if (string.IsNullOrWhiteSpace(path)) return;
 
         lock (_recentItemsLock)
         {
@@ -140,7 +140,7 @@ public class ApplicationSettings
 
     public void AddRecentGamePath(string path)
     {
-        if (string.IsNullOrEmpty(path)) return;
+        if (string.IsNullOrWhiteSpace(path)) return;
 
         lock (_recentItemsLock)
         {
@@ -153,7 +153,7 @@ public class ApplicationSettings
 
     public void AddRecentScanDirectory(string path)
     {
-        if (string.IsNullOrEmpty(path)) return;
+        if (string.IsNullOrWhiteSpace(path)) return;
 
         lock (_recentItemsLock)
         {

@@ -1,13 +1,21 @@
 using Scanner111.Core.Models;
+using System.Linq;
 
 namespace Scanner111.Core.Infrastructure;
 
 public class ApplicationSettingsService : IApplicationSettingsService
 {
-    private static readonly string SettingsFilePath =
-        Path.Combine(SettingsHelper.GetSettingsDirectory(), "settings.json");
-
     private ApplicationSettings? _cachedSettings;
+    
+    private string GetSettingsFilePath()
+    {
+        var settingsPath = Environment.GetEnvironmentVariable("SCANNER111_SETTINGS_PATH");
+        if (!string.IsNullOrEmpty(settingsPath))
+        {
+            return Path.Combine(settingsPath, "settings.json");
+        }
+        return Path.Combine(SettingsHelper.GetSettingsDirectory(), "settings.json");
+    }
 
     /// Asynchronously loads application settings from a predefined file path.
     /// If the settings file does not exist or is invalid, default settings are loaded and returned.
@@ -15,7 +23,7 @@ public class ApplicationSettingsService : IApplicationSettingsService
     /// <returns>An instance of ApplicationSettings containing the current configuration.</returns>
     public async Task<ApplicationSettings> LoadSettingsAsync()
     {
-        var settings = await SettingsHelper.LoadSettingsAsync(SettingsFilePath, GetDefaultSettings);
+        var settings = await SettingsHelper.LoadSettingsAsync(GetSettingsFilePath(), GetDefaultSettings);
         _cachedSettings = settings;
         return settings;
     }
@@ -26,7 +34,7 @@ public class ApplicationSettingsService : IApplicationSettingsService
     /// <returns>A Task representing the asynchronous save operation.</returns>
     public async Task SaveSettingsAsync(ApplicationSettings settings)
     {
-        await SettingsHelper.SaveSettingsAsync(SettingsFilePath, settings);
+        await SettingsHelper.SaveSettingsAsync(GetSettingsFilePath(), settings);
         _cachedSettings = settings;
     }
 
@@ -45,7 +53,12 @@ public class ApplicationSettingsService : IApplicationSettingsService
         var settings = _cachedSettings ?? await LoadSettingsAsync();
 
         // Update the specific setting using reflection
-        var property = typeof(ApplicationSettings).GetProperty(key) ?? typeof(ApplicationSettings).GetProperty(SettingsHelper.ToPascalCase(key));
+        // First try exact match, then case-insensitive match, then PascalCase conversion
+        var property = typeof(ApplicationSettings).GetProperty(key) 
+            ?? typeof(ApplicationSettings).GetProperties()
+                .FirstOrDefault(p => string.Equals(p.Name, key, StringComparison.OrdinalIgnoreCase))
+            ?? typeof(ApplicationSettings).GetProperty(SettingsHelper.ToPascalCase(key));
+            
         if (property != null && property.CanWrite)
             try
             {

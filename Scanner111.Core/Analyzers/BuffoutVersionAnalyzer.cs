@@ -132,6 +132,12 @@ public class BuffoutVersionAnalyzer : IAnalyzer
                 if (part.StartsWith("v", StringComparison.OrdinalIgnoreCase) && part.Length > 1)
                 {
                     versionPart = part.Substring(1); // Remove the 'v'
+                    // Remove any suffix like -NG
+                    var dashIndex = versionPart.IndexOf('-');
+                    if (dashIndex > 0)
+                    {
+                        versionPart = versionPart.Substring(0, dashIndex);
+                    }
                     break;
                 }
             }

@@ -6,10 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Scanner111 is a C# port of a Python crash log analyzer for Bethesda games (Fallout 4, Skyrim, etc.). The application analyzes crash logs to identify problematic game modifications. It provides both GUI (Avalonia) and CLI interfaces.
 
-## Memories
-
-- The files in `Code to Port` should be considered read only as they are just reference.
-
 ## Key Commands
 
 ### Build & Run
@@ -38,6 +34,9 @@ dotnet run --project Scanner111.CLI -- config
 # Run CLI about command  
 dotnet run --project Scanner111.CLI -- about
 
+# Run CLI FCX command (enhanced file checks)
+dotnet run --project Scanner111.CLI -- fcx
+
 # Run all tests
 dotnet test
 
@@ -54,118 +53,97 @@ dotnet test --filter "ClassName=FormIdAnalyzerTests"
 dotnet test --collect:"XPlat Code Coverage"
 ```
 
-## Architecture Overview
+## High-Level Architecture
 
-### Solution Structure
-- **Scanner111.Core**: Business logic library with analyzers and pipeline
-- **Scanner111.GUI**: Avalonia MVVM desktop application  
-- **Scanner111.CLI**: Console application using CommandLineParser
-- **Scanner111.Tests**: xUnit test project
+### Async Streaming Pipeline Pattern
+The core of the application uses `IAsyncEnumerable<T>` for streaming results without memory accumulation:
+- **IScanPipeline**: Orchestrates analysis with batch processing capabilities
+- **Producer/Consumer**: Uses `System.Threading.Channels` for decoupled async processing
+- **Decorator Pattern**: `PerformanceMonitoringPipeline` wraps base pipeline for metrics
+- All I/O operations use async patterns with `ConfigureAwait(false)`
+- SemaphoreSlim guards concurrent file access
 
-### Core Design Patterns
+### Analyzer Factory Pattern
+- **IAnalyzer Interface**: All analyzers implement with Priority, CanRunInParallel, Name properties
+- **Priority Execution**: Lower priority values run first, parallel execution for independent analyzers
+- **Core Analyzers**: FormIdAnalyzer, PluginAnalyzer, RecordScanner, SettingsScanner, SuspectScanner, BuffoutVersionAnalyzer
+- **FCX Analyzers**: FileIntegrityAnalyzer, ModConflictAnalyzer, VersionAnalyzer
+- All analyzers return `Task<AnalysisResult>`, not generic results
 
-1. **Async Pipeline Pattern**
-   - Use `IAsyncEnumerable` for streaming results
-   - Producer/consumer pattern with `System.Threading.Channels`
-   - All operations must be async with proper cancellation support
-   - `IScanPipeline` with batch processing capabilities
+### Message Handler Abstraction
+UI-agnostic communication through `IMessageHandler`:
+- **GUI Implementation**: `MessageHandler` in Scanner111.GUI/Services/
+- **CLI Implementation**: `CliMessageHandler` in Scanner111.Core/Infrastructure/
+- Decouples business logic from presentation concerns
 
-2. **Analyzer Factory Pattern**
-   - `IAnalyzer` interface with priority-based execution
-   - Dynamic analyzer creation via dependency injection
-   - Parallel execution support for independent analyzers
-   - Analyzers: FormIdAnalyzer, PluginAnalyzer, RecordScanner, SettingsScanner, SuspectScanner
+### Dependency Injection Architecture
+- Constructor injection for all services (no static dependencies)
+- `IApplicationSettingsService` replaces removed GlobalRegistry
+- `IYamlSettingsProvider` for centralized YAML configuration access
+- Services registered in CLI Program.cs with proper lifetimes
 
-3. **Message Handler Abstraction**
-   - `IMessageHandler` for UI-agnostic communication
-   - Different implementations for GUI (MessageHandler) and CLI (CliMessageHandler)
+## Critical Implementation Requirements
 
-4. **Command Pattern (CLI)**
-   - `ICommand` interface for CLI commands
-   - Commands: ScanCommand, DemoCommand, ConfigCommand, AboutCommand
-   - CommandLineParser for argument parsing
+### Output Format
+- Output format must match Python reference implementation exactly
+- Verify against `sample_logs/*-AUTOSCAN.md` expected outputs
 
-### Critical Implementation Requirements
-
-1. **String Preservation**: Keep "CLASSIC" in all internal strings (only change project/namespace names)
-2. **Output Format**: Must match Python reference implementation exactly
-3. **File Encoding**: Always use UTF-8 with ignore errors for file reading
-4. **GUI Theme**: Dark theme with #2d2d30 background, #0e639c primary color
-
-### Key Components to Implement
-
-**Models** (Scanner111.Core/Models/):
-- CrashLog, ScanResult
-- Plugin, FormId, ModInfo
-
-**Analyzers** (Scanner111.Core/Analyzers/):
-- IAnalyzer interface
-- FormIdAnalyzer, PluginAnalyzer, StackAnalyzer, etc.
-
-**Pipeline** (Scanner111.Core/Pipeline/):
-- IScanPipeline, ScanPipelineBuilder
-- PerformanceMonitor for metrics
-
-**Infrastructure** (Scanner111.Core/Infrastructure/):
-- YamlSettingsCache for YAML file caching
-- MessageHandler/CliMessageHandler for UI communication
-- ApplicationSettingsService for settings management (replaces GlobalRegistry)
-- CrashLogParser for parsing crash logs
-- FormIdDatabaseService for FormID lookups
-- GamePathDetection for auto-detecting game installations
-- ReportWriter for generating analysis reports
-
-### Reference Resources
-
-- **Python Implementation**: `Code to Port/` directory
-- **Sample Logs**: `sample_logs/` with expected outputs (AUTOSCAN.md files)
-- **YAML Data**: `Data/` for lookup data
-- **Detailed Guide**: `docs/classic-csharp-ai-implementation-guide.md` for implementation phases
-
-### Development Workflow
-
-1. Check existing Python implementation in `Code to Port/` before implementing any feature
-2. Use sample logs in `sample_logs/` to verify output matches expected format
-3. Follow MVVM pattern strictly for GUI components
-4. Use dependency injection for all services
-5. Write unit tests for all analyzers using sample data
-
-### Migration Notes
-
-- GlobalRegistry has been removed - use IApplicationSettingsService instead
-- ApplicationSettings is accessed via dependency injection, not static access
-- ClassicScanLogsInfo has been removed - use IYamlSettingsProvider to access YAML settings directly
-- When creating the .NET port, ensure that the report formatting exactly matches the Python implementation, substituting "CLASSIC" with "Scanner 111" as needed
-
-### Development Best Practices
-
-- **Async Method Best Practices**:
-  - Don't forget cancellation tokens in async methods
-  - Don't use blocking I/O in async methods
+### File I/O Standards
+- Always use UTF-8 encoding with error handling: `Encoding.UTF8`
+- All operations must be async with proper cancellation support
+- Console encoding set explicitly in Program.cs for Windows compatibility
 
 ### Resource Management
-- Don't forget to dispose resources (use `using` statements)
+- Use `using` statements for all IDisposable resources
+- Implement IAsyncDisposable where appropriate
+- Proper cancellation token propagation through all async methods
 
-### Development Reminders
-- Always rebuild when testing new changes
+## Solution Structure
 
-### Async I/O Considerations
-- Ensure async I/O contention is properly accounted for by:
-  - Using `SemaphoreSlim` for controlling concurrent file access
-  - Implementing thread-safe async read/write operations
-  - Using `Channel<T>` for managing async I/O streams
-  - Carefully managing shared resources in multi-threaded async scenarios
+- **Scanner111.Core**: Business logic library with analyzers and pipeline
+  - Analyzers/: IAnalyzer implementations
+  - Infrastructure/: Cross-cutting services (CrashLogParser, ReportWriter, etc.)
+  - Models/: Domain models and YAML configurations
+  - Pipeline/: IScanPipeline and decorators
+  - FCX/: Enhanced file checking components
+  - Services/: Application services
 
-### Testing Guidelines
+- **Scanner111.GUI**: Avalonia MVVM desktop application
+  - ViewModels/: MVVM view models with INotifyPropertyChanged
+  - Views/: AXAML views with dark theme (#2d2d30 background, #0e639c primary)
+  - Services/: GUI-specific services
 
-- **Unit Testing**:
-  - Any new code must have proper unit tests written or updated after the code is in a state where it compiles properly
-  - Test projects use xUnit framework
-  - Use TestImplementations.cs for test helpers and mock implementations
-  - Integration tests in Scanner111.Tests/Integration/
-  - Analyzer tests should verify output format matches expected AUTOSCAN.md files
+- **Scanner111.CLI**: Console application using CommandLineParser
+  - Commands/: ICommand implementations (ScanCommand, DemoCommand, etc.)
+  - Models/: CLI options classes with CommandLineParser attributes
+  - Services/: CLI-specific services
 
-### CLI Options
+- **Scanner111.Tests**: xUnit test project
+  - Integration/: End-to-end test scenarios
+  - TestImplementations.cs: Mock services and helpers
+
+## Development Workflow
+
+### Analysis Pipeline Flow
+1. **CrashLogParser** reads and parses crash log files (UTF-8, error-tolerant)
+2. **IScanPipeline** orchestrates the analysis process:
+   - Loads analyzers sorted by priority
+   - Executes analyzers in parallel groups where possible
+   - Streams results via IAsyncEnumerable (never accumulate)
+3. **Analyzers** examine different aspects of the crash
+4. **ReportWriter** formats results matching Python output exactly
+
+### Testing with Sample Data
+- Use `sample_logs/` directory for testing - each .log has expected `-AUTOSCAN.md` output
+- Verify analyzer output format matches expected files exactly
+- Test files use xUnit with proper async patterns
+
+### Reference Implementation
+- **Python source**: `Code to Port/` directory (read-only reference)
+- **YAML databases**: `Data/CLASSIC Main.yaml` and `Data/CLASSIC Fallout4.yaml`
+- **Sample logs**: `sample_logs/` with expected outputs
+
+## CLI Options Reference
 
 The CLI supports various options for the scan command:
 - `-l, --log`: Path to specific crash log file
@@ -182,39 +160,14 @@ The CLI supports various options for the scan command:
 - `--disable-colors`: Disable colored output
 - `-o, --output-format`: Output format (detailed or summary)
 
-### Development Guidelines
+## Async I/O Best Practices
 
-- **Dependency Injection**: All services use constructor injection
-- **Async/Await**: Use async methods throughout, avoid blocking calls
-- **Cancellation**: Pass CancellationToken to all async operations
-- **Progress Reporting**: Use IProgress<T> for long-running operations
-- **File I/O**: Always use UTF-8 encoding with error handling
-- **Logging**: Use ILogger abstraction, not console writes
+- Use `SemaphoreSlim` for controlling concurrent file access
+- Implement thread-safe async read/write operations
+- Use `Channel<T>` for managing async I/O streams
+- Always pass CancellationToken to async operations
+- Use IProgress<T> for long-running operations
 
-## High-Level Architecture
+## Memories
 
-### Analyzer Pipeline Flow
-1. **CrashLogParser** reads and parses crash log files
-2. **IScanPipeline** orchestrates the analysis process:
-   - Loads analyzers sorted by priority
-   - Executes analyzers in parallel groups
-   - Streams results via IAsyncEnumerable
-3. **Analyzers** examine different aspects:
-   - **FormIdAnalyzer**: Detects problematic FormIDs using FormIdDatabaseService
-   - **PluginAnalyzer**: Analyzes plugin load order and conflicts
-   - **RecordScanner**: Scans for problematic record types
-   - **SettingsScanner**: Checks game settings
-   - **SuspectScanner**: Identifies known problematic mods
-4. **ReportWriter** formats results matching Python output
-
-### Cross-Cutting Concerns
-- **IYamlSettingsProvider**: Centralized access to YAML configuration data
-- **IApplicationSettingsService**: Application-wide settings management
-- **IMessageHandler**: UI-agnostic progress/status reporting
-- **GamePathDetection**: Auto-detects game installations from registry/common paths
-
-### Key Implementation Details
-- All I/O operations use async patterns with ConfigureAwait(false)
-- Channels used for producer/consumer patterns in batch processing
-- SemaphoreSlim guards concurrent file access
-- Priority-based analyzer execution allows critical checks first
+- The files in `Code to Port` should be considered read only as they are just reference.

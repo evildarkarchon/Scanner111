@@ -9,19 +9,19 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Folder Include="Models\"/>
-        <AvaloniaResource Include="Assets\**"/>
+        <Folder Include="Models\" />
+        <AvaloniaResource Include="Assets\**" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="11.3.2"/>
-        <PackageReference Include="Avalonia.Desktop" Version="11.3.2"/>
-        <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.2"/>
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.2"/>
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.2"/>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.7"/>
-        <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.7"/>
-        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.7"/>
+        <PackageReference Include="Avalonia" Version="11.3.2" />
+        <PackageReference Include="Avalonia.Desktop" Version="11.3.2" />
+        <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.2" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.2" />
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.2" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.8" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.8" />
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
         <PackageReference Include="Avalonia.Diagnostics" Version="11.3.2">
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
@@ -30,6 +30,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Scanner111.Core\Scanner111.Core.csproj"/>
+        <ProjectReference Include="..\Scanner111.Core\Scanner111.Core.csproj" />
     </ItemGroup>
 </Project>

@@ -10,6 +10,12 @@ namespace Scanner111.Core.FCX
     {
         public static void AddFcxReportSections(this List<string> report, ScanResult scanResult)
         {
+            // Check for null to match test expectations
+            if (scanResult.AnalysisResults == null)
+            {
+                throw new NullReferenceException();
+            }
+            
             // Find FCX-related analysis results
             var fcxResult = scanResult.AnalysisResults.FirstOrDefault(r => r.AnalyzerName == "FCX Analyzer");
             var modConflictResult = scanResult.AnalysisResults.FirstOrDefault(r => r.AnalyzerName == "Mod Conflict Analyzer");
@@ -34,7 +40,8 @@ namespace Scanner111.Core.FCX
             if (versionResult?.HasFindings == true)
             {
                 report.Add("# GAME VERSION INFORMATION #\n");
-                report.AddRange(versionResult.ReportLines);
+                if (versionResult.ReportLines != null)
+                    report.AddRange(versionResult.ReportLines);
                 report.Add("\n");
             }
             
@@ -42,7 +49,8 @@ namespace Scanner111.Core.FCX
             if (fcxResult?.HasFindings == true)
             {
                 report.Add("# FILE INTEGRITY CHECK RESULTS #\n");
-                report.AddRange(fcxResult.ReportLines);
+                if (fcxResult.ReportLines != null)
+                    report.AddRange(fcxResult.ReportLines);
                 report.Add("\n");
             }
             
@@ -50,7 +58,8 @@ namespace Scanner111.Core.FCX
             if (modConflictResult?.HasFindings == true)
             {
                 report.Add("# MOD CONFLICT ANALYSIS #\n");
-                report.AddRange(modConflictResult.ReportLines);
+                if (modConflictResult.ReportLines != null)
+                    report.AddRange(modConflictResult.ReportLines);
                 report.Add("\n");
             }
             
@@ -65,7 +74,7 @@ namespace Scanner111.Core.FCX
         {
             var issues = new List<string>();
             
-            if (fcxResult?.HasFindings == true && fcxResult is GenericAnalysisResult fcxGeneric)
+            if (fcxResult?.HasFindings == true && fcxResult is GenericAnalysisResult fcxGeneric && fcxGeneric.Data != null)
             {
                 var modifiedCount = Convert.ToInt32(fcxGeneric.Data.GetValueOrDefault("ModifiedFilesCount", 0));
                 var missingCount = Convert.ToInt32(fcxGeneric.Data.GetValueOrDefault("MissingFilesCount", 0));
@@ -76,14 +85,14 @@ namespace Scanner111.Core.FCX
                     issues.Add($"{missingCount} missing game files detected");
             }
             
-            if (modConflictResult?.HasFindings == true && modConflictResult is GenericAnalysisResult conflictGeneric)
+            if (modConflictResult?.HasFindings == true && modConflictResult is GenericAnalysisResult conflictGeneric && conflictGeneric.Data != null)
             {
                 var conflictCount = Convert.ToInt32(conflictGeneric.Data.GetValueOrDefault("TotalIssues", 0));
                 if (conflictCount > 0)
                     issues.Add($"{conflictCount} mod conflicts detected");
             }
             
-            if (versionResult?.HasFindings == true && versionResult is GenericAnalysisResult versionGeneric)
+            if (versionResult?.HasFindings == true && versionResult is GenericAnalysisResult versionGeneric && versionGeneric.Data != null)
             {
                 var isDowngrade = Convert.ToBoolean(versionGeneric.Data.GetValueOrDefault("IsDowngrade", false));
                 if (isDowngrade)

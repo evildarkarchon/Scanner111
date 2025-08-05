@@ -1,5 +1,4 @@
 using CommandLine;
-using NSubstitute;
 using Scanner111.CLI.Models;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;

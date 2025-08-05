@@ -97,16 +97,17 @@ Scanner111 currently implements the core crash log analysis functionality but la
 
 ### Phase 4: Integration & Platform Features (3-4 weeks)
 
-**Goal**: Add mod manager integration and platform-specific features.
+**Goal**: Add mod manager integration and platform-specific features for FCX mode.
 
 #### Tasks:
 - [ ] Mod Organizer 2 integration
   - [ ] Detect MO2 installation
   - [ ] Read mod list from MO2 profiles
-  - [ ] Virtual file system support
+  - [ ] Ability to scan mods and files in MO2 staging folder
 - [ ] Vortex integration
   - [ ] Detect Vortex installation
   - [ ] Read staging folder configuration
+  - [ ] Ability to scan mods and files in Vortex staging folder
 
 #### Deliverables:
 - Seamless mod manager integration
@@ -159,9 +160,8 @@ Scanner111 currently implements the core crash log analysis functionality but la
 ### Medium Priority (Should Have)
 1. Simplify logs
 2. Statistical logging
-3. VR mode support
-4. Audio notifications
-5. Recent items management
+3. Audio notifications
+4. Recent items management
 
 ### Low Priority (Nice to Have)
 1. Backup/restore functionality

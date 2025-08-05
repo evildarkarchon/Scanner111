@@ -4,6 +4,7 @@ using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Models.Yaml;
 using Scanner111.Core.Pipeline;
+using Scanner111.Core.FCX;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 
@@ -63,7 +64,12 @@ public class TestYamlSettingsProvider : IYamlSettingsProvider
                 MainDocsName = "Fallout4",
                 MainSteamId = 377160,
                 CrashgenLogName = "Buffout 4",
+                CrashgenLatestVer = "v0.3.0", // Latest version for tests
                 CrashgenIgnore = new List<string> { "F4EE", "WaitForDebugger", "Achievements" }
+            },
+            GameVrInfo = new GameInfo
+            {
+                CrashgenLatestVer = "v0.3.0" // Latest NG version for tests
             },
             CrashlogRecordsExclude = new List<string> { "\"\"", "...", "FE:" },
             CrashlogPluginsExclude = new List<string> { "Buffout4.dll", "Fallout4.esm", "DLCCoast.esm", "ignored.esp" },
@@ -93,7 +99,22 @@ public class TestYamlSettingsProvider : IYamlSettingsProvider
                 MainDocsName = "Fallout4",
                 MainSteamId = 377160,
                 CrashgenLogName = "Buffout 4",
-                CrashgenIgnore = new List<string> { "F4EE", "WaitForDebugger", "Achievements" }
+                CrashgenIgnore = new List<string> { "F4EE", "WaitForDebugger", "Achievements" },
+                Versions = new Dictionary<string, Scanner111.Core.Models.Yaml.GameVersionInfo>
+                {
+                    ["pre_ng"] = new Scanner111.Core.Models.Yaml.GameVersionInfo
+                    {
+                        Name = "Pre-Next Gen",
+                        BuffoutLatest = "v1.28.0",
+                        GameVersion = "1.10.163.0"
+                    },
+                    ["next_gen"] = new Scanner111.Core.Models.Yaml.GameVersionInfo
+                    {
+                        Name = "Next Gen",
+                        BuffoutLatest = "v1.28.0",
+                        GameVersion = "1.10.984.0"
+                    }
+                }
             },
             CrashlogRecordsExclude = new List<string> { "\"\"", "...", "FE:" },
             CrashlogPluginsExclude = new List<string> { "Buffout4.dll", "Fallout4.esm", "DLCCoast.esm", "ignored.esp" },
@@ -417,21 +438,33 @@ public class TestErrorHandlingPolicy : IErrorHandlingPolicy
 
 public class TestProgressContext : IProgressContext
 {
-    public void Dispose()
-    {
-    }
+    public string Description { get; }
+    public int Total { get; }
+    public bool IsCompleted { get; private set; }
+    public int CurrentValue { get; private set; }
+    public string LastMessage { get; private set; } = string.Empty;
 
-    public void Report(ProgressInfo value)
+    public TestProgressContext(string description = "", int total = 100)
     {
+        Description = description;
+        Total = total;
     }
 
     public void Update(int current, string message)
     {
+        CurrentValue = current;
+        LastMessage = message;
     }
 
-    public void Complete()
+    public void Complete() => IsCompleted = true;
+
+    public void Report(ProgressInfo value)
     {
+        CurrentValue = value.Current;
+        LastMessage = value.Message;
     }
+
+    public void Dispose() { }
 }
 
 /// <summary>
@@ -458,6 +491,20 @@ public class TestApplicationSettingsService : IApplicationSettingsService
 
     public Task SaveSettingsAsync(ApplicationSettings settings)
     {
+        // Update all properties from the provided settings
+        _settings.FcxMode = settings.FcxMode;
+        _settings.ShowFormIdValues = settings.ShowFormIdValues;
+        _settings.SimplifyLogs = settings.SimplifyLogs;
+        _settings.MoveUnsolvedLogs = settings.MoveUnsolvedLogs;
+        _settings.VrMode = settings.VrMode;
+        _settings.DefaultGamePath = settings.DefaultGamePath;
+        _settings.ModsFolder = settings.ModsFolder;
+        _settings.DefaultLogPath = settings.DefaultLogPath;
+        _settings.GamePath = settings.GamePath;
+        _settings.DefaultScanDirectory = settings.DefaultScanDirectory;
+        _settings.CrashLogsDirectory = settings.CrashLogsDirectory;
+        _settings.BackupDirectory = settings.BackupDirectory;
+        _settings.IniFolder = settings.IniFolder;
         return Task.CompletedTask;
     }
 
@@ -535,5 +582,102 @@ public class TestScanPipeline : IScanPipeline
     {
         IsDisposed = true;
         return ValueTask.CompletedTask;
+    }
+}
+
+/// <summary>
+/// Test implementation of IModScanner for unit testing FCX analyzers
+/// </summary>
+public class TestModScanner : IModScanner
+{
+    private readonly ModScanResult _result;
+    
+    public TestModScanner()
+    {
+        _result = new ModScanResult();
+    }
+    
+    public TestModScanner(ModScanResult result)
+    {
+        _result = result;
+    }
+    
+    public void AddIssue(ModIssue issue)
+    {
+        _result.Issues.Add(issue);
+    }
+    
+    public Task<ModScanResult> ScanUnpackedModsAsync(string modPath, IProgress<string>? progress = null, CancellationToken ct = default)
+    {
+        return Task.FromResult(_result);
+    }
+    
+    public Task<ModScanResult> ScanArchivedModsAsync(string modPath, IProgress<string>? progress = null, CancellationToken ct = default)
+    {
+        return Task.FromResult(_result);
+    }
+    
+    public Task<ModScanResult> ScanAllModsAsync(string modPath, IProgress<string>? progress = null, CancellationToken ct = default)
+    {
+        _result.TotalFilesScanned = 100;
+        _result.TotalArchivesScanned = 10;
+        return Task.FromResult(_result);
+    }
+}
+
+/// <summary>
+/// Test implementation of IHashValidationService for unit testing
+/// </summary>
+public class TestHashValidationService : IHashValidationService
+{
+    private readonly Dictionary<string, string> _fileHashes = new();
+    private readonly Dictionary<string, HashValidation> _validationResults = new();
+    
+    public void SetFileHash(string filePath, string hash)
+    {
+        _fileHashes[filePath] = hash;
+    }
+    
+    public void SetValidationResult(string filePath, HashValidation result)
+    {
+        _validationResults[filePath] = result;
+    }
+    
+    public Task<string> CalculateFileHashAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_fileHashes.TryGetValue(filePath, out var hash) ? hash : "default_hash");
+    }
+    
+    public Task<HashValidation> ValidateFileAsync(string filePath, string expectedHash, CancellationToken cancellationToken = default)
+    {
+        if (_validationResults.TryGetValue(filePath, out var result))
+        {
+            return Task.FromResult(result);
+        }
+        
+        var actualHash = _fileHashes.TryGetValue(filePath, out var hash) ? hash : "different_hash";
+        return Task.FromResult(new HashValidation
+        {
+            FilePath = filePath,
+            ExpectedHash = expectedHash,
+            ActualHash = actualHash,
+            HashType = "SHA256"
+        });
+    }
+    
+    public Task<Dictionary<string, HashValidation>> ValidateBatchAsync(Dictionary<string, string> fileHashMap, CancellationToken cancellationToken = default)
+    {
+        var results = new Dictionary<string, HashValidation>();
+        foreach (var kvp in fileHashMap)
+        {
+            results[kvp.Key] = ValidateFileAsync(kvp.Key, kvp.Value, cancellationToken).Result;
+        }
+        return Task.FromResult(results);
+    }
+    
+    public Task<string> CalculateFileHashWithProgressAsync(string filePath, IProgress<long>? progress, CancellationToken cancellationToken = default)
+    {
+        progress?.Report(100);
+        return CalculateFileHashAsync(filePath, cancellationToken);
     }
 }

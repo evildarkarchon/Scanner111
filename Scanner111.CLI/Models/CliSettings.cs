@@ -62,7 +62,7 @@ public class CliSettings
     /// </summary>
     public void AddRecentPath(string path)
     {
-        if (string.IsNullOrEmpty(path)) return;
+        if (string.IsNullOrWhiteSpace(path)) return;
 
         RecentScanPaths.Remove(path);
         RecentScanPaths.Insert(0, path);

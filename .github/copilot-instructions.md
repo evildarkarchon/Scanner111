@@ -21,9 +21,11 @@ await foreach (var result in pipeline.ProcessBatchAsync(logPaths, options, progr
 
 ### Analyzer Factory Pattern
 - **`IAnalyzer` interface** with `Priority`, `CanRunInParallel`, `Name` properties
-- **Analyzers**: `FormIdAnalyzer`, `PluginAnalyzer`, `RecordScanner`, `SettingsScanner`, `SuspectScanner`
+- **Core Analyzers**: `FormIdAnalyzer`, `PluginAnalyzer`, `RecordScanner`, `SettingsScanner`, `SuspectScanner`
+- **New Analyzers**: `FileIntegrityAnalyzer`, `BuffoutVersionAnalyzer`, `BuffoutVersionAnalyzerV2`
+- **FCX Analyzers**: `VersionAnalyzer`, `ModConflictAnalyzer` in `Scanner111.Core/FCX/`
 - **Execution order**: Priority-based with parallel execution support for independent analyzers
-- **Location**: `Scanner111.Core/Analyzers/`
+- **Location**: `Scanner111.Core/Analyzers/` and `Scanner111.Core/FCX/`
 - **Return type**: All analyzers return `Task<AnalysisResult>`, not generic results
 
 ### Message Handler Abstraction
@@ -53,11 +55,11 @@ await foreach (var result in pipeline.ProcessBatchAsync(logPaths, options, progr
 ```
 Scanner111.Core/          # Business logic library
 ├── Analyzers/            # IAnalyzer implementations
-├── Infrastructure/       # Cross-cutting services
+├── FCX/                  # File Check Xtended - game integrity analyzers
+├── Infrastructure/       # Cross-cutting services (23+ services)
 ├── Models/              # Domain models (CrashLog, ScanResult)
 ├── Pipeline/            # IScanPipeline and builders
-└── Services/            # Miscellaneous services
-
+└── Services/            # Update service and utilities
 
 Scanner111.GUI/          # Avalonia MVVM desktop app
 ├── ViewModels/          # MVVM view models
@@ -65,8 +67,9 @@ Scanner111.GUI/          # Avalonia MVVM desktop app
 └── Services/            # GUI-specific services
 
 Scanner111.CLI/          # Console app with CommandLineParser
-├── Commands/            # ICommand implementations
-└── Models/              # CLI-specific options
+├── Commands/            # ICommand implementations (6 commands)
+├── Models/              # CLI-specific options
+└── Services/            # CLI-specific services
 
 Scanner111.Tests/        # xUnit test project
 ```
@@ -86,6 +89,7 @@ dotnet run --project Scanner111.CLI -- scan -l "sample_logs/crash-2023-09-15-01-
 ```bash
 # CLI uses verb-based commands with CommandLineParser
 dotnet run --project Scanner111.CLI -- scan -l "path/to/crash.log" --verbose
+dotnet run --project Scanner111.CLI -- fcx -g "C:\Games\Fallout 4" --check-integrity  # FCX mode
 dotnet run --project Scanner111.CLI -- demo  # Shows sample analysis
 dotnet run --project Scanner111.CLI -- config  # Manages settings
 dotnet run --project Scanner111.CLI -- about   # Version info
@@ -116,11 +120,20 @@ dotnet run --project Scanner111.CLI -- scan -l "path/to/crash.log" --verbose
 - **Game path detection** via `GamePathDetection` service
 - **YAML settings cache** via `YamlSettingsCache` for mod compatibility data
 - **Data files**: `Data/` directory contains game-specific lookup tables
+- **FCX Mode**: File integrity checking via `HashValidationService` and `IBackupService`
+- **Game integrity**: FCX analyzers validate game files, scripts, and mod compatibility
 
 ### Performance Monitoring
 - **Decorator pattern**: `PerformanceMonitoringPipeline` wraps base pipeline
 - **Metrics collection**: Track per-file and batch processing times
 - **Logging**: Use `ILogger` abstraction, structured logging with timing data
+
+### FCX (File Check Xtended) Infrastructure
+- **Hash validation**: `IHashValidationService` with concurrent caching and progress reporting
+- **Backup management**: `IBackupService` for game file backup/restore operations
+- **Mod compatibility**: `IModCompatibilityService` for version checking and conflict detection
+- **Game integrity**: FCX analyzers validate files against known hashes and detect corruption
+- **Performance**: Uses buffered I/O (1MB buffers) and async operations for large file processing
 
 ## Reference Implementation
 - **Python source**: `Code to Port/` directory contains original implementation
@@ -133,6 +146,7 @@ dotnet run --project Scanner111.CLI -- scan -l "path/to/crash.log" --verbose
 - **xUnit framework**: All test projects use xUnit with proper async patterns
 - **Integration tests**: `Scanner111.Tests/Integration/` for end-to-end scenarios
 - **Test data**: Use `sample_logs/` files to verify analyzer output format exactly matches expected
+- **Resource management**: All tests use `using` statements and proper disposal patterns
 
 ## UI Patterns
 
@@ -142,7 +156,8 @@ dotnet run --project Scanner111.CLI -- scan -l "path/to/crash.log" --verbose
 - **Theme**: Dark theme with `#2d2d30` background, `#0e639c` primary color
 
 ### CLI Commands
-- **CommandLineParser**: Use verbs pattern (`scan`, `demo`, `config`, `about`)
+- **CommandLineParser**: Use verbs pattern (`scan`, `demo`, `config`, `about`, `fcx`)
 - **Options classes**: In `Scanner111.CLI/Models/` with proper attributes
+- **FCX Command**: `FcxCommand` for game integrity checking with hash validation
 - **Async execution**: All commands implement `ICommand` with async execution
 - **DI setup**: CLI uses `ServiceCollection` in `Program.cs` with proper service registration

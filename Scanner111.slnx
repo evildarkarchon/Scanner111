@@ -1,6 +1,0 @@
-<Solution>
-  <Project Path="Scanner111.CLI/Scanner111.CLI.csproj" />
-  <Project Path="Scanner111.Core/Scanner111.Core.csproj" />
-  <Project Path="Scanner111.GUI/Scanner111.GUI.csproj" />
-  <Project Path="Scanner111.Tests/Scanner111.Tests.csproj" />
-</Solution>

@@ -181,7 +181,8 @@ public class ScanPipelineBuilder
         // Wrap with performance monitoring if enabled
         if (_enablePerformanceMonitoring)
         {
-            var perfLogger = serviceProvider.GetRequiredService<ILogger>();
+            var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+            var perfLogger = loggerFactory.CreateLogger("PerformanceMonitoring");
             return new PerformanceMonitoringPipeline(pipeline, perfLogger);
         }
 

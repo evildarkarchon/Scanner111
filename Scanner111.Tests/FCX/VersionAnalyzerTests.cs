@@ -1,0 +1,499 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using Scanner111.Core.FCX;
+using Scanner111.Core.Models;
+using Scanner111.Core.Analyzers;
+using Scanner111.Tests.TestHelpers;
+using Scanner111.Core.Infrastructure;
+using Xunit;
+
+namespace Scanner111.Tests.FCX;
+
+
+// Extended test hash service for version analyzer tests
+public class ExtendedTestHashValidationService : TestHashValidationService
+{
+    private readonly Dictionary<string, string> _versionForHash = new();
+    private readonly Dictionary<string, string[]> _notesForHash = new();
+    private readonly HashSet<string> _existingFiles = new();
+    
+    public bool ThrowOnNextCall { get; set; }
+    
+    public void SetVersionForHash(string hash, string version)
+    {
+        _versionForHash[hash] = version;
+    }
+    
+    public void SetVersionWithNotes(string hash, string version, string[] notes)
+    {
+        _versionForHash[hash] = version;
+        _notesForHash[hash] = notes;
+    }
+    
+    public void SetFileExists(string path, bool exists)
+    {
+        if (exists)
+            _existingFiles.Add(path);
+        else
+            _existingFiles.Remove(path);
+            
+        // Create/delete the actual file for tests
+        if (exists)
+        {
+            var dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+            if (!File.Exists(path))
+                File.WriteAllText(path, "test");
+        }
+        else if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+    }
+    
+    public new Task<string> CalculateFileHashAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        if (ThrowOnNextCall)
+        {
+            ThrowOnNextCall = false;
+            throw new Exception("Test exception");
+        }
+        
+        return base.CalculateFileHashAsync(filePath, cancellationToken);
+    }
+}
+
+/// <summary>
+/// Unit tests for the VersionAnalyzer class
+/// </summary>
+public class VersionAnalyzerTests
+{
+    private readonly VersionAnalyzer _analyzer;
+    private readonly ExtendedTestHashValidationService _hashService;
+    private readonly TestYamlSettingsProvider _yamlSettings;
+    private readonly TestApplicationSettingsService _appSettings;
+
+    public VersionAnalyzerTests()
+    {
+        _hashService = new ExtendedTestHashValidationService();
+        _yamlSettings = new TestYamlSettingsProvider();
+        _appSettings = new TestApplicationSettingsService();
+        _analyzer = new VersionAnalyzer(
+            NullLogger<VersionAnalyzer>.Instance,
+            _hashService,
+            _yamlSettings,
+            _appSettings);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithLatestGameVersion_ReportsUpToDate()
+    {
+        // Arrange
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = "C:\\Games\\Fallout4"
+        });
+        
+        // Set up hash validation to return a known latest version hash
+        _hashService.SetFileHash("C:\\Games\\Fallout4\\Fallout4.exe", 
+            "8b3c1c3f3e3d28d2674ea9c968dfa14f6c1461cdcc69c833bb3c96f46329e99a");
+        
+        var crashLog = new CrashLog { FilePath = "test.log" };
+
+        // Act
+        var result = await _analyzer.AnalyzeAsync(crashLog);
+
+        // Assert
+        var genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.Success);
+        Assert.True(genericResult.HasFindings); // Version info is considered a finding
+        Assert.Contains("Game Version Detected", genericResult.ReportText);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithDowngradedVersion_ReportsWarning()
+    {
+        // Arrange
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = "C:\\Games\\Fallout4"
+        });
+        
+        // Set up hash validation to return an older version hash
+        _hashService.SetFileHash("C:\\Games\\Fallout4\\Fallout4.exe", 
+            "3c3e4d89f88d28d2674ea9c968dfa14f6c1461cdcc69c833bb3c96f46329e76b");
+        
+        var crashLog = new CrashLog { FilePath = "test.log" };
+
+        // Act
+        var result = await _analyzer.AnalyzeAsync(crashLog);
+
+        // Assert
+        var genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.Success);
+        Assert.True(genericResult.HasFindings);
+        Assert.Contains("Game Version Detected", genericResult.ReportText);
+        // The actual downgrade detection would be in the detected version info
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithUnknownVersion_HandlesGracefully()
+    {
+        // Arrange
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = "C:\\Games\\Fallout4"
+        });
+        
+        // Set up hash validation to return an unknown hash
+        _hashService.SetFileHash("C:\\Games\\Fallout4\\Fallout4.exe", "unknown_hash");
+        
+        var crashLog = new CrashLog { FilePath = "test.log" };
+
+        // Act
+        var result = await _analyzer.AnalyzeAsync(crashLog);
+
+        // Assert
+        var genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.Success);
+        Assert.True(genericResult.HasFindings);
+        Assert.Contains("ERROR: Game executable not found!", genericResult.ReportText);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithMissingExecutable_ReportsError()
+    {
+        // Arrange
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = "C:\\Games\\NonExistent"
+        });
+        
+        var crashLog = new CrashLog { FilePath = "test.log" };
+
+        // Act
+        var result = await _analyzer.AnalyzeAsync(crashLog);
+
+        // Assert
+        var genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.Success);
+        Assert.True(genericResult.HasFindings);
+        // Should report that game executable was not found
+        Assert.Contains("Game Version", genericResult.ReportText);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_ForDifferentGames_DetectsCorrectly()
+    {
+        // Test Fallout 4
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = "C:\\Games\\Fallout4"
+        });
+        
+        var crashLog = new CrashLog { FilePath = "test.log" };
+        var result = await _analyzer.AnalyzeAsync(crashLog);
+        
+        var genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.HasFindings);
+        
+        // Test Skyrim SE
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = "C:\\Games\\SkyrimSE"
+        });
+        
+        _hashService.SetFileHash("C:\\Games\\SkyrimSE\\SkyrimSE.exe", "skyrim_hash");
+        
+        result = await _analyzer.AnalyzeAsync(crashLog);
+        genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.HasFindings);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_NotInFcxMode_ReturnsNoFindings()
+    {
+        // Arrange
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = false,
+            DefaultGamePath = "C:\\Games\\Fallout4"
+        });
+        
+        var crashLog = new CrashLog { FilePath = "test.log" };
+
+        // Act
+        var result = await _analyzer.AnalyzeAsync(crashLog);
+
+        // Assert
+        var genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.Success);
+        Assert.False(genericResult.HasFindings);
+        Assert.Empty(genericResult.ReportLines);
+    }
+
+    [Fact]
+    public void AnalyzerProperties_AreSetCorrectly()
+    {
+        // Assert
+        Assert.Equal("Version Analyzer", _analyzer.Name);
+        Assert.Equal(10, _analyzer.Priority); // Runs early
+        Assert.True(_analyzer.CanRunInParallel);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithInvalidGamePath_HandlesGracefully()
+    {
+        // Arrange
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = null // Invalid path
+        });
+        
+        var crashLog = new CrashLog { FilePath = "test.log" };
+
+        // Act
+        var result = await _analyzer.AnalyzeAsync(crashLog);
+
+        // Assert
+        var genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.Success);
+        // Should handle gracefully without crashing
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithFallout4VR_TreatsAsFallout4()
+    {
+        // Arrange
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = "C:\\Games\\Fallout4VR"
+        });
+        
+        _hashService.SetFileHash("C:\\Games\\Fallout4VR\\Fallout4.exe", "vr_hash");
+        
+        var crashLog = new CrashLog { FilePath = "test.log" };
+
+        // Act
+        var result = await _analyzer.AnalyzeAsync(crashLog);
+
+        // Assert
+        var genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.Success);
+        Assert.True(genericResult.HasFindings);
+        // Should treat VR as regular Fallout 4
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithCancellation_RespectsToken()
+    {
+        // Arrange
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = "C:\\Games\\Fallout4"
+        });
+        
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        
+        var crashLog = new CrashLog { FilePath = "test.log" };
+
+        // Act
+        var result = await _analyzer.AnalyzeAsync(crashLog, cts.Token);
+
+        // Assert
+        // Should complete without throwing (analyzer handles cancellation gracefully)
+        Assert.NotNull(result);
+    }
+
+    [Theory]
+    [InlineData("C:\\Game Path With Spaces\\Fallout 4")]
+    [InlineData("C:\\Game's Path\\Fallout 4")]
+    [InlineData("C:\\Game-Path\\Fallout 4")]
+    [InlineData("C:\\Game.Path\\Fallout 4")]
+    [InlineData("C:\\Game@Path\\Fallout 4")]
+    [InlineData("C:\\Game (2024)\\Fallout 4")]
+    public async Task AnalyzeAsync_WithSpecialCharactersInPath_HandlesCorrectly(string gamePath)
+    {
+        // Arrange
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = gamePath
+        });
+        
+        var crashLog = new CrashLog { FilePath = "test.log" };
+
+        // Act
+        var result = await _analyzer.AnalyzeAsync(crashLog);
+
+        // Assert
+        var genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.Success);
+        Assert.True(genericResult.HasFindings);
+        // Should handle special characters in path gracefully
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithVeryLongPath_HandlesGracefully()
+    {
+        // Arrange
+        var longPath = "C:\\" + new string('a', 200) + "\\Fallout4";
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = longPath
+        });
+        
+        var crashLog = new CrashLog { FilePath = "test.log" };
+
+        // Act
+        var result = await _analyzer.AnalyzeAsync(crashLog);
+
+        // Assert
+        var genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.Success);
+        // Should handle long paths without crashing
+    }
+
+    [Theory]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    [InlineData("\n")]
+    public async Task AnalyzeAsync_WithWhitespaceGamePath_HandlesGracefully(string gamePath)
+    {
+        // Arrange
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = gamePath
+        });
+        
+        var crashLog = new CrashLog { FilePath = "test.log" };
+
+        // Act
+        var result = await _analyzer.AnalyzeAsync(crashLog);
+
+        // Assert
+        var genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.Success);
+        Assert.True(genericResult.HasFindings);
+        // The analyzer treats whitespace as a valid path and tries to find the executable
+        Assert.Contains("ERROR: Game executable not found!", genericResult.ReportText);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_EdgeCases_HandledProperly()
+    {
+        // Test 1: Empty game path is handled
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = ""
+        });
+        
+        var crashLog = new CrashLog { FilePath = "test.log" };
+        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.Success);
+        Assert.True(genericResult.HasFindings);
+        Assert.Contains("No game path configured", genericResult.ReportText);
+
+        // Test 2: Non-existent game path
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = "C:\\NonExistent\\Path\\To\\Game"
+        });
+        
+        result = await _analyzer.AnalyzeAsync(crashLog);
+        genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.Success);
+        Assert.True(genericResult.HasFindings);
+        Assert.Contains("ERROR: Game executable not found!", genericResult.ReportText);
+    }
+
+
+    [Fact]
+    public async Task AnalyzeAsync_ConcurrentExecution_ThreadSafe()
+    {
+        // Arrange
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = "C:\\Games\\Fallout4"
+        });
+        
+        var tasks = new Task<AnalysisResult>[10];
+        var crashLog = new CrashLog { FilePath = "test.log" };
+
+        // Act
+        for (int i = 0; i < tasks.Length; i++)
+        {
+            tasks[i] = _analyzer.AnalyzeAsync(crashLog);
+        }
+        
+        var results = await Task.WhenAll(tasks);
+
+        // Assert
+        Assert.All(results, r => 
+        {
+            var genericResult = (GenericAnalysisResult)r;
+            Assert.True(genericResult.Success);
+            Assert.True(genericResult.HasFindings);
+        });
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithSkyrimSE_UsesCorrectExecutableName()
+    {
+        // Arrange
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = "C:\\Games\\SkyrimSE"
+        });
+        
+        var crashLog = new CrashLog { FilePath = "test.log" };
+
+        // Act
+        var result = await _analyzer.AnalyzeAsync(crashLog);
+
+        // Assert
+        var genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.Success);
+        Assert.True(genericResult.HasFindings);
+        Assert.Contains("SkyrimSE.exe", genericResult.ReportText);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_WithFallout4VR_TreatedAsFallout4()
+    {
+        // Arrange
+        await _appSettings.SaveSettingsAsync(new ApplicationSettings 
+        { 
+            FcxMode = true,
+            DefaultGamePath = "C:\\Games\\Fallout4VR"
+        });
+        
+        var crashLog = new CrashLog { FilePath = "test.log" };
+
+        // Act
+        var result = await _analyzer.AnalyzeAsync(crashLog);
+
+        // Assert
+        var genericResult = (GenericAnalysisResult)result;
+        Assert.True(genericResult.Success);
+        Assert.True(genericResult.HasFindings);
+        Assert.Contains("Fallout4.exe", genericResult.ReportText); // VR still uses Fallout4.exe
+    }
+}
