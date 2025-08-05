@@ -9,7 +9,7 @@ Scanner111 is a C# port of a Python crash log analyzer for Bethesda games (Fallo
 - **All operations use `IAsyncEnumerable<T>`** for streaming results, never collect to lists
 - **Producer/consumer with `System.Threading.Channels`** for decoupled async processing
 - **`IScanPipeline` interface** at `Scanner111.Core/Pipeline/` - decorator pattern with performance monitoring
-- **Example**: `PerformanceMonitoringPipeline` wraps `ScanPipeline` for metrics collection
+- **Pipeline decorators**: `PerformanceMonitoringPipeline`, `FcxEnabledPipeline`, `EnhancedScanPipeline`
 
 ```csharp
 // Correct pattern - streaming with IAsyncEnumerable
@@ -22,33 +22,24 @@ await foreach (var result in pipeline.ProcessBatchAsync(logPaths, options, progr
 ### Analyzer Factory Pattern
 - **`IAnalyzer` interface** with `Priority`, `CanRunInParallel`, `Name` properties
 - **Core Analyzers**: `FormIdAnalyzer`, `PluginAnalyzer`, `RecordScanner`, `SettingsScanner`, `SuspectScanner`
-- **New Analyzers**: `FileIntegrityAnalyzer`, `BuffoutVersionAnalyzer`, `BuffoutVersionAnalyzerV2`
-- **FCX Analyzers**: `VersionAnalyzer`, `ModConflictAnalyzer` in `Scanner111.Core/FCX/`
-- **Execution order**: Priority-based with parallel execution support for independent analyzers
-- **Location**: `Scanner111.Core/Analyzers/` and `Scanner111.Core/FCX/`
+- **Enhanced Analyzers**: `FileIntegrityAnalyzer`, `BuffoutVersionAnalyzerV2`
+- **FCX Analyzers**: File integrity checking in `Scanner111.Core/FCX/`
+- **Execution order**: Priority-based (lower = first), parallel execution where `CanRunInParallel = true`
 - **Return type**: All analyzers return `Task<AnalysisResult>`, not generic results
 
 ### Message Handler Abstraction
 - **UI-agnostic communication** via `IMessageHandler`
-- **GUI**: `MessageHandler` in `Scanner111.GUI/Services/`
-- **CLI**: `CliMessageHandler` in `Scanner111.Core/Infrastructure/`
+- **GUI**: `GuiMessageHandlerService` in `Scanner111.GUI/Services/`
+- **CLI**: `CliMessageHandler` in `Scanner111.CLI/Services/`
+- **Static facade**: `MessageHandler` class provides `MsgInfo()`, `MsgError()`, etc. shortcuts
 - **Purpose**: Decouples business logic from UI concerns
 
-## Critical Implementation Requirements
-
-### String Preservation Rules
-- **Output format must match Python reference exactly** - see `sample_logs/crash-*-AUTOSCAN.md` files
-
-### File I/O Standards
-- **Always UTF-8 encoding** with error handling for corrupted game files
-- **Use `async` file operations** throughout - no blocking I/O
-- **Pattern**: `File.ReadAllLinesAsync(path, Encoding.UTF8, cancellationToken)`
-- **Console encoding**: Set UTF-8 explicitly in `Program.cs` for Windows compatibility
-
-### Dependency Injection
-- **Constructor injection** for all services - no static dependencies
-- **`IApplicationSettingsService`** replaces removed `GlobalRegistry`
-- **Registration**: Use `.AddTransient<>()`, `.AddSingleton<>()` in startup
+### Dependency Injection Architecture
+- **Constructor injection** for all services - no static dependencies except `MessageHandler` facade
+- **`IApplicationSettingsService`** for JSON settings persistence
+- **`IYamlSettingsProvider`** for game-specific YAML data access
+- **Service lifetimes**: Core services are Singletons, Commands are Transient
+- **Registration**: CLI uses `ServiceCollection` in `Program.cs`, GUI in `App.axaml.cs`
 
 ## Project Structure
 
@@ -73,6 +64,18 @@ Scanner111.CLI/          # Console app with CommandLineParser
 
 Scanner111.Tests/        # xUnit test project
 ```
+
+## Critical Implementation Requirements
+
+### Output Format Preservation
+- **Output format must match Python reference exactly** - verify against `sample_logs/crash-*-AUTOSCAN.md` files
+- **Use exact string formatting** - no deviation from expected format
+
+### File I/O Standards
+- **Always UTF-8 encoding** with error handling: `File.ReadAllLinesAsync(path, Encoding.UTF8, cancellationToken)`
+- **All operations must be async** with proper cancellation support
+- **Console encoding**: Set UTF-8 explicitly in CLI `Program.cs` for Windows compatibility
+- **Resource management**: Use `using` statements and `IAsyncDisposable` where appropriate
 
 ## Development Workflows
 
@@ -147,6 +150,8 @@ dotnet run --project Scanner111.CLI -- scan -l "path/to/crash.log" --verbose
 - **Integration tests**: `Scanner111.Tests/Integration/` for end-to-end scenarios
 - **Test data**: Use `sample_logs/` files to verify analyzer output format exactly matches expected
 - **Resource management**: All tests use `using` statements and proper disposal patterns
+- **Mock services**: Use `TestApplicationSettingsService`, `TestMessageHandler`, etc. from TestHelpers
+- **DI in tests**: Set up `ServiceCollection` with test implementations for analyzer tests
 
 ## UI Patterns
 

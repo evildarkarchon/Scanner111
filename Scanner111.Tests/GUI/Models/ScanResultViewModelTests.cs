@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.GUI.Models;
 using Xunit;
@@ -212,12 +213,9 @@ public class ScanResultViewModelTests
     {
         // Arrange
         var scanResult = new ScanResult { LogPath = "test.log" };
-        scanResult.AddAnalysisResult(new AnalysisResult
+        scanResult.AddAnalysisResult(new GenericAnalysisResult
         {
-            AnalyzerName = "Test Analyzer",
-            Severity = AnalysisSeverity.High,
-            Message = "Test finding",
-            Details = new List<string>()
+            AnalyzerName = "Test Analyzer"
         });
 
         // Act

@@ -454,7 +454,7 @@ public class MainWindowViewModelTests : IDisposable
             if (args.PropertyName == nameof(_viewModel.FcxResult))
                 propertyChanged = true;
         };
-        var fcxResult = new FcxResultViewModel(new FcxScanResult());
+        var fcxResult = new FcxResultViewModel(new FcxScanResult { AnalyzerName = "Test Analyzer" });
 
         // Act
         _viewModel.FcxResult = fcxResult;

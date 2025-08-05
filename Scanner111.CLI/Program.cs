@@ -26,9 +26,16 @@ var serviceProvider = services.BuildServiceProvider();
 // Perform startup update check
 await PerformStartupUpdateCheckAsync(serviceProvider);
 
+// Check if running in interactive mode (no arguments provided)
+if (args.Length == 0 && Environment.UserInteractive)
+{
+    var uiService = serviceProvider.GetRequiredService<ITerminalUIService>();
+    return await uiService.RunInteractiveMode();
+}
+
 // Parse command line arguments
 var parser = new Parser(with => with.HelpWriter = Console.Error);
-var result = parser.ParseArguments<Scanner111.CLI.Models.ScanOptions, DemoOptions, ConfigOptions, AboutOptions, FcxOptions>(args);
+var result = parser.ParseArguments<Scanner111.CLI.Models.ScanOptions, DemoOptions, ConfigOptions, AboutOptions, FcxOptions, InteractiveOptions>(args);
 
 return await result.MapResult(
     async (Scanner111.CLI.Models.ScanOptions opts) => await serviceProvider.GetRequiredService<ScanCommand>().ExecuteAsync(opts),
@@ -36,6 +43,7 @@ return await result.MapResult(
     async (ConfigOptions opts) => await serviceProvider.GetRequiredService<ConfigCommand>().ExecuteAsync(opts),
     async (AboutOptions opts) => await serviceProvider.GetRequiredService<AboutCommand>().ExecuteAsync(opts),
     async (FcxOptions opts) => await serviceProvider.GetRequiredService<FcxCommand>().ExecuteAsync(opts),
+    async (InteractiveOptions opts) => await serviceProvider.GetRequiredService<InteractiveCommand>().ExecuteAsync(opts),
     async errs => await Task.FromResult(1));
 
 static void ConfigureServices(IServiceCollection services)
@@ -57,7 +65,8 @@ static void ConfigureServices(IServiceCollection services)
     services.AddSingleton<ICliSettingsService, CliSettingsService>();
     services.AddSingleton<IFileScanService, FileScanService>();
     services.AddSingleton<IScanResultProcessor, ScanResultProcessor>();
-    services.AddSingleton<IMessageHandler, CliMessageHandler>();
+    services.AddSingleton<IMessageHandler, SpectreMessageHandler>();
+    services.AddSingleton<ITerminalUIService, SpectreTerminalUIService>();
 
     // Register FCX services
     services.AddSingleton<IHashValidationService, HashValidationService>();
@@ -72,6 +81,15 @@ static void ConfigureServices(IServiceCollection services)
     services.AddTransient<ConfigCommand>();
     services.AddTransient<AboutCommand>();
     services.AddTransient<FcxCommand>();
+    services.AddTransient<InteractiveCommand>();
+    
+    // Register ICommand interfaces for injection
+    services.AddTransient<ICommand<Scanner111.CLI.Models.ScanOptions>, ScanCommand>();
+    services.AddTransient<ICommand<DemoOptions>, DemoCommand>();
+    services.AddTransient<ICommand<ConfigOptions>, ConfigCommand>();
+    services.AddTransient<ICommand<AboutOptions>, AboutCommand>();
+    services.AddTransient<ICommand<FcxOptions>, FcxCommand>();
+    services.AddTransient<ICommand<InteractiveOptions>, InteractiveCommand>();
 }
 
 static async Task PerformStartupUpdateCheckAsync(IServiceProvider serviceProvider)

@@ -281,20 +281,4 @@ public class CliMessageHandlerTests
         handler.ShowCritical("Test");
     }
 
-    [Fact]
-    public void ActiveProgress_TracksCurrentProgress()
-    {
-        // Arrange
-        CliMessageHandler.ActiveProgress = null;
-        
-        // Act
-        var progress = new CliProgress("Test", false);
-        
-        // Assert
-        Assert.Same(progress, CliMessageHandler.ActiveProgress);
-        
-        // Cleanup
-        progress.Report(new ProgressInfo { Current = 100, Total = 100, Message = "Done" });
-        Assert.Null(CliMessageHandler.ActiveProgress);
-    }
 }

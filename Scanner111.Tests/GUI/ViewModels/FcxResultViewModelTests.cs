@@ -16,9 +16,6 @@ public class FcxResultViewModelTests
         var fcxResult = new FcxScanResult
         {
             AnalyzerName = "FCX Analyzer",
-            Severity = AnalysisSeverity.Low,
-            Message = "Test FCX result",
-            Details = new List<string>(),
             GameStatus = GameIntegrityStatus.Good,
             FileChecks = new List<FileIntegrityCheck>
             {
@@ -27,9 +24,9 @@ public class FcxResultViewModelTests
             },
             HashValidations = new List<HashValidation>
             {
-                new() { FilePath = "hash1.txt", IsValid = true },
-                new() { FilePath = "hash2.txt", IsValid = true },
-                new() { FilePath = "hash3.txt", IsValid = false }
+                new() { FilePath = "hash1.txt", ExpectedHash = "abc123", ActualHash = "abc123" },
+                new() { FilePath = "hash2.txt", ExpectedHash = "def456", ActualHash = "def456" },
+                new() { FilePath = "hash3.txt", ExpectedHash = "ghi789", ActualHash = "different" }
             }
         };
 
@@ -55,9 +52,6 @@ public class FcxResultViewModelTests
         var fcxResult = new FcxScanResult
         {
             AnalyzerName = "FCX Analyzer",
-            Severity = AnalysisSeverity.Medium,
-            Message = "Test FCX result",
-            Details = new List<string>(),
             GameStatus = GameIntegrityStatus.Warning,
             FileChecks = null,
             HashValidations = null
@@ -95,15 +89,14 @@ public class FcxResultViewModelTests
         var hashValidations = new List<HashValidation>();
         for (int i = 0; i < totalHashes; i++)
         {
-            hashValidations.Add(new HashValidation { FilePath = $"hash{i}", IsValid = i < passedHashes });
+            var expectedHash = "expected" + i;
+            var actualHash = i < passedHashes ? expectedHash : "different" + i;
+            hashValidations.Add(new HashValidation { FilePath = $"hash{i}", ExpectedHash = expectedHash, ActualHash = actualHash });
         }
 
         var fcxResult = new FcxScanResult
         {
             AnalyzerName = "FCX Analyzer",
-            Severity = AnalysisSeverity.Low,
-            Message = "Test FCX result",
-            Details = new List<string>(),
             GameStatus = GameIntegrityStatus.Good,
             FileChecks = fileChecks,
             HashValidations = hashValidations
@@ -123,9 +116,6 @@ public class FcxResultViewModelTests
         var fcxResult = new FcxScanResult
         {
             AnalyzerName = "FCX Analyzer",
-            Severity = AnalysisSeverity.Low,
-            Message = "Test FCX result",
-            Details = new List<string>(),
             GameStatus = GameIntegrityStatus.Good,
             FileChecks = new List<FileIntegrityCheck>
             {
@@ -135,8 +125,8 @@ public class FcxResultViewModelTests
             },
             HashValidations = new List<HashValidation>
             {
-                new() { FilePath = "hash1.txt", IsValid = true },
-                new() { FilePath = "hash2.txt", IsValid = false }
+                new() { FilePath = "hash1.txt", ExpectedHash = "abc123", ActualHash = "abc123" },
+                new() { FilePath = "hash2.txt", ExpectedHash = "def456", ActualHash = "different" }
             }
         };
 
@@ -156,9 +146,6 @@ public class FcxResultViewModelTests
         var fcxResult = new FcxScanResult
         {
             AnalyzerName = "FCX Analyzer",
-            Severity = AnalysisSeverity.Low,
-            Message = "Test FCX result",
-            Details = new List<string>(),
             GameStatus = GameIntegrityStatus.Good,
             FileChecks = new List<FileIntegrityCheck>
             {
@@ -182,9 +169,6 @@ public class FcxResultViewModelTests
         var fcxResult = new FcxScanResult
         {
             AnalyzerName = "FCX Analyzer",
-            Severity = AnalysisSeverity.Low,
-            Message = "Test FCX result",
-            Details = new List<string>(),
             GameStatus = GameIntegrityStatus.Good,
             FileChecks = new List<FileIntegrityCheck>
             {
@@ -210,9 +194,6 @@ public class FcxResultViewModelTests
         var fcxResult = new FcxScanResult
         {
             AnalyzerName = "FCX Analyzer",
-            Severity = AnalysisSeverity.Low,
-            Message = "Test FCX result",
-            Details = new List<string>(),
             GameStatus = status
         };
 
@@ -230,9 +211,6 @@ public class FcxResultViewModelTests
         var fcxResult = new FcxScanResult
         {
             AnalyzerName = "FCX Analyzer",
-            Severity = AnalysisSeverity.Low,
-            Message = "Test FCX result",
-            Details = new List<string>(),
             GameStatus = GameIntegrityStatus.Good,
             FileChecks = new List<FileIntegrityCheck>
             {
@@ -242,8 +220,8 @@ public class FcxResultViewModelTests
             },
             HashValidations = new List<HashValidation>
             {
-                new() { FilePath = "hash1.txt", IsValid = true },
-                new() { FilePath = "hash2.txt", IsValid = true }
+                new() { FilePath = "hash1.txt", ExpectedHash = "abc123", ActualHash = "abc123" },
+                new() { FilePath = "hash2.txt", ExpectedHash = "def456", ActualHash = "def456" }
             }
         };
 
@@ -263,9 +241,6 @@ public class FcxResultViewModelTests
         var fcxResult = new FcxScanResult
         {
             AnalyzerName = "FCX Analyzer",
-            Severity = AnalysisSeverity.Low,
-            Message = "Test FCX result",
-            Details = new List<string>(),
             GameStatus = GameIntegrityStatus.Good,
             FileChecks = new List<FileIntegrityCheck>(),
             HashValidations = new List<HashValidation>()

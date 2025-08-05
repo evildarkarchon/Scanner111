@@ -73,7 +73,7 @@ The core of the application uses `IAsyncEnumerable<T>` for streaming results wit
 ### Message Handler Abstraction
 UI-agnostic communication through `IMessageHandler`:
 - **GUI Implementation**: `MessageHandler` in Scanner111.GUI/Services/
-- **CLI Implementation**: `CliMessageHandler` in Scanner111.Core/Infrastructure/
+- **CLI Implementation**: `CliMessageHandler` in Scanner111.CLI/Services/
 - Decouples business logic from presentation concerns
 
 ### Dependency Injection Architecture
