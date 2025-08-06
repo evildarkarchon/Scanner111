@@ -21,7 +21,7 @@ public class AboutCommandTests : IDisposable
     public async Task ExecuteAsync_DisplaysVersionAndAboutInformation()
     {
         // Arrange
-        var command = new AboutCommand();
+        var command = new AboutCommand(_messageCapture);
         var options = new AboutOptions();
         
         var assembly = Assembly.GetAssembly(typeof(AboutCommand));

@@ -44,4 +44,6 @@ public class ScanOptions
     [Option('o', "output-format", Default = "detailed", HelpText = "Output format: detailed or summary")]
     public string OutputFormat { get; set; } = "detailed";
 
+    [Option("legacy-progress", HelpText = "Use legacy progress display instead of enhanced multi-progress view")]
+    public bool UseLegacyProgress { get; set; }
 }

@@ -19,7 +19,7 @@ public class ConfigCommandTests : IDisposable
         _messageCapture = new TestMessageCapture();
         MessageHandler.Initialize(_messageCapture);
         _mockSettingsService = new MockCliSettingsService();
-        _command = new ConfigCommand(_mockSettingsService);
+        _command = new ConfigCommand(_mockSettingsService, _messageCapture);
     }
 
     [Fact]
@@ -33,8 +33,8 @@ public class ConfigCommandTests : IDisposable
 
         // Assert
         Assert.Equal(0, result);
-        Assert.Contains("Unified Settings file:", _messageCapture.InfoMessages);
-        Assert.Contains("File exists:", _messageCapture.InfoMessages);
+        Assert.Contains(_messageCapture.InfoMessages, msg => msg.Contains("Unified Settings file:"));
+        Assert.Contains(_messageCapture.InfoMessages, msg => msg.Contains("File exists:"));
     }
 
     [Fact]
@@ -167,7 +167,7 @@ public class ConfigCommandTests : IDisposable
         // Assert
         Assert.Equal(0, result);
         // Verify all operations were performed
-        Assert.Contains("Unified Settings file:", _messageCapture.InfoMessages);
+        Assert.Contains(_messageCapture.InfoMessages, msg => msg.Contains("Unified Settings file:"));
         Assert.Contains("Current Scanner111 Configuration:", _messageCapture.InfoMessages);
         Assert.Contains("Set FcxMode = true", _messageCapture.SuccessMessages);
     }

@@ -6,11 +6,12 @@ using Scanner111.CLI.Services;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
+using Scanner111.Tests.TestHelpers;
 using Xunit;
 
 namespace Scanner111.Tests.CLI;
 
-public class FcxCommandTests
+public class FcxCommandTests : IDisposable
 {
     private readonly ICliSettingsService _settingsService;
     private readonly IHashValidationService _hashService;
@@ -18,10 +19,14 @@ public class FcxCommandTests
     private readonly IApplicationSettingsService _appSettingsService;
     private readonly IYamlSettingsProvider _yamlSettings;
     private readonly ILogger<FcxCommand> _logger;
+    private readonly TestMessageCapture _messageCapture;
     private readonly FcxCommand _command;
     
     public FcxCommandTests()
     {
+        _messageCapture = new TestMessageCapture();
+        MessageHandler.Initialize(_messageCapture);
+        
         var settingsServiceMock = new Mock<ICliSettingsService>();
         _settingsService = settingsServiceMock.Object;
         var hashServiceMock = new Mock<IHashValidationService>();
@@ -41,7 +46,13 @@ public class FcxCommandTests
             _backupService,
             _appSettingsService,
             _yamlSettings,
-            _logger);
+            _logger,
+            _messageCapture);
+    }
+
+    public void Dispose()
+    {
+        MessageHandler.Initialize(new TestMessageHandler());
     }
     
     [Fact]

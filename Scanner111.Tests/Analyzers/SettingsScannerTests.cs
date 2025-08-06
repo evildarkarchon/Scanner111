@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Analyzers;
@@ -53,13 +54,13 @@ public class SettingsScannerTests
         var result = await _analyzer.AnalyzeAsync(crashLog);
 
         // Assert
-        Assert.IsType<GenericAnalysisResult>(result);
+        result.Should().BeOfType<GenericAnalysisResult>();
         var settingsResult = (GenericAnalysisResult)result;
 
-        Assert.Equal("Settings Scanner", settingsResult.AnalyzerName);
-        Assert.NotNull(settingsResult.ReportLines);
-        Assert.Contains("XSEModules", settingsResult.Data);
-        Assert.Contains("CrashgenSettings", settingsResult.Data);
+        settingsResult.AnalyzerName.Should().Be("Settings Scanner");
+        settingsResult.ReportLines.Should().NotBeNull();
+        settingsResult.Data.Should().ContainKey("XSEModules");
+        settingsResult.Data.Should().ContainKey("CrashgenSettings");
     }
 
     /// Tests the `AnalyzeAsync` method of the `SettingsScanner` class with a `CrashLog`
@@ -90,14 +91,14 @@ public class SettingsScannerTests
 
         // Assert
         var settingsResult = (GenericAnalysisResult)result;
-        Assert.Equal("Settings Scanner", settingsResult.AnalyzerName);
+        settingsResult.AnalyzerName.Should().Be("Settings Scanner");
 
         // Data should be initialized but empty
         var xseModules = (HashSet<string>)settingsResult.Data["XSEModules"];
         var crashgenSettings = (Dictionary<string, object>)settingsResult.Data["CrashgenSettings"];
 
-        Assert.Empty(xseModules);
-        Assert.Empty(crashgenSettings);
+        xseModules.Should().BeEmpty();
+        crashgenSettings.Should().BeEmpty();
     }
 
     /// Tests the `AnalyzeAsync` method of the `SettingsScanner` class to ensure that
@@ -131,10 +132,10 @@ public class SettingsScannerTests
 
         // Should have run all the settings validation methods
         var reportText = settingsResult.ReportText;
-        Assert.Contains("correctly configured", reportText);
+        reportText.Should().Contain("correctly configured");
 
         // Check that report structure is maintained
-        Assert.NotEmpty(settingsResult.ReportLines);
+        settingsResult.ReportLines.Should().NotBeEmpty();
     }
 
     /// Tests the `AnalyzeAsync` method of the `SettingsScanner` class with a `CrashLog`
@@ -168,11 +169,11 @@ public class SettingsScannerTests
 
         // Assert
         var settingsResult = (GenericAnalysisResult)result;
-        Assert.Equal("Settings Scanner", settingsResult.AnalyzerName);
+        settingsResult.AnalyzerName.Should().Be("Settings Scanner");
 
         // Should contain achievements validation
         var reportText = settingsResult.ReportText;
-        Assert.Contains("Achievements parameter", reportText);
+        reportText.Should().Contain("Achievements parameter");
     }
 
     /// Tests the `AnalyzeAsync` method of the `SettingsScanner` class when analyzing a crash log
@@ -205,7 +206,7 @@ public class SettingsScannerTests
 
         // Should contain memory management validation (defaults to correct setting)
         var reportText = settingsResult.ReportText;
-        Assert.Contains("correctly configured", reportText);
+        reportText.Should().Contain("correctly configured");
     }
 
     /// Tests the `AnalyzeAsync` method of the `SettingsScanner` class with a `CrashLog` containing settings related to the ArchiveLimit parameter.
@@ -236,7 +237,7 @@ public class SettingsScannerTests
 
         // Should contain archive limit validation
         var reportText = settingsResult.ReportText;
-        Assert.Contains("ArchiveLimit parameter", reportText);
+        reportText.Should().Contain("ArchiveLimit parameter");
     }
 
     /// Tests the `AnalyzeAsync` method of the `SettingsScanner` class with a `CrashLog`
@@ -269,7 +270,7 @@ public class SettingsScannerTests
 
         // Should contain F4EE validation (but may not be present with empty settings)
         var reportText = settingsResult.ReportText;
-        Assert.Contains("correctly configured", reportText);
+        reportText.Should().Contain("correctly configured");
     }
 
     /// Tests the `AnalyzeAsync` method of the `SettingsScanner` class
@@ -305,9 +306,9 @@ public class SettingsScannerTests
         var settingsResult2 = (GenericAnalysisResult)result2;
 
         // Should return consistent results
-        Assert.Equal(settingsResult1.AnalyzerName, settingsResult2.AnalyzerName);
-        Assert.Equal(settingsResult1.ReportLines.Count, settingsResult2.ReportLines.Count);
-        Assert.Equal(settingsResult1.HasFindings, settingsResult2.HasFindings);
+        settingsResult2.AnalyzerName.Should().Be(settingsResult1.AnalyzerName);
+        settingsResult2.ReportLines.Count.Should().Be(settingsResult1.ReportLines.Count);
+        settingsResult2.HasFindings.Should().Be(settingsResult1.HasFindings);
     }
 
     /// Validates the `AnalyzeAsync` method of the `SettingsScanner` class when handling
@@ -344,6 +345,6 @@ public class SettingsScannerTests
         var settingsResult = (GenericAnalysisResult)result;
         var reportText = settingsResult.ReportText;
 
-        Assert.Contains("Buffout 4", reportText);
+        reportText.Should().Contain("Buffout 4");
     }
 }

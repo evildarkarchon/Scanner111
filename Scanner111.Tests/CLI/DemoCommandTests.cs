@@ -19,7 +19,7 @@ public class DemoCommandTests : IDisposable
     public async Task ExecuteAsync_DisplaysAllMessageTypesAndProgress()
     {
         // Arrange
-        var command = new DemoCommand();
+        var command = new DemoCommand(_messageCapture);
         var options = new DemoOptions();
 
         // Act

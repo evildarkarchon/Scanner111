@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
@@ -82,12 +83,12 @@ public class ScanPipelineTests : IDisposable
         var result = await _pipeline.ProcessSingleAsync(logPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(logPath, result.LogPath);
-        Assert.Equal(ScanStatus.CompletedWithErrors, result.Status); // Contains one failing analyzer
-        Assert.True(result.ProcessingTime > TimeSpan.Zero);
-        Assert.Equal(4, result.AnalysisResults.Count);
-        Assert.True(result.HasErrors);
+        result.Should().NotBeNull();
+        result.LogPath.Should().Be(logPath);
+        result.Status.Should().Be(ScanStatus.CompletedWithErrors); // Contains one failing analyzer
+        result.ProcessingTime.Should().BeGreaterThan(TimeSpan.Zero);
+        result.AnalysisResults.Count.Should().Be(4);
+        result.HasErrors.Should().BeTrue();
     }
 
     /// <summary>
@@ -109,11 +110,11 @@ public class ScanPipelineTests : IDisposable
         var result = await _pipeline.ProcessSingleAsync(logPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(logPath, result.LogPath);
-        Assert.Equal(ScanStatus.Failed, result.Status);
-        Assert.True(result.HasErrors);
-        Assert.Contains("Failed to parse crash log", result.ErrorMessages.First());
+        result.Should().NotBeNull();
+        result.LogPath.Should().Be(logPath);
+        result.Status.Should().Be(ScanStatus.Failed);
+        result.HasErrors.Should().BeTrue();
+        result.ErrorMessages.First().Should().Contain("Failed to parse crash log");
     }
     // ReSharper disable once InvalidXmlDocComment
     /// <summary>
@@ -138,8 +139,8 @@ public class ScanPipelineTests : IDisposable
         var result = await _pipeline.ProcessSingleAsync(logPath, cts.Token);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(ScanStatus.Cancelled, result.Status);
+        result.Should().NotBeNull();
+        result.Status.Should().Be(ScanStatus.Cancelled);
     }
 
     /// <summary>
@@ -161,18 +162,18 @@ public class ScanPipelineTests : IDisposable
         var result = await _pipeline.ProcessSingleAsync(logPath);
 
         // Assert
-        Assert.Equal(4, result.AnalysisResults.Count);
+        result.AnalysisResults.Count.Should().Be(4);
 
         // Sequential analyzers should run first and be completed
         var sequentialResults = result.AnalysisResults.Where(r => r.AnalyzerName == "MediumPriority").ToList();
-        Assert.Single(sequentialResults);
+        sequentialResults.Should().ContainSingle();
 
         // Parallel analyzers should also be completed
         var parallelResults = result.AnalysisResults.Where(r =>
             r.AnalyzerName == "HighPriority" ||
             r.AnalyzerName == "LowPriority" ||
             r.AnalyzerName == "FailingAnalyzer").ToList();
-        Assert.Equal(3, parallelResults.Count);
+        parallelResults.Count.Should().Be(3);
     }
 
     /// <summary>
@@ -207,13 +208,13 @@ public class ScanPipelineTests : IDisposable
         await foreach (var result in _pipeline.ProcessBatchAsync(logPaths, options, progress)) results.Add(result);
 
         // Assert
-        Assert.Equal(3, results.Count);
-        Assert.All(results, r => Assert.NotEqual(ScanStatus.Failed, r.Status));
-        Assert.True(progressReports.Count > 0);
+        results.Count.Should().Be(3);
+        Assert.All(results, r => r.Status.Should().NotBe(ScanStatus.Failed));
+        progressReports.Count.Should().BeGreaterThan(0);
 
         var finalProgress = progressReports.Last();
-        Assert.Equal(3, finalProgress.TotalFiles);
-        Assert.Equal(3, finalProgress.ProcessedFiles);
+        finalProgress.TotalFiles.Should().Be(3);
+        finalProgress.ProcessedFiles.Should().Be(3);
     }
 
     /// <summary>
@@ -236,8 +237,8 @@ public class ScanPipelineTests : IDisposable
         await foreach (var result in _pipeline.ProcessBatchAsync(logPaths)) results.Add(result);
 
         // Assert
-        Assert.Single(results); // Should only process once due to deduplication
-        Assert.Equal(logPath, results[0].LogPath);
+        results.Should().ContainSingle(); // Should only process once due to deduplication
+        results[0].LogPath.Should().Be(logPath);
     }
     
     /// <summary>
@@ -281,7 +282,7 @@ public class ScanPipelineTests : IDisposable
         }
 
         // Assert
-        Assert.True(results.Count <= logPaths.Length);
+        results.Count.Should().BeLessThanOrEqualTo(logPaths.Length);
     }
 
     /// <summary>
@@ -316,13 +317,13 @@ public class ScanPipelineTests : IDisposable
         await foreach (var result in _pipeline.ProcessBatchAsync(logPaths, progress: progress)) results.Add(result);
 
         // Assert
-        Assert.Equal(3, results.Count);
-        Assert.True(progressReports.Count >= 3); // At least one progress report per file
+        results.Count.Should().Be(3);
+        progressReports.Count.Should().BeGreaterThanOrEqualTo(3); // At least one progress report per file
 
         var finalProgress = progressReports.Last();
-        Assert.Equal(3, finalProgress.TotalFiles);
-        Assert.Equal(3, finalProgress.ProcessedFiles);
-        Assert.True(finalProgress.ElapsedTime > TimeSpan.Zero);
+        finalProgress.TotalFiles.Should().Be(3);
+        finalProgress.ProcessedFiles.Should().Be(3);
+        finalProgress.ElapsedTime.Should().BeGreaterThan(TimeSpan.Zero);
     }
 
     /// <summary>
@@ -350,7 +351,7 @@ public class ScanPipelineTests : IDisposable
         await pipeline.DisposeAsync();
 
         // Assert - No exceptions should be thrown
-        Assert.True(true);
+        true.Should().BeTrue();
     }
 
     /// <summary>
@@ -375,7 +376,7 @@ public class ScanPipelineTests : IDisposable
         await foreach (var result in _pipeline.ProcessBatchAsync(logPaths)) results.Add(result);
 
         // Assert
-        Assert.Empty(results);
+        results.Should().BeEmpty();
     }
 
     /// <summary>
@@ -410,10 +411,10 @@ public class ScanPipelineTests : IDisposable
         var elapsed = DateTime.UtcNow - start;
 
         // Assert
-        Assert.Equal(4, results.Count);
+        results.Count.Should().Be(4);
         // With MaxConcurrency = 1, processing should be more sequential
         // This is hard to test precisely, but we can at least verify all files were processed
-        Assert.All(results, r => Assert.NotEqual(ScanStatus.Failed, r.Status));
+        Assert.All(results, r => r.Status.Should().NotBe(ScanStatus.Failed));
     }
 
     /// <summary>

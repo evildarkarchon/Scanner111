@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
@@ -44,13 +45,14 @@ public class RecordScannerTests
         var result = await _analyzer.AnalyzeAsync(crashLog);
 
         // Assert
-        Assert.IsType<GenericAnalysisResult>(result);
+        result.Should().BeOfType<GenericAnalysisResult>();
         var recordResult = (GenericAnalysisResult)result;
 
-        Assert.Equal("Record Scanner", recordResult.AnalyzerName);
-        Assert.NotNull(recordResult.ReportLines);
-        Assert.Contains("RecordsMatches", recordResult.Data);
-        Assert.Contains("ExtractedRecords", recordResult.Data);
+        recordResult.AnalyzerName.Should().Be("Record Scanner");
+        recordResult.ReportLines.Should().NotBeNull();
+        recordResult.Data.Should()
+            .ContainKey("RecordsMatches")
+            .And.ContainKey("ExtractedRecords");
     }
 
     /// Tests the AnalyzeAsync method of the RecordScanner class to verify that when provided with a CrashLog object containing
@@ -79,14 +81,14 @@ public class RecordScannerTests
 
         // Assert
         var recordResult = (GenericAnalysisResult)result;
-        Assert.False(recordResult.HasFindings);
+        recordResult.HasFindings.Should().BeFalse("no records were found in the call stack");
 
         var recordsMatches = (List<string>)recordResult.Data["RecordsMatches"];
         var extractedRecords = (List<string>)recordResult.Data["ExtractedRecords"];
 
-        Assert.Empty(recordsMatches);
-        Assert.Empty(extractedRecords);
-        Assert.Contains("* COULDN'T FIND ANY NAMED RECORDS *", recordResult.ReportText);
+        recordsMatches.Should().BeEmpty();
+        extractedRecords.Should().BeEmpty();
+        recordResult.ReportText.Should().Contain("* COULDN'T FIND ANY NAMED RECORDS *");
     }
 
     /// Tests the AnalyzeAsync method of the RecordScanner class to ensure that when provided with a crash log containing
@@ -120,11 +122,11 @@ public class RecordScannerTests
 
         // Assert
         var recordResult = (GenericAnalysisResult)result;
-        Assert.Equal("Record Scanner", recordResult.AnalyzerName);
+        recordResult.AnalyzerName.Should().Be("Record Scanner");
 
         // With empty record sets, no records should be found
-        Assert.False(recordResult.HasFindings);
-        Assert.Contains("* COULDN'T FIND ANY NAMED RECORDS *", recordResult.ReportText);
+        recordResult.HasFindings.Should().BeFalse("record sets are empty in the test configuration");
+        recordResult.ReportText.Should().Contain("* COULDN'T FIND ANY NAMED RECORDS *");
     }
 
     /// Tests the AnalyzeAsync method of the RecordScanner class to ensure that, when encountering call stack lines
@@ -154,10 +156,10 @@ public class RecordScannerTests
 
         // Assert
         var recordResult = (GenericAnalysisResult)result;
-        Assert.Equal("Record Scanner", recordResult.AnalyzerName);
+        recordResult.AnalyzerName.Should().Be("Record Scanner");
 
         // With empty record sets, no records should be found
-        Assert.False(recordResult.HasFindings);
+        recordResult.HasFindings.Should().BeFalse("record sets are empty in the test configuration");
     }
 
     /// Tests the AnalyzeAsync method of the RecordScanner class to verify that records are correctly extracted from the call stack of a CrashLog object.
@@ -188,7 +190,7 @@ public class RecordScannerTests
         var extractedRecords = (List<string>)recordResult.Data["ExtractedRecords"];
 
         // Records should be extracted but not matched (due to empty record sets)
-        Assert.Empty(extractedRecords);
+        extractedRecords.Should().BeEmpty("record sets are empty, so no matches are found");
     }
 
     /// Tests the AnalyzeAsync method of the RecordScanner class to ensure that when duplicate crash log records
@@ -220,10 +222,10 @@ public class RecordScannerTests
 
         // Assert
         var recordResult = (GenericAnalysisResult)result;
-        Assert.Equal("Record Scanner", recordResult.AnalyzerName);
+        recordResult.AnalyzerName.Should().Be("Record Scanner");
 
         // Should handle duplicate counting properly when records are found
-        Assert.False(recordResult.HasFindings); // Empty record sets
+        recordResult.HasFindings.Should().BeFalse("record sets are empty in the test configuration");
     }
 
     /// Verifies that the AnalyzeAsync method of the RecordScanner class generates a correctly formatted report
@@ -254,11 +256,12 @@ public class RecordScannerTests
         var reportText = recordResult.ReportText;
 
         // Should contain the "no records found" message
-        Assert.Contains("* COULDN'T FIND ANY NAMED RECORDS *", reportText);
+        reportText.Should().Contain("* COULDN'T FIND ANY NAMED RECORDS *");
 
         // Report structure should be correct
-        Assert.NotNull(recordResult.ReportLines);
-        Assert.Single(recordResult.ReportLines);
+        recordResult.ReportLines.Should()
+            .NotBeNull()
+            .And.ContainSingle("report should have one line for the 'no records' message");
     }
 
     /// Tests the AnalyzeAsync method of the RecordScanner class to verify that when provided with crash logs containing explanatory notes,
@@ -294,8 +297,8 @@ public class RecordScannerTests
         // - Information about the crash generator
         // - Notes about named records providing extra info
 
-        Assert.Equal("Record Scanner", recordResult.AnalyzerName);
-        Assert.NotNull(recordResult.ReportLines);
+        recordResult.AnalyzerName.Should().Be("Record Scanner");
+        recordResult.ReportLines.Should().NotBeNull();
     }
 
     /// Tests the AnalyzeAsync method of the RecordScanner class to ensure that when a crash log with a specific CrashGen name
@@ -324,10 +327,10 @@ public class RecordScannerTests
 
         // Assert
         var recordResult = (GenericAnalysisResult)result;
-        Assert.Equal("Record Scanner", recordResult.AnalyzerName);
+        recordResult.AnalyzerName.Should().Be("Record Scanner");
 
         // The crashgen name would be used in explanatory notes when records are found
-        Assert.NotNull(recordResult.ReportLines);
+        recordResult.ReportLines.Should().NotBeNull();
     }
 
     /// Validates that the AnalyzeAsync method of the RecordScanner class, when executed multiple times with the same input crash log,
@@ -357,8 +360,8 @@ public class RecordScannerTests
         var recordResult2 = (GenericAnalysisResult)result2;
 
         // Should return consistent results
-        Assert.Equal(recordResult1.AnalyzerName, recordResult2.AnalyzerName);
-        Assert.Equal(recordResult1.ReportLines.Count, recordResult2.ReportLines.Count);
-        Assert.Equal(recordResult1.HasFindings, recordResult2.HasFindings);
+        recordResult1.AnalyzerName.Should().Be(recordResult2.AnalyzerName, "analyzer name should be consistent");
+        recordResult1.ReportLines.Should().HaveCount(recordResult2.ReportLines.Count, "report lines count should be consistent");
+        recordResult1.HasFindings.Should().Be(recordResult2.HasFindings, "findings status should be consistent");
     }
 }

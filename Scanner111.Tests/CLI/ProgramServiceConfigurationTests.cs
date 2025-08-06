@@ -1,7 +1,9 @@
+using System;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Scanner111.CLI.Commands;
+using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Services;
@@ -18,8 +20,8 @@ public class ProgramServiceConfigurationTests
         // Arrange
         var services = new ServiceCollection();
         
-        // Act - Manually register services as they are in Program.cs
-        ConfigureServicesForTesting(services);
+        // Act - Manually register services as they are in Program.cs (default without legacy flag)
+        ConfigureServicesForTesting(services, useLegacyProgress: false);
         
         var serviceProvider = services.BuildServiceProvider();
         
@@ -57,7 +59,7 @@ public class ProgramServiceConfigurationTests
         var services = new ServiceCollection();
         
         // Act
-        ConfigureServicesForTesting(services);
+        ConfigureServicesForTesting(services, useLegacyProgress: false);
         
         // Assert - Verify singleton registrations
         var singletonTypes = new[]
@@ -107,7 +109,7 @@ public class ProgramServiceConfigurationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        ConfigureServicesForTesting(services);
+        ConfigureServicesForTesting(services, useLegacyProgress: false);
         
         var serviceProvider = services.BuildServiceProvider();
         
@@ -152,9 +154,62 @@ public class ProgramServiceConfigurationTests
             Assert.False(OperatingSystem.IsWindows());
         }
     }
+
+    [Fact]
+    public void ConfigureServices_WithLegacyProgress_UsesSpectreMessageHandler()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        
+        // Act - Configure with legacy progress flag
+        ConfigureServicesForTesting(services, useLegacyProgress: true);
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var messageHandler = serviceProvider.GetRequiredService<IMessageHandler>();
+        
+        // Assert
+        Assert.NotNull(messageHandler);
+        Assert.IsType<SpectreMessageHandler>(messageHandler);
+    }
+
+    [Fact]
+    public void ConfigureServices_WithoutLegacyProgress_UsesEnhancedSpectreMessageHandler()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        
+        // Act - Configure without legacy progress flag (default)
+        ConfigureServicesForTesting(services, useLegacyProgress: false);
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var messageHandler = serviceProvider.GetRequiredService<IMessageHandler>();
+        
+        // Assert
+        Assert.NotNull(messageHandler);
+        Assert.IsType<EnhancedSpectreMessageHandler>(messageHandler);
+    }
+
+    [Theory]
+    [InlineData(true, typeof(SpectreMessageHandler))]
+    [InlineData(false, typeof(EnhancedSpectreMessageHandler))]
+    public void ConfigureServices_MessageHandlerType_DependsOnLegacyFlag(bool useLegacyProgress, Type expectedHandlerType)
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        
+        // Act
+        ConfigureServicesForTesting(services, useLegacyProgress);
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var messageHandler = serviceProvider.GetRequiredService<IMessageHandler>();
+        
+        // Assert
+        Assert.NotNull(messageHandler);
+        Assert.IsType(expectedHandlerType, messageHandler);
+    }
     
     // Helper method that duplicates the service configuration from Program.cs
-    private static void ConfigureServicesForTesting(IServiceCollection services)
+    private static void ConfigureServicesForTesting(IServiceCollection services, bool useLegacyProgress = false)
     {
         // Configure logging
         services.AddLogging(builder =>
@@ -176,7 +231,18 @@ public class ProgramServiceConfigurationTests
         services.AddSingleton<ICliSettingsService, CliSettingsService>();
         services.AddSingleton<IFileScanService, FileScanService>();
         services.AddSingleton<IScanResultProcessor, ScanResultProcessor>();
-        services.AddSingleton<IMessageHandler, CliMessageHandler>();
+        
+        // Use enhanced message handler by default, legacy if specified
+        if (useLegacyProgress)
+        {
+            services.AddSingleton<IMessageHandler, SpectreMessageHandler>();
+        }
+        else
+        {
+            services.AddSingleton<IMessageHandler, EnhancedSpectreMessageHandler>();
+        }
+        
+        services.AddSingleton<ITerminalUIService, SpectreTerminalUIService>();
 
         // Register FCX services
         services.AddSingleton<IHashValidationService, HashValidationService>();
@@ -191,5 +257,14 @@ public class ProgramServiceConfigurationTests
         services.AddTransient<ConfigCommand>();
         services.AddTransient<AboutCommand>();
         services.AddTransient<FcxCommand>();
+        services.AddTransient<InteractiveCommand>();
+        
+        // Register ICommand interfaces for injection
+        services.AddTransient<ICommand<Scanner111.CLI.Models.ScanOptions>, ScanCommand>();
+        services.AddTransient<ICommand<DemoOptions>, DemoCommand>();
+        services.AddTransient<ICommand<ConfigOptions>, ConfigCommand>();
+        services.AddTransient<ICommand<AboutOptions>, AboutCommand>();
+        services.AddTransient<ICommand<FcxOptions>, FcxCommand>();
+        services.AddTransient<ICommand<InteractiveOptions>, InteractiveCommand>();
     }
 }

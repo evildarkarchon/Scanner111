@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
@@ -49,12 +50,12 @@ public class MultiGameDetectionTests : IDisposable
         var config = DetectGameConfigurationFromPath(mockGamePath, "Fallout4");
 
         // Assert
-        Assert.NotNull(config);
-        Assert.Equal("Fallout4", config.GameName);
-        Assert.Equal(mockGamePath, config.RootPath);
-        Assert.Contains("Fallout4.exe", config.ExecutablePath);
-        Assert.NotEmpty(config.DocumentsPath);
-        Assert.NotEmpty(config.Platform);
+        config.Should().NotBeNull();
+        config.GameName.Should().Be("Fallout4");
+        config.RootPath.Should().Be(mockGamePath);
+        config.ExecutablePath.Should().Contain("Fallout4.exe");
+        config.DocumentsPath.Should().NotBeEmpty();
+        config.Platform.Should().NotBeEmpty();
     }
 
     [Fact]
@@ -72,10 +73,10 @@ public class MultiGameDetectionTests : IDisposable
         var config = DetectGameConfigurationFromPath(mockGamePath, "Fallout4VR");
 
         // Assert
-        Assert.NotNull(config);
-        Assert.Equal("Fallout4VR", config.GameName);
-        Assert.Equal(mockGamePath, config.RootPath);
-        Assert.Contains("Fallout4VR.exe", config.ExecutablePath);
+        config.Should().NotBeNull();
+        config.GameName.Should().Be("Fallout4VR");
+        config.RootPath.Should().Be(mockGamePath);
+        config.ExecutablePath.Should().Contain("Fallout4VR.exe");
     }
 
     [Fact]
@@ -95,9 +96,9 @@ public class MultiGameDetectionTests : IDisposable
         var config = DetectGameConfigurationFromPath(mockGamePath, "Fallout4");
 
         // Assert
-        Assert.NotNull(config);
-        Assert.NotNull(config.XsePath);
-        Assert.Contains("f4se_loader.exe", config.XsePath);
+        config.Should().NotBeNull();
+        config.XsePath.Should().NotBeNull();
+        config.XsePath.Should().Contain("f4se_loader.exe");
     }
 
     [Fact]
@@ -130,7 +131,7 @@ public class MultiGameDetectionTests : IDisposable
         }
 
         // Assert
-        Assert.Equal(2, detectedGames.Count); // Currently only Fallout4 and Fallout4VR
+        detectedGames.Count.Should().Be(2); // Currently only Fallout4 and Fallout4VR
         Assert.Contains(detectedGames, g => g.GameName == "Fallout4");
         Assert.Contains(detectedGames, g => g.GameName == "Fallout4VR");
     }
@@ -152,8 +153,8 @@ public class MultiGameDetectionTests : IDisposable
         var detectedPlatform = DetectPlatformFromPath(mockGamePath);
 
         // Assert
-        Assert.NotNull(config);
-        Assert.Equal(expectedPlatform, detectedPlatform);
+        config.Should().NotBeNull();
+        detectedPlatform.Should().Be(expectedPlatform);
     }
 
     [Fact]
@@ -171,7 +172,7 @@ public class MultiGameDetectionTests : IDisposable
         var version = DetectGameVersionFromExecutable(exePath);
 
         // Assert
-        Assert.NotNull(version);
+        version.Should().NotBeNull();
         // Version detection would normally use hash lookup
     }
 
@@ -193,7 +194,7 @@ public class MultiGameDetectionTests : IDisposable
         var isValid = ValidateGameInstallation(mockGamePath, "Fallout4");
 
         // Assert
-        Assert.True(isValid);
+        isValid.Should().BeTrue();
     }
 
     [Fact]
@@ -210,7 +211,7 @@ public class MultiGameDetectionTests : IDisposable
         var isValid = ValidateGameInstallation(mockGamePath, "Fallout4");
 
         // Assert
-        Assert.False(isValid);
+        isValid.Should().BeFalse();
     }
 
     [Fact]
@@ -229,7 +230,7 @@ Unhandled exception at 0x7FF6A1234567
         var detectedGame = DetectGameFromCrashLog(crashLogPath);
 
         // Assert
-        Assert.Equal("Fallout4", detectedGame);
+        detectedGame.Should().Be("Fallout4");
     }
 
     [SkippableFact]
@@ -242,7 +243,7 @@ Unhandled exception at 0x7FF6A1234567
 
         // Assert
         // Results depend on actual system configuration
-        Assert.NotNull(installedGames);
+        installedGames.Should().NotBeNull();
     }
 
     [Fact]
@@ -263,8 +264,8 @@ gameName=Fallout 4
         var config = DetectGameConfigurationFromMO2(mo2Path);
 
         // Assert
-        Assert.NotNull(config);
-        Assert.Equal(gamePath, config.RootPath);
+        config.Should().NotBeNull();
+        config.RootPath.Should().Be(gamePath);
     }
 
     [Fact]
@@ -285,7 +286,7 @@ gameName=Fallout 4
         // Config might be null if Vortex isn't installed
         if (config != null)
         {
-            Assert.Equal("Fallout4", config.GameName);
+            config.GameName.Should().Be("Fallout4");
         }
     }
 
@@ -310,8 +311,8 @@ gameName=Fallout 4
         }
 
         // Assert
-        Assert.Single(configs);
-        Assert.Equal(gameName, configs[0].GameName);
+        configs.Should().ContainSingle();
+        configs[0].GameName.Should().Be(gameName);
     }
 
     // Helper methods

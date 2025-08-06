@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Analyzers;
@@ -131,12 +132,12 @@ public class EnhancedScanPipelineTests : IDisposable
         var result = await _pipeline.ProcessSingleAsync(_testLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(_testLogPath, result.LogPath);
-        Assert.Equal(ScanStatus.Completed, result.Status);
-        Assert.NotNull(result.CrashLog);
-        Assert.Equal(3, result.AnalysisResults.Count); // Should have results from all 3 analyzers
-        Assert.True(result.ProcessingTime.TotalMilliseconds > 0);
+        result.Should().NotBeNull();
+        result.LogPath.Should().Be(_testLogPath);
+        result.Status.Should().Be(ScanStatus.Completed);
+        result.CrashLog.Should().NotBeNull();
+        result.AnalysisResults.Count.Should().Be(3); // Should have results from all 3 analyzers
+        result.ProcessingTime.TotalMilliseconds.Should().BeGreaterThan(0);
     }
 
     /// <summary>
@@ -188,10 +189,10 @@ public class EnhancedScanPipelineTests : IDisposable
         var result = await _pipeline.ProcessSingleAsync("nonexistent.log");
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("nonexistent.log", result.LogPath);
-        Assert.Equal(ScanStatus.Failed, result.Status);
-        Assert.True(result.HasErrors);
+        result.Should().NotBeNull();
+        result.LogPath.Should().Be("nonexistent.log");
+        result.Status.Should().Be(ScanStatus.Failed);
+        result.HasErrors.Should().BeTrue();
     }
 
     /// <summary>
@@ -225,14 +226,14 @@ public class EnhancedScanPipelineTests : IDisposable
         await foreach (var result in _pipeline.ProcessBatchAsync(testFiles, progress: progress)) results.Add(result);
 
         // Assert
-        Assert.Single(results);
-        Assert.Equal(ScanStatus.Completed, results[0].Status);
-        Assert.NotEmpty(progressReports);
+        results.Should().ContainSingle();
+        results[0].Status.Should().Be(ScanStatus.Completed);
+        progressReports.Should().NotBeEmpty();
 
         var finalProgress = progressReports.Last();
-        Assert.Equal(1, finalProgress.TotalFiles);
-        Assert.Equal(1, finalProgress.ProcessedFiles);
-        Assert.Equal(1, finalProgress.SuccessfulScans);
+        finalProgress.TotalFiles.Should().Be(1);
+        finalProgress.ProcessedFiles.Should().Be(1);
+        finalProgress.SuccessfulScans.Should().Be(1);
     }
 
     /// <summary>
@@ -264,13 +265,13 @@ public class EnhancedScanPipelineTests : IDisposable
         var duration = DateTime.UtcNow - startTime;
 
         // Assert
-        Assert.Equal(10, results.Count);
+        results.Count.Should().Be(10);
         // Note: Some results may fail since we're using non-existent file paths with suffixes
-        Assert.All(results, r => Assert.True(r.Status == ScanStatus.Completed || r.Status == ScanStatus.Failed));
+        Assert.All(results, r => (r.Status == ScanStatus.Completed || r.Status == ScanStatus.Failed).Should().BeTrue());
 
         // With concurrency limit of 2, processing should take longer than if all were parallel
         // This is a rough test - in practice, timing tests can be flaky
-        Assert.True(duration.TotalMilliseconds > 0);
+        duration.TotalMilliseconds.Should().BeGreaterThan(0);
     }
 
     /// <summary>
@@ -298,13 +299,13 @@ public class EnhancedScanPipelineTests : IDisposable
         await foreach (var result in _pipeline.ProcessBatchAsync(testFiles)) results.Add(result);
 
         // Assert
-        Assert.Equal(2, results.Count);
+        results.Count.Should().Be(2);
 
         var validResult = results.First(r => r.LogPath == validFile);
         var invalidResult = results.First(r => r.LogPath == invalidFile);
 
-        Assert.Equal(ScanStatus.Completed, validResult.Status);
-        Assert.Equal(ScanStatus.Failed, invalidResult.Status);
+        validResult.Status.Should().Be(ScanStatus.Completed);
+        invalidResult.Status.Should().Be(ScanStatus.Failed);
     }
 
     /// <summary>
@@ -346,8 +347,8 @@ public class EnhancedScanPipelineTests : IDisposable
         }
 
         // Assert
-        Assert.NotNull(caughtException);
-        Assert.True(results.Count < testFiles.Count); // Should not process all files
+        caughtException.Should().NotBeNull();
+        results.Count.Should().BeLessThan(testFiles.Count); // Should not process all files
 
         // Give time for any in-flight operations to complete
         await Task.Delay(100);
@@ -409,7 +410,7 @@ public class EnhancedScanPipelineTests : IDisposable
         await testPipeline.ProcessSingleAsync(_testLogPath);
 
         // Assert
-        Assert.Equal(new[] { "High", "Medium", "Low" }, executionOrder);
+        executionOrder.Should().BeEquivalentTo(new[] { "High", "Medium", "Low" }, options => options.WithStrictOrdering());
     }
 
     /// <summary>

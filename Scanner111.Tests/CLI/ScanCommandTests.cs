@@ -25,7 +25,7 @@ public class ScanCommandTests : IDisposable
         _mockSettingsService = new MockCliSettingsService();
         _mockFileScanService = new MockFileScanService();
         _mockResultProcessor = new MockScanResultProcessor();
-        _command = new ScanCommand(_mockSettingsService, _mockFileScanService, _mockResultProcessor);
+        _command = new ScanCommand(_mockSettingsService, _mockFileScanService, _mockResultProcessor, _messageCapture);
     }
 
     [Fact]

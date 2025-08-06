@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
@@ -59,12 +60,12 @@ public class SuspectScannerTests
         var result = await _analyzer.AnalyzeAsync(crashLog);
 
         // Assert
-        Assert.IsType<SuspectAnalysisResult>(result);
+        result.Should().BeOfType<SuspectAnalysisResult>();
         var suspectResult = (SuspectAnalysisResult)result;
 
-        Assert.Equal("Suspect Scanner", suspectResult.AnalyzerName);
-        Assert.True(suspectResult.HasFindings);
-        Assert.NotEmpty(suspectResult.ReportLines);
+        suspectResult.AnalyzerName.Should().Be("Suspect Scanner");
+        suspectResult.HasFindings.Should().BeTrue();
+        suspectResult.ReportLines.Should().NotBeEmpty();
     }
 
     /// Validates that the AnalyzeAsync method returns an empty SuspectAnalysisResult
@@ -98,9 +99,9 @@ public class SuspectScannerTests
 
         // Assert
         var suspectResult = (SuspectAnalysisResult)result;
-        Assert.False(suspectResult.HasFindings);
-        Assert.Empty(suspectResult.ErrorMatches);
-        Assert.Empty(suspectResult.StackMatches);
+        suspectResult.HasFindings.Should().BeFalse();
+        suspectResult.ErrorMatches.Should().BeEmpty();
+        suspectResult.StackMatches.Should().BeEmpty();
     }
 
     /// Validates that the AnalyzeAsync method correctly detects and reports a DLL-related crash
@@ -135,10 +136,8 @@ public class SuspectScannerTests
 
         // Assert
         var suspectResult = (SuspectAnalysisResult)result;
-        Assert.Contains("* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! *",
-            suspectResult.ReportText);
-        Assert.Contains("If that dll file belongs to a mod, that mod is a prime suspect for the crash.",
-            suspectResult.ReportText);
+        suspectResult.ReportText.Should().Contain("* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! *");
+        suspectResult.ReportText.Should().Contain("If that dll file belongs to a mod, that mod is a prime suspect for the crash.");
     }
 
     /// Ensures that the AnalyzeAsync method of the SuspectScanner class correctly ignores
@@ -169,8 +168,7 @@ public class SuspectScannerTests
 
         // Assert
         var suspectResult = (SuspectAnalysisResult)result;
-        Assert.DoesNotContain("* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! *",
-            suspectResult.ReportText);
+        suspectResult.ReportText.Should().NotContain("* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! *");
     }
 
     /// Verifies that the AnalyzeAsync method correctly identifies and detects main error suspects
@@ -203,11 +201,11 @@ public class SuspectScannerTests
 
         // Assert
         var suspectResult = (SuspectAnalysisResult)result;
-        Assert.True(suspectResult.HasFindings);
-        Assert.Contains("Access Violation", suspectResult.ReportText);
-        Assert.Contains("Null Pointer", suspectResult.ReportText);
-        Assert.Contains("Severity : 5", suspectResult.ReportText);
-        Assert.Contains("Severity : 4", suspectResult.ReportText);
+        suspectResult.HasFindings.Should().BeTrue();
+        suspectResult.ReportText.Should().Contain("Access Violation");
+        suspectResult.ReportText.Should().Contain("Null Pointer");
+        suspectResult.ReportText.Should().Contain("Severity : 5");
+        suspectResult.ReportText.Should().Contain("Severity : 4");
     }
 
     /// Ensures that the AnalyzeAsync method correctly identifies stack-related suspects
@@ -247,12 +245,12 @@ public class SuspectScannerTests
         var reportText = suspectResult.ReportText;
 
         // The stack suspects should be found
-        Assert.True(suspectResult.HasFindings);
+        suspectResult.HasFindings.Should().BeTrue();
         // Stack Overflow requires ME-REQ (main error match) which we don't have, so it won't be found
-        // Assert.Contains("Stack Overflow", reportText);
-        Assert.Contains("Invalid Handle", reportText);
-        // Assert.Contains("Severity : HIGH", reportText);
-        Assert.Contains("Severity : 4", reportText);
+        // reportText.Should().Contain("Stack Overflow");
+        reportText.Should().Contain("Invalid Handle");
+        // reportText.Should().Contain("Severity : HIGH");
+        reportText.Should().Contain("Severity : 4");
     }
 
     /// Validates that the AnalyzeAsync method enforces the requirement
@@ -289,8 +287,8 @@ public class SuspectScannerTests
 
         // Assert
         var suspectResult1 = (SuspectAnalysisResult)result1;
-        Assert.True(suspectResult1.HasFindings);
-        Assert.Contains("Stack Overflow", suspectResult1.ReportText);
+        suspectResult1.HasFindings.Should().BeTrue();
+        suspectResult1.ReportText.Should().Contain("Stack Overflow");
 
         // Arrange - main error does NOT have required pattern
         var crashLog2 = new CrashLog
@@ -310,7 +308,7 @@ public class SuspectScannerTests
         // Assert
         var suspectResult2 = (SuspectAnalysisResult)result2;
         // Should not find Stack Overflow because ME-REQ pattern wasn't in main error
-        Assert.DoesNotContain("Stack Overflow", suspectResult2.ReportText);
+        suspectResult2.ReportText.Should().NotContain("Stack Overflow");
     }
 
     /// Validates that the AnalyzeAsync method enforces a minimum occurrence
@@ -348,8 +346,8 @@ public class SuspectScannerTests
 
         // Assert
         var suspectResult1 = (SuspectAnalysisResult)result1;
-        Assert.True(suspectResult1.HasFindings);
-        Assert.Contains("Invalid Handle", suspectResult1.ReportText);
+        suspectResult1.HasFindings.Should().BeTrue();
+        suspectResult1.ReportText.Should().Contain("Invalid Handle");
 
         // Arrange - has only 1 occurrence (doesn't meet minimum of 2)
         var crashLog2 = new CrashLog
@@ -369,7 +367,7 @@ public class SuspectScannerTests
         // Assert
         var suspectResult2 = (SuspectAnalysisResult)result2;
         // Should not find Invalid Handle because it didn't meet minimum count of 2
-        Assert.DoesNotContain("Invalid Handle", suspectResult2.ReportText);
+        suspectResult2.ReportText.Should().NotContain("Invalid Handle");
     }
 
     /// Confirms that the AnalyzeAsync method correctly skips analyzing suspect data
@@ -406,8 +404,8 @@ public class SuspectScannerTests
 
         // Assert
         var suspectResult1 = (SuspectAnalysisResult)result1;
-        Assert.True(suspectResult1.HasFindings);
-        Assert.Contains("Debug Assert", suspectResult1.ReportText);
+        suspectResult1.HasFindings.Should().BeTrue();
+        suspectResult1.ReportText.Should().Contain("Debug Assert");
 
         // Arrange - HAS the negative pattern
         var crashLog2 = new CrashLog
@@ -428,7 +426,7 @@ public class SuspectScannerTests
         // Assert
         var suspectResult2 = (SuspectAnalysisResult)result2;
         // Should not find Debug Assert because NOT pattern was found
-        Assert.DoesNotContain("Debug Assert", suspectResult2.ReportText);
+        suspectResult2.ReportText.Should().NotContain("Debug Assert");
     }
 
     /// Validates that the AnalyzeAsync method performs correctly when handling case-insensitive
@@ -466,10 +464,10 @@ public class SuspectScannerTests
 
         // If no matches found, HasFindings will be false, so let's check the actual behavior
         if (suspectResult.HasFindings)
-            Assert.Contains("Access Violation", reportText);
+            reportText.Should().Contain("Access Violation");
         else
             // The test shows case-insensitive matching isn't working as expected
             // This could be a configuration issue or the actual case-sensitive matching
-            Assert.False(suspectResult.HasFindings);
+            suspectResult.HasFindings.Should().BeFalse();
     }
 }

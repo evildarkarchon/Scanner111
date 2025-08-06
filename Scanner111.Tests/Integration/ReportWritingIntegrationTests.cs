@@ -1,4 +1,5 @@
 using System.Text;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
@@ -72,17 +73,17 @@ public class ReportWritingIntegrationTests : IDisposable
 
         // Act
         var scanResult = await pipeline.ProcessSingleAsync(testLogPath);
-        Assert.NotNull(scanResult);
+        scanResult.Should().NotBeNull();
 
         var writeSuccess = await reportWriter.WriteReportAsync(scanResult);
 
         // Assert
-        Assert.True(writeSuccess);
-        Assert.True(File.Exists(expectedReportPath));
+        writeSuccess.Should().BeTrue();
+        File.Exists(expectedReportPath).Should().BeTrue();
 
         var reportContent = await File.ReadAllTextAsync(expectedReportPath, Encoding.UTF8);
         // Note: Report content may be empty for logs without plugin lists - this is expected behavior
-        Assert.Equal(scanResult.ReportText, reportContent);
+        reportContent.Should().Be(scanResult.ReportText);
     }
 
     /// Validates whether the ScanPipeline, when configured for batch processing,
@@ -130,17 +131,17 @@ public class ReportWritingIntegrationTests : IDisposable
         }
 
         // Assert
-        Assert.Equal(3, results.Count);
+        results.Count.Should().Be(3);
 
         foreach (var logFile in logFiles)
         {
             var expectedReportPath = Path.ChangeExtension(logFile, null) + "-AUTOSCAN.md";
-            Assert.True(File.Exists(expectedReportPath));
+            File.Exists(expectedReportPath).Should().BeTrue();
 
             // Note: Report content may be empty for logs without plugin lists - this is expected
             var reportContent = await File.ReadAllTextAsync(expectedReportPath, Encoding.UTF8);
             // Just verify the file was created and is readable
-            Assert.NotNull(reportContent);
+            reportContent.Should().NotBeNull();
         }
     }
 
@@ -186,12 +187,12 @@ public class ReportWritingIntegrationTests : IDisposable
         if (userSettings.AutoSaveResults) saveResult = await reportWriter.WriteReportAsync(scanResult);
 
         // Assert
-        Assert.True(saveResult);
-        Assert.True(File.Exists(scanResult.OutputPath));
+        saveResult.Should().BeTrue();
+        File.Exists(scanResult.OutputPath).Should().BeTrue();
 
         var reportContent = await File.ReadAllTextAsync(scanResult.OutputPath, Encoding.UTF8);
-        Assert.Equal(scanResult.ReportText, reportContent);
-        Assert.Contains("GUI generated report", reportContent);
+        reportContent.Should().Be(scanResult.ReportText);
+        reportContent.Should().Contain("GUI generated report");
     }
 
     /// Verifies the behavior of CLI auto-save functionality with different application settings.
@@ -236,8 +237,8 @@ public class ReportWritingIntegrationTests : IDisposable
             saveResult = await reportWriter.WriteReportAsync(scanResult);
 
         // Assert
-        Assert.True(saveResult);
-        Assert.True(File.Exists(scanResult.OutputPath));
+        saveResult.Should().BeTrue();
+        File.Exists(scanResult.OutputPath).Should().BeTrue();
 
         // Test with AutoSaveResults disabled
         var testLogPath2 = Path.Combine(_tempDirectory, "cli-test-crash-2.log");
@@ -258,8 +259,8 @@ public class ReportWritingIntegrationTests : IDisposable
             saveResult2 = await reportWriter.WriteReportAsync(scanResult2);
 
         // Assert - file should not be created because auto-save is disabled
-        Assert.False(saveResult2);
-        Assert.False(File.Exists(scanResult2.OutputPath));
+        saveResult2.Should().BeFalse();
+        File.Exists(scanResult2.OutputPath).Should().BeFalse();
     }
 
     /// Validates that the ReportWriter correctly generates a valid report file
@@ -311,22 +312,22 @@ public class ReportWritingIntegrationTests : IDisposable
 
         // Act
         var scanResult = await pipeline.ProcessSingleAsync(tempLogPath);
-        Assert.NotNull(scanResult);
+        scanResult.Should().NotBeNull();
 
         var writeSuccess = await reportWriter.WriteReportAsync(scanResult);
 
         // Assert
-        Assert.True(writeSuccess);
-        Assert.True(File.Exists(expectedReportPath));
+        writeSuccess.Should().BeTrue();
+        File.Exists(expectedReportPath).Should().BeTrue();
 
         var reportContent = await File.ReadAllTextAsync(expectedReportPath, Encoding.UTF8);
 
         // Verify no OPC content in the generated report (regardless of whether report is empty)
-        Assert.DoesNotContain("OPC INSTALLER", reportContent);
-        Assert.DoesNotContain("PATCHED THROUGH OPC", reportContent);
+        reportContent.Should().NotContain("OPC INSTALLER");
+        reportContent.Should().NotContain("PATCHED THROUGH OPC");
 
         // Verify report structure matches scan result
-        Assert.Equal(scanResult.ReportText, reportContent);
+        reportContent.Should().Be(scanResult.ReportText);
     }
 
     /// Verifies the integration of ScanResultViewModel and ReportWriter components.
@@ -367,16 +368,16 @@ public class ReportWritingIntegrationTests : IDisposable
         var writeSuccess = await reportWriter.WriteReportAsync(viewModel.ScanResult);
 
         // Assert
-        Assert.True(writeSuccess);
-        Assert.True(File.Exists(viewModel.ScanResult.OutputPath));
+        writeSuccess.Should().BeTrue();
+        File.Exists(viewModel.ScanResult.OutputPath).Should().BeTrue();
 
         var reportContent = await File.ReadAllTextAsync(viewModel.ScanResult.OutputPath, Encoding.UTF8);
-        Assert.Contains("ViewModel integration test", reportContent);
-        Assert.Contains("✓ Test successful", reportContent);
+        reportContent.Should().Contain("ViewModel integration test");
+        reportContent.Should().Contain("✓ Test successful");
 
         // Verify view model properties
-        Assert.Equal(Path.GetFileName(testLogPath), viewModel.Description);
-        Assert.Equal("Completed", viewModel.Category);
+        viewModel.Description.Should().Be(Path.GetFileName(testLogPath));
+        viewModel.Category.Should().Be("Completed");
     }
 
     /// Creates a sample crash log file with predefined content for testing purposes.

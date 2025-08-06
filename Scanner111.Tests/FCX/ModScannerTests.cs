@@ -78,7 +78,11 @@ public class ModScannerTests : IDisposable
         // Create test files
         CreateTestFile(Path.Combine(modPath, "TestMod", "textures", "test.dds"), CreateValidDdsHeader());
         CreateTestFile(Path.Combine(modPath, "TestMod", "test.txt"), "readme content");
-        CreateTestFile(Path.Combine(modPath, "TestMod", "archive.ba2"), CreateValidBa2Header());
+        // Create BA2 file with invalid format to avoid BSArch execution
+        var invalidBa2Header = new byte[12];
+        Encoding.ASCII.GetBytes("BTDX").CopyTo(invalidBa2Header, 0);
+        Encoding.ASCII.GetBytes("TEST").CopyTo(invalidBa2Header, 8); // Invalid format type
+        CreateTestFile(Path.Combine(modPath, "TestMod", "archive.ba2"), invalidBa2Header);
         
         var progress = new Progress<string>();
         var progressMessages = new List<string>();
@@ -267,13 +271,10 @@ public class ModScannerTests : IDisposable
         var modPath = Path.Combine(_testDirectory, "Mods");
         Directory.CreateDirectory(modPath);
         
-        // Create invalid BA2 file
+        // Create invalid BA2 file - this will be detected as invalid format and won't trigger BSArch execution
         CreateTestFile(Path.Combine(modPath, "invalid.ba2"), Encoding.ASCII.GetBytes("INVA0000LIDT"));
         
-        // Mock BSArch.exe existence
-        var bsarchPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "BSArch.exe");
-        Directory.CreateDirectory(Path.GetDirectoryName(bsarchPath)!);
-        CreateTestFile(bsarchPath, new byte[] { 0x4D, 0x5A }); // MZ header
+        // No need to create BSArch.exe since invalid BA2 files won't trigger its execution
         
         // Act
         var result = await _scanner.ScanArchivedModsAsync(modPath);
@@ -291,19 +292,22 @@ public class ModScannerTests : IDisposable
         var modPath = Path.Combine(_testDirectory, "Mods");
         Directory.CreateDirectory(modPath);
         
-        CreateTestFile(Path.Combine(modPath, "prp - main.ba2"), CreateValidBa2Header());
-        CreateTestFile(Path.Combine(modPath, "regular.ba2"), CreateValidBa2Header());
+        // Create BA2 files with invalid headers to avoid BSArch execution
+        // Use a header that's recognized as BA2 but not valid for processing
+        var invalidButRecognizedHeader = new byte[12];
+        Encoding.ASCII.GetBytes("BTDX").CopyTo(invalidButRecognizedHeader, 0);
+        Encoding.ASCII.GetBytes("INVL").CopyTo(invalidButRecognizedHeader, 8); // Invalid format type
         
-        // Mock BSArch.exe existence
-        var bsarchPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "BSArch.exe");
-        Directory.CreateDirectory(Path.GetDirectoryName(bsarchPath)!);
-        CreateTestFile(bsarchPath, new byte[] { 0x4D, 0x5A });
+        CreateTestFile(Path.Combine(modPath, "prp - main.ba2"), invalidButRecognizedHeader);
+        CreateTestFile(Path.Combine(modPath, "regular.ba2"), invalidButRecognizedHeader);
         
         // Act
         var result = await _scanner.ScanArchivedModsAsync(modPath);
         
         // Assert
-        Assert.Equal(2, result.TotalArchivesScanned); // Both files are counted, but prp - main.ba2 is skipped in processing
+        Assert.Equal(2, result.TotalArchivesScanned); // Both files are counted
+        // Only regular.ba2 will have format issue since prp - main.ba2 is skipped before format check
+        Assert.Equal(1, result.Issues.Count(i => i.Type == ModIssueType.ArchiveFormatIncorrect));
     }
 
     [Fact]

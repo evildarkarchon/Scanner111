@@ -18,6 +18,7 @@ public class FcxCommand : ICommand<FcxOptions>
     private readonly IApplicationSettingsService _appSettingsService;
     private readonly IYamlSettingsProvider _yamlSettings;
     private readonly ILogger<FcxCommand> _logger;
+    private readonly IMessageHandler _messageHandler;
     
     public FcxCommand(
         ICliSettingsService settingsService,
@@ -25,23 +26,23 @@ public class FcxCommand : ICommand<FcxOptions>
         IBackupService backupService,
         IApplicationSettingsService appSettingsService,
         IYamlSettingsProvider yamlSettings,
-        ILogger<FcxCommand> logger)
+        ILogger<FcxCommand> logger,
+        IMessageHandler messageHandler)
     {
-        _settingsService = settingsService;
-        _hashService = hashService;
-        _backupService = backupService;
-        _appSettingsService = appSettingsService;
-        _yamlSettings = yamlSettings;
-        _logger = logger;
+        _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
+        _hashService = hashService ?? throw new ArgumentNullException(nameof(hashService));
+        _backupService = backupService ?? throw new ArgumentNullException(nameof(backupService));
+        _appSettingsService = appSettingsService ?? throw new ArgumentNullException(nameof(appSettingsService));
+        _yamlSettings = yamlSettings ?? throw new ArgumentNullException(nameof(yamlSettings));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
     }
     
     public async Task<int> ExecuteAsync(FcxOptions options)
     {
         try
         {
-            // Initialize CLI message handler
-            var messageHandler = new CliMessageHandler(!options.DisableColors);
-            MessageHandler.Initialize(messageHandler);
+            // Note: MessageHandler is already injected via constructor
             
             // Load settings
             var settings = await _settingsService.LoadSettingsAsync();
@@ -81,13 +82,13 @@ public class FcxCommand : ICommand<FcxOptions>
             
             if (string.IsNullOrEmpty(gamePath))
             {
-                MessageHandler.MsgError("Could not detect game installation path. Please specify with --game-path");
+                _messageHandler.ShowError("Could not detect game installation path. Please specify with --game-path");
                 return 1;
             }
         }
         
         Console.WriteLine($"\n========== Running FCX integrity checks for {options.Game} ==========");
-        MessageHandler.MsgInfo($"Game path: {gamePath}");
+        _messageHandler.ShowInfo($"Game path: {gamePath}");
         
         // Set static properties for FCX functionality
         CrashLog.GameRootPath = gamePath;
@@ -114,12 +115,12 @@ public class FcxCommand : ICommand<FcxOptions>
         // Create backup if requested
         if (options.Backup && !options.CheckOnly)
         {
-            MessageHandler.MsgInfo("Creating backup before checks...");
+            _messageHandler.ShowInfo("Creating backup before checks...");
             var backupProgress = new Progress<BackupProgress>(p =>
             {
                 if (!options.DisableProgress)
                 {
-                    MessageHandler.MsgInfo($"Backing up: {p.CurrentFile} ({p.Progress}%)");
+                    _messageHandler.ShowInfo($"Backing up: {p.CurrentFile} ({p.Progress}%)");
                 }
             });
             
@@ -130,17 +131,17 @@ public class FcxCommand : ICommand<FcxOptions>
             
             if (backupResult.Success)
             {
-                MessageHandler.MsgSuccess($"Backup created: {backupResult.BackupPath}");
+                _messageHandler.ShowSuccess($"Backup created: {backupResult.BackupPath}");
             }
             else
             {
-                MessageHandler.MsgError($"Backup failed: {backupResult.ErrorMessage}");
+                _messageHandler.ShowError($"Backup failed: {backupResult.ErrorMessage}");
                 return 1;
             }
         }
         
         // Run the analysis
-        MessageHandler.MsgInfo("Running file integrity checks...");
+        _messageHandler.ShowInfo("Running file integrity checks...");
         var result = await analyzer.AnalyzeAsync(crashLog, cancellationToken);
         
         // Display results
@@ -152,7 +153,7 @@ public class FcxCommand : ICommand<FcxOptions>
             if (!string.IsNullOrEmpty(options.OutputFile))
             {
                 await SaveResultsToFileAsync(fcxResult, options.OutputFile);
-                MessageHandler.MsgSuccess($"Results saved to: {options.OutputFile}");
+                _messageHandler.ShowSuccess($"Results saved to: {options.OutputFile}");
             }
             
             // Return success if no critical issues found
@@ -160,7 +161,7 @@ public class FcxCommand : ICommand<FcxOptions>
         }
         else
         {
-            MessageHandler.MsgWarning("FCX checks returned no results");
+            _messageHandler.ShowWarning("FCX checks returned no results");
             return 1;
         }
     }
@@ -171,7 +172,7 @@ public class FcxCommand : ICommand<FcxOptions>
         
         if (string.IsNullOrEmpty(options.RestorePath))
         {
-            MessageHandler.MsgError("Restore path not specified. Please provide a backup path with --restore");
+            _messageHandler.ShowError("Restore path not specified. Please provide a backup path with --restore");
             return 1;
         }
         
@@ -182,7 +183,7 @@ public class FcxCommand : ICommand<FcxOptions>
             
             if (string.IsNullOrEmpty(gamePath))
             {
-                MessageHandler.MsgError("Could not detect game installation path. Please specify with --game-path");
+                _messageHandler.ShowError("Could not detect game installation path. Please specify with --game-path");
                 return 1;
             }
         }
@@ -191,7 +192,7 @@ public class FcxCommand : ICommand<FcxOptions>
         {
             if (!options.DisableProgress)
             {
-                MessageHandler.MsgInfo($"Restoring: {p.CurrentFile} ({p.Progress}%)");
+                _messageHandler.ShowInfo($"Restoring: {p.CurrentFile} ({p.Progress}%)");
             }
         });
         
@@ -204,12 +205,12 @@ public class FcxCommand : ICommand<FcxOptions>
         
         if (success)
         {
-            MessageHandler.MsgSuccess("Backup restored successfully");
+            _messageHandler.ShowSuccess("Backup restored successfully");
             return 0;
         }
         else
         {
-            MessageHandler.MsgError("Failed to restore backup");
+            _messageHandler.ShowError("Failed to restore backup");
             return 1;
         }
     }
@@ -278,7 +279,7 @@ public class FcxCommand : ICommand<FcxOptions>
             Console.WriteLine("\nMessages:");
             foreach (var message in result.Messages)
             {
-                MessageHandler.MsgInfo($"  {message}");
+                _messageHandler.ShowInfo($"  {message}");
             }
         }
     }

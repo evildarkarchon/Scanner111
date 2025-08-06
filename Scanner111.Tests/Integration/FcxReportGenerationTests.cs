@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
@@ -66,15 +67,15 @@ public class FcxReportGenerationTests : IDisposable
         var report = GenerateFcxReport(result);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.NotNull(report);
+        result.Should().NotBeNull();
+        report.Should().NotBeNull();
         
         // Verify report structure
-        Assert.Contains("FCX (File Integrity Check) Analysis", report);
-        Assert.Contains("Game Installation Status:", report);
-        Assert.Contains("Game Executable Check:", report);
-        Assert.Contains("F4SE (Script Extender) Check:", report);
-        Assert.Contains("Core Mod Files Check:", report);
+        report.Should().Contain("FCX (File Integrity Check) Analysis");
+        report.Should().Contain("Game Installation Status:");
+        report.Should().Contain("Game Executable Check:");
+        report.Should().Contain("F4SE (Script Extender) Check:");
+        report.Should().Contain("Core Mod Files Check:");
         
         // Verify formatting matches Python implementation
         Assert.Matches(@"={50,}", report); // Separator lines
@@ -99,10 +100,10 @@ public class FcxReportGenerationTests : IDisposable
         var report = GenerateFcxReport(result);
 
         // Assert
-        Assert.NotNull(report);
-        Assert.Contains("F4SE", report);
-        Assert.Contains("Warning", report);
-        Assert.Contains("Recommended Actions:", report);
+        report.Should().NotBeNull();
+        report.Should().Contain("F4SE");
+        report.Should().Contain("Warning");
+        report.Should().Contain("Recommended Actions:");
     }
 
     [Fact]
@@ -128,11 +129,11 @@ public class FcxReportGenerationTests : IDisposable
         var report = GenerateFcxReport(result);
 
         // Assert
-        Assert.NotNull(report);
-        Assert.Contains("Hash Validation Results:", report);
-        Assert.Contains("MISMATCH", report);
-        Assert.Contains("Expected:", report);
-        Assert.Contains("Actual:", report);
+        report.Should().NotBeNull();
+        report.Should().Contain("Hash Validation Results:");
+        report.Should().Contain("MISMATCH");
+        report.Should().Contain("Expected:");
+        report.Should().Contain("Actual:");
     }
 
     [Fact]
@@ -165,10 +166,10 @@ public class FcxReportGenerationTests : IDisposable
         var report = GenerateFcxReport(result);
 
         // Assert
-        Assert.NotNull(report);
-        Assert.Contains("Version Warnings:", report);
-        Assert.Contains("legacy version", report);
-        Assert.Contains("F4SE version", report);
+        report.Should().NotBeNull();
+        report.Should().Contain("Version Warnings:");
+        report.Should().Contain("legacy version");
+        report.Should().Contain("F4SE version");
     }
 
     [Fact]
@@ -222,9 +223,9 @@ public class FcxReportGenerationTests : IDisposable
 
 
         // Assert - This test validates the report generation works, not that everything is perfect
-        Assert.NotNull(report);
-        Assert.Contains("FCX (File Integrity Check) Analysis", report);
-        Assert.Contains("Game Installation Status:", report);
+        report.Should().NotBeNull();
+        report.Should().Contain("FCX (File Integrity Check) Analysis");
+        report.Should().Contain("Game Installation Status:");
         // The status might be Warning due to version detection issues, which is normal for test setup
     }
 
@@ -249,7 +250,7 @@ public class FcxReportGenerationTests : IDisposable
         var report = GenerateFcxReport(result);
 
         // Assert
-        Assert.NotNull(report);
+        report.Should().NotBeNull();
         
         // Critical issues should appear early in the report
         var criticalIndex = report.IndexOf("CRITICAL", StringComparison.OrdinalIgnoreCase);
@@ -257,7 +258,7 @@ public class FcxReportGenerationTests : IDisposable
         
         if (criticalIndex >= 0 && recommendedIndex >= 0)
         {
-            Assert.True(criticalIndex < recommendedIndex, "Critical issues should appear before recommendations");
+            (criticalIndex < recommendedIndex).Should().BeTrue("Critical issues should appear before recommendations");
         }
     }
 
@@ -279,7 +280,7 @@ public class FcxReportGenerationTests : IDisposable
         var report = GenerateFcxReport(result);
 
         // Assert
-        Assert.NotNull(report);
+        report.Should().NotBeNull();
         
         // Verify report sections are in correct order
         var sections = new[]
@@ -294,7 +295,7 @@ public class FcxReportGenerationTests : IDisposable
         foreach (var section in sections.Where(s => report.Contains(s)))
         {
             var currentIndex = report.IndexOf(section);
-            Assert.True(currentIndex > lastIndex, $"Section '{section}' is out of order");
+            (currentIndex > lastIndex).Should().BeTrue($"Section '{section}' is out of order");
             lastIndex = currentIndex;
         }
     }
@@ -317,7 +318,7 @@ public class FcxReportGenerationTests : IDisposable
         var report = GenerateFcxReport(result);
 
         // Assert formatting patterns from Python implementation
-        Assert.NotNull(report);
+        report.Should().NotBeNull();
         
         // Check separator lines
         Assert.Matches(@"={50,}", report);
@@ -368,9 +369,9 @@ public class FcxReportGenerationTests : IDisposable
         var fullReport = string.Join(Environment.NewLine, result.Report);
 
         // Assert - Test that the FCX pipeline integration doesn't crash and returns a result
-        Assert.NotNull(result);
-        Assert.Equal(ScanStatus.Completed, result.Status);
-        Assert.Equal(crashLogPath, result.LogPath);
+        result.Should().NotBeNull();
+        result.Status.Should().Be(ScanStatus.Completed);
+        result.LogPath.Should().Be(crashLogPath);
         
         // The specific report content depends on the FCX implementation
         // This test ensures the pipeline integration works

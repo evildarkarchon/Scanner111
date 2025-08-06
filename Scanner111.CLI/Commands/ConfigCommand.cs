@@ -7,10 +7,12 @@ namespace Scanner111.CLI.Commands;
 public class ConfigCommand : ICommand<ConfigOptions>
 {
     private readonly ICliSettingsService _settingsService;
+    private readonly IMessageHandler _messageHandler;
 
-    public ConfigCommand(ICliSettingsService settingsService)
+    public ConfigCommand(ICliSettingsService settingsService, IMessageHandler messageHandler)
     {
-        _settingsService = settingsService;
+        _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
+        _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
     }
 
     /// <summary>
@@ -22,24 +24,22 @@ public class ConfigCommand : ICommand<ConfigOptions>
     /// </returns>
     public async Task<int> ExecuteAsync(ConfigOptions options)
     {
-        var messageHandler = new CliMessageHandler();
-        MessageHandler.Initialize(messageHandler);
 
         if (options.ShowPath)
         {
             var settingsPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "Scanner111", "settings.json");
-            MessageHandler.MsgInfo($"Unified Settings file: {settingsPath}");
-            MessageHandler.MsgInfo($"File exists: {File.Exists(settingsPath)}");
+            _messageHandler.ShowInfo($"Unified Settings file: {settingsPath}");
+            _messageHandler.ShowInfo($"File exists: {File.Exists(settingsPath)}");
         }
 
         if (options.Reset)
         {
-            MessageHandler.MsgInfo("Resetting configuration to defaults...");
+            _messageHandler.ShowInfo("Resetting configuration to defaults...");
             var defaultSettings = _settingsService.GetDefaultSettings();
             await _settingsService.SaveSettingsAsync(defaultSettings);
-            MessageHandler.MsgSuccess("Configuration reset to defaults.");
+            _messageHandler.ShowSuccess("Configuration reset to defaults.");
             return 0;
         }
 
@@ -54,22 +54,22 @@ public class ConfigCommand : ICommand<ConfigOptions>
     {
         var settings = await _settingsService.LoadSettingsAsync();
 
-        MessageHandler.MsgInfo("Current Scanner111 Configuration:");
-        MessageHandler.MsgInfo("================================");
-        MessageHandler.MsgInfo($"FCX Mode: {settings.FcxMode}");
-        MessageHandler.MsgInfo($"Show FormID Values: {settings.ShowFormIdValues}");
-        MessageHandler.MsgInfo($"Simplify Logs: {settings.SimplifyLogs}");
-        MessageHandler.MsgInfo($"Move Unsolved Logs: {settings.MoveUnsolvedLogs}");
-        MessageHandler.MsgInfo($"Crash Logs Directory: {settings.CrashLogsDirectory}");
-        MessageHandler.MsgInfo($"Audio Notifications: {settings.AudioNotifications}");
-        MessageHandler.MsgInfo($"VR Mode: {settings.VrMode}");
-        MessageHandler.MsgInfo($"Disable Colors: {settings.DisableColors}");
-        MessageHandler.MsgInfo($"Disable Progress: {settings.DisableProgress}");
-        MessageHandler.MsgInfo($"Default Output Format: {settings.DefaultOutputFormat}");
-        MessageHandler.MsgInfo($"Default Game Path: {settings.DefaultGamePath}");
-        MessageHandler.MsgInfo($"Default Scan Directory: {settings.DefaultScanDirectory}");
-        MessageHandler.MsgInfo($"Enable Update Check: {settings.EnableUpdateCheck}");
-        MessageHandler.MsgInfo($"Update Source: {settings.UpdateSource}");
+        _messageHandler.ShowInfo("Current Scanner111 Configuration:");
+        _messageHandler.ShowInfo("================================");
+        _messageHandler.ShowInfo($"FCX Mode: {settings.FcxMode}");
+        _messageHandler.ShowInfo($"Show FormID Values: {settings.ShowFormIdValues}");
+        _messageHandler.ShowInfo($"Simplify Logs: {settings.SimplifyLogs}");
+        _messageHandler.ShowInfo($"Move Unsolved Logs: {settings.MoveUnsolvedLogs}");
+        _messageHandler.ShowInfo($"Crash Logs Directory: {settings.CrashLogsDirectory}");
+        _messageHandler.ShowInfo($"Audio Notifications: {settings.AudioNotifications}");
+        _messageHandler.ShowInfo($"VR Mode: {settings.VrMode}");
+        _messageHandler.ShowInfo($"Disable Colors: {settings.DisableColors}");
+        _messageHandler.ShowInfo($"Disable Progress: {settings.DisableProgress}");
+        _messageHandler.ShowInfo($"Default Output Format: {settings.DefaultOutputFormat}");
+        _messageHandler.ShowInfo($"Default Game Path: {settings.DefaultGamePath}");
+        _messageHandler.ShowInfo($"Default Scan Directory: {settings.DefaultScanDirectory}");
+        _messageHandler.ShowInfo($"Enable Update Check: {settings.EnableUpdateCheck}");
+        _messageHandler.ShowInfo($"Update Source: {settings.UpdateSource}");
     }
 
     private async Task<int> SetConfiguration(string setOption)
@@ -85,23 +85,23 @@ public class ConfigCommand : ICommand<ConfigOptions>
                 // Save to settings file
                 await _settingsService.SaveSettingAsync(key, value);
 
-                MessageHandler.MsgSuccess($"Set {key} = {value}");
-                MessageHandler.MsgInfo("Setting saved to configuration file.");
+                _messageHandler.ShowSuccess($"Set {key} = {value}");
+                _messageHandler.ShowInfo("Setting saved to configuration file.");
             }
             catch (ArgumentException ex)
             {
-                MessageHandler.MsgError(ex.Message);
+                _messageHandler.ShowError(ex.Message);
                 return 1;
             }
         }
         else
         {
-            MessageHandler.MsgError("Invalid set format. Use: --set \"key=value\"");
-            MessageHandler.MsgInfo("Available settings:");
-            MessageHandler.MsgInfo("  FcxMode, ShowFormIdValues, SimplifyLogs, MoveUnsolvedLogs");
-            MessageHandler.MsgInfo("  AudioNotifications, VrMode, DisableColors, DisableProgress");
-            MessageHandler.MsgInfo("  DefaultOutputFormat, DefaultGamePath, DefaultScanDirectory, CrashLogsDirectory");
-            MessageHandler.MsgInfo("  EnableUpdateCheck, UpdateSource");
+            _messageHandler.ShowError("Invalid set format. Use: --set \"key=value\"");
+            _messageHandler.ShowInfo("Available settings:");
+            _messageHandler.ShowInfo("  FcxMode, ShowFormIdValues, SimplifyLogs, MoveUnsolvedLogs");
+            _messageHandler.ShowInfo("  AudioNotifications, VrMode, DisableColors, DisableProgress");
+            _messageHandler.ShowInfo("  DefaultOutputFormat, DefaultGamePath, DefaultScanDirectory, CrashLogsDirectory");
+            _messageHandler.ShowInfo("  EnableUpdateCheck, UpdateSource");
             return 1;
         }
 

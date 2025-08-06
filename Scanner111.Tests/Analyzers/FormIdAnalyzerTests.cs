@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
@@ -54,15 +55,16 @@ public class FormIdAnalyzerTests
         var result = await _analyzer.AnalyzeAsync(crashLog);
 
         // Assert
-        Assert.IsType<FormIdAnalysisResult>(result);
+        result.Should().BeOfType<FormIdAnalysisResult>();
         var formIdResult = (FormIdAnalysisResult)result;
 
-        Assert.Equal("FormID Analyzer", formIdResult.AnalyzerName);
-        Assert.True(formIdResult.HasFindings);
-        Assert.Equal(2, formIdResult.FormIds.Count);
-        Assert.Contains("Form ID: 0001A332", formIdResult.FormIds);
-        Assert.Contains("Form ID: 00014E45", formIdResult.FormIds);
-        Assert.DoesNotContain("Form ID: FF000000", formIdResult.FormIds);
+        formIdResult.AnalyzerName.Should().Be("FormID Analyzer");
+        formIdResult.HasFindings.Should().BeTrue("form IDs were found in the crash log");
+        formIdResult.FormIds.Should()
+            .HaveCount(2, "two valid form IDs were found (FF000000 should be skipped)")
+            .And.Contain("Form ID: 0001A332")
+            .And.Contain("Form ID: 00014E45")
+            .And.NotContain("Form ID: FF000000", "form IDs starting with FF should be filtered out");
     }
 
     /// <summary>
@@ -94,9 +96,9 @@ public class FormIdAnalyzerTests
 
         // Assert
         var formIdResult = (FormIdAnalysisResult)result;
-        Assert.False(formIdResult.HasFindings);
-        Assert.Empty(formIdResult.FormIds);
-        Assert.Contains("* COULDN'T FIND ANY FORM ID SUSPECTS *", formIdResult.ReportText);
+        formIdResult.HasFindings.Should().BeFalse("no form IDs were present in the crash log");
+        formIdResult.FormIds.Should().BeEmpty();
+        formIdResult.ReportText.Should().Contain("* COULDN'T FIND ANY FORM ID SUSPECTS *");
     }
 
     /// <summary>
@@ -132,11 +134,13 @@ public class FormIdAnalyzerTests
 
         // Assert
         var formIdResult = (FormIdAnalysisResult)result;
-        Assert.True(formIdResult.HasFindings);
-        Assert.Single(formIdResult.FormIds);
-        Assert.Contains("Form ID: 00012345", formIdResult.FormIds);
-        Assert.DoesNotContain("Form ID: FF000001", formIdResult.FormIds);
-        Assert.DoesNotContain("Form ID: FF000002", formIdResult.FormIds);
+        formIdResult.HasFindings.Should().BeTrue("at least one valid form ID was found");
+        formIdResult.FormIds.Should()
+            .ContainSingle("only one form ID doesn't start with FF")
+            .Which.Should().Be("Form ID: 00012345");
+        formIdResult.FormIds.Should()
+            .NotContain("Form ID: FF000001", "form IDs starting with FF should be filtered")
+            .And.NotContain("Form ID: FF000002", "form IDs starting with FF should be filtered");
     }
 
     /// <summary>
@@ -171,10 +175,11 @@ public class FormIdAnalyzerTests
 
         // Assert
         var formIdResult = (FormIdAnalysisResult)result;
-        Assert.True(formIdResult.HasFindings);
-        Assert.Contains("- Form ID: 00012345 | [TestPlugin.esp] | 1", formIdResult.ReportText);
-        Assert.Contains("- Form ID: 01006789 | [AnotherPlugin.esp] | 1", formIdResult.ReportText);
-        Assert.Contains("These Form IDs were caught by Buffout 4", formIdResult.ReportText);
+        formIdResult.HasFindings.Should().BeTrue("form IDs were found");
+        formIdResult.ReportText.Should()
+            .Contain("- Form ID: 00012345 | [TestPlugin.esp] | 1", "first form ID should match TestPlugin")
+            .And.Contain("- Form ID: 01006789 | [AnotherPlugin.esp] | 1", "second form ID should match AnotherPlugin")
+            .And.Contain("These Form IDs were caught by Buffout 4");
     }
 
     /// <summary>
@@ -211,9 +216,10 @@ public class FormIdAnalyzerTests
 
         // Assert
         var formIdResult = (FormIdAnalysisResult)result;
-        Assert.True(formIdResult.HasFindings);
-        Assert.Contains("- Form ID: 00012345 | [TestPlugin.esp] | 3", formIdResult.ReportText);
-        Assert.Contains("- Form ID: 00067890 | [TestPlugin.esp] | 1", formIdResult.ReportText);
+        formIdResult.HasFindings.Should().BeTrue("form IDs were found");
+        formIdResult.ReportText.Should()
+            .Contain("- Form ID: 00012345 | [TestPlugin.esp] | 3", "form ID 00012345 appeared 3 times")
+            .And.Contain("- Form ID: 00067890 | [TestPlugin.esp] | 1", "form ID 00067890 appeared once");
     }
 
     /// <summary>
@@ -249,9 +255,10 @@ public class FormIdAnalyzerTests
 
         // Assert
         var formIdResult = (FormIdAnalysisResult)result;
-        Assert.True(formIdResult.HasFindings);
-        Assert.Single(formIdResult.FormIds);
-        Assert.Contains("Form ID: 00012345", formIdResult.FormIds);
+        formIdResult.HasFindings.Should().BeTrue("at least one valid form ID was found");
+        formIdResult.FormIds.Should()
+            .ContainSingle("only one valid form ID should be recognized")
+            .Which.Should().Be("Form ID: 00012345");
     }
 
     /// <summary>
@@ -286,10 +293,11 @@ public class FormIdAnalyzerTests
 
         // Assert
         var formIdResult = (FormIdAnalysisResult)result;
-        Assert.True(formIdResult.HasFindings);
+        formIdResult.HasFindings.Should().BeTrue("form IDs were found");
 
         // Should normalize to uppercase and treat as same FormID
-        Assert.Contains("Form ID: 0001ABCD", formIdResult.FormIds);
-        Assert.Contains("Form ID: 00012345", formIdResult.FormIds);
+        formIdResult.FormIds.Should()
+            .Contain("Form ID: 0001ABCD", "form IDs should be normalized to uppercase")
+            .And.Contain("Form ID: 00012345", "lowercase form IDs should be converted to uppercase");
     }
 }

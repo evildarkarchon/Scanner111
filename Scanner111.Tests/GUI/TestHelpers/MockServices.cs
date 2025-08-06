@@ -40,7 +40,7 @@ public class MockSettingsService : ISettingsService
             DefaultOutputFormat = "text",
             CrashLogsDirectory = @"C:\Test\CrashLogs",
             SkipXseCopy = false,
-            EnableUpdateCheck = true,
+            EnableUpdateCheck = false,
             UpdateSource = "Both"
         };
 
@@ -83,7 +83,7 @@ public class MockSettingsService : ISettingsService
             DefaultOutputFormat = "text",
             CrashLogsDirectory = "",
             SkipXseCopy = false,
-            EnableUpdateCheck = true,
+            EnableUpdateCheck = false,
             UpdateSource = "Both"
         };
     }

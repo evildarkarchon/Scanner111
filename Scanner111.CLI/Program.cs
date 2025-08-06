@@ -18,9 +18,12 @@ if (OperatingSystem.IsWindows())
     Console.InputEncoding = Encoding.UTF8;
 }
 
+// Parse command line arguments to check for legacy progress option early
+var useLegacyProgress = args.Contains("--legacy-progress");
+
 // Setup dependency injection
 var services = new ServiceCollection();
-ConfigureServices(services);
+ConfigureServices(services, useLegacyProgress);
 var serviceProvider = services.BuildServiceProvider();
 
 // Perform startup update check
@@ -46,7 +49,7 @@ return await result.MapResult(
     async (InteractiveOptions opts) => await serviceProvider.GetRequiredService<InteractiveCommand>().ExecuteAsync(opts),
     async errs => await Task.FromResult(1));
 
-static void ConfigureServices(IServiceCollection services)
+static void ConfigureServices(IServiceCollection services, bool useLegacyProgress = false)
 {
     // Configure logging
     services.AddLogging(builder =>
@@ -65,7 +68,17 @@ static void ConfigureServices(IServiceCollection services)
     services.AddSingleton<ICliSettingsService, CliSettingsService>();
     services.AddSingleton<IFileScanService, FileScanService>();
     services.AddSingleton<IScanResultProcessor, ScanResultProcessor>();
-    services.AddSingleton<IMessageHandler, SpectreMessageHandler>();
+    
+    // Use enhanced message handler by default, legacy if specified
+    if (useLegacyProgress)
+    {
+        services.AddSingleton<IMessageHandler, SpectreMessageHandler>();
+    }
+    else
+    {
+        services.AddSingleton<IMessageHandler, EnhancedSpectreMessageHandler>();
+    }
+    
     services.AddSingleton<ITerminalUIService, SpectreTerminalUIService>();
 
     // Register FCX services

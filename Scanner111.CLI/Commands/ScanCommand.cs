@@ -13,15 +13,18 @@ public class ScanCommand : ICommand<CliScanOptions>
     private readonly IFileScanService _fileScanService;
     private readonly IScanResultProcessor _scanResultProcessor;
     private readonly ICliSettingsService _settingsService;
+    private readonly IMessageHandler _messageHandler;
 
     public ScanCommand(
         ICliSettingsService settingsService,
         IFileScanService fileScanService,
-        IScanResultProcessor scanResultProcessor)
+        IScanResultProcessor scanResultProcessor,
+        IMessageHandler messageHandler)
     {
-        _settingsService = settingsService;
-        _fileScanService = fileScanService;
-        _scanResultProcessor = scanResultProcessor;
+        _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
+        _fileScanService = fileScanService ?? throw new ArgumentNullException(nameof(fileScanService));
+        _scanResultProcessor = scanResultProcessor ?? throw new ArgumentNullException(nameof(scanResultProcessor));
+        _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
     }
 
     /// Executes the scan command asynchronously, handling crash log file scanning based on the given options.
@@ -38,10 +41,7 @@ public class ScanCommand : ICommand<CliScanOptions>
             // Load settings
             var settings = await _settingsService.LoadSettingsAsync();
 
-            // Initialize CLI message handler with settings
-            var useColors = !options.DisableColors && !settings.DisableColors;
-            var messageHandler = new CliMessageHandler(useColors);
-            MessageHandler.Initialize(messageHandler);
+            // Note: MessageHandler is already injected via constructor
 
             // Apply command line overrides to settings
             ApplyCommandLineSettings(options, settings);
@@ -53,10 +53,10 @@ public class ScanCommand : ICommand<CliScanOptions>
                 await _settingsService.SaveSettingsAsync(settings);
             }
 
-            MessageHandler.MsgInfo("Initializing Scanner111...");
+            _messageHandler.ShowInfo("Initializing Scanner111...");
 
             // Build pipeline
-            var pipeline = BuildScanPipeline(options, messageHandler);
+            var pipeline = BuildScanPipeline(options, _messageHandler);
 
             // Get report writer service from the pipeline's service provider
             var reportWriter = GetReportWriterFromPipeline();
@@ -66,18 +66,18 @@ public class ScanCommand : ICommand<CliScanOptions>
 
             if (scanData.FilesToScan.Count == 0)
             {
-                MessageHandler.MsgError("No crash log files found to analyze");
-                MessageHandler.MsgInfo("Supported file patterns: crash-*.log, crash-*.txt, *dump*.log, *dump*.txt");
+                _messageHandler.ShowError("No crash log files found to analyze");
+                _messageHandler.ShowInfo("Supported file patterns: crash-*.log, crash-*.txt, *dump*.log, *dump*.txt");
                 return 1;
             }
 
-            MessageHandler.MsgSuccess($"Starting analysis of {scanData.FilesToScan.Count} files...");
+            _messageHandler.ShowSuccess($"Starting analysis of {scanData.FilesToScan.Count} files...");
 
             // Process files
             var scanResults = await ProcessFilesAsync(pipeline, scanData, options, reportWriter, settings);
 
             // Summary
-            MessageHandler.MsgSuccess($"Analysis complete! Processed {scanData.FilesToScan.Count} files.");
+            _messageHandler.ShowSuccess($"Analysis complete! Processed {scanData.FilesToScan.Count} files.");
 
             if (options.OutputFormat == "summary") PrintSummary(scanResults);
 
@@ -85,13 +85,13 @@ public class ScanCommand : ICommand<CliScanOptions>
         }
         catch (Exception ex)
         {
-            MessageHandler.MsgCritical($"Fatal error during scan: {ex.Message}");
-            if (options.Verbose) MessageHandler.MsgDebug($"Stack trace: {ex.StackTrace}");
+            _messageHandler.ShowCritical($"Fatal error during scan: {ex.Message}");
+            if (options.Verbose) _messageHandler.ShowDebug($"Stack trace: {ex.StackTrace}");
             return 1;
         }
     }
 
-    private IScanPipeline BuildScanPipeline(CliScanOptions options, CliMessageHandler messageHandler)
+    private IScanPipeline BuildScanPipeline(CliScanOptions options, IMessageHandler messageHandler)
     {
         var pipelineBuilder = new ScanPipelineBuilder()
             .AddDefaultAnalyzers()
@@ -191,19 +191,19 @@ public class ScanCommand : ICommand<CliScanOptions>
 
     private void PrintSummary(List<ScanResult> results)
     {
-        MessageHandler.MsgInfo("\n=== SCAN SUMMARY ===");
-        MessageHandler.MsgInfo($"Total files scanned: {results.Count}");
-        MessageHandler.MsgInfo($"Files with issues: {results.Count(r => r.AnalysisResults.Any(ar => ar.HasFindings))}");
-        MessageHandler.MsgInfo($"Clean files: {results.Count(r => !r.AnalysisResults.Any(ar => ar.HasFindings))}");
+        _messageHandler.ShowInfo("\n=== SCAN SUMMARY ===");
+        _messageHandler.ShowInfo($"Total files scanned: {results.Count}");
+        _messageHandler.ShowInfo($"Files with issues: {results.Count(r => r.AnalysisResults.Any(ar => ar.HasFindings))}");
+        _messageHandler.ShowInfo($"Clean files: {results.Count(r => !r.AnalysisResults.Any(ar => ar.HasFindings))}");
 
         var filesWithIssues = results.Where(r => r.AnalysisResults.Any(ar => ar.HasFindings)).ToList();
         if (filesWithIssues.Count == 0) return;
         {
-            MessageHandler.MsgInfo("\nFiles with issues:");
+            _messageHandler.ShowInfo("\nFiles with issues:");
             foreach (var result in filesWithIssues)
             {
                 var issueCount = result.AnalysisResults.Count(ar => ar.HasFindings);
-                MessageHandler.MsgWarning($"  - {Path.GetFileName(result.LogPath)}: {issueCount} issues");
+                _messageHandler.ShowWarning($"  - {Path.GetFileName(result.LogPath)}: {issueCount} issues");
             }
         }
     }

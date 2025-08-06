@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Analyzers;
@@ -56,12 +57,12 @@ public class PluginAnalyzerTests
         var result = await _analyzer.AnalyzeAsync(crashLog);
 
         // Assert
-        Assert.IsType<PluginAnalysisResult>(result);
+        result.Should().BeOfType<PluginAnalysisResult>();
         var pluginResult = (PluginAnalysisResult)result;
 
-        Assert.Equal("Plugin Analyzer", pluginResult.AnalyzerName);
-        Assert.True(pluginResult.HasFindings);
-        Assert.Equal(2, pluginResult.Plugins.Count);
+        pluginResult.AnalyzerName.Should().Be("Plugin Analyzer");
+        pluginResult.HasFindings.Should().BeTrue("plugins were found in the call stack");
+        pluginResult.Plugins.Should().HaveCount(2, "two plugins were mentioned in the call stack");
     }
 
     /// <summary>
@@ -96,9 +97,9 @@ public class PluginAnalyzerTests
 
         // Assert
         var pluginResult = (PluginAnalysisResult)result;
-        Assert.False(pluginResult.HasFindings);
-        Assert.Empty(pluginResult.Plugins);
-        Assert.Contains("* COULDN'T FIND ANY PLUGIN SUSPECTS *", pluginResult.ReportText);
+        pluginResult.HasFindings.Should().BeFalse("no plugins were found in the call stack");
+        pluginResult.Plugins.Should().BeEmpty();
+        pluginResult.ReportText.Should().Contain("* COULDN'T FIND ANY PLUGIN SUSPECTS *");
     }
 
     /// <summary>
@@ -138,10 +139,11 @@ public class PluginAnalyzerTests
 
         // Assert
         var pluginResult = (PluginAnalysisResult)result;
-        Assert.True(pluginResult.HasFindings);
-        Assert.Contains("- testplugin.esp | 3", pluginResult.ReportText);
-        Assert.Contains("- anotherplugin.esp | 1", pluginResult.ReportText);
-        Assert.Contains("These Plugins were caught by Buffout 4", pluginResult.ReportText);
+        pluginResult.HasFindings.Should().BeTrue("plugins were found");
+        pluginResult.ReportText.Should()
+            .Contain("- testplugin.esp | 3", "testplugin.esp appeared 3 times")
+            .And.Contain("- anotherplugin.esp | 1", "anotherplugin.esp appeared once")
+            .And.Contain("These Plugins were caught by Buffout 4");
     }
 
     /// <summary>
@@ -179,12 +181,11 @@ public class PluginAnalyzerTests
 
         // Assert
         var pluginResult = (PluginAnalysisResult)result;
-        Assert.True(pluginResult.HasFindings);
-        Assert.Equal(2,
-            pluginResult.Plugins.Count); // Both plugins are in the list but ignored.esp is filtered from matching
-        Assert.Contains("- testplugin.esp | 1", pluginResult.ReportText);
-        // ignored.esp should not appear in the report due to filtering
-        Assert.DoesNotContain("- ignored.esp", pluginResult.ReportText);
+        pluginResult.HasFindings.Should().BeTrue("at least one non-ignored plugin was found");
+        pluginResult.Plugins.Should().HaveCount(2, "both plugins are in the list but ignored.esp is filtered from matching");
+        pluginResult.ReportText.Should()
+            .Contain("- testplugin.esp | 1")
+            .And.NotContain("- ignored.esp", "ignored.esp should be filtered out");
     }
 
     /// <summary>
@@ -222,9 +223,9 @@ public class PluginAnalyzerTests
 
         // Assert
         var pluginResult = (PluginAnalysisResult)result;
-        Assert.True(pluginResult.HasFindings);
+        pluginResult.HasFindings.Should().BeTrue("plugins were found");
         // Should only count 2 times (filtered out the "modified by:" line)
-        Assert.Contains("- testplugin.esp | 2", pluginResult.ReportText);
+        pluginResult.ReportText.Should().Contain("- testplugin.esp | 2", "'modified by' lines should be filtered out");
     }
 
     /// <summary>
@@ -260,8 +261,8 @@ public class PluginAnalyzerTests
 
         // Assert
         var pluginResult = (PluginAnalysisResult)result;
-        Assert.True(pluginResult.HasFindings);
-        Assert.Contains("- testplugin.esp | 3", pluginResult.ReportText);
+        pluginResult.HasFindings.Should().BeTrue("plugins were found");
+        pluginResult.ReportText.Should().Contain("- testplugin.esp | 3", "all case variations should be counted together");
     }
 
     /// <summary>
@@ -302,7 +303,7 @@ public class PluginAnalyzerTests
 
         // Assert
         var pluginResult = (PluginAnalysisResult)result;
-        Assert.True(pluginResult.HasFindings);
+        pluginResult.HasFindings.Should().BeTrue("plugins were found");
 
         var reportText = pluginResult.ReportText;
 
@@ -311,8 +312,8 @@ public class PluginAnalyzerTests
         var alphaIndex = reportText.IndexOf("- alpha.esp | 2", StringComparison.Ordinal);
         var betaIndex = reportText.IndexOf("- beta.esp | 1", StringComparison.Ordinal);
 
-        Assert.True(charlieIndex < alphaIndex); // Charlie (3) before Alpha (2)
-        Assert.True(alphaIndex < betaIndex); // Alpha (2) before Beta (1)
+        charlieIndex.Should().BeLessThan(alphaIndex, "charlie (3 occurrences) should appear before alpha (2 occurrences)");
+        alphaIndex.Should().BeLessThan(betaIndex, "alpha (2 occurrences) should appear before beta (1 occurrence)");
     }
 
     /// <summary>
@@ -351,8 +352,8 @@ public class PluginAnalyzerTests
 
         // Assert
         var pluginResult = (PluginAnalysisResult)result;
-        Assert.Equal("Plugin Analyzer", pluginResult.AnalyzerName);
+        pluginResult.AnalyzerName.Should().Be("Plugin Analyzer");
         // Without an actual loadorder.txt file, it should use crash log plugins
-        Assert.Single(pluginResult.Plugins);
+        pluginResult.Plugins.Should().ContainSingle("only one plugin is present in the crash log");
     }
 }

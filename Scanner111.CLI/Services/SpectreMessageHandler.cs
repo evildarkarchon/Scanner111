@@ -35,7 +35,7 @@ public class SpectreMessageHandler : IMessageHandler
         lock (_updateLock)
         {
             var markup = new Markup($"[blue]{Markup.Escape(message)}[/]");
-            AddMessage("ℹ", message, markup);
+            AddMessage("ℹ", message, markup, "blue");
         }
     }
 
@@ -46,7 +46,7 @@ public class SpectreMessageHandler : IMessageHandler
         lock (_updateLock)
         {
             var markup = new Markup($"[yellow]{Markup.Escape(message)}[/]");
-            AddMessage("⚠", message, markup);
+            AddMessage("⚠", message, markup, "yellow");
         }
     }
 
@@ -57,7 +57,7 @@ public class SpectreMessageHandler : IMessageHandler
         lock (_updateLock)
         {
             var markup = new Markup($"[red]{Markup.Escape(message)}[/]");
-            AddMessage("✗", message, markup);
+            AddMessage("✗", message, markup, "red");
         }
     }
 
@@ -68,7 +68,7 @@ public class SpectreMessageHandler : IMessageHandler
         lock (_updateLock)
         {
             var markup = new Markup($"[green]{Markup.Escape(message)}[/]");
-            AddMessage("✓", message, markup);
+            AddMessage("✓", message, markup, "green");
         }
     }
 
@@ -79,7 +79,7 @@ public class SpectreMessageHandler : IMessageHandler
         lock (_updateLock)
         {
             var markup = new Markup($"[dim]{Markup.Escape(message)}[/]");
-            AddMessage("🐛", message, markup);
+            AddMessage("🐛", message, markup, "dim");
         }
     }
 
@@ -90,7 +90,7 @@ public class SpectreMessageHandler : IMessageHandler
         lock (_updateLock)
         {
             var markup = new Markup($"[bold red]{Markup.Escape(message)}[/]");
-            AddMessage("‼", message, markup);
+            AddMessage("‼", message, markup, "bold red");
         }
     }
 
@@ -163,7 +163,7 @@ public class SpectreMessageHandler : IMessageHandler
         return progressContext;
     }
 
-    private void AddMessage(string icon, string message, Markup markup)
+    private void AddMessage(string icon, string message, Markup markup, string color)
     {
         var timestamp = DateTime.Now;
         _messages.Enqueue((timestamp, message, markup));
@@ -175,7 +175,7 @@ public class SpectreMessageHandler : IMessageHandler
         }
 
         // Just write to console directly
-        AnsiConsole.MarkupLine($"[dim]{timestamp:HH:mm:ss}[/] {icon} {markup}");
+        AnsiConsole.MarkupLine($"[dim]{timestamp:HH:mm:ss}[/] {icon} [{color}]{Markup.Escape(message)}[/]");
     }
 
     private void UpdateLiveDisplay()

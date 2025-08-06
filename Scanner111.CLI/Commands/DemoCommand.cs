@@ -5,6 +5,13 @@ namespace Scanner111.CLI.Commands;
 
 public class DemoCommand : ICommand<DemoOptions>
 {
+    private readonly IMessageHandler _messageHandler;
+
+    public DemoCommand(IMessageHandler messageHandler)
+    {
+        _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
+    }
+
     /// <summary>
     /// Executes the command logic asynchronously using the provided options.
     /// </summary>
@@ -12,19 +19,15 @@ public class DemoCommand : ICommand<DemoOptions>
     /// <returns>A task representing the asynchronous operation, returning an integer status code.</returns>
     public Task<int> ExecuteAsync(DemoOptions options)
     {
-        // Initialize CLI message handler
-        var messageHandler = new CliMessageHandler();
-        MessageHandler.Initialize(messageHandler);
-
-        MessageHandler.MsgInfo("This is an info message");
-        MessageHandler.MsgWarning("This is a warning message");
-        MessageHandler.MsgError("This is an error message");
-        MessageHandler.MsgSuccess("This is a success message");
-        MessageHandler.MsgDebug("This is a debug message");
-        MessageHandler.MsgCritical("This is a critical message");
+        _messageHandler.ShowInfo("This is an info message");
+        _messageHandler.ShowWarning("This is a warning message");
+        _messageHandler.ShowError("This is an error message");
+        _messageHandler.ShowSuccess("This is a success message");
+        _messageHandler.ShowDebug("This is a debug message");
+        _messageHandler.ShowCritical("This is a critical message");
 
         // Demo progress
-        using var progress = MessageHandler.CreateProgressContext("Demo Progress", 5);
+        using var progress = _messageHandler.CreateProgressContext("Demo Progress", 5);
         for (var i = 1; i <= 5; i++)
         {
             progress.Update(i, $"Step {i} of 5");
@@ -33,7 +36,7 @@ public class DemoCommand : ICommand<DemoOptions>
 
         progress.Complete();
 
-        MessageHandler.MsgSuccess("Demo complete!");
+        _messageHandler.ShowSuccess("Demo complete!");
         return Task.FromResult(0);
     }
 }

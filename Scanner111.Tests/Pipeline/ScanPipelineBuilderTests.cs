@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -35,8 +36,8 @@ public class ScanPipelineBuilderTests
         var pipeline = _builder.Build();
         
         // Assert
-        Assert.NotNull(pipeline);
-        Assert.IsType<ScanPipeline>(pipeline);
+        pipeline.Should().NotBeNull();
+        pipeline.Should().BeOfType<ScanPipeline>();
     }
 
     [Fact]
@@ -51,8 +52,8 @@ public class ScanPipelineBuilderTests
         var pipeline = _builder.Build();
         
         // Assert
-        Assert.NotNull(pipeline);
-        Assert.IsType<EnhancedScanPipeline>(pipeline);
+        pipeline.Should().NotBeNull();
+        pipeline.Should().BeOfType<EnhancedScanPipeline>();
     }
 
     [Fact]
@@ -67,8 +68,8 @@ public class ScanPipelineBuilderTests
         var pipeline = _builder.Build();
         
         // Assert
-        Assert.NotNull(pipeline);
-        Assert.IsType<EnhancedScanPipeline>(pipeline);
+        pipeline.Should().NotBeNull();
+        pipeline.Should().BeOfType<EnhancedScanPipeline>();
     }
 
     [Fact]
@@ -82,8 +83,8 @@ public class ScanPipelineBuilderTests
         var pipeline = _builder.Build();
         
         // Assert
-        Assert.NotNull(pipeline);
-        Assert.IsType<PerformanceMonitoringPipeline>(pipeline);
+        pipeline.Should().NotBeNull();
+        pipeline.Should().BeOfType<PerformanceMonitoringPipeline>();
     }
 
     [Fact]
@@ -97,8 +98,8 @@ public class ScanPipelineBuilderTests
         var pipeline = _builder.Build();
         
         // Assert
-        Assert.NotNull(pipeline);
-        Assert.IsType<FcxEnabledPipeline>(pipeline);
+        pipeline.Should().NotBeNull();
+        pipeline.Should().BeOfType<FcxEnabledPipeline>();
     }
 
     [Fact]
@@ -115,8 +116,8 @@ public class ScanPipelineBuilderTests
         var pipeline = _builder.Build();
         
         // Assert
-        Assert.NotNull(pipeline);
-        Assert.IsType<PerformanceMonitoringPipeline>(pipeline);
+        pipeline.Should().NotBeNull();
+        pipeline.Should().BeOfType<PerformanceMonitoringPipeline>();
         
         // The wrapped pipeline hierarchy should include FcxEnabledPipeline
         // Note: Direct field access testing removed due to encapsulation
@@ -133,7 +134,7 @@ public class ScanPipelineBuilderTests
         
         // Assert
         // We can't directly inspect the analyzers, but the pipeline should build successfully
-        Assert.NotNull(pipeline);
+        pipeline.Should().NotBeNull();
     }
 
     [Fact]
@@ -147,7 +148,7 @@ public class ScanPipelineBuilderTests
         
         // Assert
         // The pipeline should build successfully with all default analyzers
-        Assert.NotNull(pipeline);
+        pipeline.Should().NotBeNull();
     }
 
     [Fact]
@@ -164,7 +165,7 @@ public class ScanPipelineBuilderTests
         
         // Build pipeline to verify handler is used
         var pipeline = _builder.Build();
-        Assert.NotNull(pipeline);
+        pipeline.Should().NotBeNull();
     }
 
     [Fact]
@@ -184,8 +185,8 @@ public class ScanPipelineBuilderTests
         Assert.Same(_builder, result);
         
         var pipeline = _builder.Build();
-        Assert.NotNull(pipeline);
-        Assert.True(logConfigured);
+        pipeline.Should().NotBeNull();
+        logConfigured.Should().BeTrue();
     }
 
     [Fact]
@@ -195,7 +196,7 @@ public class ScanPipelineBuilderTests
         var pipeline = _builder.Build();
         
         // Assert
-        Assert.NotNull(pipeline);
+        pipeline.Should().NotBeNull();
         // Pipeline should build successfully with default NullMessageHandler
     }
 
@@ -210,7 +211,7 @@ public class ScanPipelineBuilderTests
         var pipeline = _builder.Build();
         
         // Assert
-        Assert.NotNull(pipeline);
+        pipeline.Should().NotBeNull();
         // Should use NullCacheManager when caching is disabled
     }
 
@@ -225,7 +226,7 @@ public class ScanPipelineBuilderTests
         var pipeline = _builder.Build();
         
         // Assert
-        Assert.NotNull(pipeline);
+        pipeline.Should().NotBeNull();
         // Should use NoRetryErrorPolicy when enhanced error handling is disabled
     }
 
@@ -241,7 +242,7 @@ public class ScanPipelineBuilderTests
         var pipeline = _builder.Build();
         
         // Assert
-        Assert.NotNull(pipeline);
+        pipeline.Should().NotBeNull();
         // All analyzers should be registered and pipeline should build successfully
     }
 
@@ -256,8 +257,8 @@ public class ScanPipelineBuilderTests
         var pipeline2 = _builder.Build();
         
         // Assert
-        Assert.NotNull(pipeline1);
-        Assert.NotNull(pipeline2);
+        pipeline1.Should().NotBeNull();
+        pipeline2.Should().NotBeNull();
         Assert.NotSame(pipeline1, pipeline2); // Each build creates a new instance
     }
 
