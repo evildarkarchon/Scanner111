@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Scanner111 is a C# port of a Python crash log analyzer for Bethesda games (Fallout 4, Skyrim, etc.). The application analyzes crash logs to identify problematic game modifications. It provides both GUI (Avalonia) and CLI interfaces.
+Scanner111 is a C# port of a Python crash log analyzer for Bethesda games (Fallout 4, Skyrim, etc.). The application analyzes crash logs to identify problematic game modifications. It provides both GUI (Avalonia) and CLI interfaces with an interactive TUI mode using Spectre.Console.
 
 ## Key Commands
 
@@ -37,6 +37,12 @@ dotnet run --project Scanner111.CLI -- about
 # Run CLI FCX command (enhanced file checks)
 dotnet run --project Scanner111.CLI -- fcx
 
+# Run interactive TUI mode (launches if no args provided)
+dotnet run --project Scanner111.CLI
+
+# Run interactive mode explicitly
+dotnet run --project Scanner111.CLI -- interactive
+
 # Run all tests
 dotnet test
 
@@ -51,6 +57,12 @@ dotnet test --filter "ClassName=FormIdAnalyzerTests"
 
 # Run tests with code coverage
 dotnet test --collect:"XPlat Code Coverage"
+
+# Run specific test project
+dotnet test Scanner111.Tests
+
+# Run tests with FluentAssertions output
+dotnet test --logger:"console;verbosity=detailed"
 ```
 
 ## High-Level Architecture
@@ -143,9 +155,17 @@ UI-agnostic communication through `IMessageHandler`:
 - **YAML databases**: `Data/CLASSIC Main.yaml` and `Data/CLASSIC Fallout4.yaml`
 - **Sample logs**: `sample_logs/` with expected outputs
 
-## CLI Options Reference
+## CLI Commands and Options
 
-The CLI supports various options for the scan command:
+### Commands (Verbs)
+- `scan` (default): Scan crash log files for issues
+- `demo`: Demonstrate message handler features
+- `config`: Manage Scanner111 configuration
+- `about`: Show version and about information
+- `fcx`: Run FCX file integrity checks
+- `interactive`: Launch interactive Terminal UI mode (also launches with no args)
+
+### Scan Command Options
 - `-l, --log`: Path to specific crash log file
 - `-d, --scan-dir`: Directory to scan for crash logs
 - `-g, --game-path`: Path to game installation directory
@@ -154,11 +174,12 @@ The CLI supports various options for the scan command:
 - `--show-fid-values`: Show FormID values (slower scans)
 - `--simplify-logs`: Simplify logs (Warning: May remove important information)
 - `--move-unsolved`: Move unsolved logs to separate folder
-- `--crash-logs-dir`: Directory to store copied crash logs
+- `--crash-logs-dir`: Directory to store copied crash logs (with game subfolders)
 - `--skip-xse-copy`: Skip automatic XSE (F4SE/SKSE) crash log copying
 - `--disable-progress`: Disable progress bars in CLI mode
 - `--disable-colors`: Disable colored output
 - `-o, --output-format`: Output format (detailed or summary)
+- `--legacy-progress`: Use legacy progress display instead of enhanced multi-progress view
 
 ## Async I/O Best Practices
 
@@ -168,6 +189,51 @@ The CLI supports various options for the scan command:
 - Always pass CancellationToken to async operations
 - Use IProgress<T> for long-running operations
 
-## Memories
+## Testing Architecture
 
-- The files in `Code to Port` should be considered read only as they are just reference.
+### Test Framework
+- **xUnit**: Primary test framework with async test support
+- **FluentAssertions**: Enhanced assertion library for clearer test failures  
+- **Moq**: Mocking framework for unit tests
+- **Spectre.Console.Testing**: Testing utilities for TUI components
+
+### Test Organization
+- **Unit Tests**: Individual analyzer and service tests
+- **Integration Tests**: End-to-end pipeline tests with sample logs
+- **Test Helpers**: `TestImplementations.cs` contains mock services
+- **Settings Tests**: Use `SettingsTestBase` and `SettingsTestCollection` for isolated settings
+
+### Key Test Patterns
+```csharp
+// Use TestMessageCapture for verifying message output
+var messageCapture = new TestMessageCapture();
+
+// Use SpectreTestHelper for TUI testing
+var console = SpectreTestHelper.CreateTestConsole();
+
+// Mock services in TestImplementations:
+// - TestApplicationSettingsService
+// - TestMessageHandler  
+// - TestYamlSettingsProvider
+```
+
+## Spectre.Console TUI Components
+
+### Message Handlers
+- **EnhancedSpectreMessageHandler**: Multi-panel progress display with live updates
+- **SpectreMessageHandler**: Legacy single-panel progress display  
+- **SpectreTerminalUIService**: Interactive menu system for TUI mode
+
+### TUI Features
+- Real-time progress tracking with multiple concurrent tasks
+- Live log viewer with colored message types
+- Memory usage and performance monitoring
+- Interactive menu navigation with keyboard controls
+
+## Important Notes
+
+- The files in `Code to Port/` are read-only Python reference implementation
+- Output format must match expected files in `sample_logs/*-AUTOSCAN.md` exactly
+- All async operations must use `ConfigureAwait(false)` for library code
+- Use `IAsyncEnumerable<T>` for streaming - never accumulate results in memory
+- UTF-8 encoding is required for all file I/O operations

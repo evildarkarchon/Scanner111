@@ -1,7 +1,7 @@
 # GitHub Copilot Instructions for Scanner111
 
 ## Project Overview
-Scanner111 is a C# port of a Python crash log analyzer for Bethesda games (Fallout 4, Skyrim). It analyzes crash dumps to identify problematic game modifications using multiple analyzer engines in a streaming pipeline architecture.
+Scanner111 is a C# port of a Python crash log analyzer for Bethesda games (Fallout 4, Skyrim). It analyzes crash dumps to identify problematic game modifications using multiple analyzer engines in a streaming pipeline architecture. Features both GUI (Avalonia) and CLI interfaces with rich Terminal UI using Spectre.Console.
 
 ## Core Architecture Patterns
 
@@ -28,11 +28,19 @@ await foreach (var result in pipeline.ProcessBatchAsync(logPaths, options, progr
 - **Return type**: All analyzers return `Task<AnalysisResult>`, not generic results
 
 ### Message Handler Abstraction
-- **UI-agnostic communication** via `IMessageHandler`
+- **UI-agnostic communication** via `IMessageHandler` at `Scanner111.Core/Infrastructure/MessageHandler.cs`
 - **GUI**: `GuiMessageHandlerService` in `Scanner111.GUI/Services/`
-- **CLI**: `CliMessageHandler` in `Scanner111.CLI/Services/`
+- **CLI**: `SpectreMessageHandler` and `EnhancedSpectreMessageHandler` in `Scanner111.CLI/Services/`
 - **Static facade**: `MessageHandler` class provides `MsgInfo()`, `MsgError()`, etc. shortcuts
-- **Purpose**: Decouples business logic from UI concerns
+- **Legacy support**: `--legacy-progress` flag switches to basic CLI message handler
+- **Purpose**: Decouples business logic from UI concerns, enables rich terminal UI via Spectre.Console
+
+### Terminal UI Architecture (Spectre.Console)
+- **Interactive Mode**: CLI launches TUI when no arguments provided (`Environment.UserInteractive`)
+- **`ITerminalUIService`**: Interface for terminal UI operations at `Scanner111.CLI/Services/`
+- **`SpectreTerminalUIService`**: Full TUI implementation with menus, progress bars, live updates
+- **Capabilities check**: Uses `AnsiConsole.Profile.Capabilities.Interactive` to detect terminal support
+- **Rich components**: FigletText headers, selection prompts, progress contexts, live panels
 
 ### Dependency Injection Architecture
 - **Constructor injection** for all services - no static dependencies except `MessageHandler` facade
@@ -96,6 +104,10 @@ dotnet run --project Scanner111.CLI -- fcx -g "C:\Games\Fallout 4" --check-integ
 dotnet run --project Scanner111.CLI -- demo  # Shows sample analysis
 dotnet run --project Scanner111.CLI -- config  # Manages settings
 dotnet run --project Scanner111.CLI -- about   # Version info
+dotnet run --project Scanner111.CLI -- interactive  # Explicit TUI mode
+
+# Interactive mode (auto-launches when no args provided in terminal)
+dotnet run --project Scanner111.CLI
 ```
 
 ### Building and Running
@@ -103,11 +115,14 @@ dotnet run --project Scanner111.CLI -- about   # Version info
 # Build solution
 dotnet build
 
-# Run GUI (Avalonia, no DI container in App.axaml.cs yet)
+# Run GUI (Avalonia with DI container in App.axaml.cs)
 dotnet run --project Scanner111.GUI
 
 # Run CLI with dependency injection via ServiceCollection
 dotnet run --project Scanner111.CLI -- scan -l "path/to/crash.log" --verbose
+
+# Interactive Terminal UI (launches when no arguments provided)
+dotnet run --project Scanner111.CLI
 ```
 
 ## Domain-Specific Patterns
@@ -161,8 +176,27 @@ dotnet run --project Scanner111.CLI -- scan -l "path/to/crash.log" --verbose
 - **Theme**: Dark theme with `#2d2d30` background, `#0e639c` primary color
 
 ### CLI Commands
-- **CommandLineParser**: Use verbs pattern (`scan`, `demo`, `config`, `about`, `fcx`)
+- **CommandLineParser**: Use verbs pattern (`scan`, `demo`, `config`, `about`, `fcx`, `interactive`)
 - **Options classes**: In `Scanner111.CLI/Models/` with proper attributes
 - **FCX Command**: `FcxCommand` for game integrity checking with hash validation
+- **Interactive Command**: `InteractiveCommand` launches full TUI via `ITerminalUIService`
 - **Async execution**: All commands implement `ICommand` with async execution
 - **DI setup**: CLI uses `ServiceCollection` in `Program.cs` with proper service registration
+- **Message handlers**: `--legacy-progress` flag switches between enhanced and basic CLI output
+
+### Terminal UI (TUI) Patterns
+- **Auto-detection**: Interactive mode launches when `args.Length == 0 && Environment.UserInteractive`
+- **Capability checking**: Use `AnsiConsole.Profile.Capabilities.Interactive` before TUI operations
+- **Menu system**: `SelectionPrompt<string>` with styled choices and navigation
+- **Live displays**: Combine `Layout`, `Table`, and `Live` for real-time updates
+- **Progress contexts**: Multi-progress tracking with concurrent operations
+- **Rich formatting**: FigletText headers, markup styling, panels with borders
+
+```csharp
+// TUI capability check pattern
+if (!AnsiConsole.Profile.Capabilities.Interactive)
+{
+    AnsiConsole.MarkupLine("[red]Error:[/] Interactive mode requires an interactive terminal.");
+    return 1;
+}
+```
