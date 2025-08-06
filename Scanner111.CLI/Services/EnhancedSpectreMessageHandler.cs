@@ -281,8 +281,16 @@ internal class ProgressManager : IAsyncDisposable
         var createCommand = new CreateProgressCommand(id, title, totalItems);
         _commandChannel.Writer.TryWrite(createCommand);
         
-        // Wait for task creation (with timeout)
-        createCommand.TaskCreated.Task.Wait(TimeSpan.FromSeconds(1));
+        // Use async wait with timeout to avoid blocking threads
+        try
+        {
+            createCommand.TaskCreated.Task.WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+        catch (TimeoutException)
+        {
+            // Handle timeout gracefully - progress context will still work, just might not show immediately
+            // This prevents resource leaks from blocking waits
+        }
         
         return context;
     }

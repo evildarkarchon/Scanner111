@@ -78,7 +78,7 @@ public class SpectreTerminalUIService : ITerminalUIService
                     await RunWatchMode();
                     break;
                 case "[7] About Scanner111":
-                    ShowAbout();
+                    await ShowAboutAsync();
                     break;
                 case "[Q] Quit":
                     return 0;
@@ -207,7 +207,7 @@ public class SpectreTerminalUIService : ITerminalUIService
             ScanDir = Directory.GetCurrentDirectory()
         };
         
-        await scanCommand.ExecuteAsync(options);
+        await scanCommand.ExecuteAsync(options).ConfigureAwait(false);
     }
 
     private async Task RunCustomScan()
@@ -245,7 +245,7 @@ public class SpectreTerminalUIService : ITerminalUIService
             ShowFidValues = options.Contains("Show FormID Values")
         };
 
-        await scanCommand.ExecuteAsync(scanOptions);
+        await scanCommand.ExecuteAsync(scanOptions).ConfigureAwait(false);
     }
 
     private async Task RunFcxMode()
@@ -255,13 +255,13 @@ public class SpectreTerminalUIService : ITerminalUIService
         var fcxCommand = _serviceProvider.GetRequiredService<ICommand<FcxOptions>>();
         var options = new FcxOptions();
         
-        await fcxCommand.ExecuteAsync(options);
+        await fcxCommand.ExecuteAsync(options).ConfigureAwait(false);
     }
 
     private async Task ShowConfiguration()
     {
         var configCommand = _serviceProvider.GetRequiredService<ICommand<ConfigOptions>>();
-        await configCommand.ExecuteAsync(new ConfigOptions());
+        await configCommand.ExecuteAsync(new ConfigOptions()).ConfigureAwait(false);
     }
 
     private async Task ShowRecentResults()
@@ -270,10 +270,10 @@ public class SpectreTerminalUIService : ITerminalUIService
         await Task.CompletedTask;
     }
 
-    private void ShowAbout()
+    private async Task ShowAboutAsync()
     {
         var aboutCommand = _serviceProvider.GetRequiredService<ICommand<AboutOptions>>();
-        aboutCommand.ExecuteAsync(new AboutOptions()).Wait();
+        await aboutCommand.ExecuteAsync(new AboutOptions()).ConfigureAwait(false);
     }
     
     private async Task RunWatchMode()
@@ -281,6 +281,7 @@ public class SpectreTerminalUIService : ITerminalUIService
         AnsiConsole.MarkupLine("[yellow]Watch Mode - Monitoring for new crash logs[/]");
         AnsiConsole.WriteLine();
         
+        // Ask for configuration
         var watchPath = AnsiConsole.Ask<string>("Enter directory to watch:", Directory.GetCurrentDirectory());
         
         if (!Directory.Exists(watchPath))
@@ -289,57 +290,23 @@ public class SpectreTerminalUIService : ITerminalUIService
             return;
         }
         
-        var cts = new CancellationTokenSource();
+        var scanExisting = AnsiConsole.Confirm("Scan existing logs on startup?", false);
+        var showDashboard = AnsiConsole.Confirm("Show live dashboard?", true);
+        var autoMove = AnsiConsole.Confirm("Auto-move solved logs?", false);
         
-        AnsiConsole.MarkupLine($"[green]Watching:[/] {watchPath}");
-        AnsiConsole.MarkupLine("[dim]Press 'Q' to stop watching...[/]");
-        AnsiConsole.WriteLine();
-        
-        using var watcher = new FileSystemWatcher(watchPath)
+        // Use the new WatchCommand
+        var watchCommand = _serviceProvider.GetRequiredService<ICommand<WatchOptions>>();
+        var options = new WatchOptions
         {
-            Filter = "*.log",
-            NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime | NotifyFilters.LastWrite
+            Path = watchPath,
+            ScanExisting = scanExisting,
+            ShowDashboard = showDashboard,
+            AutoMove = autoMove,
+            ShowNotifications = true,
+            Recursive = false,
+            Pattern = "*.log"
         };
         
-        watcher.Created += async (sender, e) =>
-        {
-            AnsiConsole.MarkupLine($"[yellow]New log detected:[/] {e.Name}");
-            
-            // Wait a moment for file to be fully written
-            await Task.Delay(1000);
-            
-            // Auto-scan the new log
-            var scanCommand = _serviceProvider.GetRequiredService<ICommand<Models.ScanOptions>>();
-            var options = new Models.ScanOptions
-            {
-                LogFile = e.FullPath
-            };
-            
-            AnsiConsole.MarkupLine("[cyan]Auto-scanning new crash log...[/]");
-            await scanCommand.ExecuteAsync(options);
-        };
-        
-        watcher.EnableRaisingEvents = true;
-        
-        // Wait for user to press Q
-        await Task.Run(() =>
-        {
-            while (!cts.Token.IsCancellationRequested)
-            {
-                if (Console.KeyAvailable)
-                {
-                    var key = Console.ReadKey(true);
-                    if (key.Key == ConsoleKey.Q)
-                    {
-                        cts.Cancel();
-                        break;
-                    }
-                }
-                Thread.Sleep(100);
-            }
-        }, cts.Token);
-        
-        watcher.EnableRaisingEvents = false;
-        AnsiConsole.MarkupLine("[yellow]Watch mode stopped.[/]");
+        await watchCommand.ExecuteAsync(options).ConfigureAwait(false);
     }
 }

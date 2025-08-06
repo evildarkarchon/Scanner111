@@ -9,22 +9,27 @@ namespace Scanner111.CLI.Services;
 /// </summary>
 public class CliSettingsService : ICliSettingsService
 {
-    private readonly IApplicationSettingsService _applicationSettingsService = new ApplicationSettingsService();
+    private readonly IApplicationSettingsService _applicationSettingsService;
+
+    public CliSettingsService(IApplicationSettingsService applicationSettingsService)
+    {
+        _applicationSettingsService = applicationSettingsService ?? throw new ArgumentNullException(nameof(applicationSettingsService));
+    }
 
     // New unified settings methods
     public async Task<ApplicationSettings> LoadSettingsAsync()
     {
-        return await _applicationSettingsService.LoadSettingsAsync();
+        return await _applicationSettingsService.LoadSettingsAsync().ConfigureAwait(false);
     }
 
     public async Task SaveSettingsAsync(ApplicationSettings settings)
     {
-        await _applicationSettingsService.SaveSettingsAsync(settings);
+        await _applicationSettingsService.SaveSettingsAsync(settings).ConfigureAwait(false);
     }
 
     public async Task SaveSettingAsync(string key, object value)
     {
-        await _applicationSettingsService.SaveSettingAsync(key, value);
+        await _applicationSettingsService.SaveSettingAsync(key, value).ConfigureAwait(false);
     }
 
     public ApplicationSettings GetDefaultSettings()
@@ -35,15 +40,15 @@ public class CliSettingsService : ICliSettingsService
     // Backward compatibility methods for existing CLI code
     public async Task<CliSettings> LoadCliSettingsAsync()
     {
-        var appSettings = await LoadSettingsAsync();
+        var appSettings = await LoadSettingsAsync().ConfigureAwait(false);
         return MapToCliSettings(appSettings);
     }
 
     public async Task SaveCliSettingsAsync(CliSettings cliSettings)
     {
-        var appSettings = await LoadSettingsAsync();
+        var appSettings = await LoadSettingsAsync().ConfigureAwait(false);
         MapFromCliSettings(cliSettings, appSettings);
-        await SaveSettingsAsync(appSettings);
+        await SaveSettingsAsync(appSettings).ConfigureAwait(false);
     }
 
     private CliSettings MapToCliSettings(ApplicationSettings appSettings)

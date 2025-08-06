@@ -38,7 +38,7 @@ if (args.Length == 0 && Environment.UserInteractive)
 
 // Parse command line arguments
 var parser = new Parser(with => with.HelpWriter = Console.Error);
-var result = parser.ParseArguments<Scanner111.CLI.Models.ScanOptions, DemoOptions, ConfigOptions, AboutOptions, FcxOptions, InteractiveOptions>(args);
+var result = parser.ParseArguments<Scanner111.CLI.Models.ScanOptions, DemoOptions, ConfigOptions, AboutOptions, FcxOptions, InteractiveOptions, WatchOptions>(args);
 
 return await result.MapResult(
     async (Scanner111.CLI.Models.ScanOptions opts) => await serviceProvider.GetRequiredService<ScanCommand>().ExecuteAsync(opts),
@@ -47,6 +47,7 @@ return await result.MapResult(
     async (AboutOptions opts) => await serviceProvider.GetRequiredService<AboutCommand>().ExecuteAsync(opts),
     async (FcxOptions opts) => await serviceProvider.GetRequiredService<FcxCommand>().ExecuteAsync(opts),
     async (InteractiveOptions opts) => await serviceProvider.GetRequiredService<InteractiveCommand>().ExecuteAsync(opts),
+    async (WatchOptions opts) => await serviceProvider.GetRequiredService<WatchCommand>().ExecuteAsync(opts),
     async errs => await Task.FromResult(1));
 
 static void ConfigureServices(IServiceCollection services, bool useLegacyProgress = false)
@@ -58,11 +59,18 @@ static void ConfigureServices(IServiceCollection services, bool useLegacyProgres
         builder.SetMinimumLevel(LogLevel.Information);
     });
 
+    // Add memory cache for CacheManager
+    services.AddMemoryCache();
+
     // Register Core services
     services.AddSingleton<IApplicationSettingsService, ApplicationSettingsService>();
     services.AddSingleton<IUpdateService, UpdateService>();
     services.AddSingleton<ICacheManager, CacheManager>();
     services.AddSingleton<IUnsolvedLogsMover, UnsolvedLogsMover>();
+    
+    // Register Core infrastructure
+    services.AddSingleton<IReportWriter, ReportWriter>();
+    services.AddSingleton<IScanPipeline, ScanPipeline>();
 
     // Register CLI services
     services.AddSingleton<ICliSettingsService, CliSettingsService>();
@@ -95,6 +103,7 @@ static void ConfigureServices(IServiceCollection services, bool useLegacyProgres
     services.AddTransient<AboutCommand>();
     services.AddTransient<FcxCommand>();
     services.AddTransient<InteractiveCommand>();
+    services.AddTransient<WatchCommand>();
     
     // Register ICommand interfaces for injection
     services.AddTransient<ICommand<Scanner111.CLI.Models.ScanOptions>, ScanCommand>();
@@ -103,6 +112,7 @@ static void ConfigureServices(IServiceCollection services, bool useLegacyProgres
     services.AddTransient<ICommand<AboutOptions>, AboutCommand>();
     services.AddTransient<ICommand<FcxOptions>, FcxCommand>();
     services.AddTransient<ICommand<InteractiveOptions>, InteractiveCommand>();
+    services.AddTransient<ICommand<WatchOptions>, WatchCommand>();
 }
 
 static async Task PerformStartupUpdateCheckAsync(IServiceProvider serviceProvider)

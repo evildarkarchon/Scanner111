@@ -13,6 +13,7 @@ namespace Scanner111.Tests.CLI.Services;
 public class CliSettingsServiceTests : IDisposable
 {
     private readonly string _testSettingsDir;
+    private readonly Mock<IApplicationSettingsService> _mockApplicationSettingsService;
 
     public CliSettingsServiceTests()
     {
@@ -22,6 +23,13 @@ public class CliSettingsServiceTests : IDisposable
         
         // Override the settings directory for testing
         Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", _testSettingsDir);
+        
+        // Initialize mock
+        _mockApplicationSettingsService = new Mock<IApplicationSettingsService>();
+        _mockApplicationSettingsService.Setup(x => x.LoadSettingsAsync())
+            .ReturnsAsync(new ApplicationSettings());
+        _mockApplicationSettingsService.Setup(x => x.GetDefaultSettings())
+            .Returns(new ApplicationSettings());
         
         // Small delay to avoid race conditions during parallel test execution
         System.Threading.Thread.Sleep(Random.Shared.Next(50, 150));
@@ -48,7 +56,7 @@ public class CliSettingsServiceTests : IDisposable
     public async Task LoadSettingsAsync_ReturnsApplicationSettings()
     {
         // Arrange
-        var service = new CliSettingsService();
+        var service = new CliSettingsService(_mockApplicationSettingsService.Object);
         
         // Act
         var settings = await service.LoadSettingsAsync();
@@ -62,7 +70,7 @@ public class CliSettingsServiceTests : IDisposable
     public async Task SaveSettingsAsync_DoesNotThrow()
     {
         // Arrange
-        var service = new CliSettingsService();
+        var service = new CliSettingsService(_mockApplicationSettingsService.Object);
         var settings = new ApplicationSettings
         {
             FcxMode = true,
@@ -77,7 +85,7 @@ public class CliSettingsServiceTests : IDisposable
     public async Task SaveSettingAsync_UpdatesSingleSetting()
     {
         // Arrange
-        var service = new CliSettingsService();
+        var service = new CliSettingsService(_mockApplicationSettingsService.Object);
         
         // Act
         await service.SaveSettingAsync("FcxMode", true);
@@ -91,7 +99,7 @@ public class CliSettingsServiceTests : IDisposable
     public void GetDefaultSettings_ReturnsValidDefaults()
     {
         // Arrange
-        var service = new CliSettingsService();
+        var service = new CliSettingsService(_mockApplicationSettingsService.Object);
         
         // Act
         var defaults = service.GetDefaultSettings();
@@ -108,7 +116,7 @@ public class CliSettingsServiceTests : IDisposable
     public async Task LoadCliSettingsAsync_MapsFromApplicationSettings()
     {
         // Arrange
-        var service = new CliSettingsService();
+        var service = new CliSettingsService(_mockApplicationSettingsService.Object);
         
         // First save some app settings
         var appSettings = new ApplicationSettings
@@ -164,7 +172,7 @@ public class CliSettingsServiceTests : IDisposable
     public async Task SaveCliSettingsAsync_MapsToApplicationSettings()
     {
         // Arrange
-        var service = new CliSettingsService();
+        var service = new CliSettingsService(_mockApplicationSettingsService.Object);
         var cliSettings = new CliSettings
         {
             FcxMode = true,
@@ -217,7 +225,7 @@ public class CliSettingsServiceTests : IDisposable
     public async Task BackwardCompatibility_RoundTrip()
     {
         // Arrange
-        var service = new CliSettingsService();
+        var service = new CliSettingsService(_mockApplicationSettingsService.Object);
         var originalCli = new CliSettings
         {
             FcxMode = true,
@@ -244,7 +252,7 @@ public class CliSettingsServiceTests : IDisposable
     public async Task MappingPreservesUnmappedApplicationSettings()
     {
         // Arrange
-        var service = new CliSettingsService();
+        var service = new CliSettingsService(_mockApplicationSettingsService.Object);
         
         // Set up app settings with values that don't map to CLI settings
         var appSettings = await service.LoadSettingsAsync();
@@ -273,7 +281,7 @@ public class CliSettingsServiceTests : IDisposable
     public async Task CliSettingsService_HandlesNullRecentPaths()
     {
         // Arrange
-        var service = new CliSettingsService();
+        var service = new CliSettingsService(_mockApplicationSettingsService.Object);
         var cliSettings = new CliSettings
         {
             RecentScanPaths = null // Simulate null list
@@ -290,7 +298,7 @@ public class CliSettingsServiceTests : IDisposable
     public async Task SaveSettingAsync_HandlesVariousTypes()
     {
         // Arrange
-        var service = new CliSettingsService();
+        var service = new CliSettingsService(_mockApplicationSettingsService.Object);
         
         // Act & Assert - Should handle different types
         await service.SaveSettingAsync("FcxMode", true);

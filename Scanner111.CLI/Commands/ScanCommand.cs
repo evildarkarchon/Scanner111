@@ -140,24 +140,21 @@ public class ScanCommand : ICommand<CliScanOptions>
 
         using (progressContext)
         {
-            await Task.Run(async () =>
+            await foreach (var result in pipeline.ProcessBatchAsync(scanData.FilesToScan).ConfigureAwait(false))
             {
-                await foreach (var result in pipeline.ProcessBatchAsync(scanData.FilesToScan))
+                processedCount++;
+                progressContext?.Update(processedCount, $"Processed {Path.GetFileName(result?.LogPath)}");
+
+                if (result != null)
                 {
-                    processedCount++;
-                    progressContext?.Update(processedCount, $"Processed {Path.GetFileName(result?.LogPath)}");
+                    // Set XSE flag if this file was copied from XSE directory
+                    result.WasCopiedFromXse = scanData.XseCopiedFiles.Contains(result.LogPath);
 
-                    if (result != null)
-                    {
-                        // Set XSE flag if this file was copied from XSE directory
-                        result.WasCopiedFromXse = scanData.XseCopiedFiles.Contains(result.LogPath);
-
-                        scanResults.Add(result);
-                        await _scanResultProcessor.ProcessScanResultAsync(result, options, reportWriter,
-                            scanData.XseCopiedFiles, settings);
-                    }
+                    scanResults.Add(result);
+                    await _scanResultProcessor.ProcessScanResultAsync(result, options, reportWriter,
+                        scanData.XseCopiedFiles, settings).ConfigureAwait(false);
                 }
-            });
+            }
 
             progressContext?.Complete();
         }

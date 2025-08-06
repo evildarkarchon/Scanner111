@@ -49,7 +49,7 @@ public class ScanResultProcessor : IScanResultProcessor
                     // For non-XSE files (directly scanned), write report alongside the source log
                     outputPath = Path.ChangeExtension(result.LogPath, null) + "-AUTOSCAN.md";
 
-                var success = await reportWriter.WriteReportAsync(result, outputPath);
+                var success = await reportWriter.WriteReportAsync(result, outputPath).ConfigureAwait(false);
                 if (!success)
                     MessageHandler.MsgWarning($"Failed to save report for {Path.GetFileName(result.LogPath)}");
             }
@@ -61,7 +61,7 @@ public class ScanResultProcessor : IScanResultProcessor
         // Move unsolved logs if enabled and scan failed
         if (settings.MoveUnsolvedLogs && (result.Failed || result.Status == ScanStatus.Failed || result.HasErrors))
         {
-            await _unsolvedLogsMover.MoveUnsolvedLogAsync(result.LogPath, settings);
+            await _unsolvedLogsMover.MoveUnsolvedLogAsync(result.LogPath, settings).ConfigureAwait(false);
         }
     }
 }

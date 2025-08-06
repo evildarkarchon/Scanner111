@@ -6,6 +6,12 @@ namespace Scanner111.CLI.Services;
 
 public class FileScanService : IFileScanService
 {
+    private readonly IMessageHandler _messageHandler;
+
+    public FileScanService(IMessageHandler messageHandler)
+    {
+        _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
+    }
     /// <summary>
     /// Collects files to scan based on the specified scan options and application settings.
     /// </summary>
@@ -17,13 +23,13 @@ public class FileScanService : IFileScanService
         var scanData = new FileScanData();
 
         // Auto-copy XSE crash logs first (F4SE and SKSE, similar to GUI functionality)
-        await CopyXseLogsAsync(scanData, options, settings);
+        await CopyXseLogsAsync(scanData, options, settings).ConfigureAwait(false);
 
         // Add specific log file if provided
         if (!string.IsNullOrEmpty(options.LogFile) && File.Exists(options.LogFile))
         {
             scanData.FilesToScan.Add(options.LogFile);
-            MessageHandler.MsgInfo($"Added log file: {Path.GetFileName(options.LogFile)}");
+            _messageHandler.ShowInfo($"Added log file: {Path.GetFileName(options.LogFile)}");
         }
 
         // Scan directory if provided
@@ -38,7 +44,7 @@ public class FileScanService : IFileScanService
                 .ToList();
 
             scanData.FilesToScan.AddRange(logs);
-            MessageHandler.MsgInfo($"Found {logs.Count} crash logs in scan directory");
+            _messageHandler.ShowInfo($"Found {logs.Count} crash logs in scan directory");
         }
 
         // If no specific files provided, scan current directory
@@ -52,7 +58,7 @@ public class FileScanService : IFileScanService
                 .ToList();
 
             scanData.FilesToScan.AddRange(logs);
-            if (logs.Any()) MessageHandler.MsgInfo($"Found {logs.Count} crash logs in current directory");
+            if (logs.Any()) _messageHandler.ShowInfo($"Found {logs.Count} crash logs in current directory");
         }
 
         // Remove duplicates
@@ -109,7 +115,7 @@ public class FileScanService : IFileScanService
                             CrashLogDirectoryManager.CopyCrashLog(logFile, crashLogsBaseDir, gameType);
 
                         var xseType = xsePath.Contains("SKSE") ? "SKSE" : "F4SE";
-                        MessageHandler.MsgDebug(
+                        _messageHandler.ShowDebug(
                             $"Copied {xseType} {gameType} crash log: {Path.GetFileName(logFile)} -> {Path.GetDirectoryName(targetPath)}");
                         copiedCount++;
 
@@ -122,15 +128,15 @@ public class FileScanService : IFileScanService
                 }
 
             if (copiedCount > 0)
-                MessageHandler.MsgSuccess($"Auto-copied {copiedCount} XSE crash logs");
+                _messageHandler.ShowSuccess($"Auto-copied {copiedCount} XSE crash logs");
             else if (xsePaths.Length == 0)
-                MessageHandler.MsgDebug("No XSE directories found for auto-copy");
+                _messageHandler.ShowDebug("No XSE directories found for auto-copy");
             else
-                MessageHandler.MsgDebug("No new XSE crash logs to copy");
+                _messageHandler.ShowDebug("No new XSE crash logs to copy");
         }
         catch (Exception ex)
         {
-            MessageHandler.MsgWarning($"Error during XSE auto-copy: {ex.Message}");
+            _messageHandler.ShowWarning($"Error during XSE auto-copy: {ex.Message}");
         }
 
         return Task.CompletedTask;

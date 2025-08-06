@@ -8,7 +8,14 @@ namespace Scanner111.Core.Infrastructure;
 /// </summary>
 public class CliMessageHandler : IMessageHandler
 {
-    internal static CliProgress? ActiveProgress;
+    private static readonly object _progressLock = new();
+    private static CliProgress? _activeProgress;
+    
+    internal static CliProgress? ActiveProgress
+    {
+        get { lock (_progressLock) { return _activeProgress; } }
+        set { lock (_progressLock) { _activeProgress = value; } }
+    }
     private readonly string _currentLogFile;
     private readonly string _logDirectory;
     private readonly bool _useColors;
@@ -265,13 +272,19 @@ public class CliMessageHandler : IMessageHandler
     /// This provides persistent storage for debugging output.
     /// </summary>
     /// <param name="message">The debug message to be written to the log file.</param>
+    private readonly object _logFileLock = new();
+    
     private void WriteDebugToFile(string message)
     {
         try
         {
             var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
             var logEntry = $"[{timestamp}] DEBUG: {message}{Environment.NewLine}";
-            File.AppendAllText(_currentLogFile, logEntry);
+            
+            lock (_logFileLock)
+            {
+                File.AppendAllText(_currentLogFile, logEntry);
+            }
         }
         catch
         {
