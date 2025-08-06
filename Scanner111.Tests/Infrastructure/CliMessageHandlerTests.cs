@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using FluentAssertions;
+using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 using Xunit;
 
@@ -14,13 +16,13 @@ public class CliMessageHandlerTests
     {
         // Arrange & Act
         var handler = new CliMessageHandler();
-        
+
         // Assert
         var logDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Scanner111", "DebugLogs");
-        
-        Assert.True(Directory.Exists(logDirectory));
+
+        Directory.Exists(logDirectory).Should().BeTrue("debug log directory should be created");
     }
 
     [Fact]
@@ -28,7 +30,7 @@ public class CliMessageHandlerTests
     {
         // Arrange
         var handler = new CliMessageHandler(false);
-        
+
         // Act & Assert - Should not throw
         handler.ShowInfo("Test info message");
     }
@@ -38,7 +40,7 @@ public class CliMessageHandlerTests
     {
         // Arrange
         var handler = new CliMessageHandler(false);
-        
+
         // Act & Assert - Should not throw
         handler.ShowWarning("Test warning message");
     }
@@ -48,7 +50,7 @@ public class CliMessageHandlerTests
     {
         // Arrange
         var handler = new CliMessageHandler(false);
-        
+
         // Act & Assert - Should not throw
         handler.ShowError("Test error message");
     }
@@ -58,7 +60,7 @@ public class CliMessageHandlerTests
     {
         // Arrange
         var handler = new CliMessageHandler(false);
-        
+
         // Act & Assert - Should not throw
         handler.ShowSuccess("Test success message");
     }
@@ -68,7 +70,7 @@ public class CliMessageHandlerTests
     {
         // Arrange
         var handler = new CliMessageHandler(false);
-        
+
         // Act & Assert - Should not throw
         handler.ShowCritical("Test critical message");
     }
@@ -81,17 +83,17 @@ public class CliMessageHandlerTests
         var logDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Scanner111", "DebugLogs");
-        
+
         // Act
         handler.ShowDebug("Test debug message");
-        
+
         // Assert
         var logFiles = Directory.GetFiles(logDirectory, "scanner111-debug-*.log");
-        Assert.NotEmpty(logFiles);
-        
+        logFiles.Should().NotBeEmpty("debug message should create log file");
+
         var latestLog = logFiles.OrderByDescending(File.GetCreationTime).First();
         var content = File.ReadAllText(latestLog);
-        Assert.Contains("DEBUG: Test debug message", content);
+        content.Should().Contain("DEBUG: Test debug message", "debug message should be written to log file");
     }
 
     [Theory]
@@ -101,7 +103,7 @@ public class CliMessageHandlerTests
     {
         // Arrange
         var handler = new CliMessageHandler(false);
-        
+
         // Act & Assert - Should not throw
         handler.ShowInfo("Test message", target);
     }
@@ -111,7 +113,7 @@ public class CliMessageHandlerTests
     {
         // Arrange
         var handler = new CliMessageHandler(false);
-        
+
         // Act & Assert - Should return immediately without action
         handler.ShowInfo("Test message", MessageTarget.GuiOnly);
     }
@@ -127,7 +129,7 @@ public class CliMessageHandlerTests
     {
         // Arrange
         var handler = new CliMessageHandler(false);
-        
+
         // Act & Assert - Should not throw
         handler.ShowMessage("Test message", null, messageType);
     }
@@ -137,7 +139,7 @@ public class CliMessageHandlerTests
     {
         // Arrange
         var handler = new CliMessageHandler(false);
-        
+
         // Act & Assert - Should not throw
         handler.ShowMessage("Main message", "Additional details", MessageType.Info);
     }
@@ -147,13 +149,13 @@ public class CliMessageHandlerTests
     {
         // Arrange
         var handler = new CliMessageHandler(false);
-        
+
         // Act
         var progress = handler.ShowProgress("Test progress", 100);
-        
+
         // Assert
-        Assert.NotNull(progress);
-        Assert.IsAssignableFrom<IProgress<ProgressInfo>>(progress);
+        progress.Should().NotBeNull("progress instance should be created");
+        progress.Should().BeAssignableTo<IProgress<ProgressInfo>>("progress should implement IProgress interface");
     }
 
     [Fact]
@@ -161,13 +163,13 @@ public class CliMessageHandlerTests
     {
         // Arrange
         var handler = new CliMessageHandler(false);
-        
+
         // Act
         using var context = handler.CreateProgressContext("Test context", 50);
-        
+
         // Assert
-        Assert.NotNull(context);
-        Assert.IsAssignableFrom<IProgressContext>(context);
+        context.Should().NotBeNull("progress context should be created");
+        context.Should().BeAssignableTo<IProgressContext>("context should implement IProgressContext interface");
     }
 
     [Fact]
@@ -175,7 +177,7 @@ public class CliMessageHandlerTests
     {
         // Arrange
         var progress = new CliProgress("Test", false);
-        
+
         // Act & Assert - Should not throw
         progress.Report(new ProgressInfo { Current = 50, Total = 100, Message = "50%" });
         progress.Report(new ProgressInfo { Current = 100, Total = 100, Message = "Complete" });
@@ -186,13 +188,13 @@ public class CliMessageHandlerTests
     {
         // Arrange
         var progress = new CliProgress("Test", false);
-        
+
         // Act
         var needsRedraw = progress.InterruptForMessage();
-        
+
         // Assert
-        Assert.True(needsRedraw);
-        
+        needsRedraw.Should().BeTrue("interruption should indicate redraw is needed");
+
         // Act & Assert - Should not throw
         progress.RedrawAfterMessage();
     }
@@ -202,7 +204,7 @@ public class CliMessageHandlerTests
     {
         // Arrange
         using var context = new CliProgressContext("Test", 100, false);
-        
+
         // Act & Assert - Should not throw
         context.Update(25, "25% complete");
         context.Update(50, "50% complete");
@@ -214,7 +216,7 @@ public class CliMessageHandlerTests
     {
         // Arrange
         using var context = new CliProgressContext("Test", 100, false);
-        
+
         // Act & Assert - Should not throw
         context.Report(new ProgressInfo { Current = 75, Total = 100, Message = "75%" });
     }
@@ -224,10 +226,10 @@ public class CliMessageHandlerTests
     {
         // Arrange
         var context = new CliProgressContext("Test", 100, false);
-        
+
         // Act
         context.Dispose();
-        
+
         // Assert - Should not throw when using after disposal
         context.Update(50, "Should be ignored");
         context.Complete();
@@ -241,20 +243,20 @@ public class CliMessageHandlerTests
         var logDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Scanner111", "DebugLogs");
-        
+
         // Create more than 10 log files
         for (int i = 0; i < 15; i++)
         {
             var filename = Path.Combine(logDirectory, $"scanner111-debug-test{i:D2}.log");
             File.WriteAllText(filename, "test");
         }
-        
+
         // Act
         var handler = new CliMessageHandler(false);
-        
+
         // Assert - Should have cleaned up old files
         var remainingFiles = Directory.GetFiles(logDirectory, "scanner111-debug-*.log");
-        Assert.True(remainingFiles.Length <= 11); // 10 + the new one created by constructor
+        remainingFiles.Length.Should().BeLessThanOrEqualTo(11, "old log files should be cleaned up (10 kept + 1 new)");
     }
 
     [Fact]
@@ -263,7 +265,7 @@ public class CliMessageHandlerTests
         // This test verifies that SupportsColors doesn't throw
         // The actual result depends on the runtime environment
         var handler = new CliMessageHandler();
-        Assert.NotNull(handler);
+        handler.Should().NotBeNull("handler should be created successfully");
     }
 
     [Fact]
@@ -272,7 +274,7 @@ public class CliMessageHandlerTests
         // This would test the private method indirectly
         // We can verify by using the handler with colors disabled
         var handler = new CliMessageHandler(false);
-        
+
         // Act & Assert - Messages should display without throwing
         handler.ShowInfo("Test");
         handler.ShowWarning("Test");

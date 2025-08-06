@@ -1,6 +1,7 @@
 using System;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Scanner111.GUI.Models;
 using Scanner111.GUI.ViewModels;
 using Scanner111.Tests.GUI.TestHelpers;
@@ -26,12 +27,12 @@ public class SettingsWindowViewModelTests
         await Task.Delay(100);
 
         // Assert
-        Assert.True(_mockSettingsService.LoadCalled);
-        Assert.Equal(@"C:\Test\default.log", _viewModel.DefaultLogPath);
-        Assert.Equal(@"C:\Games\Fallout4", _viewModel.DefaultGamePath);
-        Assert.Equal(@"C:\Test\Scans", _viewModel.DefaultScanDirectory);
-        Assert.True(_viewModel.AutoLoadF4SeLogs);
-        Assert.Equal(100, _viewModel.MaxLogMessages);
+        _mockSettingsService.LoadCalled.Should().BeTrue("because settings should be loaded on initialization");
+        _viewModel.DefaultLogPath.Should().Be(@"C:\Test\default.log", "because default log path should be loaded");
+        _viewModel.DefaultGamePath.Should().Be(@"C:\Games\Fallout4", "because default game path should be loaded");
+        _viewModel.DefaultScanDirectory.Should().Be(@"C:\Test\Scans", "because default scan directory should be loaded");
+        _viewModel.AutoLoadF4SeLogs.Should().BeTrue("because auto-load setting should be loaded");
+        _viewModel.MaxLogMessages.Should().Be(100, "because max log messages setting should be loaded");
     }
 
     [Fact]
@@ -49,8 +50,8 @@ public class SettingsWindowViewModelTests
         _viewModel.DefaultLogPath = @"C:\New\Path.log";
 
         // Assert
-        Assert.True(propertyChanged);
-        Assert.Equal(@"C:\New\Path.log", _viewModel.DefaultLogPath);
+        propertyChanged.Should().BeTrue("because property change notification should be raised");
+        _viewModel.DefaultLogPath.Should().Be(@"C:\New\Path.log", "because property value should be updated");
     }
 
     [Fact]
@@ -66,8 +67,8 @@ public class SettingsWindowViewModelTests
         await _viewModel.SaveCommand.Execute().FirstAsync();
 
         // Assert
-        Assert.True(_mockSettingsService.SaveCalled);
-        Assert.True(closeWindowCalled);
+        _mockSettingsService.SaveCalled.Should().BeTrue("because settings should be saved");
+        closeWindowCalled.Should().BeTrue("because window should close after successful save");
     }
 
     [Fact]
@@ -82,8 +83,8 @@ public class SettingsWindowViewModelTests
         await _viewModel.SaveCommand.Execute().FirstAsync();
 
         // Assert
-        Assert.True(_mockSettingsService.SaveCalled);
-        Assert.False(closeWindowCalled); // Window should not close on error
+        _mockSettingsService.SaveCalled.Should().BeTrue("because save attempt should be made");
+        closeWindowCalled.Should().BeFalse("because window should not close on error");
     }
 
     [Fact]
@@ -99,8 +100,8 @@ public class SettingsWindowViewModelTests
         _viewModel.CancelCommand.Execute();
 
         // Assert
-        Assert.Equal(originalLogPath, _viewModel.DefaultLogPath);
-        Assert.True(closeWindowCalled);
+        _viewModel.DefaultLogPath.Should().Be(originalLogPath, "because settings should be restored on cancel");
+        closeWindowCalled.Should().BeTrue("because window should close on cancel");
     }
 
     [Fact]
@@ -115,11 +116,11 @@ public class SettingsWindowViewModelTests
         _viewModel.ResetToDefaultsCommand.Execute();
 
         // Assert
-        Assert.Equal("", _viewModel.DefaultLogPath);
-        Assert.False(_viewModel.AutoSaveResults);
-        Assert.False(_viewModel.EnableDebugLogging);
-        Assert.Equal(1200, _viewModel.WindowWidth);
-        Assert.Equal(800, _viewModel.WindowHeight);
+        _viewModel.DefaultLogPath.Should().Be("", "because default log path should be reset");
+        _viewModel.AutoSaveResults.Should().BeFalse("because auto-save should be reset to default");
+        _viewModel.EnableDebugLogging.Should().BeFalse("because debug logging should be reset to default");
+        _viewModel.WindowWidth.Should().Be(1200, "because window width should be reset to default");
+        _viewModel.WindowHeight.Should().Be(800, "because window height should be reset to default");
     }
 
     [Fact]
@@ -135,12 +136,12 @@ public class SettingsWindowViewModelTests
         _viewModel.ClearRecentFilesCommand.Execute();
 
         // Assert
-        Assert.Empty(_viewModel.RecentLogFiles);
-        Assert.Empty(_viewModel.RecentGamePaths);
-        Assert.Empty(_viewModel.RecentScanDirectories);
-        Assert.False(_viewModel.HasRecentLogFiles);
-        Assert.False(_viewModel.HasRecentGamePaths);
-        Assert.False(_viewModel.HasRecentScanDirectories);
+        _viewModel.RecentLogFiles.Should().BeEmpty("because recent log files should be cleared");
+        _viewModel.RecentGamePaths.Should().BeEmpty("because recent game paths should be cleared");
+        _viewModel.RecentScanDirectories.Should().BeEmpty("because recent scan directories should be cleared");
+        _viewModel.HasRecentLogFiles.Should().BeFalse("because no recent log files should exist");
+        _viewModel.HasRecentGamePaths.Should().BeFalse("because no recent game paths should exist");
+        _viewModel.HasRecentScanDirectories.Should().BeFalse("because no recent scan directories should exist");
     }
 
     [Fact]
@@ -154,7 +155,7 @@ public class SettingsWindowViewModelTests
         await _viewModel.BrowseLogPathCommand.Execute().FirstAsync();
 
         // Assert
-        Assert.Equal(pickedPath, _viewModel.DefaultLogPath);
+        _viewModel.DefaultLogPath.Should().Be(pickedPath, "because selected path should be updated");
     }
 
     [Fact]
@@ -168,7 +169,7 @@ public class SettingsWindowViewModelTests
         await _viewModel.BrowseGamePathCommand.Execute().FirstAsync();
 
         // Assert
-        Assert.Equal(pickedPath, _viewModel.DefaultGamePath);
+        _viewModel.DefaultGamePath.Should().Be(pickedPath, "because selected game path should be updated");
     }
 
     [Fact]
@@ -182,7 +183,7 @@ public class SettingsWindowViewModelTests
         await _viewModel.BrowseScanDirectoryCommand.Execute().FirstAsync();
 
         // Assert
-        Assert.Equal(pickedPath, _viewModel.DefaultScanDirectory);
+        _viewModel.DefaultScanDirectory.Should().Be(pickedPath, "because selected scan directory should be updated");
     }
 
     [Fact]
@@ -196,7 +197,7 @@ public class SettingsWindowViewModelTests
         await _viewModel.BrowseModsFolderCommand.Execute().FirstAsync();
 
         // Assert
-        Assert.Equal(pickedPath, _viewModel.ModsFolder);
+        _viewModel.ModsFolder.Should().Be(pickedPath, "because selected mods folder should be updated");
     }
 
     [Fact]
@@ -210,7 +211,7 @@ public class SettingsWindowViewModelTests
         await _viewModel.BrowseIniFolderCommand.Execute().FirstAsync();
 
         // Assert
-        Assert.Equal(pickedPath, _viewModel.IniFolder);
+        _viewModel.IniFolder.Should().Be(pickedPath, "because selected INI folder should be updated");
     }
 
     [Theory]
@@ -236,8 +237,8 @@ public class SettingsWindowViewModelTests
         property?.SetValue(_viewModel, value);
 
         // Assert
-        Assert.True(propertyChanged);
-        Assert.Equal(value, property?.GetValue(_viewModel));
+        propertyChanged.Should().BeTrue("because property change notification should be raised");
+        property?.GetValue(_viewModel).Should().Be(value, "because property value should be updated");
     }
 
     [Theory]
@@ -264,8 +265,8 @@ public class SettingsWindowViewModelTests
         property?.SetValue(_viewModel, value);
 
         // Assert
-        Assert.True(propertyChanged);
-        Assert.Equal(value, property?.GetValue(_viewModel));
+        propertyChanged.Should().BeTrue("because property change notification should be raised");
+        property?.GetValue(_viewModel).Should().Be(value, "because property value should be updated");
     }
 
     [Theory]
@@ -286,8 +287,8 @@ public class SettingsWindowViewModelTests
         property?.SetValue(_viewModel, value);
 
         // Assert
-        Assert.True(propertyChanged);
-        Assert.Equal(value, property?.GetValue(_viewModel));
+        propertyChanged.Should().BeTrue("because property change notification should be raised");
+        property?.GetValue(_viewModel).Should().Be(value, "because property value should be updated");
     }
 
     [Theory]
@@ -308,8 +309,8 @@ public class SettingsWindowViewModelTests
         property?.SetValue(_viewModel, value);
 
         // Assert
-        Assert.True(propertyChanged);
-        Assert.Equal(value, property?.GetValue(_viewModel));
+        propertyChanged.Should().BeTrue("because property change notification should be raised");
+        property?.GetValue(_viewModel).Should().Be(value, "because property value should be updated");
     }
 
     [Fact]
@@ -323,7 +324,7 @@ public class SettingsWindowViewModelTests
         var propertyInfo = _viewModel.GetType().GetProperty(nameof(_viewModel.HasRecentLogFiles));
         
         // Assert
-        Assert.True(_viewModel.RecentLogFiles.Count > 0);
+        _viewModel.RecentLogFiles.Count.Should().BeGreaterThan(0, "because recent log files were added");
     }
 
     [Fact]
@@ -338,10 +339,10 @@ public class SettingsWindowViewModelTests
         await Task.Delay(100);
 
         // Assert - Should have default values
-        Assert.Equal("", viewModel.DefaultLogPath);
-        Assert.True(viewModel.AutoLoadF4SeLogs);
-        Assert.Equal(100, viewModel.MaxLogMessages);
-        Assert.Equal(1200, viewModel.WindowWidth);
+        viewModel.DefaultLogPath.Should().Be("", "because default log path should be empty when load fails");
+        viewModel.AutoLoadF4SeLogs.Should().BeTrue("because auto-load should default to true");
+        viewModel.MaxLogMessages.Should().Be(100, "because max log messages should default to 100");
+        viewModel.WindowWidth.Should().Be(1200, "because window width should default to 1200");
     }
 
     [Fact]
@@ -360,10 +361,10 @@ public class SettingsWindowViewModelTests
         System.Threading.Thread.Sleep(100);
 
         // Assert
-        Assert.Equal(3, viewModel.RecentLogFiles.Count);
-        Assert.Equal("log1.log", viewModel.RecentLogFiles[0]);
-        Assert.Equal("log2.log", viewModel.RecentLogFiles[1]);
-        Assert.Equal("log3.log", viewModel.RecentLogFiles[2]);
+        viewModel.RecentLogFiles.Should().HaveCount(3, "because three recent files were added");
+        viewModel.RecentLogFiles[0].Should().Be("log1.log", "because order should be preserved");
+        viewModel.RecentLogFiles[1].Should().Be("log2.log", "because order should be preserved");
+        viewModel.RecentLogFiles[2].Should().Be("log3.log", "because order should be preserved");
     }
 
     [Fact]
@@ -377,6 +378,6 @@ public class SettingsWindowViewModelTests
         await _viewModel.BrowseLogPathCommand.Execute().FirstAsync();
 
         // Assert - Path should not change
-        Assert.Equal(originalPath, _viewModel.DefaultLogPath);
+        _viewModel.DefaultLogPath.Should().Be(originalPath, "because path should not change when picker is cancelled");
     }
 }

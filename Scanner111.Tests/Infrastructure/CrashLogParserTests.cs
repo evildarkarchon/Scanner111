@@ -1,4 +1,5 @@
 using System.Text;
+using FluentAssertions;
 using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Tests.Infrastructure;
@@ -72,9 +73,9 @@ public class CrashLogParserTests : IDisposable
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(crashLogPath, result.FilePath);
-        Assert.NotEmpty(result.OriginalLines);
+        result.Should().NotBeNull();
+        result.FilePath.Should().Be(crashLogPath);
+        result.OriginalLines.Should().NotBeEmpty();
     }
 
     /// Tests the behavior of the CrashLogParser.ParseAsync method when provided with
@@ -95,7 +96,7 @@ public class CrashLogParserTests : IDisposable
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull();
     }
 
     /// Tests the behavior of the ParseAsync method when provided with a path to a non-existent file.
@@ -111,7 +112,7 @@ public class CrashLogParserTests : IDisposable
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull();
     }
 
     /// Verifies that the ParseAsync method correctly parses the game version
@@ -128,8 +129,8 @@ public class CrashLogParserTests : IDisposable
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("Fallout 4 v1.10.163", result.GameVersion);
+        result.Should().NotBeNull();
+        result.GameVersion.Should().Be("Fallout 4 v1.10.163");
     }
 
     /// Verifies that the ParseAsync method correctly parses the "CrashGenVersion" field from a valid crash log.
@@ -148,8 +149,8 @@ public class CrashLogParserTests : IDisposable
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("Buffout 4 v1.26.2", result.CrashGenVersion);
+        result.Should().NotBeNull();
+        result.CrashGenVersion.Should().Be("Buffout 4 v1.26.2");
     }
 
     /// Verifies that the ParseAsync method parses the main error section
@@ -171,9 +172,9 @@ public class CrashLogParserTests : IDisposable
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Contains("Unhandled exception", result.MainError);
-        Assert.Contains("at 0x7FF798889DFA", result.MainError);
+        result.Should().NotBeNull();
+        result.MainError.Should().Contain("Unhandled exception");
+        result.MainError.Should().Contain("at 0x7FF798889DFA");
     }
 
     /// Validates that the crash log parser correctly identifies and processes plugins from a crash log file.
@@ -190,12 +191,12 @@ public class CrashLogParserTests : IDisposable
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.NotEmpty(result.Plugins);
-        Assert.True(result.Plugins.ContainsKey("Fallout4.esm"));
-        Assert.Equal("00:000", result.Plugins["Fallout4.esm"]);
-        Assert.True(result.Plugins.ContainsKey("DLCRobot.esm"));
-        Assert.Equal("01:000", result.Plugins["DLCRobot.esm"]);
+        result.Should().NotBeNull();
+        result.Plugins.Should().NotBeEmpty();
+        result.Plugins.Should().ContainKey("Fallout4.esm");
+        result.Plugins["Fallout4.esm"].Should().Be("00:000");
+        result.Plugins.Should().ContainKey("DLCRobot.esm");
+        result.Plugins["DLCRobot.esm"].Should().Be("01:000");
     }
 
     /// Validates the parsing of XSE plugin modules from a crash log file.
@@ -215,10 +216,10 @@ public class CrashLogParserTests : IDisposable
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.NotEmpty(result.XseModules);
-        Assert.Contains("f4se_1_10_163.dll", result.XseModules);
-        Assert.Contains("buffout4.dll", result.XseModules);
+        result.Should().NotBeNull();
+        result.XseModules.Should().NotBeEmpty();
+        result.XseModules.Should().Contain("f4se_1_10_163.dll");
+        result.XseModules.Should().Contain("buffout4.dll");
     }
 
     /// Validates that the `ParseAsync` method correctly parses crash generation settings
@@ -238,12 +239,12 @@ public class CrashLogParserTests : IDisposable
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.NotEmpty(result.CrashgenSettings);
-        Assert.True(result.CrashgenSettings.ContainsKey("F4EE"));
-        Assert.Equal(true, result.CrashgenSettings["F4EE"]);
-        Assert.True(result.CrashgenSettings.ContainsKey("Buffout4"));
-        Assert.Equal(1, result.CrashgenSettings["Buffout4"]);
+        result.Should().NotBeNull();
+        result.CrashgenSettings.Should().NotBeEmpty();
+        result.CrashgenSettings.Should().ContainKey("F4EE");
+        result.CrashgenSettings["F4EE"].Should().Be(true);
+        result.CrashgenSettings.Should().ContainKey("Buffout4");
+        result.CrashgenSettings["Buffout4"].Should().Be(1);
     }
 
     /// Verifies that the ParseAsync method correctly handles crash logs that lack complete sections,
@@ -279,8 +280,8 @@ public class CrashLogParserTests : IDisposable
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.True(result.IsIncomplete);
+        result.Should().NotBeNull();
+        result.IsIncomplete.Should().BeTrue("the log is missing plugin entries");
     }
 
     /// Verifies that the call stack is correctly extracted from a crash log using the ParseAsync method.
@@ -302,9 +303,9 @@ public class CrashLogParserTests : IDisposable
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.NotEmpty(result.CallStack);
-        Assert.Contains("Fallout4.exe+2479DFA", string.Join("\n", result.CallStack));
+        result.Should().NotBeNull();
+        result.CallStack.Should().NotBeEmpty();
+        string.Join("\n", result.CallStack).Should().Contain("Fallout4.exe+2479DFA");
     }
 
     /// Verifies that the parser correctly processes a crash log specific to Skyrim Special Edition.
@@ -322,12 +323,12 @@ public class CrashLogParserTests : IDisposable
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("Skyrim SE v1.5.97", result.GameVersion);
-        Assert.Equal("Crash Logger SSE v1.0", result.CrashGenVersion);
-        Assert.NotEmpty(result.XseModules);
+        result.Should().NotBeNull();
+        result.GameVersion.Should().Be("Skyrim SE v1.5.97");
+        result.CrashGenVersion.Should().Be("Crash Logger SSE v1.0");
+        result.XseModules.Should().NotBeEmpty();
         // Should have extracted from SKSE PLUGINS section
-        Assert.Contains("skse64_1_5_97.dll", result.XseModules);
+        result.XseModules.Should().Contain("skse64_1_5_97.dll", "it should extract from SKSE PLUGINS section");
     }
 
     /// Tests that the `ParseAsync` method correctly handles crash log entries containing a pipe ('|')
@@ -350,10 +351,10 @@ public class CrashLogParserTests : IDisposable
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Contains("Unhandled exception", result.MainError);
-        Assert.Contains("\n", result.MainError);
-        Assert.Contains("Fallout4.exe+2479DFA", result.MainError);
+        result.Should().NotBeNull();
+        result.MainError.Should().Contain("Unhandled exception");
+        result.MainError.Should().Contain("\n");
+        result.MainError.Should().Contain("Fallout4.exe+2479DFA");
     }
 
     /// Verifies that the ParseAsync method correctly handles crash logs with missing segments
@@ -395,11 +396,11 @@ PLUGINS:
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result.Plugins); // No plugins listed in the PLUGINS section
-        Assert.NotEmpty(result.XseModules); // But has XSE modules
-        Assert.NotEmpty(result.CallStack); // And has call stack
-        Assert.True(result.IsIncomplete); // Marked incomplete due to no plugins
+        result.Should().NotBeNull();
+        result.Plugins.Should().BeEmpty("no plugins are listed in the PLUGINS section");
+        result.XseModules.Should().NotBeEmpty("XSE modules should be present");
+        result.CallStack.Should().NotBeEmpty("call stack should be present");
+        result.IsIncomplete.Should().BeTrue("the log should be marked incomplete due to no plugins");
     }
 
     /// Verifies that the `ParseAsync` method accurately parses mixed case settings
@@ -423,10 +424,10 @@ PLUGINS:
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(true, result.CrashgenSettings["F4EE"]);
-        Assert.Equal(false, result.CrashgenSettings["AutoTimer"]);
-        Assert.Equal(100, result.CrashgenSettings["MaxStack"]);
+        result.Should().NotBeNull();
+        result.CrashgenSettings["F4EE"].Should().Be(true);
+        result.CrashgenSettings["AutoTimer"].Should().Be(false);
+        result.CrashgenSettings["MaxStack"].Should().Be(100);
     }
 
     /// Verifies that the ParseAsync method correctly handles XSE modules listed in a crash log
@@ -451,10 +452,10 @@ PLUGINS:
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Contains("f4se_1_10_163.dll", result.XseModules);
-        Assert.Contains("some_plugin.dll", result.XseModules);
-        Assert.Contains("another.dll", result.XseModules);
+        result.Should().NotBeNull();
+        result.XseModules.Should().Contain("f4se_1_10_163.dll");
+        result.XseModules.Should().Contain("some_plugin.dll");
+        result.XseModules.Should().Contain("another.dll");
     }
 
     /// Validates that the ParseAsync method respects the cancellation token and halts its operation
@@ -475,8 +476,8 @@ PLUGINS:
         await cts.CancelAsync();
 
         // Act & Assert
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            CrashLogParser.ParseAsync(crashLogPath, cts.Token));
+        Func<Task> act = async () => await CrashLogParser.ParseAsync(crashLogPath, cts.Token);
+        await act.Should().ThrowAsync<OperationCanceledException>();
     }
 
     /// Tests the ability of the ParseAsync method to handle crash logs containing invalid UTF-8 byte sequences.
@@ -508,8 +509,8 @@ PLUGINS:
         var result = await CrashLogParser.ParseAsync(crashLogPath);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.NotEmpty(result.OriginalLines);
+        result.Should().NotBeNull();
+        result.OriginalLines.Should().NotBeEmpty();
     }
 
     // Helper methods

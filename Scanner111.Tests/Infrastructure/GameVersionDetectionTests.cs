@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Scanner111.Core.Infrastructure;
 using Xunit;
 
@@ -44,7 +45,7 @@ public class GameVersionDetectionTests : IDisposable
         var actualHash = await GameVersionDetection.CalculateFileHashAsync(testFile);
         
         // Assert
-        Assert.Equal(expectedHash, actualHash);
+        actualHash.Should().Be(expectedHash);
     }
 
     [Fact]
@@ -65,7 +66,7 @@ public class GameVersionDetectionTests : IDisposable
         var actualHash = await GameVersionDetection.CalculateFileHashAsync(testFile);
         
         // Assert
-        Assert.Equal(expectedHash, actualHash);
+        actualHash.Should().Be(expectedHash);
     }
 
     [Fact]
@@ -80,8 +81,8 @@ public class GameVersionDetectionTests : IDisposable
         cts.CancelAfter(1); // Cancel almost immediately
         
         // Act & Assert
-        await Assert.ThrowsAsync<TaskCanceledException>(
-            () => GameVersionDetection.CalculateFileHashAsync(testFile, cts.Token));
+        var act = () => GameVersionDetection.CalculateFileHashAsync(testFile, cts.Token);
+        await act.Should().ThrowAsync<TaskCanceledException>();
     }
 
     [Fact]
@@ -94,7 +95,7 @@ public class GameVersionDetectionTests : IDisposable
         var result = await GameVersionDetection.DetectGameVersionAsync(nonExistentFile);
         
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -113,13 +114,13 @@ public class GameVersionDetectionTests : IDisposable
         var result = await GameVersionDetection.DetectGameVersionAsync(testFile);
         
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("Unknown", result.Version);
-        Assert.Equal("Unknown Version", result.Name);
-        Assert.Contains("Unrecognized game version", result.Description);
-        Assert.NotEmpty(result.ExecutableHash);
-        Assert.False(result.IsKnownVersion);
-        Assert.False(result.IsModdingRecommended);
+        result.Should().NotBeNull();
+        result.Version.Should().Be("Unknown");
+        result.Name.Should().Be("Unknown Version");
+        result.Description.Should().Contain("Unrecognized game version");
+        result.ExecutableHash.Should().NotBeEmpty();
+        result.IsKnownVersion.Should().BeFalse();
+        result.IsModdingRecommended.Should().BeFalse();
     }
 
     [Fact]
@@ -133,17 +134,17 @@ public class GameVersionDetectionTests : IDisposable
         var result = await GameVersionDetection.DetectGameVersionAsync(testFile);
         
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("Unknown", result.Version);
-        Assert.Equal("Unknown Version", result.Name);
-        Assert.Contains("Unrecognized game version", result.Description);
-        Assert.NotEmpty(result.Notes);
-        Assert.Contains(result.Notes, note => note.Contains("Pirated or cracked version"));
-        Assert.Contains(result.Notes, note => note.Contains("Beta or pre-release version"));
-        Assert.Contains(result.Notes, note => note.Contains("Modified executable"));
-        Assert.Contains(result.Notes, note => note.Contains("Mod compatibility cannot be guaranteed"));
-        Assert.False(result.IsKnownVersion);
-        Assert.False(result.IsModdingRecommended);
+        result.Should().NotBeNull();
+        result.Version.Should().Be("Unknown");
+        result.Name.Should().Be("Unknown Version");
+        result.Description.Should().Contain("Unrecognized game version");
+        result.Notes.Should().NotBeEmpty();
+        result.Notes.Should().Contain(note => note.Contains("Pirated or cracked version"));
+        result.Notes.Should().Contain(note => note.Contains("Beta or pre-release version"));
+        result.Notes.Should().Contain(note => note.Contains("Modified executable"));
+        result.Notes.Should().Contain(note => note.Contains("Mod compatibility cannot be guaranteed"));
+        result.IsKnownVersion.Should().BeFalse();
+        result.IsModdingRecommended.Should().BeFalse();
     }
 
     [Fact]
@@ -160,7 +161,7 @@ public class GameVersionDetectionTests : IDisposable
         var result = await GameVersionDetection.DetectGameVersionAsync(testFile);
         
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull();
     }
 
     [Fact]
@@ -174,7 +175,7 @@ public class GameVersionDetectionTests : IDisposable
         var result = GameVersionDetection.IsF4seCompatible(gameVersion, f4seVersion);
         
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
     }
 
     [Fact]
@@ -188,7 +189,7 @@ public class GameVersionDetectionTests : IDisposable
         var result = GameVersionDetection.IsF4seCompatible(gameVersion, f4seVersion);
         
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
     }
 
     [Fact]
@@ -202,7 +203,7 @@ public class GameVersionDetectionTests : IDisposable
         var result = GameVersionDetection.IsF4seCompatible(gameVersion, f4seVersion);
         
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -216,7 +217,7 @@ public class GameVersionDetectionTests : IDisposable
         var result = GameVersionDetection.IsF4seCompatible(gameVersion, f4seVersion);
         
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -229,11 +230,11 @@ public class GameVersionDetectionTests : IDisposable
         var notes = GameVersionDetection.GetVersionCompatibilityNotes(gameVersion);
         
         // Assert
-        Assert.NotNull(notes);
-        Assert.NotEmpty(notes);
-        Assert.Contains(notes, note => note.Contains("Most mods are built for this version"));
-        Assert.Contains(notes, note => note.Contains("Best stability with large mod lists"));
-        Assert.Contains(notes, note => note.Contains("Recommended for heavy modding"));
+        notes.Should().NotBeNull();
+        notes.Should().NotBeEmpty();
+        notes.Should().Contain(note => note.Contains("Most mods are built for this version"));
+        notes.Should().Contain(note => note.Contains("Best stability with large mod lists"));
+        notes.Should().Contain(note => note.Contains("Recommended for heavy modding"));
     }
 
     [Fact]
@@ -246,12 +247,12 @@ public class GameVersionDetectionTests : IDisposable
         var notes = GameVersionDetection.GetVersionCompatibilityNotes(gameVersion);
         
         // Assert
-        Assert.NotNull(notes);
-        Assert.NotEmpty(notes);
-        Assert.Contains(notes, note => note.Contains("Many mods require updates for this version"));
-        Assert.Contains(notes, note => note.Contains("Improved performance and graphics"));
-        Assert.Contains(notes, note => note.Contains("Some older mods may not be compatible"));
-        Assert.Contains(notes, note => note.Contains("Check mod compatibility before updating"));
+        notes.Should().NotBeNull();
+        notes.Should().NotBeEmpty();
+        notes.Should().Contain(note => note.Contains("Many mods require updates for this version"));
+        notes.Should().Contain(note => note.Contains("Improved performance and graphics"));
+        notes.Should().Contain(note => note.Contains("Some older mods may not be compatible"));
+        notes.Should().Contain(note => note.Contains("Check mod compatibility before updating"));
     }
 
     [Fact]
@@ -264,9 +265,9 @@ public class GameVersionDetectionTests : IDisposable
         var notes = GameVersionDetection.GetVersionCompatibilityNotes(gameVersion);
         
         // Assert
-        Assert.NotNull(notes);
-        Assert.Single(notes);
-        Assert.Equal("Unknown version - compatibility cannot be determined", notes[0]);
+        notes.Should().NotBeNull();
+        notes.Should().ContainSingle();
+        notes[0].Should().Be("Unknown version - compatibility cannot be determined");
     }
 
     [Fact]
@@ -278,9 +279,9 @@ public class GameVersionDetectionTests : IDisposable
         var unknownInfo = new GameVersionInfo { Version = "Unknown" };
         
         // Assert
-        Assert.True(preNextGenInfo.IsModdingRecommended);
-        Assert.False(nextGenInfo.IsModdingRecommended);
-        Assert.False(unknownInfo.IsModdingRecommended);
+        preNextGenInfo.IsModdingRecommended.Should().BeTrue();
+        nextGenInfo.IsModdingRecommended.Should().BeFalse();
+        unknownInfo.IsModdingRecommended.Should().BeFalse();
     }
 
     [Fact]
@@ -291,7 +292,7 @@ public class GameVersionDetectionTests : IDisposable
         var unknownInfo = new GameVersionInfo { Version = "Unknown" };
         
         // Assert
-        Assert.True(knownInfo.IsKnownVersion);
-        Assert.False(unknownInfo.IsKnownVersion);
+        knownInfo.IsKnownVersion.Should().BeTrue();
+        unknownInfo.IsKnownVersion.Should().BeFalse();
     }
 }

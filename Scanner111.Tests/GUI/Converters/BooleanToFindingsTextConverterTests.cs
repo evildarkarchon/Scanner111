@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using FluentAssertions;
 using Scanner111.GUI.Converters;
 using Xunit;
 
@@ -18,7 +19,7 @@ public class BooleanToFindingsTextConverterTests
         var result = _converter.Convert(hasFindings, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal(expectedText, result);
+        result.Should().Be(expectedText, "because boolean value should map to correct text");
     }
 
     [Theory]
@@ -32,7 +33,7 @@ public class BooleanToFindingsTextConverterTests
         var result = _converter.Convert(value, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("Unknown", result);
+        result.Should().Be("Unknown", "because invalid values should return Unknown");
     }
 
     [Fact]
@@ -45,15 +46,15 @@ public class BooleanToFindingsTextConverterTests
         var result = _converter.Convert(value, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("Unknown", result);
+        result.Should().Be("Unknown", "because invalid values should return Unknown");
     }
 
     [Fact]
     public void ConvertBack_ThrowsNotImplementedException()
     {
         // Assert
-        Assert.Throws<NotImplementedException>(() =>
-            _converter.ConvertBack("Issues Found", typeof(bool), null, CultureInfo.InvariantCulture));
+        var action = () => _converter.ConvertBack("Issues Found", typeof(bool), null, CultureInfo.InvariantCulture);
+        action.Should().Throw<NotImplementedException>("because ConvertBack is not implemented");
     }
 
     [Fact]
@@ -64,6 +65,6 @@ public class BooleanToFindingsTextConverterTests
         var instance2 = BooleanToFindingsTextConverter.Instance;
 
         // Assert
-        Assert.Same(instance1, instance2);
+        instance1.Should().BeSameAs(instance2, "because Instance should return singleton");
     }
 }

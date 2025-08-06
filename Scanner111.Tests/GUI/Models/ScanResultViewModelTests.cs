@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FluentAssertions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.GUI.Models;
@@ -19,7 +20,7 @@ public class ScanResultViewModelTests
         var viewModel = new ScanResultViewModel(scanResult);
 
         // Assert
-        Assert.Equal(scanResult, viewModel.ScanResult);
+        viewModel.ScanResult.Should().Be(scanResult, "because the scan result should be stored");
     }
 
     [Fact]
@@ -33,7 +34,7 @@ public class ScanResultViewModelTests
         var description = viewModel.Description;
 
         // Assert
-        Assert.Equal("crash-2024-01-01-123456.log", description);
+        description.Should().Be("crash-2024-01-01-123456.log", "because description should be the file name");
     }
 
     [Fact]
@@ -49,7 +50,7 @@ public class ScanResultViewModelTests
         var details = viewModel.Details;
 
         // Assert
-        Assert.Equal("Error 1; Error 2", details);
+        details.Should().Be("Error 1; Error 2", "because details should show all error messages");
     }
 
     [Fact]
@@ -64,7 +65,7 @@ public class ScanResultViewModelTests
         var details = viewModel.Details;
 
         // Assert
-        Assert.Equal("Processing time: 1.50s", details);
+        details.Should().Be("Processing time: 1.50s", "because details should show processing time when no errors");
     }
 
     [Theory]
@@ -85,7 +86,7 @@ public class ScanResultViewModelTests
         var severity = viewModel.Severity;
 
         // Assert
-        Assert.Equal(expectedSeverity, severity);
+        severity.Should().Be(expectedSeverity, "because severity should reflect the error state");
     }
 
     [Theory]
@@ -109,7 +110,7 @@ public class ScanResultViewModelTests
         var color = viewModel.SeverityColor;
 
         // Assert
-        Assert.Equal(expectedColor, color);
+        color.Should().Be(expectedColor, "because severity color should match the severity level");
     }
 
     [Fact]
@@ -127,7 +128,7 @@ public class ScanResultViewModelTests
         var category = viewModel.Category;
 
         // Assert
-        Assert.Equal("Completed", category);
+        category.Should().Be("Completed", "because category should show the scan status");
     }
 
     [Fact]
@@ -141,7 +142,7 @@ public class ScanResultViewModelTests
         var firstLine = viewModel.GetFirstReportLine();
 
         // Assert
-        Assert.Equal("No issues found", firstLine);
+        firstLine.Should().Be("No issues found", "because empty report should show default message");
     }
 
     [Fact]
@@ -157,7 +158,7 @@ public class ScanResultViewModelTests
         var firstLine = viewModel.GetFirstReportLine();
 
         // Assert
-        Assert.Equal("This is the first line with dash", firstLine);
+        firstLine.Should().Be("This is the first line with dash", "because leading dash should be removed");
     }
 
     [Fact]
@@ -172,7 +173,7 @@ public class ScanResultViewModelTests
         var firstLine = viewModel.GetFirstReportLine();
 
         // Assert
-        Assert.Equal("This is the first line with asterisk", firstLine);
+        firstLine.Should().Be("This is the first line with asterisk", "because leading asterisk should be removed");
     }
 
     [Fact]
@@ -188,9 +189,9 @@ public class ScanResultViewModelTests
         var firstLine = viewModel.GetFirstReportLine();
 
         // Assert
-        Assert.Equal(100, firstLine.Length);
-        Assert.EndsWith("...", firstLine);
-        Assert.Equal(new string('A', 97) + "...", firstLine);
+        firstLine.Should().HaveLength(100, "because long lines should be truncated to 100 characters");
+        firstLine.Should().EndWith("...", "because truncated lines should have ellipsis");
+        firstLine.Should().Be(new string('A', 97) + "...", "because truncation should preserve first 97 characters");
     }
 
     [Fact]
@@ -205,7 +206,7 @@ public class ScanResultViewModelTests
         var firstLine = viewModel.GetFirstReportLine();
 
         // Assert
-        Assert.Equal("Trimmed content", firstLine);
+        firstLine.Should().Be("Trimmed content", "because whitespace and markers should be trimmed");
     }
 
     [Fact]
@@ -223,8 +224,8 @@ public class ScanResultViewModelTests
         var viewModel2 = new ScanResultViewModel(scanResult);
 
         // Assert
-        Assert.Same(scanResult, viewModel1.ScanResult);
-        Assert.Same(scanResult, viewModel2.ScanResult);
-        Assert.Same(viewModel1.ScanResult, viewModel2.ScanResult);
+        viewModel1.ScanResult.Should().BeSameAs(scanResult, "because view model should reference the same scan result");
+        viewModel2.ScanResult.Should().BeSameAs(scanResult, "because view model should reference the same scan result");
+        viewModel1.ScanResult.Should().BeSameAs(viewModel2.ScanResult, "because both view models should reference the same instance");
     }
 }

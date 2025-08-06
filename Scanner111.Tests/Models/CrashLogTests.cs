@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Scanner111.Core.Models;
 
 namespace Scanner111.Tests.Models;
@@ -34,17 +35,17 @@ public class CrashLogTests
     {
         var crashLog = new CrashLog();
 
-        Assert.Equal(string.Empty, crashLog.FilePath);
-        Assert.Equal(string.Empty, crashLog.FileName);
-        Assert.Empty(crashLog.OriginalLines);
-        Assert.Equal(string.Empty, crashLog.Content);
-        Assert.Equal(string.Empty, crashLog.MainError);
-        Assert.Empty(crashLog.CallStack);
-        Assert.Empty(crashLog.Plugins);
-        Assert.Equal(string.Empty, crashLog.CrashGenVersion);
-        Assert.Null(crashLog.CrashTime);
-        Assert.False(crashLog.IsComplete);
-        Assert.False(crashLog.HasError);
+        crashLog.FilePath.Should().Be(string.Empty, "because FilePath defaults to empty string");
+        crashLog.FileName.Should().Be(string.Empty, "because FileName is derived from an empty FilePath");
+        crashLog.OriginalLines.Should().BeEmpty("because OriginalLines is initialized as empty collection");
+        crashLog.Content.Should().Be(string.Empty, "because Content is empty when no lines exist");
+        crashLog.MainError.Should().Be(string.Empty, "because MainError defaults to empty string");
+        crashLog.CallStack.Should().BeEmpty("because CallStack is initialized as empty collection");
+        crashLog.Plugins.Should().BeEmpty("because Plugins is initialized as empty dictionary");
+        crashLog.CrashGenVersion.Should().Be(string.Empty, "because CrashGenVersion defaults to empty string");
+        crashLog.CrashTime.Should().BeNull("because CrashTime is not set by default");
+        crashLog.IsComplete.Should().BeFalse("because no plugins exist");
+        crashLog.HasError.Should().BeFalse("because MainError is empty");
     }
 
     /// <summary>
@@ -65,7 +66,7 @@ public class CrashLogTests
             FilePath = @"C:\Users\Test\Documents\crash-2024-01-01-12-34-56.log"
         };
 
-        Assert.Equal("crash-2024-01-01-12-34-56.log", crashLog.FileName);
+        crashLog.FileName.Should().Be("crash-2024-01-01-12-34-56.log", "because FileName is extracted from FilePath");
     }
 
     /// <summary>
@@ -95,10 +96,10 @@ public class CrashLogTests
             OriginalLines = lines.ToList()
         };
 
-        Assert.Equal("crash-2024-01-11-08-19-43.log", crashLog.FileName);
-        Assert.True(crashLog.OriginalLines.Count > 0);
-        Assert.Contains("Fallout 4", crashLog.Content);
-        Assert.Contains("Buffout", crashLog.Content);
+        crashLog.FileName.Should().Be("crash-2024-01-11-08-19-43.log", "because FileName is extracted from FilePath");
+        crashLog.OriginalLines.Should().NotBeEmpty("because lines were loaded from the sample file");
+        crashLog.Content.Should().Contain("Fallout 4", "because the sample log contains Fallout 4 references");
+        crashLog.Content.Should().Contain("Buffout", "because the sample log is from Buffout crash logger");
     }
 
     /// <summary>
@@ -120,7 +121,7 @@ public class CrashLogTests
             OriginalLines = new List<string> { "Line 1", "Line 2", "Line 3" }
         };
 
-        Assert.Equal("Line 1\nLine 2\nLine 3", crashLog.Content);
+        crashLog.Content.Should().Be("Line 1\nLine 2\nLine 3", "because Content joins OriginalLines with newlines");
     }
 
     /// <summary>
@@ -141,7 +142,7 @@ public class CrashLogTests
             Plugins = new Dictionary<string, string> { { "plugin1.esp", "01" } }
         };
 
-        Assert.True(crashLog.IsComplete);
+        crashLog.IsComplete.Should().BeTrue("because Plugins collection contains entries");
     }
 
     /// <summary>
@@ -165,7 +166,7 @@ public class CrashLogTests
             MainError = "Access violation"
         };
 
-        Assert.True(crashLog.HasError);
+        crashLog.HasError.Should().BeTrue("because MainError contains a non-empty value");
     }
 
     /// <summary>
@@ -197,13 +198,13 @@ public class CrashLogTests
             CrashTime = crashTime
         };
 
-        Assert.Equal("crash-2024-01-11-08-19-43.log", crashLog.FileName);
-        Assert.Equal("Error occurred\nStack trace", crashLog.Content);
-        Assert.True(crashLog.IsComplete);
-        Assert.True(crashLog.HasError);
-        Assert.Equal(crashTime, crashLog.CrashTime);
-        Assert.Equal(2, crashLog.Plugins.Count);
-        Assert.Equal(2, crashLog.CallStack.Count);
+        crashLog.FileName.Should().Be("crash-2024-01-11-08-19-43.log", "because FileName is extracted from FilePath");
+        crashLog.Content.Should().Be("Error occurred\nStack trace", "because Content joins OriginalLines");
+        crashLog.IsComplete.Should().BeTrue("because Plugins collection contains entries");
+        crashLog.HasError.Should().BeTrue("because MainError is set");
+        crashLog.CrashTime.Should().Be(crashTime, "because CrashTime was assigned");
+        crashLog.Plugins.Should().HaveCount(2, "because two plugins were added");
+        crashLog.CallStack.Should().HaveCount(2, "because two stack entries were added");
     }
 
     /// <summary>
@@ -224,7 +225,7 @@ public class CrashLogTests
         var mdFiles = Directory.GetFiles(_sampleLogsPath, "*-AUTOSCAN.md");
 
         // Each log file should have a corresponding AUTOSCAN.md file
-        Assert.True(logFiles.Length > 0, "Should have sample log files");
-        Assert.True(mdFiles.Length > 0, "Should have sample AUTOSCAN.md files");
+        logFiles.Should().NotBeEmpty("because sample log files should exist in the test data");
+        mdFiles.Should().NotBeEmpty("because sample AUTOSCAN.md files should exist in the test data");
     }
 }

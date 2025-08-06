@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using FluentAssertions;
 using Spectre.Console;
 using Spectre.Console.Testing;
 using Scanner111.CLI.Commands;
@@ -39,8 +40,8 @@ public class SpectreTerminalUIServiceTests
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("Scanner111", output);
-        Assert.Contains("Crash Log Analyzer", output);
+        output.Should().Contain("Scanner111", "should contain expected text");
+        output.Should().Contain("Crash Log Analyzer", "should contain expected text");
     }
 
     [Fact]
@@ -62,7 +63,7 @@ public class SpectreTerminalUIServiceTests
         var result = _service.CreateProgressContext("Test Progress", 100);
 
         // Assert
-        Assert.NotNull(result);
+        result.Should().NotBeNull("value should not be null");
         mockMessageHandler.Verify(x => x.CreateProgressContext("Test Progress", 100), Times.Once);
     }
 
@@ -90,14 +91,14 @@ public class SpectreTerminalUIServiceTests
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("Scan Status", output);
-        Assert.Contains("Completed", output);
-        Assert.Contains("00:05", output); // Processing time
-        Assert.Contains("Errors", output);
-        Assert.Contains("Test error", output);
-        Assert.Contains("Findings", output);
-        Assert.Contains("Test Analyzer", output);
-        Assert.Contains("Scanned: 10, Failed: 2", output);
+        output.Should().Contain("Scan Status", "should contain expected text");
+        output.Should().Contain("Completed", "should contain expected text");
+        output.Should().Contain("00:05", "should contain expected text"); // Processing time
+        output.Should().Contain("Errors", "should contain expected text");
+        output.Should().Contain("Test error", "should contain expected text");
+        output.Should().Contain("Findings", "should contain expected text");
+        output.Should().Contain("Test Analyzer", "should contain expected text");
+        output.Should().Contain("Scanned: 10, Failed: 2", "should contain expected text");
     }
 
     [Fact]
@@ -108,7 +109,7 @@ public class SpectreTerminalUIServiceTests
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("Processing file...", output);
+        output.Should().Contain("Processing file...", "should contain expected text");
         Assert.Matches(@"\d{2}:\d{2}:\d{2}", output); // HH:mm:ss format
     }
 
@@ -123,7 +124,7 @@ public class SpectreTerminalUIServiceTests
         var result = await _service.PromptAsync<string>("Enter value:", "default");
 
         // Assert
-        Assert.Equal("test input", result);
+        result.Should().Be("test input", "value should match expected");
     }
 
     [Fact]
@@ -136,7 +137,7 @@ public class SpectreTerminalUIServiceTests
         var result = await _service.PromptAsync<string>("Enter value:", "default value");
 
         // Assert
-        Assert.Equal("default value", result);
+        result.Should().Be("default value", "value should match expected");
     }
 
     [Fact]
@@ -158,7 +159,7 @@ public class SpectreTerminalUIServiceTests
         var task = _service.RunInteractiveMode();
         
         // Assert - method should execute without throwing
-        Assert.NotNull(task);
+        task.Should().NotBeNull("value should not be null");
     }
 
     [Fact]
@@ -177,10 +178,10 @@ public class SpectreTerminalUIServiceTests
         var exception = Record.Exception(() => _service.DisplayResults(scanResult));
 
         // Assert
-        Assert.Null(exception);
+        exception.Should().BeNull("value should be null");
         var output = _console.Output;
-        Assert.Contains("Scan Status", output);
-        Assert.Contains("Completed", output);
+        output.Should().Contain("Scan Status", "should contain expected text");
+        output.Should().Contain("Completed", "should contain expected text");
     }
 
     [Fact]
@@ -200,7 +201,7 @@ public class SpectreTerminalUIServiceTests
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("Failed", output);
+        output.Should().Contain("Failed", "should contain expected text");
         // Note: [red] markup is rendered as ANSI color codes, not literal text
     }
 
@@ -221,7 +222,7 @@ public class SpectreTerminalUIServiceTests
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("Completed with errors", output);
+        output.Should().Contain("Completed with errors", "should contain expected text");
         // Note: [yellow] markup is rendered as ANSI color codes, not literal text
     }
 
@@ -233,7 +234,7 @@ public class SpectreTerminalUIServiceTests
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("Processing: [file] with <special> chars & symbols", output);
+        output.Should().Contain("Processing: [file] with <special> chars & symbols", "should contain expected text");
     }
 
     [Fact]

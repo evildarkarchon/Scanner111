@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Moq;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
@@ -30,7 +31,7 @@ public class InteractiveCommandTests
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
+        result.Should().Be(0, "because interactive mode should complete successfully");
         _mockUiService.Verify(x => x.RunInteractiveMode(), Times.Once);
     }
 
@@ -47,7 +48,7 @@ public class InteractiveCommandTests
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
+        result.Should().Be(0, "because interactive mode should complete successfully");
         _mockUiService.Verify(x => x.RunInteractiveMode(), Times.Once);
     }
 
@@ -64,7 +65,7 @@ public class InteractiveCommandTests
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(42, result);
+        result.Should().Be(42, "because the return code should be propagated");
     }
 
     [Fact]
@@ -77,8 +78,9 @@ public class InteractiveCommandTests
             .ThrowsAsync(new InvalidOperationException("Test exception"));
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await _command.ExecuteAsync(options));
+        var act = async () => await _command.ExecuteAsync(options);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Test exception");
     }
 
     [Fact]
@@ -98,8 +100,8 @@ public class InteractiveCommandTests
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
-        Assert.True(options.NoAnimations);
+        result.Should().Be(0, "because interactive mode should complete successfully");
+        options.NoAnimations.Should().BeTrue("because no animations option should be preserved");
     }
 
     [Fact]
@@ -115,8 +117,8 @@ public class InteractiveCommandTests
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
-        Assert.Equal("dark", options.Theme);
+        result.Should().Be(0, "because interactive mode should complete successfully");
+        options.Theme.Should().Be("dark", "because theme option should be preserved");
         // Note: Theme configuration is marked for future implementation
     }
 
@@ -124,7 +126,9 @@ public class InteractiveCommandTests
     public void Constructor_RequiresUIService()
     {
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new InteractiveCommand(null!));
+        var act = () => new InteractiveCommand(null!);
+        act.Should().Throw<ArgumentNullException>(
+            "because UI service is required");
     }
 
     [Fact]
@@ -136,7 +140,8 @@ public class InteractiveCommandTests
             .ReturnsAsync(0);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentNullException>(
-            async () => await _command.ExecuteAsync(null!));
+        var act = async () => await _command.ExecuteAsync(null!);
+        await act.Should().ThrowAsync<ArgumentNullException>(
+            "because options are required");
     }
 }

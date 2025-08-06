@@ -1,4 +1,5 @@
 using CommandLine;
+using FluentAssertions;
 using Scanner111.CLI.Models;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
@@ -20,12 +21,12 @@ public class ScanCommandFcxTests
         var result = parser.ParseArguments<Scanner111.CLI.Models.ScanOptions, DemoOptions, ConfigOptions, AboutOptions, FcxOptions>(args);
         
         // Assert
-        Assert.Equal(CommandLine.ParserResultType.Parsed, result.Tag);
+        result.Tag.Should().Be(CommandLine.ParserResultType.Parsed, "because arguments should parse successfully");
         result.WithParsed<Scanner111.CLI.Models.ScanOptions>(opts =>
         {
-            Assert.True(opts.FcxMode.HasValue);
-            Assert.True(opts.FcxMode.Value);
-            Assert.Equal("crash.log", opts.LogFile);
+            opts.FcxMode.Should().NotBeNull("because fcx-mode was specified");
+            opts.FcxMode!.Value.Should().BeTrue("because fcx-mode was set to true");
+            opts.LogFile.Should().Be("crash.log", "because log file was specified");
         });
     }
     
@@ -40,11 +41,11 @@ public class ScanCommandFcxTests
         var result = parser.ParseArguments<Scanner111.CLI.Models.ScanOptions, DemoOptions, ConfigOptions, AboutOptions, FcxOptions>(args);
         
         // Assert
-        Assert.Equal(CommandLine.ParserResultType.Parsed, result.Tag);
+        result.Tag.Should().Be(CommandLine.ParserResultType.Parsed, "because arguments should parse successfully");
         result.WithParsed<Scanner111.CLI.Models.ScanOptions>(opts =>
         {
-            Assert.Null(opts.FcxMode);
-            Assert.Equal("crash.log", opts.LogFile);
+            opts.FcxMode.Should().BeNull("because fcx-mode was not specified");
+            opts.LogFile.Should().Be("crash.log", "because log file was specified");
         });
     }
     
@@ -61,7 +62,7 @@ public class ScanCommandFcxTests
             settings.FcxMode = options.FcxMode.Value;
         
         // Assert
-        Assert.True(settings.FcxMode);
+        settings.FcxMode.Should().BeTrue("because FCX mode should be enabled from command line");
     }
     
     [Fact]
@@ -76,7 +77,7 @@ public class ScanCommandFcxTests
             settings.FcxMode = options.FcxMode.Value;
         
         // Assert
-        Assert.False(settings.FcxMode);
+        settings.FcxMode.Should().BeFalse("because FCX mode should be disabled from command line");
     }
     
     [Fact]
@@ -91,6 +92,6 @@ public class ScanCommandFcxTests
             settings.FcxMode = options.FcxMode.Value;
         
         // Assert
-        Assert.True(settings.FcxMode); // Unchanged
+        settings.FcxMode.Should().BeTrue("because FCX mode should remain unchanged when not specified");
     }
 }

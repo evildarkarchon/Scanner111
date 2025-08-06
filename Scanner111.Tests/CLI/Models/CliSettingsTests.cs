@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text.Json;
+using FluentAssertions;
 using Scanner111.CLI.Models;
 using Xunit;
 
@@ -14,27 +15,27 @@ public class CliSettingsTests
         var settings = new CliSettings();
         
         // Assert
-        Assert.False(settings.FcxMode);
-        Assert.False(settings.ShowFormIdValues);
-        Assert.False(settings.SimplifyLogs);
-        Assert.False(settings.MoveUnsolvedLogs);
-        Assert.False(settings.AudioNotifications);
-        Assert.False(settings.VrMode);
-        Assert.Equal("", settings.DefaultScanDirectory);
-        Assert.Equal("", settings.DefaultGamePath);
-        Assert.Equal("detailed", settings.DefaultOutputFormat);
-        Assert.False(settings.DisableColors);
-        Assert.False(settings.DisableProgress);
-        Assert.False(settings.VerboseLogging);
-        Assert.Equal(16, settings.MaxConcurrentScans);
-        Assert.True(settings.CacheEnabled);
-        Assert.NotNull(settings.RecentScanPaths);
-        Assert.Empty(settings.RecentScanPaths);
-        Assert.Equal(10, settings.MaxRecentPaths);
-        Assert.Equal("", settings.CrashLogsDirectory);
-        Assert.Equal("", settings.GamePath);
-        Assert.Equal("", settings.ModsFolder);
-        Assert.Equal("", settings.IniFolder);
+        settings.FcxMode.Should().BeFalse("because FCX mode is disabled by default");
+        settings.ShowFormIdValues.Should().BeFalse("because FormID values are hidden by default");
+        settings.SimplifyLogs.Should().BeFalse("because log simplification is disabled by default");
+        settings.MoveUnsolvedLogs.Should().BeFalse("because moving unsolved logs is disabled by default");
+        settings.AudioNotifications.Should().BeFalse("because audio notifications are disabled by default");
+        settings.VrMode.Should().BeFalse("because VR mode is disabled by default");
+        settings.DefaultScanDirectory.Should().Be("", "because no default scan directory is set");
+        settings.DefaultGamePath.Should().Be("", "because no default game path is set");
+        settings.DefaultOutputFormat.Should().Be("detailed", "because detailed is the default output format");
+        settings.DisableColors.Should().BeFalse("because colors are enabled by default");
+        settings.DisableProgress.Should().BeFalse("because progress is enabled by default");
+        settings.VerboseLogging.Should().BeFalse("because verbose logging is disabled by default");
+        settings.MaxConcurrentScans.Should().Be(16, "because 16 is the default concurrency limit");
+        settings.CacheEnabled.Should().BeTrue("because cache is enabled by default");
+        settings.RecentScanPaths.Should().NotBeNull("because the list should be initialized");
+        settings.RecentScanPaths.Should().BeEmpty("because no recent paths exist initially");
+        settings.MaxRecentPaths.Should().Be(10, "because 10 is the default max recent paths");
+        settings.CrashLogsDirectory.Should().Be("", "because no crash logs directory is set by default");
+        settings.GamePath.Should().Be("", "because no game path is set by default");
+        settings.ModsFolder.Should().Be("", "because no mods folder is set by default");
+        settings.IniFolder.Should().Be("", "because no ini folder is set by default");
     }
 
     [Fact]
@@ -48,9 +49,9 @@ public class CliSettingsTests
         settings.AddRecentPath("path2");
         
         // Assert
-        Assert.Equal(2, settings.RecentScanPaths.Count);
-        Assert.Equal("path2", settings.RecentScanPaths[0]);
-        Assert.Equal("path1", settings.RecentScanPaths[1]);
+        settings.RecentScanPaths.Should().HaveCount(2, "because two paths were added");
+        settings.RecentScanPaths[0].Should().Be("path2", "because most recent path should be first");
+        settings.RecentScanPaths[1].Should().Be("path1", "because older path should be second");
     }
 
     [Fact]
@@ -65,9 +66,9 @@ public class CliSettingsTests
         settings.AddRecentPath("path1"); // Add path1 again
         
         // Assert
-        Assert.Equal(2, settings.RecentScanPaths.Count);
-        Assert.Equal("path1", settings.RecentScanPaths[0]); // path1 should be at front
-        Assert.Equal("path2", settings.RecentScanPaths[1]);
+        settings.RecentScanPaths.Should().HaveCount(2, "because duplicates should be removed");
+        settings.RecentScanPaths[0].Should().Be("path1", "because re-added path should move to front");
+        settings.RecentScanPaths[1].Should().Be("path2", "because older path should be second");
     }
 
     [Fact]
@@ -83,11 +84,11 @@ public class CliSettingsTests
         settings.AddRecentPath("path4");
         
         // Assert
-        Assert.Equal(3, settings.RecentScanPaths.Count);
-        Assert.Equal("path4", settings.RecentScanPaths[0]);
-        Assert.Equal("path3", settings.RecentScanPaths[1]);
-        Assert.Equal("path2", settings.RecentScanPaths[2]);
-        Assert.DoesNotContain("path1", settings.RecentScanPaths);
+        settings.RecentScanPaths.Should().HaveCount(3, "because max limit is 3");
+        settings.RecentScanPaths[0].Should().Be("path4", "because it's the most recent");
+        settings.RecentScanPaths[1].Should().Be("path3", "because it's second most recent");
+        settings.RecentScanPaths[2].Should().Be("path2", "because it's third most recent");
+        settings.RecentScanPaths.Should().NotContain("path1", "because it was removed when limit was reached");
     }
 
     [Fact]
@@ -102,7 +103,7 @@ public class CliSettingsTests
         settings.AddRecentPath("   ");
         
         // Assert
-        Assert.Empty(settings.RecentScanPaths);
+        settings.RecentScanPaths.Should().BeEmpty("because empty/null paths should be ignored");
     }
 
     [Fact]
@@ -139,29 +140,29 @@ public class CliSettingsTests
         var deserialized = JsonSerializer.Deserialize<CliSettings>(json);
         
         // Assert
-        Assert.NotNull(deserialized);
-        Assert.Equal(settings.FcxMode, deserialized.FcxMode);
-        Assert.Equal(settings.ShowFormIdValues, deserialized.ShowFormIdValues);
-        Assert.Equal(settings.SimplifyLogs, deserialized.SimplifyLogs);
-        Assert.Equal(settings.MoveUnsolvedLogs, deserialized.MoveUnsolvedLogs);
-        Assert.Equal(settings.AudioNotifications, deserialized.AudioNotifications);
-        Assert.Equal(settings.VrMode, deserialized.VrMode);
-        Assert.Equal(settings.DefaultScanDirectory, deserialized.DefaultScanDirectory);
-        Assert.Equal(settings.DefaultGamePath, deserialized.DefaultGamePath);
-        Assert.Equal(settings.DefaultOutputFormat, deserialized.DefaultOutputFormat);
-        Assert.Equal(settings.DisableColors, deserialized.DisableColors);
-        Assert.Equal(settings.DisableProgress, deserialized.DisableProgress);
-        Assert.Equal(settings.VerboseLogging, deserialized.VerboseLogging);
-        Assert.Equal(settings.MaxConcurrentScans, deserialized.MaxConcurrentScans);
-        Assert.Equal(settings.CacheEnabled, deserialized.CacheEnabled);
-        Assert.Equal(settings.MaxRecentPaths, deserialized.MaxRecentPaths);
-        Assert.Equal(settings.CrashLogsDirectory, deserialized.CrashLogsDirectory);
-        Assert.Equal(settings.GamePath, deserialized.GamePath);
-        Assert.Equal(settings.ModsFolder, deserialized.ModsFolder);
-        Assert.Equal(settings.IniFolder, deserialized.IniFolder);
-        Assert.Equal(2, deserialized.RecentScanPaths.Count);
-        Assert.Equal("path2", deserialized.RecentScanPaths[0]);
-        Assert.Equal("path1", deserialized.RecentScanPaths[1]);
+        deserialized.Should().NotBeNull();
+        deserialized!.FcxMode.Should().Be(settings.FcxMode);
+        deserialized.ShowFormIdValues.Should().Be(settings.ShowFormIdValues);
+        deserialized.SimplifyLogs.Should().Be(settings.SimplifyLogs);
+        deserialized.MoveUnsolvedLogs.Should().Be(settings.MoveUnsolvedLogs);
+        deserialized.AudioNotifications.Should().Be(settings.AudioNotifications);
+        deserialized.VrMode.Should().Be(settings.VrMode);
+        deserialized.DefaultScanDirectory.Should().Be(settings.DefaultScanDirectory);
+        deserialized.DefaultGamePath.Should().Be(settings.DefaultGamePath);
+        deserialized.DefaultOutputFormat.Should().Be(settings.DefaultOutputFormat);
+        deserialized.DisableColors.Should().Be(settings.DisableColors);
+        deserialized.DisableProgress.Should().Be(settings.DisableProgress);
+        deserialized.VerboseLogging.Should().Be(settings.VerboseLogging);
+        deserialized.MaxConcurrentScans.Should().Be(settings.MaxConcurrentScans);
+        deserialized.CacheEnabled.Should().Be(settings.CacheEnabled);
+        deserialized.MaxRecentPaths.Should().Be(settings.MaxRecentPaths);
+        deserialized.CrashLogsDirectory.Should().Be(settings.CrashLogsDirectory);
+        deserialized.GamePath.Should().Be(settings.GamePath);
+        deserialized.ModsFolder.Should().Be(settings.ModsFolder);
+        deserialized.IniFolder.Should().Be(settings.IniFolder);
+        deserialized.RecentScanPaths.Should().HaveCount(2);
+        deserialized.RecentScanPaths[0].Should().Be("path2");
+        deserialized.RecentScanPaths[1].Should().Be("path1");
     }
 
     [Fact]
@@ -178,10 +179,10 @@ public class CliSettingsTests
         var json = JsonSerializer.Serialize(settings);
         
         // Assert
-        Assert.Contains("\"fcxMode\":true", json);
-        Assert.Contains("\"showFormIdValues\":true", json);
-        Assert.Contains("\"defaultOutputFormat\":\"detailed\"", json);
-        Assert.Contains("\"maxConcurrentScans\":16", json);
+        json.Should().Contain("\"fcxMode\":true");
+        json.Should().Contain("\"showFormIdValues\":true");
+        json.Should().Contain("\"defaultOutputFormat\":\"detailed\"");
+        json.Should().Contain("\"maxConcurrentScans\":16");
     }
 
     [Fact]
@@ -192,61 +193,61 @@ public class CliSettingsTests
         
         // Act & Assert
         settings.FcxMode = true;
-        Assert.True(settings.FcxMode);
+        settings.FcxMode.Should().BeTrue();
         
         settings.ShowFormIdValues = true;
-        Assert.True(settings.ShowFormIdValues);
+        settings.ShowFormIdValues.Should().BeTrue();
         
         settings.SimplifyLogs = true;
-        Assert.True(settings.SimplifyLogs);
+        settings.SimplifyLogs.Should().BeTrue();
         
         settings.MoveUnsolvedLogs = true;
-        Assert.True(settings.MoveUnsolvedLogs);
+        settings.MoveUnsolvedLogs.Should().BeTrue();
         
         settings.AudioNotifications = true;
-        Assert.True(settings.AudioNotifications);
+        settings.AudioNotifications.Should().BeTrue();
         
         settings.VrMode = true;
-        Assert.True(settings.VrMode);
+        settings.VrMode.Should().BeTrue();
         
         settings.DefaultScanDirectory = "test";
-        Assert.Equal("test", settings.DefaultScanDirectory);
+        settings.DefaultScanDirectory.Should().Be("test");
         
         settings.DefaultGamePath = "gamepath";
-        Assert.Equal("gamepath", settings.DefaultGamePath);
+        settings.DefaultGamePath.Should().Be("gamepath");
         
         settings.DefaultOutputFormat = "json";
-        Assert.Equal("json", settings.DefaultOutputFormat);
+        settings.DefaultOutputFormat.Should().Be("json");
         
         settings.DisableColors = true;
-        Assert.True(settings.DisableColors);
+        settings.DisableColors.Should().BeTrue();
         
         settings.DisableProgress = true;
-        Assert.True(settings.DisableProgress);
+        settings.DisableProgress.Should().BeTrue();
         
         settings.VerboseLogging = true;
-        Assert.True(settings.VerboseLogging);
+        settings.VerboseLogging.Should().BeTrue();
         
         settings.MaxConcurrentScans = 8;
-        Assert.Equal(8, settings.MaxConcurrentScans);
+        settings.MaxConcurrentScans.Should().Be(8);
         
         settings.CacheEnabled = false;
-        Assert.False(settings.CacheEnabled);
+        settings.CacheEnabled.Should().BeFalse();
         
         settings.MaxRecentPaths = 5;
-        Assert.Equal(5, settings.MaxRecentPaths);
+        settings.MaxRecentPaths.Should().Be(5);
         
         settings.CrashLogsDirectory = "crashes";
-        Assert.Equal("crashes", settings.CrashLogsDirectory);
+        settings.CrashLogsDirectory.Should().Be("crashes");
         
         settings.GamePath = "game";
-        Assert.Equal("game", settings.GamePath);
+        settings.GamePath.Should().Be("game");
         
         settings.ModsFolder = "mods";
-        Assert.Equal("mods", settings.ModsFolder);
+        settings.ModsFolder.Should().Be("mods");
         
         settings.IniFolder = "ini";
-        Assert.Equal("ini", settings.IniFolder);
+        settings.IniFolder.Should().Be("ini");
     }
 
     [Fact]
@@ -260,8 +261,8 @@ public class CliSettingsTests
         settings.AddRecentPath(longPath);
         
         // Assert
-        Assert.Single(settings.RecentScanPaths);
-        Assert.Equal(longPath, settings.RecentScanPaths[0]);
+        settings.RecentScanPaths.Should().ContainSingle();
+        settings.RecentScanPaths[0].Should().Be(longPath);
     }
 
     [Fact]
@@ -277,11 +278,11 @@ public class CliSettingsTests
         }
         
         // Assert - Should have only the last 5, in reverse order
-        Assert.Equal(5, settings.RecentScanPaths.Count);
-        Assert.Equal("path10", settings.RecentScanPaths[0]);
-        Assert.Equal("path9", settings.RecentScanPaths[1]);
-        Assert.Equal("path8", settings.RecentScanPaths[2]);
-        Assert.Equal("path7", settings.RecentScanPaths[3]);
-        Assert.Equal("path6", settings.RecentScanPaths[4]);
+        settings.RecentScanPaths.Should().HaveCount(5);
+        settings.RecentScanPaths[0].Should().Be("path10");
+        settings.RecentScanPaths[1].Should().Be("path9");
+        settings.RecentScanPaths[2].Should().Be("path8");
+        settings.RecentScanPaths[3].Should().Be("path7");
+        settings.RecentScanPaths[4].Should().Be("path6");
     }
 }

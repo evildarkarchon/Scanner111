@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
 using Scanner111.Core.Infrastructure;
@@ -26,24 +27,34 @@ public class DemoCommandTests : IDisposable
         var result = await command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
+        result.Should().Be(0, "because the demo should complete successfully");
         
         // Verify all message types were displayed
-        Assert.Contains("This is an info message", _messageCapture.InfoMessages);
-        Assert.Contains("This is a warning message", _messageCapture.WarningMessages);
-        Assert.Contains("This is an error message", _messageCapture.ErrorMessages);
-        Assert.Contains("This is a success message", _messageCapture.SuccessMessages);
-        Assert.Contains("This is a debug message", _messageCapture.DebugMessages);
-        Assert.Contains("This is a critical message", _messageCapture.CriticalMessages);
+        _messageCapture.InfoMessages.Should().Contain("This is an info message",
+            "because demo should display info messages");
+        _messageCapture.WarningMessages.Should().Contain("This is a warning message",
+            "because demo should display warning messages");
+        _messageCapture.ErrorMessages.Should().Contain("This is an error message",
+            "because demo should display error messages");
+        _messageCapture.SuccessMessages.Should().Contain("This is a success message",
+            "because demo should display success messages");
+        _messageCapture.DebugMessages.Should().Contain("This is a debug message",
+            "because demo should display debug messages");
+        _messageCapture.CriticalMessages.Should().Contain("This is a critical message",
+            "because demo should display critical messages");
         
         // Verify completion message
-        Assert.Contains("Demo complete!", _messageCapture.SuccessMessages);
+        _messageCapture.SuccessMessages.Should().Contain("Demo complete!",
+            "because demo should report completion");
         
         // Verify progress was created and completed
-        Assert.NotNull(_messageCapture.LastProgressContext);
-        Assert.Equal("Demo Progress", _messageCapture.LastProgressContext.Description);
-        Assert.Equal(5, _messageCapture.LastProgressContext.Total);
-        Assert.True(_messageCapture.LastProgressContext.IsCompleted);
+        _messageCapture.LastProgressContext.Should().NotBeNull("because progress context should be created");
+        _messageCapture.LastProgressContext.Description.Should().Be("Demo Progress",
+            "because correct progress description should be set");
+        _messageCapture.LastProgressContext.Total.Should().Be(5,
+            "because demo should have 5 total steps");
+        _messageCapture.LastProgressContext.IsCompleted.Should().BeTrue(
+            "because progress should be marked as completed");
     }
 
     public void Dispose()

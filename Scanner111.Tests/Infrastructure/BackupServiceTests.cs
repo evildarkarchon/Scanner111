@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
@@ -64,14 +65,14 @@ public class BackupServiceTests : IDisposable
         var result = await _backupService.CreateBackupAsync(_testGamePath, filesToBackup);
         
         // Assert
-        Assert.True(result.Success);
-        Assert.NotNull(result.BackupPath);
-        Assert.True(File.Exists(result.BackupPath));
-        Assert.Equal(3, result.BackedUpFiles.Count);
-        Assert.Contains("Fallout4.exe", result.BackedUpFiles);
-        Assert.Contains("f4se_loader.exe", result.BackedUpFiles);
-        Assert.Contains(@"Data\test.esp", result.BackedUpFiles);
-        Assert.True(result.TotalSize > 0);
+        result.Success.Should().BeTrue("backup operation should succeed");
+        result.BackupPath.Should().NotBeNull("backup path should be generated");
+        File.Exists(result.BackupPath).Should().BeTrue("backup file should exist");
+        result.BackedUpFiles.Should().HaveCount(3, "all three files should be backed up");
+        result.BackedUpFiles.Should().Contain("Fallout4.exe", "executable should be backed up");
+        result.BackedUpFiles.Should().Contain("f4se_loader.exe", "F4SE loader should be backed up");
+        result.BackedUpFiles.Should().Contain(@"Data\test.esp", "plugin should be backed up");
+        result.TotalSize.Should().BeGreaterThan(0, "backup should have non-zero size");
     }
     
     [Fact]
@@ -85,8 +86,8 @@ public class BackupServiceTests : IDisposable
         var result = await _backupService.CreateBackupAsync(invalidPath, filesToBackup);
         
         // Assert
-        Assert.False(result.Success);
-        Assert.Contains("Game path does not exist", result.ErrorMessage);
+        result.Success.Should().BeFalse("backup should fail with invalid game path");
+        result.ErrorMessage.Should().Contain("Game path does not exist", "error should indicate path issue");
     }
     
     [Fact]
@@ -100,10 +101,10 @@ public class BackupServiceTests : IDisposable
         var result = await _backupService.CreateBackupAsync(_testGamePath, filesToBackup);
         
         // Assert
-        Assert.True(result.Success);
-        Assert.Single(result.BackedUpFiles);
-        Assert.Contains("Fallout4.exe", result.BackedUpFiles);
-        Assert.DoesNotContain("NonExistent.dll", result.BackedUpFiles);
+        result.Success.Should().BeTrue("backup should succeed even with missing files");
+        result.BackedUpFiles.Should().ContainSingle("only existing file should be backed up");
+        result.BackedUpFiles.Should().Contain("Fallout4.exe", "existing file should be backed up");
+        result.BackedUpFiles.Should().NotContain("NonExistent.dll", "missing file should not be in backup");
     }
     
     [Fact]
@@ -122,12 +123,12 @@ public class BackupServiceTests : IDisposable
         var result = await _backupService.CreateBackupAsync(_testGamePath, filesToBackup, progress);
         
         // Assert
-        Assert.True(result.Success);
-        Assert.NotEmpty(progressReports);
-        Assert.True(progressReports.All(p => p.TotalFiles == 3));
-        Assert.Contains(progressReports, p => p.CurrentFile == "file1.txt");
-        Assert.Contains(progressReports, p => p.CurrentFile == "file2.txt");
-        Assert.Contains(progressReports, p => p.CurrentFile == "file3.txt");
+        result.Success.Should().BeTrue("backup should succeed");
+        progressReports.Should().NotBeEmpty("progress should be reported");
+        progressReports.Should().OnlyContain(p => p.TotalFiles == 3, "all progress reports should show 3 total files");
+        progressReports.Should().Contain(p => p.CurrentFile == "file1.txt", "progress should report file1");
+        progressReports.Should().Contain(p => p.CurrentFile == "file2.txt", "progress should report file2");
+        progressReports.Should().Contain(p => p.CurrentFile == "file3.txt", "progress should report file3");
     }
     
     [Fact]
@@ -140,8 +141,8 @@ public class BackupServiceTests : IDisposable
         cts.Cancel();
         
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(
-            () => _backupService.CreateBackupAsync(_testGamePath, filesToBackup, cancellationToken: cts.Token));
+        var act = () => _backupService.CreateBackupAsync(_testGamePath, filesToBackup, cancellationToken: cts.Token);
+        await act.Should().ThrowAsync<OperationCanceledException>("cancelled operation should throw");
     }
     
     [Fact]
@@ -158,12 +159,12 @@ public class BackupServiceTests : IDisposable
         var result = await _backupService.CreateFullBackupAsync(_testGamePath);
         
         // Assert
-        Assert.True(result.Success);
-        Assert.True(result.BackedUpFiles.Count >= 4);
-        Assert.Contains("Fallout4.exe", result.BackedUpFiles);
-        Assert.Contains("Fallout4Launcher.exe", result.BackedUpFiles);
-        Assert.Contains("f4se_loader.exe", result.BackedUpFiles);
-        Assert.Contains(@"Data\Fallout4.esm", result.BackedUpFiles);
+        result.Success.Should().BeTrue("full backup should succeed");
+        result.BackedUpFiles.Count.Should().BeGreaterThanOrEqualTo(4, "critical files should be backed up");
+        result.BackedUpFiles.Should().Contain("Fallout4.exe", "main executable should be backed up");
+        result.BackedUpFiles.Should().Contain("Fallout4Launcher.exe", "launcher should be backed up");
+        result.BackedUpFiles.Should().Contain("f4se_loader.exe", "F4SE loader should be backed up");
+        result.BackedUpFiles.Should().Contain(@"Data\Fallout4.esm", "main game data should be backed up");
     }
     
     [Fact]
@@ -184,13 +185,17 @@ public class BackupServiceTests : IDisposable
         var restoreSuccess = await _backupService.RestoreBackupAsync(backupResult.BackupPath, _testGamePath);
         
         // Assert
-        Assert.True(restoreSuccess);
-        Assert.Equal("Original content", await File.ReadAllTextAsync(Path.Combine(_testGamePath, "Fallout4.exe")));
-        Assert.Equal("Original F4SE", await File.ReadAllTextAsync(Path.Combine(_testGamePath, "f4se_loader.exe")));
+        restoreSuccess.Should().BeTrue("restore should succeed");
+        (await File.ReadAllTextAsync(Path.Combine(_testGamePath, "Fallout4.exe")))
+            .Should().Be("Original content", "original executable content should be restored");
+        (await File.ReadAllTextAsync(Path.Combine(_testGamePath, "f4se_loader.exe")))
+            .Should().Be("Original F4SE", "original F4SE content should be restored");
         
         // Check that .bak files were created
-        Assert.True(File.Exists(Path.Combine(_testGamePath, "Fallout4.exe.bak")));
-        Assert.True(File.Exists(Path.Combine(_testGamePath, "f4se_loader.exe.bak")));
+        File.Exists(Path.Combine(_testGamePath, "Fallout4.exe.bak"))
+            .Should().BeTrue("backup of modified executable should be created");
+        File.Exists(Path.Combine(_testGamePath, "f4se_loader.exe.bak"))
+            .Should().BeTrue("backup of modified F4SE should be created");
     }
     
     [Fact]
@@ -203,7 +208,7 @@ public class BackupServiceTests : IDisposable
         var result = await _backupService.RestoreBackupAsync(nonExistentBackup, _testGamePath);
         
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse("restore should fail for non-existent backup");
     }
     
     [Fact]
@@ -228,10 +233,13 @@ public class BackupServiceTests : IDisposable
             backupResult.BackupPath, _testGamePath, filesToRestore);
         
         // Assert
-        Assert.True(restoreSuccess);
-        Assert.Equal("Original 1", await File.ReadAllTextAsync(Path.Combine(_testGamePath, "file1.txt")));
-        Assert.Equal("Modified 2", await File.ReadAllTextAsync(Path.Combine(_testGamePath, "file2.txt"))); // Not restored
-        Assert.Equal("Original 3", await File.ReadAllTextAsync(Path.Combine(_testGamePath, "file3.txt")));
+        restoreSuccess.Should().BeTrue("selective restore should succeed");
+        (await File.ReadAllTextAsync(Path.Combine(_testGamePath, "file1.txt")))
+            .Should().Be("Original 1", "file1 should be restored");
+        (await File.ReadAllTextAsync(Path.Combine(_testGamePath, "file2.txt")))
+            .Should().Be("Modified 2", "file2 should remain modified (not in restore list)");
+        (await File.ReadAllTextAsync(Path.Combine(_testGamePath, "file3.txt")))
+            .Should().Be("Original 3", "file3 should be restored");
     }
     
     [Fact]
@@ -252,22 +260,19 @@ public class BackupServiceTests : IDisposable
         var backups = (await _backupService.ListBackupsAsync()).ToList();
         
         // Assert
-        Assert.True(backup1.Success, "Backup 1 should be successful");
-        Assert.True(backup2.Success, "Backup 2 should be successful");
-        Assert.True(backup3.Success, "Backup 3 should be successful");
+        backup1.Success.Should().BeTrue("Backup 1 should be successful");
+        backup2.Success.Should().BeTrue("Backup 2 should be successful");
+        backup3.Success.Should().BeTrue("Backup 3 should be successful");
         
-        Assert.True(backups.Count >= 3, $"Expected at least 3 backups, but found {backups.Count}");
+        backups.Count.Should().BeGreaterThanOrEqualTo(3, "at least 3 backups should be listed");
         // Backups should be ordered by creation time descending (newest first)
-        for (int i = 1; i < backups.Count; i++)
-        {
-            Assert.True(backups[i - 1].CreatedDate >= backups[i].CreatedDate);
-        }
+        backups.Should().BeInDescendingOrder(b => b.CreatedDate, "backups should be ordered newest first");
         
         // Verify backup info
         var latestBackup = backups.First();
-        Assert.NotNull(latestBackup.Name);
-        Assert.True(latestBackup.Size > 0);
-        Assert.True(latestBackup.FileCount > 0);
+        latestBackup.Name.Should().NotBeNull("backup should have a name");
+        latestBackup.Size.Should().BeGreaterThan(0, "backup should have non-zero size");
+        latestBackup.FileCount.Should().BeGreaterThan(0, "backup should contain files");
     }
     
     [Fact]
@@ -280,7 +285,7 @@ public class BackupServiceTests : IDisposable
         var backups = await _backupService.ListBackupsAsync(emptyBackupDir);
         
         // Assert
-        Assert.Empty(backups);
+        backups.Should().BeEmpty("empty directory should return no backups");
     }
     
     [Fact]
@@ -291,14 +296,14 @@ public class BackupServiceTests : IDisposable
         var backup = await _backupService.CreateBackupAsync(_testGamePath, new[] { "test.txt" });
         
         // Verify backup exists
-        Assert.True(File.Exists(backup.BackupPath));
+        File.Exists(backup.BackupPath).Should().BeTrue("backup file should exist before deletion");
         
         // Act
         var deleteResult = await _backupService.DeleteBackupAsync(backup.BackupPath);
         
         // Assert
-        Assert.True(deleteResult);
-        Assert.False(File.Exists(backup.BackupPath));
+        deleteResult.Should().BeTrue("deletion should succeed");
+        File.Exists(backup.BackupPath).Should().BeFalse("backup file should be deleted");
     }
     
     [Fact]
@@ -311,7 +316,7 @@ public class BackupServiceTests : IDisposable
         var result = await _backupService.DeleteBackupAsync(nonExistentPath);
         
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse("deletion should fail for non-existent file");
     }
     
     [Fact]
@@ -333,15 +338,18 @@ public class BackupServiceTests : IDisposable
         var result = await _backupService.CreateBackupAsync(_testGamePath, filesToBackup);
         
         // Assert
-        Assert.True(result.Success);
-        Assert.Equal(3, result.BackedUpFiles.Count);
+        result.Success.Should().BeTrue("backup with subdirectories should succeed");
+        result.BackedUpFiles.Should().HaveCount(3, "all files should be backed up");
         
         // Verify zip structure
         using (var zip = ZipFile.OpenRead(result.BackupPath))
         {
-            Assert.Contains(zip.Entries, e => e.FullName == "Data/Scripts/test.pex");
-            Assert.Contains(zip.Entries, e => e.FullName == "Data/F4SE/Plugins/test.dll");
-            Assert.Contains(zip.Entries, e => e.FullName == "Data/Meshes/test.nif");
+            zip.Entries.Should().Contain(e => e.FullName == "Data/Scripts/test.pex", 
+                "script file should preserve directory structure");
+            zip.Entries.Should().Contain(e => e.FullName == "Data/F4SE/Plugins/test.dll", 
+                "plugin file should preserve directory structure");
+            zip.Entries.Should().Contain(e => e.FullName == "Data/Meshes/test.nif", 
+                "mesh file should preserve directory structure");
         }
     }
     
@@ -355,8 +363,8 @@ public class BackupServiceTests : IDisposable
         var result = await _backupService.CreateBackupAsync(_testGamePath, emptyFileList);
         
         // Assert
-        Assert.False(result.Success);
-        Assert.Equal("No files were backed up", result.ErrorMessage);
+        result.Success.Should().BeFalse("backup with empty file list should fail");
+        result.ErrorMessage.Should().Be("No files were backed up", "error message should indicate no files");
     }
     
     [Fact]
@@ -378,9 +386,9 @@ public class BackupServiceTests : IDisposable
             backup.BackupPath, _testGamePath, progress: progress);
         
         // Assert
-        Assert.True(result);
-        Assert.NotEmpty(progressReports);
-        Assert.True(progressReports.All(p => p.TotalFiles == 3));
+        result.Should().BeTrue("restore with progress should succeed");
+        progressReports.Should().NotBeEmpty("progress should be reported during restore");
+        progressReports.Should().OnlyContain(p => p.TotalFiles == 3, "all progress reports should show 3 total files");
     }
     
     private string CreateTempDirectory()

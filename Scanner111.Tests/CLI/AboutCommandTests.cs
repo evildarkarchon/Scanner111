@@ -1,4 +1,5 @@
 using System.Reflection;
+using FluentAssertions;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
 using Scanner111.Core.Infrastructure;
@@ -31,11 +32,15 @@ public class AboutCommandTests : IDisposable
         var result = await command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
-        Assert.Contains("Scanner111 - CLASSIC Crash Log Analyzer", _messageCapture.InfoMessages);
-        Assert.Contains($"Version: {expectedVersion}", _messageCapture.InfoMessages);
-        Assert.Contains("Compatible with Bethesda games crash logs", _messageCapture.InfoMessages);
-        Assert.Contains("Based on CLASSIC Python implementation", _messageCapture.InfoMessages);
+        result.Should().Be(0, "because the command should succeed");
+        _messageCapture.InfoMessages.Should().Contain("Scanner111 - CLASSIC Crash Log Analyzer",
+            "because the application name should be displayed");
+        _messageCapture.InfoMessages.Should().Contain($"Version: {expectedVersion}",
+            "because the version should be displayed");
+        _messageCapture.InfoMessages.Should().Contain("Compatible with Bethesda games crash logs",
+            "because compatibility information should be shown");
+        _messageCapture.InfoMessages.Should().Contain("Based on CLASSIC Python implementation",
+            "because the origin should be mentioned");
     }
 
     public void Dispose()

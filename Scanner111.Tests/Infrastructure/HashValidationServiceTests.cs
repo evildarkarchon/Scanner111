@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
@@ -44,12 +45,12 @@ public class HashValidationServiceTests : IDisposable
         var actualHash = await _hashService.CalculateFileHashAsync(testFile);
         
         // Assert
-        Assert.NotNull(actualHash);
-        Assert.NotEmpty(actualHash);
+        actualHash.Should().NotBeNull("because the hash calculation should succeed");
+        actualHash.Should().NotBeEmpty("because a valid hash should be returned");
         // SHA256 produces 64 character hex string
-        Assert.Equal(64, actualHash.Length);
+        actualHash.Should().HaveLength(64, "because SHA256 produces a 64 character hex string");
         // Should be all uppercase hex characters
-        Assert.Matches("^[A-F0-9]+$", actualHash);
+        actualHash.Should().MatchRegex("^[A-F0-9]+$", "because hash should contain only uppercase hex characters");
     }
     
     [Fact]
@@ -59,8 +60,8 @@ public class HashValidationServiceTests : IDisposable
         var nonExistentFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         
         // Act & Assert
-        await Assert.ThrowsAsync<FileNotFoundException>(
-            () => _hashService.CalculateFileHashAsync(nonExistentFile));
+        var act = () => _hashService.CalculateFileHashAsync(nonExistentFile);
+        await act.Should().ThrowAsync<FileNotFoundException>("because the file does not exist");
     }
     
     [Fact]
@@ -74,7 +75,7 @@ public class HashValidationServiceTests : IDisposable
         var hash2 = await _hashService.CalculateFileHashAsync(testFile);
         
         // Assert - Both hashes should be identical
-        Assert.Equal(hash1, hash2);
+        hash2.Should().Be(hash1, "because the file has not been modified and caching should return the same hash");
     }
     
     [Fact]
@@ -90,7 +91,7 @@ public class HashValidationServiceTests : IDisposable
         var hash2 = await _hashService.CalculateFileHashAsync(testFile);
         
         // Assert - Hashes should be different
-        Assert.NotEqual(hash1, hash2);
+        hash2.Should().NotBe(hash1, "because the file was modified and should produce a different hash");
     }
     
     [Fact]
@@ -104,10 +105,10 @@ public class HashValidationServiceTests : IDisposable
         var validation = await _hashService.ValidateFileAsync(testFile, expectedHash);
         
         // Assert
-        Assert.True(validation.IsValid);
-        Assert.Equal(expectedHash, validation.ExpectedHash);
-        Assert.Equal(expectedHash, validation.ActualHash);
-        Assert.Equal("SHA256", validation.HashType);
+        validation.IsValid.Should().BeTrue("because the hash matches the expected value");
+        validation.ExpectedHash.Should().Be(expectedHash, "because the expected hash should be recorded");
+        validation.ActualHash.Should().Be(expectedHash, "because the actual hash should match");
+        validation.HashType.Should().Be("SHA256", "because SHA256 is the algorithm used");
     }
     
     [Fact]
@@ -121,9 +122,9 @@ public class HashValidationServiceTests : IDisposable
         var validation = await _hashService.ValidateFileAsync(testFile, wrongHash);
         
         // Assert
-        Assert.False(validation.IsValid);
-        Assert.Equal(wrongHash, validation.ExpectedHash);
-        Assert.NotEqual(wrongHash, validation.ActualHash);
+        validation.IsValid.Should().BeFalse("because the hash does not match");
+        validation.ExpectedHash.Should().Be(wrongHash, "because the expected hash should be recorded");
+        validation.ActualHash.Should().NotBe(wrongHash, "because the actual hash is different");
     }
     
     [Fact]
@@ -137,8 +138,8 @@ public class HashValidationServiceTests : IDisposable
         var validation = await _hashService.ValidateFileAsync(nonExistentFile, expectedHash);
         
         // Assert
-        Assert.False(validation.IsValid);
-        Assert.Equal(string.Empty, validation.ActualHash);
+        validation.IsValid.Should().BeFalse("because the file does not exist");
+        validation.ActualHash.Should().Be(string.Empty, "because no hash can be calculated for a non-existent file");
     }
     
     [Fact]
@@ -163,10 +164,10 @@ public class HashValidationServiceTests : IDisposable
         var results = await _hashService.ValidateBatchAsync(fileHashMap);
         
         // Assert
-        Assert.Equal(3, results.Count);
-        Assert.True(results[file1].IsValid);
-        Assert.False(results[file2].IsValid);
-        Assert.False(results[nonExistent].IsValid);
+        results.Should().HaveCount(3, "because three files were validated");
+        results[file1].IsValid.Should().BeTrue("because the first file hash matches");
+        results[file2].IsValid.Should().BeFalse("because the second file hash is wrong");
+        results[nonExistent].IsValid.Should().BeFalse("because the third file does not exist");
     }
     
     [Fact]
@@ -182,9 +183,9 @@ public class HashValidationServiceTests : IDisposable
         var hash = await _hashService.CalculateFileHashWithProgressAsync(testFile, progress);
         
         // Assert
-        Assert.NotEmpty(hash);
-        Assert.NotEmpty(progressReports);
-        Assert.True(progressReports.Last() >= largeContent.Length);
+        hash.Should().NotBeEmpty("because a valid hash should be calculated");
+        progressReports.Should().NotBeEmpty("because progress should be reported during hash calculation");
+        progressReports.Last().Should().BeGreaterThanOrEqualTo(largeContent.Length, "because all bytes should be processed");
     }
     
     [Fact]
@@ -200,7 +201,8 @@ public class HashValidationServiceTests : IDisposable
         cts.Cancel();
         
         // Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(() => task);
+        var act = () => task;
+        await act.Should().ThrowAsync<OperationCanceledException>("because the operation was cancelled");
     }
     
     [Theory]
@@ -218,8 +220,8 @@ public class HashValidationServiceTests : IDisposable
         var hash2 = await _hashService.CalculateFileHashAsync(testFile);
         
         // Assert - Same file should produce same hash
-        Assert.Equal(hash1, hash2);
-        Assert.Equal(64, hash1.Length); // SHA256 produces 64 char hex string
+        hash2.Should().Be(hash1, "because the same file should produce consistent hashes");
+        hash1.Should().HaveLength(64, "because SHA256 produces a 64 character hex string");
     }
     
     private string CreateTempFile(string content)

@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Spectre.Console;
 using Spectre.Console.Testing;
 using Scanner111.CLI.Services;
@@ -27,8 +28,8 @@ public class SpectreMessageHandlerTests
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("ℹ", output);
-        Assert.Contains("This is an info message", output);
+        output.Should().Contain("ℹ", "because info messages include the info icon");
+        output.Should().Contain("This is an info message");
         // Note: [blue] markup is rendered as ANSI color codes, not literal text
     }
 
@@ -40,8 +41,8 @@ public class SpectreMessageHandlerTests
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("⚠", output);
-        Assert.Contains("This is a warning", output);
+        output.Should().Contain("⚠", "because warning messages include the warning icon");
+        output.Should().Contain("This is a warning");
         // Note: [yellow] markup is rendered as ANSI color codes, not literal text
     }
 
@@ -53,8 +54,8 @@ public class SpectreMessageHandlerTests
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("✗", output);
-        Assert.Contains("This is an error", output);
+        output.Should().Contain("✗", "because error messages include the error icon");
+        output.Should().Contain("This is an error");
         // Note: [red] markup is rendered as ANSI color codes, not literal text
     }
 
@@ -66,8 +67,8 @@ public class SpectreMessageHandlerTests
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("✓", output);
-        Assert.Contains("Operation successful", output);
+        output.Should().Contain("✓", "because success messages include the success icon");
+        output.Should().Contain("Operation successful");
         // Note: [green] markup is rendered as ANSI color codes, not literal text
     }
 
@@ -79,8 +80,8 @@ public class SpectreMessageHandlerTests
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("🐛", output);
-        Assert.Contains("Debug information", output);
+        output.Should().Contain("🐛", "because debug messages include the debug icon");
+        output.Should().Contain("Debug information");
         // Note: [dim] markup is rendered as ANSI color codes, not literal text
     }
 
@@ -92,8 +93,8 @@ public class SpectreMessageHandlerTests
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("‼", output);
-        Assert.Contains("Critical error!", output);
+        output.Should().Contain("‼", "because critical messages include the critical icon");
+        output.Should().Contain("Critical error!");
         // Note: [bold red] markup is rendered as ANSI color codes, not literal text
     }
 
@@ -105,9 +106,9 @@ public class SpectreMessageHandlerTests
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("⚠", output);
-        Assert.Contains("Test message", output);
-        Assert.Contains("Additional details", output);
+        output.Should().Contain("⚠", "because it's a warning type");
+        output.Should().Contain("Test message");
+        output.Should().Contain("Additional details");
     }
 
     [Fact]
@@ -119,8 +120,8 @@ public class SpectreMessageHandlerTests
 
         // Assert
         var output = _console.Output;
-        Assert.DoesNotContain("GUI only message", output);
-        Assert.DoesNotContain("GUI only warning", output);
+        output.Should().NotContain("GUI only message", "because GUI-only messages should be ignored");
+        output.Should().NotContain("GUI only warning");
     }
 
     [Fact]
@@ -132,7 +133,7 @@ public class SpectreMessageHandlerTests
         // Assert
         var output = _console.Output;
         // Check for time format HH:mm:ss
-        Assert.Matches(@"\d{2}:\d{2}:\d{2}", output);
+        output.Should().MatchRegex(@"\d{2}:\d{2}:\d{2}", "because messages include timestamps");
     }
 
     [Fact]
@@ -142,8 +143,8 @@ public class SpectreMessageHandlerTests
         var context = _handler.CreateProgressContext("Test Progress", 100);
 
         // Assert
-        Assert.NotNull(context);
-        Assert.IsAssignableFrom<IProgressContext>(context);
+        context.Should().NotBeNull("because CreateProgressContext should return a valid context");
+        context.Should().BeAssignableTo<IProgressContext>();
     }
 
     [Fact]
@@ -156,7 +157,7 @@ public class SpectreMessageHandlerTests
         context.Update(50, "Half way there");
         
         // Assert - no exceptions thrown
-        Assert.NotNull(context);
+        context.Should().NotBeNull("because context should remain valid after updates");
     }
 
     [Fact]
@@ -173,8 +174,8 @@ public class SpectreMessageHandlerTests
         });
 
         // Assert
-        Assert.Null(exception);
-        Assert.NotNull(context);
+        exception.Should().BeNull("because no exception should be thrown during disposal");
+        context.Should().NotBeNull("because context was created successfully");
     }
 
     [Fact]
@@ -184,8 +185,8 @@ public class SpectreMessageHandlerTests
         var progress = _handler.ShowProgress("Test Progress", 100);
 
         // Assert
-        Assert.NotNull(progress);
-        Assert.IsAssignableFrom<IProgress<ProgressInfo>>(progress);
+        progress.Should().NotBeNull("because ShowProgress should return a valid progress");
+        progress.Should().BeAssignableTo<IProgress<ProgressInfo>>();
     }
 
     [Fact]
@@ -207,7 +208,7 @@ public class SpectreMessageHandlerTests
         });
 
         // Assert
-        Assert.Null(exception);
+        exception.Should().BeNull("because reporting progress should not throw exceptions");
     }
 
     [Fact]
@@ -224,8 +225,8 @@ public class SpectreMessageHandlerTests
         var secondIndex = output.IndexOf("Second message");
         var thirdIndex = output.IndexOf("Third message");
 
-        Assert.True(firstIndex < secondIndex);
-        Assert.True(secondIndex < thirdIndex);
+        firstIndex.Should().BeLessThan(secondIndex, "because first message should appear before second");
+        secondIndex.Should().BeLessThan(thirdIndex, "because second message should appear before third");
     }
 
     [Fact]
@@ -237,6 +238,6 @@ public class SpectreMessageHandlerTests
         // Assert
         var output = _console.Output;
         // The message should be properly escaped
-        Assert.Contains("Message with [brackets] and special chars: <>&", output);
+        output.Should().Contain("Message with [brackets] and special chars: <>&", "because special characters should be escaped");
     }
 }

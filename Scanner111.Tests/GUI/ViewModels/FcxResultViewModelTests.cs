@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using FluentAssertions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.Core.FCX;
@@ -34,15 +35,15 @@ public class FcxResultViewModelTests
         var viewModel = new FcxResultViewModel(fcxResult);
 
         // Assert
-        Assert.Equal(fcxResult, viewModel.FcxResult);
-        Assert.Equal(2, viewModel.TotalFileChecks);
-        Assert.Equal(1, viewModel.PassedChecks);
-        Assert.Equal(1, viewModel.FailedChecks);
-        Assert.Equal(3, viewModel.TotalHashValidations);
-        Assert.Equal(2, viewModel.PassedValidations);
-        Assert.Equal(1, viewModel.FailedValidations);
-        Assert.Equal("Good", viewModel.OverallStatus);
-        Assert.True(viewModel.HasIssues);
+        viewModel.FcxResult.Should().Be(fcxResult, "because FCX result should be stored");
+        viewModel.TotalFileChecks.Should().Be(2, "because there are 2 file checks");
+        viewModel.PassedChecks.Should().Be(1, "because 1 file check passed");
+        viewModel.FailedChecks.Should().Be(1, "because 1 file check failed");
+        viewModel.TotalHashValidations.Should().Be(3, "because there are 3 hash validations");
+        viewModel.PassedValidations.Should().Be(2, "because 2 hash validations passed");
+        viewModel.FailedValidations.Should().Be(1, "because 1 hash validation failed");
+        viewModel.OverallStatus.Should().Be("Good", "because game status is Good");
+        viewModel.HasIssues.Should().BeTrue("because there are failed checks");
     }
 
     [Fact]
@@ -61,14 +62,14 @@ public class FcxResultViewModelTests
         var viewModel = new FcxResultViewModel(fcxResult);
 
         // Assert
-        Assert.Equal(0, viewModel.TotalFileChecks);
-        Assert.Equal(0, viewModel.PassedChecks);
-        Assert.Equal(0, viewModel.FailedChecks);
-        Assert.Equal(0, viewModel.TotalHashValidations);
-        Assert.Equal(0, viewModel.PassedValidations);
-        Assert.Equal(0, viewModel.FailedValidations);
-        Assert.Equal("Warning", viewModel.OverallStatus);
-        Assert.False(viewModel.HasIssues);
+        viewModel.TotalFileChecks.Should().Be(0, "because file checks collection is null");
+        viewModel.PassedChecks.Should().Be(0, "because there are no checks to pass");
+        viewModel.FailedChecks.Should().Be(0, "because there are no checks to fail");
+        viewModel.TotalHashValidations.Should().Be(0, "because hash validations collection is null");
+        viewModel.PassedValidations.Should().Be(0, "because there are no validations to pass");
+        viewModel.FailedValidations.Should().Be(0, "because there are no validations to fail");
+        viewModel.OverallStatus.Should().Be("Warning", "because game status is Warning");
+        viewModel.HasIssues.Should().BeFalse("because there are no checks to have issues");
     }
 
     [Theory]
@@ -106,7 +107,7 @@ public class FcxResultViewModelTests
         var viewModel = new FcxResultViewModel(fcxResult);
 
         // Assert
-        Assert.Equal(expectedHasIssues, viewModel.HasIssues);
+        viewModel.HasIssues.Should().Be(expectedHasIssues, "because issues calculation should match expected result");
     }
 
     [Fact]
@@ -134,7 +135,7 @@ public class FcxResultViewModelTests
         var viewModel = new FcxResultViewModel(fcxResult);
 
         // Assert
-        Assert.Equal("2/3 file checks passed, 1/2 hash validations passed", viewModel.Summary);
+        viewModel.Summary.Should().Be("2/3 file checks passed, 1/2 hash validations passed", "because summary should show passed/total counts");
     }
 
     [Theory]
@@ -157,7 +158,7 @@ public class FcxResultViewModelTests
         var viewModel = new FcxResultViewModel(fcxResult);
 
         // Assert
-        Assert.Equal(expectedIcon, viewModel.StatusIcon);
+        viewModel.StatusIcon.Should().Be(expectedIcon, "because status icon should reflect issue status");
     }
 
     [Theory]
@@ -180,7 +181,7 @@ public class FcxResultViewModelTests
         var viewModel = new FcxResultViewModel(fcxResult);
 
         // Assert
-        Assert.Equal(expectedColor, viewModel.StatusColor);
+        viewModel.StatusColor.Should().Be(expectedColor, "because status color should reflect issue status");
     }
 
     [Theory]
@@ -201,7 +202,7 @@ public class FcxResultViewModelTests
         var viewModel = new FcxResultViewModel(fcxResult);
 
         // Assert
-        Assert.Equal(expectedStatus, viewModel.OverallStatus);
+        viewModel.OverallStatus.Should().Be(expectedStatus, "because overall status should match game integrity status");
     }
 
     [Fact]
@@ -229,9 +230,9 @@ public class FcxResultViewModelTests
         var viewModel = new FcxResultViewModel(fcxResult);
 
         // Assert
-        Assert.False(viewModel.HasIssues);
-        Assert.Equal("✅", viewModel.StatusIcon);
-        Assert.Equal("#51CF66", viewModel.StatusColor);
+        viewModel.HasIssues.Should().BeFalse("because all checks passed");
+        viewModel.StatusIcon.Should().Be("✅", "because no issues should show success icon");
+        viewModel.StatusColor.Should().Be("#51CF66", "because no issues should show green color");
     }
 
     [Fact]
@@ -250,7 +251,7 @@ public class FcxResultViewModelTests
         var viewModel = new FcxResultViewModel(fcxResult);
 
         // Assert
-        Assert.Equal("0/0 file checks passed, 0/0 hash validations passed", viewModel.Summary);
-        Assert.False(viewModel.HasIssues);
+        viewModel.Summary.Should().Be("0/0 file checks passed, 0/0 hash validations passed", "because summary should handle empty collections");
+        viewModel.HasIssues.Should().BeFalse("because empty checks mean no issues");
     }
 }

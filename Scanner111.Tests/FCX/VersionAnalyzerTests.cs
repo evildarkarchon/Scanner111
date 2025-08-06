@@ -5,6 +5,7 @@ using Scanner111.Core.Analyzers;
 using Scanner111.Tests.TestHelpers;
 using Scanner111.Core.Infrastructure;
 using Xunit;
+using FluentAssertions;
 
 namespace Scanner111.Tests.FCX;
 
@@ -106,9 +107,9 @@ public class VersionAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.True(genericResult.HasFindings); // Version info is considered a finding
-        Assert.Contains("Game Version Detected", genericResult.ReportText);
+        genericResult.Success.Should().BeTrue("analysis should complete successfully");
+        genericResult.HasFindings.Should().BeTrue("version info is considered a finding");
+        genericResult.ReportText.Should().Contain("Game Version Detected", "version detection should be reported");
     }
 
     [Fact]
@@ -132,9 +133,9 @@ public class VersionAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.True(genericResult.HasFindings);
-        Assert.Contains("Game Version Detected", genericResult.ReportText);
+        genericResult.Success.Should().BeTrue("analysis should complete successfully");
+        genericResult.HasFindings.Should().BeTrue("findings should be reported");
+        genericResult.ReportText.Should().Contain("Game Version Detected", "version detection should be reported");
         // The actual downgrade detection would be in the detected version info
     }
 
@@ -158,9 +159,9 @@ public class VersionAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.True(genericResult.HasFindings);
-        Assert.Contains("ERROR: Game executable not found!", genericResult.ReportText);
+        genericResult.Success.Should().BeTrue("analysis should complete successfully");
+        genericResult.HasFindings.Should().BeTrue("findings should be reported");
+        genericResult.ReportText.Should().Contain("ERROR: Game executable not found!", "error should be reported for missing executable");
     }
 
     [Fact]
@@ -180,10 +181,10 @@ public class VersionAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.True(genericResult.HasFindings);
+        genericResult.Success.Should().BeTrue("analysis should complete successfully");
+        genericResult.HasFindings.Should().BeTrue("findings should be reported");
         // Should report that game executable was not found
-        Assert.Contains("Game Version", genericResult.ReportText);
+        genericResult.ReportText.Should().Contain("Game Version", "version section should be present");
     }
 
     [Fact]
@@ -200,7 +201,7 @@ public class VersionAnalyzerTests
         var result = await _analyzer.AnalyzeAsync(crashLog);
         
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.HasFindings);
+        genericResult.HasFindings.Should().BeTrue("findings should be reported");
         
         // Test Skyrim SE
         await _appSettings.SaveSettingsAsync(new ApplicationSettings 
@@ -213,7 +214,7 @@ public class VersionAnalyzerTests
         
         result = await _analyzer.AnalyzeAsync(crashLog);
         genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.HasFindings);
+        genericResult.HasFindings.Should().BeTrue("findings should be reported");
     }
 
     [Fact]
@@ -233,18 +234,18 @@ public class VersionAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.False(genericResult.HasFindings);
-        Assert.Empty(genericResult.ReportLines);
+        genericResult.Success.Should().BeTrue("analysis should complete successfully");
+        genericResult.HasFindings.Should().BeFalse("no findings should be reported when FCX mode is disabled");
+        genericResult.ReportLines.Should().BeEmpty("report should be empty when FCX mode is disabled");
     }
 
     [Fact]
     public void AnalyzerProperties_AreSetCorrectly()
     {
         // Assert
-        Assert.Equal("Version Analyzer", _analyzer.Name);
-        Assert.Equal(10, _analyzer.Priority); // Runs early
-        Assert.True(_analyzer.CanRunInParallel);
+        _analyzer.Name.Should().Be("Version Analyzer", "analyzer name should be set correctly");
+        _analyzer.Priority.Should().Be(10, "analyzer should run early with low priority value");
+        _analyzer.CanRunInParallel.Should().BeTrue("analyzer should support parallel execution");
     }
 
     [Fact]
@@ -264,7 +265,7 @@ public class VersionAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
+        genericResult.Success.Should().BeTrue("analysis should complete successfully");
         // Should handle gracefully without crashing
     }
 
@@ -287,8 +288,8 @@ public class VersionAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.True(genericResult.HasFindings);
+        genericResult.Success.Should().BeTrue("analysis should complete successfully");
+        genericResult.HasFindings.Should().BeTrue("findings should be reported");
         // Should treat VR as regular Fallout 4
     }
 
@@ -312,7 +313,7 @@ public class VersionAnalyzerTests
 
         // Assert
         // Should complete without throwing (analyzer handles cancellation gracefully)
-        Assert.NotNull(result);
+        result.Should().NotBeNull("analyzer should handle cancellation gracefully");
     }
 
     [Theory]
@@ -338,8 +339,8 @@ public class VersionAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.True(genericResult.HasFindings);
+        genericResult.Success.Should().BeTrue("analysis should complete successfully");
+        genericResult.HasFindings.Should().BeTrue("findings should be reported");
         // Should handle special characters in path gracefully
     }
 
@@ -361,7 +362,7 @@ public class VersionAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
+        genericResult.Success.Should().BeTrue("analysis should complete successfully");
         // Should handle long paths without crashing
     }
 
@@ -385,10 +386,10 @@ public class VersionAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.True(genericResult.HasFindings);
+        genericResult.Success.Should().BeTrue("analysis should complete successfully");
+        genericResult.HasFindings.Should().BeTrue("findings should be reported");
         // The analyzer treats whitespace as a valid path and tries to find the executable
-        Assert.Contains("ERROR: Game executable not found!", genericResult.ReportText);
+        genericResult.ReportText.Should().Contain("ERROR: Game executable not found!", "error should be reported for missing executable");
     }
 
     [Fact]
@@ -404,9 +405,9 @@ public class VersionAnalyzerTests
         var crashLog = new CrashLog { FilePath = "test.log" };
         var result = await _analyzer.AnalyzeAsync(crashLog);
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.True(genericResult.HasFindings);
-        Assert.Contains("No game path configured", genericResult.ReportText);
+        genericResult.Success.Should().BeTrue("analysis should complete successfully");
+        genericResult.HasFindings.Should().BeTrue("findings should be reported");
+        genericResult.ReportText.Should().Contain("No game path configured", "empty path should be reported");
 
         // Test 2: Non-existent game path
         await _appSettings.SaveSettingsAsync(new ApplicationSettings 
@@ -417,9 +418,9 @@ public class VersionAnalyzerTests
         
         result = await _analyzer.AnalyzeAsync(crashLog);
         genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.True(genericResult.HasFindings);
-        Assert.Contains("ERROR: Game executable not found!", genericResult.ReportText);
+        genericResult.Success.Should().BeTrue("analysis should complete successfully");
+        genericResult.HasFindings.Should().BeTrue("findings should be reported");
+        genericResult.ReportText.Should().Contain("ERROR: Game executable not found!", "error should be reported for missing executable");
     }
 
 
@@ -445,11 +446,11 @@ public class VersionAnalyzerTests
         var results = await Task.WhenAll(tasks);
 
         // Assert
-        Assert.All(results, r => 
+        results.Should().AllSatisfy(r => 
         {
             var genericResult = (GenericAnalysisResult)r;
-            Assert.True(genericResult.Success);
-            Assert.True(genericResult.HasFindings);
+            genericResult.Success.Should().BeTrue("all concurrent executions should succeed");
+            genericResult.HasFindings.Should().BeTrue("all concurrent executions should report findings");
         });
     }
 
@@ -470,9 +471,9 @@ public class VersionAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.True(genericResult.HasFindings);
-        Assert.Contains("SkyrimSE.exe", genericResult.ReportText);
+        genericResult.Success.Should().BeTrue("analysis should complete successfully");
+        genericResult.HasFindings.Should().BeTrue("findings should be reported");
+        genericResult.ReportText.Should().Contain("SkyrimSE.exe", "correct executable name should be used for Skyrim SE");
     }
 
     [Fact]
@@ -492,8 +493,8 @@ public class VersionAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.True(genericResult.HasFindings);
-        Assert.Contains("Fallout4.exe", genericResult.ReportText); // VR still uses Fallout4.exe
+        genericResult.Success.Should().BeTrue("analysis should complete successfully");
+        genericResult.HasFindings.Should().BeTrue("findings should be reported");
+        genericResult.ReportText.Should().Contain("Fallout4.exe", "VR version should still use Fallout4.exe");
     }
 }

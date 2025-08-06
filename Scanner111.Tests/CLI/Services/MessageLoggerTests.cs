@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 using Xunit;
@@ -24,9 +25,9 @@ public class MessageLoggerTests
 
         // Assert
         var panel = logger.GetLogsPanel();
-        Assert.NotNull(panel);
+        panel.Should().NotBeNull("value should not be null");
         var panelString = panel.ToString();
-        Assert.NotNull(panelString);
+        panelString.Should().NotBeNull("value should not be null");
     }
 
     [Fact]
@@ -45,7 +46,7 @@ public class MessageLoggerTests
 
         // Assert
         var panel = logger.GetLogsPanel();
-        Assert.NotNull(panel);
+        panel.Should().NotBeNull("value should not be null");
     }
 
     [Fact]
@@ -58,9 +59,9 @@ public class MessageLoggerTests
         var panel = logger.GetLogsPanel();
 
         // Assert
-        Assert.NotNull(panel);
+        panel.Should().NotBeNull("value should not be null");
         var panelString = panel.ToString();
-        Assert.NotNull(panelString);
+        panelString.Should().NotBeNull("value should not be null");
         // Panel should show "No messages" when empty
     }
 
@@ -78,7 +79,7 @@ public class MessageLoggerTests
 
         // Assert
         var panel = logger.GetLogsPanel();
-        Assert.NotNull(panel);
+        panel.Should().NotBeNull("value should not be null");
         // Panel should only show the last 20 messages
     }
 
@@ -100,7 +101,7 @@ public class MessageLoggerTests
 
         // Assert - Should only keep last 5 messages
         var panel = logger.GetLogsPanel();
-        Assert.NotNull(panel);
+        panel.Should().NotBeNull("value should not be null");
     }
 
     [Fact]
@@ -117,7 +118,7 @@ public class MessageLoggerTests
 
         // Assert - Should only keep last 100 messages
         var panel = logger.GetLogsPanel();
-        Assert.NotNull(panel);
+        panel.Should().NotBeNull("value should not be null");
     }
 
     #endregion
@@ -148,7 +149,7 @@ public class MessageLoggerTests
 
         // Assert - Should have added all messages without exceptions
         var panel = logger.GetLogsPanel();
-        Assert.NotNull(panel);
+        panel.Should().NotBeNull("value should not be null");
     }
 
     [Fact]
@@ -200,7 +201,7 @@ public class MessageLoggerTests
         await Task.WhenAll(addTask, getTask);
 
         // Assert - No exceptions should occur
-        Assert.Empty(exceptions);
+        exceptions.Should().BeEmpty("collection should be empty");
     }
 
     #endregion
@@ -224,11 +225,11 @@ public class MessageLoggerTests
 
         // Assert
         var panel = logger.GetLogsPanel();
-        Assert.NotNull(panel);
+        panel.Should().NotBeNull("value should not be null");
         
         // Panel should have proper formatting with icons and colors
         var panelString = panel.ToString();
-        Assert.NotNull(panelString);
+        panelString.Should().NotBeNull("value should not be null");
     }
 
     [Fact]
@@ -242,7 +243,7 @@ public class MessageLoggerTests
 
         // Assert
         var panel = logger.GetLogsPanel();
-        Assert.NotNull(panel);
+        panel.Should().NotBeNull("value should not be null");
         // Special characters should be properly escaped
     }
 
@@ -258,7 +259,7 @@ public class MessageLoggerTests
 
         // Assert
         var panel = logger.GetLogsPanel();
-        Assert.NotNull(panel);
+        panel.Should().NotBeNull("value should not be null");
     }
 
     #endregion
@@ -280,7 +281,7 @@ public class MessageLoggerTests
         logger.AddMessage(type, "Test message");
         
         var panel = logger.GetLogsPanel();
-        Assert.NotNull(panel);
+        panel.Should().NotBeNull("value should not be null");
     }
 
     #endregion
@@ -298,7 +299,7 @@ public class MessageLoggerTests
         var panel = logger.GetLogsPanel();
 
         // Assert
-        Assert.NotNull(panel);
+        panel.Should().NotBeNull("value should not be null");
         // Panel should have "Logs" header
     }
 
@@ -313,7 +314,7 @@ public class MessageLoggerTests
         var panel = logger.GetLogsPanel();
 
         // Assert
-        Assert.NotNull(panel);
+        panel.Should().NotBeNull("value should not be null");
         // Panel should include timestamps in HH:mm:ss format
     }
 

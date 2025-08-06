@@ -1,4 +1,5 @@
 using System.Text;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
@@ -74,11 +75,11 @@ public class ReportWriterTests : IDisposable
         var result = await _reportWriter.WriteReportAsync(scanResult);
 
         // Assert
-        Assert.True(result);
-        Assert.True(File.Exists(expectedOutputPath));
+        result.Should().BeTrue();
+        File.Exists(expectedOutputPath).Should().BeTrue("the report file should be created");
 
         var content = await File.ReadAllTextAsync(expectedOutputPath, Encoding.UTF8);
-        Assert.Equal(scanResult.ReportText, content);
+        content.Should().Be(scanResult.ReportText);
     }
 
     /// <summary>
@@ -108,11 +109,11 @@ public class ReportWriterTests : IDisposable
         var result = await _reportWriter.WriteReportAsync(scanResult, customOutputPath);
 
         // Assert
-        Assert.True(result);
-        Assert.True(File.Exists(customOutputPath));
+        result.Should().BeTrue();
+        File.Exists(customOutputPath).Should().BeTrue("the custom report file should be created");
 
         var content = await File.ReadAllTextAsync(customOutputPath, Encoding.UTF8);
-        Assert.Equal(scanResult.ReportText, content);
+        content.Should().Be(scanResult.ReportText);
     }
 
     /// <summary>
@@ -141,9 +142,9 @@ public class ReportWriterTests : IDisposable
         var result = await _reportWriter.WriteReportAsync(scanResult);
 
         // Assert
-        Assert.True(result);
-        Assert.True(Directory.Exists(subDirectory));
-        Assert.True(File.Exists(expectedOutputPath));
+        result.Should().BeTrue();
+        Directory.Exists(subDirectory).Should().BeTrue("the subdirectory should be created");
+        File.Exists(expectedOutputPath).Should().BeTrue("the report file should be created");
     }
 
     /// <summary>
@@ -172,11 +173,11 @@ public class ReportWriterTests : IDisposable
         var result = await _reportWriter.WriteReportAsync(scanResult);
 
         // Assert
-        Assert.True(result);
-        Assert.True(File.Exists(scanResult.OutputPath));
+        result.Should().BeTrue();
+        File.Exists(scanResult.OutputPath).Should().BeTrue("the empty report file should be created");
 
         var content = await File.ReadAllTextAsync(scanResult.OutputPath, Encoding.UTF8);
-        Assert.Equal(string.Empty, content);
+        content.Should().BeEmpty();
     }
 
     /// <summary>
@@ -203,7 +204,7 @@ public class ReportWriterTests : IDisposable
         var result = await _reportWriter.WriteReportAsync(scanResult);
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse("writing to invalid path should fail");
     }
 
     /// <summary>
@@ -239,12 +240,12 @@ public class ReportWriterTests : IDisposable
         var result = await _reportWriter.WriteReportAsync(scanResult);
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
 
         var content = await File.ReadAllTextAsync(scanResult.OutputPath, Encoding.UTF8);
-        Assert.Contains("éñüñß", content);
-        Assert.Contains("✓ ❌ ⚠️", content);
-        Assert.Contains("中文 日本語", content);
+        content.Should().Contain("éñüñß");
+        content.Should().Contain("✓ ❌ ⚠️");
+        content.Should().Contain("中文 日本語");
     }
 
     /// <summary>
@@ -289,13 +290,13 @@ public class ReportWriterTests : IDisposable
         var result = await _reportWriter.WriteReportAsync(scanResult);
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
 
         var content = await File.ReadAllTextAsync(scanResult.OutputPath, Encoding.UTF8);
-        Assert.Contains("Normal content line 1", content);
-        Assert.Contains("Normal content line 2", content);
-        Assert.DoesNotContain("OPC INSTALLER", content);
-        Assert.DoesNotContain("PATCHED THROUGH THE OPC INSTALLER", content);
+        content.Should().Contain("Normal content line 1");
+        content.Should().Contain("Normal content line 2");
+        content.Should().NotContain("OPC INSTALLER", "OPC sections should be filtered out");
+        content.Should().NotContain("PATCHED THROUGH THE OPC INSTALLER", "OPC sections should be filtered out");
     }
 
     /// <summary>
@@ -347,15 +348,15 @@ public class ReportWriterTests : IDisposable
         var result = await _reportWriter.WriteReportAsync(scanResult);
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
 
         var content = await File.ReadAllTextAsync(scanResult.OutputPath, Encoding.UTF8);
-        Assert.Contains("Start content", content);
-        Assert.Contains("Regular content", content);
-        Assert.Contains("End content", content);
-        Assert.DoesNotContain("OPC content 1", content);
-        Assert.DoesNotContain("OPC content 2", content);
-        Assert.DoesNotContain("OPC INSTALLER", content);
+        content.Should().Contain("Start content");
+        content.Should().Contain("Regular content");
+        content.Should().Contain("End content");
+        content.Should().NotContain("OPC content 1", "OPC sections should be filtered out");
+        content.Should().NotContain("OPC content 2", "OPC sections should be filtered out");
+        content.Should().NotContain("OPC INSTALLER", "OPC sections should be filtered out");
     }
 
     /// <summary>
@@ -395,12 +396,12 @@ public class ReportWriterTests : IDisposable
         var result = await _reportWriter.WriteReportAsync(scanResult);
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
 
         var content = await File.ReadAllTextAsync(scanResult.OutputPath, Encoding.UTF8);
-        Assert.Contains("Normal content", content);
-        Assert.DoesNotContain("Final OPC content", content);
-        Assert.DoesNotContain("OPC INSTALLER", content);
+        content.Should().Contain("Normal content");
+        content.Should().NotContain("Final OPC content", "OPC sections should be filtered out");
+        content.Should().NotContain("OPC INSTALLER", "OPC sections should be filtered out");
     }
 
     /// <summary>
@@ -431,12 +432,12 @@ public class ReportWriterTests : IDisposable
             var result = await _reportWriter.WriteReportAsync(scanResult, cancellationTokenSource.Token);
             // The operation may complete quickly before cancellation is detected
             // In that case, we just verify it didn't crash
-            Assert.True(true);
+            true.Should().BeTrue("the operation should complete without crashing");
         }
         catch (OperationCanceledException)
         {
             // This is also expected behavior
-            Assert.True(true);
+            true.Should().BeTrue("cancellation exception is expected behavior");
         }
     }
 
@@ -467,11 +468,11 @@ public class ReportWriterTests : IDisposable
         var result = await _reportWriter.WriteReportAsync(scanResult);
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
 
         var content = await File.ReadAllTextAsync(scanResult.OutputPath, Encoding.UTF8);
-        Assert.Equal(scanResult.ReportText, content);
-        Assert.DoesNotContain("Old content", content);
+        content.Should().Be(scanResult.ReportText);
+        content.Should().NotContain("Old content", "old content should be overwritten");
     }
 
     /// <summary>

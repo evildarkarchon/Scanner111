@@ -4,6 +4,7 @@ using Scanner111.Core.Models;
 using Scanner111.Core.Analyzers;
 using Scanner111.Tests.TestHelpers;
 using Xunit;
+using FluentAssertions;
 
 namespace Scanner111.Tests.FCX;
 
@@ -47,11 +48,11 @@ public class ModConflictAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.True(genericResult.HasFindings);
-        Assert.Contains("⚠️ DDS DIMENSIONS ARE NOT DIVISIBLE BY 2 ⚠️", genericResult.ReportText);
-        Assert.Contains("Data\\Textures\\test.dds (1023x1023)", genericResult.ReportText);
-        Assert.Contains("Texture (DDS) Crash", genericResult.ReportText);
+        genericResult.Success.Should().BeTrue("the analysis should complete successfully");
+        genericResult.HasFindings.Should().BeTrue("texture dimension issues should be detected");
+        genericResult.ReportText.Should().Contain("⚠️ DDS DIMENSIONS ARE NOT DIVISIBLE BY 2 ⚠️", "invalid texture dimensions should be reported");
+        genericResult.ReportText.Should().Contain("Data\\Textures\\test.dds (1023x1023)", "the specific file and dimensions should be included");
+        genericResult.ReportText.Should().Contain("Texture (DDS) Crash", "texture crash warning should be present");
     }
 
     [Fact]
@@ -74,9 +75,9 @@ public class ModConflictAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.HasFindings);
-        Assert.Contains("❓ TEXTURE FILES HAVE INCORRECT FORMAT, SHOULD BE DDS ❓", genericResult.ReportText);
-        Assert.Contains("Data\\Textures\\badformat.png", genericResult.ReportText);
+        genericResult.HasFindings.Should().BeTrue("incorrect texture format should be detected");
+        genericResult.ReportText.Should().Contain("❓ TEXTURE FILES HAVE INCORRECT FORMAT, SHOULD BE DDS ❓", "format warning should be displayed");
+        genericResult.ReportText.Should().Contain("Data\\Textures\\badformat.png", "the problematic file should be listed");
     }
 
     [Fact]
@@ -104,9 +105,9 @@ public class ModConflictAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.HasFindings);
-        Assert.Contains("⚠️ MODS CONTAIN COPIES OF *F4SE* SCRIPT FILES ⚠️", genericResult.ReportText);
-        Assert.Contains("Data\\F4SE\\Plugins\\test.dll", genericResult.ReportText);
+        genericResult.HasFindings.Should().BeTrue("XSE script conflicts should be detected");
+        genericResult.ReportText.Should().Contain("⚠️ MODS CONTAIN COPIES OF *F4SE* SCRIPT FILES ⚠️", "F4SE script warning should be displayed");
+        genericResult.ReportText.Should().Contain("Data\\F4SE\\Plugins\\test.dll", "the conflicting file should be listed");
     }
 
     [Fact]
@@ -129,10 +130,10 @@ public class ModConflictAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.HasFindings);
-        Assert.Contains("🔧 PREVIS FILES DETECTED 🔧", genericResult.ReportText);
-        Assert.Contains("should load after the PRP.esp plugin", genericResult.ReportText);
-        Assert.Contains("Data\\Meshes\\Precombined\\test.nif", genericResult.ReportText);
+        genericResult.HasFindings.Should().BeTrue("previs files should be detected");
+        genericResult.ReportText.Should().Contain("🔧 PREVIS FILES DETECTED 🔧", "previs detection header should be displayed");
+        genericResult.ReportText.Should().Contain("should load after the PRP.esp plugin", "load order recommendation should be included");
+        genericResult.ReportText.Should().Contain("Data\\Meshes\\Precombined\\test.nif", "the previs file should be listed");
     }
 
     [Fact]
@@ -167,12 +168,12 @@ public class ModConflictAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.HasFindings);
+        genericResult.HasFindings.Should().BeTrue("multiple issue types should be detected");
         
         // Each issue type should have its own section
-        Assert.Contains("⚠️ DDS DIMENSIONS", genericResult.ReportText);
-        Assert.Contains("❓ SOUND FILES HAVE INCORRECT FORMAT", genericResult.ReportText);
-        Assert.Contains("💀 BROKEN ANIMATION DATA FILES 💀", genericResult.ReportText);
+        genericResult.ReportText.Should().Contain("⚠️ DDS DIMENSIONS", "texture dimension issues should be reported");
+        genericResult.ReportText.Should().Contain("❓ SOUND FILES HAVE INCORRECT FORMAT", "sound format issues should be reported");
+        genericResult.ReportText.Should().Contain("💀 BROKEN ANIMATION DATA FILES 💀", "animation data issues should be reported");
     }
 
     [Fact]
@@ -194,9 +195,9 @@ public class ModConflictAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.False(genericResult.HasFindings);
-        Assert.Empty(genericResult.ReportLines);
+        genericResult.Success.Should().BeTrue("analysis should complete even when FCX mode is disabled");
+        genericResult.HasFindings.Should().BeFalse("no findings should be reported when FCX mode is disabled");
+        genericResult.ReportLines.Should().BeEmpty("report should be empty when FCX mode is disabled");
     }
 
     [Fact]
@@ -213,8 +214,8 @@ public class ModConflictAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.False(genericResult.HasFindings);
+        genericResult.Success.Should().BeTrue("analysis should complete successfully");
+        genericResult.HasFindings.Should().BeFalse("no findings should be reported when there are no issues");
     }
 
     [Fact]
@@ -241,16 +242,16 @@ public class ModConflictAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.Contains("⚠️ MODS CONTAIN COPIES OF *SKSE* SCRIPT FILES ⚠️", genericResult.ReportText);
+        genericResult.ReportText.Should().Contain("⚠️ MODS CONTAIN COPIES OF *SKSE* SCRIPT FILES ⚠️", "SKSE should be used for Skyrim instead of F4SE");
     }
 
     [Fact]
     public void AnalyzerProperties_AreSetCorrectly()
     {
         // Assert
-        Assert.Equal("Mod Conflict Analyzer", _analyzer.Name);
-        Assert.Equal(50, _analyzer.Priority);
-        Assert.True(_analyzer.CanRunInParallel);
+        _analyzer.Name.Should().Be("Mod Conflict Analyzer", "analyzer name should be set correctly");
+        _analyzer.Priority.Should().Be(50, "analyzer priority should be set correctly");
+        _analyzer.CanRunInParallel.Should().BeTrue("analyzer should support parallel execution");
     }
 
     [Fact]
@@ -273,8 +274,8 @@ public class ModConflictAnalyzerTests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.HasFindings);
-        Assert.Contains("🗑️ DETECTED UNINTENDED FILES 🗑️", genericResult.ReportText);
-        Assert.Contains("Data\\desktop.ini", genericResult.ReportText);
+        genericResult.HasFindings.Should().BeTrue("cleanup files should be detected");
+        genericResult.ReportText.Should().Contain("🗑️ DETECTED UNINTENDED FILES 🗑️", "cleanup file warning should be displayed");
+        genericResult.ReportText.Should().Contain("Data\\desktop.ini", "the cleanup file should be listed");
     }
 }

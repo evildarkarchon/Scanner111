@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Tests.Infrastructure;
@@ -19,10 +20,10 @@ public class CrashLogDirectoryManagerTests
     {
         var result = CrashLogDirectoryManager.GetDefaultCrashLogsDirectory();
 
-        Assert.NotNull(result);
-        Assert.NotEmpty(result);
-        Assert.Contains("Scanner111", result);
-        Assert.Contains("Crash Logs", result);
+        result.Should().NotBeNull("default directory path should be returned");
+        result.Should().NotBeEmpty("directory path should not be empty");
+        result.Should().Contain("Scanner111", "path should include Scanner111 directory");
+        result.Should().Contain("Crash Logs", "path should include Crash Logs directory");
     }
 
     /// <summary>
@@ -54,7 +55,7 @@ public class CrashLogDirectoryManagerTests
 
             var result = CrashLogDirectoryManager.DetectGameType(tempPath);
 
-            Assert.Equal(expectedType, result);
+            result.Should().Be(expectedType, "game type should be correctly detected");
         }
         finally
         {
@@ -73,7 +74,7 @@ public class CrashLogDirectoryManagerTests
     {
         var result = CrashLogDirectoryManager.DetectGameType();
 
-        Assert.Equal("Fallout4", result);
+        result.Should().Be("Fallout4", "default game type should be Fallout4");
     }
 
     /// <summary>
@@ -89,7 +90,7 @@ public class CrashLogDirectoryManagerTests
 
         var result = CrashLogDirectoryManager.GetGameSpecificDirectory(baseDir, gameType);
 
-        Assert.Equal("C:\\CrashLogs\\Fallout4", result);
+        result.Should().Be("C:\\CrashLogs\\Fallout4", "paths should be combined correctly");
     }
 
     /// <summary>
@@ -108,8 +109,8 @@ public class CrashLogDirectoryManagerTests
         {
             var result = CrashLogDirectoryManager.EnsureDirectoryExists(tempPath, gameType);
 
-            Assert.True(Directory.Exists(result));
-            Assert.Equal(Path.Combine(tempPath, gameType), result);
+            Directory.Exists(result).Should().BeTrue("directory should be created");
+            result.Should().Be(Path.Combine(tempPath, gameType), "correct path should be returned");
         }
         finally
         {
@@ -135,8 +136,8 @@ public class CrashLogDirectoryManagerTests
             var result = CrashLogDirectoryManager.GetTargetPath(tempBaseDir, gameType, originalFile);
 
             var expectedPath = Path.Combine(tempBaseDir, gameType, originalFile);
-            Assert.Equal(expectedPath, result);
-            Assert.True(Directory.Exists(Path.GetDirectoryName(result)));
+            result.Should().Be(expectedPath, "target path should be correctly generated");
+            Directory.Exists(Path.GetDirectoryName(result)).Should().BeTrue("parent directory should be created");
         }
         finally
         {
@@ -169,9 +170,9 @@ public class CrashLogDirectoryManagerTests
             var result = CrashLogDirectoryManager.CopyCrashLog(sourceFile, tempBaseDir, gameType);
 
             var expectedPath = Path.Combine(tempBaseDir, gameType, fileName);
-            Assert.Equal(expectedPath, result);
-            Assert.True(File.Exists(result));
-            Assert.Equal("test crash log content", File.ReadAllText(result));
+            result.Should().Be(expectedPath, "file should be copied to correct location");
+            File.Exists(result).Should().BeTrue("copied file should exist");
+            File.ReadAllText(result).Should().Be("test crash log content", "file content should match original");
         }
         finally
         {
@@ -207,8 +208,8 @@ public class CrashLogDirectoryManagerTests
 
             // Should auto-detect as Fallout4
             var expectedPath = Path.Combine(tempBaseDir, "Fallout4", fileName);
-            Assert.Equal(expectedPath, result);
-            Assert.True(File.Exists(result));
+            result.Should().Be(expectedPath, "file should be copied to auto-detected game directory");
+            File.Exists(result).Should().BeTrue("copied file should exist");
         }
         finally
         {
@@ -230,17 +231,17 @@ public class CrashLogDirectoryManagerTests
         // Test F4SE path detection
         const string f4SePath = @"C:\Users\Test\Documents\My Games\Fallout4\F4SE\crash-test.log";
         var result = CrashLogDirectoryManager.DetectGameType(crashLogPath: f4SePath);
-        Assert.Equal("Fallout4", result);
+        result.Should().Be("Fallout4", "F4SE path should be detected as Fallout4");
 
         // Test F4SE VR path detection
         const string f4SeVrPath = @"C:\Users\Test\Documents\My Games\Fallout4VR\F4SE\crash-test.log";
         result = CrashLogDirectoryManager.DetectGameType(crashLogPath: f4SeVrPath);
-        Assert.Equal("Fallout4VR", result);
+        result.Should().Be("Fallout4VR", "F4SE VR path should be detected as Fallout4VR");
 
         // Test SKSE SE path detection
         const string skseSePath = @"C:\Users\Test\Documents\My Games\Skyrim Special Edition\SKSE\crash-test.log";
         result = CrashLogDirectoryManager.DetectGameType(crashLogPath: skseSePath);
-        Assert.Equal("SkyrimSE", result);
+        result.Should().Be("SkyrimSE", "SKSE SE path should be detected as SkyrimSE");
     }
 
     /// <summary>
@@ -267,7 +268,7 @@ public class CrashLogDirectoryManagerTests
 
             var result = CrashLogDirectoryManager.DetectGameType(crashLogPath: logFile);
 
-            Assert.Equal(expectedType, result);
+            result.Should().Be(expectedType, "game type should be correctly detected");
         }
         finally
         {

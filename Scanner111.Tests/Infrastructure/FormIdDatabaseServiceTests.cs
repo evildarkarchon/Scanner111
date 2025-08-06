@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Data.SQLite;
 using System.Reflection;
+using FluentAssertions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Tests.TestHelpers;
 
@@ -56,7 +57,7 @@ public class FormIdDatabaseServiceTests : IDisposable
         var tempService = new TestFormIdDatabaseService("Fallout4", new string[0]);
 
         // Act & Assert
-        Assert.False(tempService.DatabaseExists);
+        tempService.DatabaseExists.Should().BeFalse("because no databases exist in the specified paths");
     }
 
     /// Verifies that the `DatabaseExists` property of the `FormIdDatabaseService` class returns true
@@ -72,7 +73,7 @@ public class FormIdDatabaseServiceTests : IDisposable
         var service = new TestFormIdDatabaseService("Fallout4", new[] { _mainDbPath });
 
         // Act & Assert
-        Assert.True(service.DatabaseExists);
+        service.DatabaseExists.Should().BeTrue("because databases exist in the configured paths");
     }
 
     /// Validates the behavior of retrieving an entry from the database when the database does not exist.
@@ -89,7 +90,7 @@ public class FormIdDatabaseServiceTests : IDisposable
         var result = service.GetEntry("12345", "TestPlugin.esp");
 
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull("because the database does not exist");
     }
 
     /// Tests the behavior of the GetEntry method when the requested entry exists in the database.
@@ -113,7 +114,7 @@ public class FormIdDatabaseServiceTests : IDisposable
         var result = service.GetEntry("12345", "TestPlugin.esp");
 
         // Assert
-        Assert.Equal("Test Entry Description", result);
+        result.Should().Be("Test Entry Description", "because the entry exists in the database");
     }
 
     /// Verifies that the GetEntry method returns null when the requested entry
@@ -133,7 +134,7 @@ public class FormIdDatabaseServiceTests : IDisposable
         var result = service.GetEntry("99999", "NonExistentPlugin.esp");
 
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull("because the requested entry does not exist in the database");
     }
 
     /// Verifies that the GetEntry method behaves in a case-insensitive manner when matching plugin names.
@@ -157,9 +158,9 @@ public class FormIdDatabaseServiceTests : IDisposable
         var result3 = service.GetEntry("12345", "testplugin.esp");
 
         // Assert
-        Assert.Equal("Test Entry Description", result1);
-        Assert.Equal("Test Entry Description", result2);
-        Assert.Equal("Test Entry Description", result3);
+        result1.Should().Be("Test Entry Description", "because plugin name matching should be case-insensitive");
+        result2.Should().Be("Test Entry Description", "because uppercase plugin name should match");
+        result3.Should().Be("Test Entry Description", "because lowercase plugin name should match");
     }
 
     /// Verifies that the results of the `GetEntry` method are cached properly to improve performance.
@@ -181,12 +182,12 @@ public class FormIdDatabaseServiceTests : IDisposable
         var result3 = service.GetEntry("12345", "TESTPLUGIN.ESP"); // Different case
 
         // Assert
-        Assert.Equal("Test Entry Description", result1);
-        Assert.Equal("Test Entry Description", result2);
-        Assert.Equal("Test Entry Description", result3);
+        result1.Should().Be("Test Entry Description", "because the entry exists in the database");
+        result2.Should().Be("Test Entry Description", "because cached results should be returned");
+        result3.Should().Be("Test Entry Description", "because cache should handle case-insensitive lookups");
 
         // Verify caching is working by checking the cache
-        Assert.True(service.IsCached("12345".ToUpper(), "TestPlugin.esp"));
+        service.IsCached("12345".ToUpper(), "TestPlugin.esp").Should().BeTrue("because results should be cached after first query");
     }
 
     /// Tests the ability of the GetEntry method to search multiple databases when locating entries.
@@ -213,8 +214,8 @@ public class FormIdDatabaseServiceTests : IDisposable
         var result2 = service.GetEntry("22222", "LocalPlugin.esp");
 
         // Assert
-        Assert.Equal("Entry from Main DB", result1);
-        Assert.Equal("Entry from Local DB", result2);
+        result1.Should().Be("Entry from Main DB", "because the entry exists in the main database");
+        result2.Should().Be("Entry from Local DB", "because the entry exists in the local database");
     }
 
     /// Verifies that the `GetEntry` method returns the first matching entry found
@@ -241,7 +242,7 @@ public class FormIdDatabaseServiceTests : IDisposable
         var result = service.GetEntry("12345", "TestPlugin.esp");
 
         // Assert
-        Assert.Equal("Entry from Main DB", result); // Should return from first database
+        result.Should().Be("Entry from Main DB", "because the first matching database should take precedence");
     }
 
     /// Tests that the GetEntry method properly handles scenarios where a corrupt
@@ -265,7 +266,7 @@ public class FormIdDatabaseServiceTests : IDisposable
         var result = service.GetEntry("12345", "TestPlugin.esp");
 
         // Assert
-        Assert.Equal("Entry from Local DB", result); // Should find in second database despite first being corrupt
+        result.Should().Be("Entry from Local DB", "because valid databases should be queried even when corrupt ones exist");
     }
 
     /// Verifies that the GetEntry method correctly retrieves database entries
@@ -293,7 +294,7 @@ public class FormIdDatabaseServiceTests : IDisposable
         var result = service.GetEntry(formId, "TestPlugin.esp");
 
         // Assert
-        Assert.Equal($"Entry for {formId}", result);
+        result.Should().Be($"Entry for {formId}", "because the service should handle various FormId formats");
     }
 
     /// Ensures that the GetEntry method is thread-safe when accessed concurrently.
@@ -327,8 +328,9 @@ public class FormIdDatabaseServiceTests : IDisposable
         var results = await Task.WhenAll(tasks);
 
         // Assert
-        Assert.Equal(50, results.Length);
-        for (var i = 0; i < 50; i++) Assert.Equal($"Entry {i}", results[i]);
+        results.Should().HaveCount(50, "because 50 tasks were executed");
+        for (var i = 0; i < 50; i++) 
+            results[i].Should().Be($"Entry {i}", "because concurrent access should return correct results");
     }
 
     /// Creates a test database at the specified path.

@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using FluentAssertions;
 using Moq;
 using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
@@ -53,8 +54,8 @@ public class CliSettingsServiceTests : IDisposable
         var settings = await service.LoadSettingsAsync();
         
         // Assert
-        Assert.NotNull(settings);
-        Assert.IsType<ApplicationSettings>(settings);
+        settings.Should().NotBeNull("because LoadSettingsAsync should return settings");
+        settings.Should().BeOfType<ApplicationSettings>("because the service returns ApplicationSettings");
     }
 
     [Fact]
@@ -83,7 +84,7 @@ public class CliSettingsServiceTests : IDisposable
         
         // Assert
         var settings = await service.LoadSettingsAsync();
-        Assert.True(settings.FcxMode);
+        settings.FcxMode.Should().BeTrue("because FcxMode was set to true");
     }
 
     [Fact]
@@ -96,11 +97,11 @@ public class CliSettingsServiceTests : IDisposable
         var defaults = service.GetDefaultSettings();
         
         // Assert
-        Assert.NotNull(defaults);
-        Assert.False(defaults.FcxMode);
-        Assert.False(defaults.ShowFormIdValues);
-        Assert.True(defaults.CacheEnabled);
-        Assert.Equal(Environment.ProcessorCount * 2, defaults.MaxConcurrentScans);
+        defaults.Should().NotBeNull("because GetDefaultSettings should return valid defaults");
+        defaults.FcxMode.Should().BeFalse("because FcxMode is false by default");
+        defaults.ShowFormIdValues.Should().BeFalse("because ShowFormIdValues is false by default");
+        defaults.CacheEnabled.Should().BeTrue("because CacheEnabled is true by default");
+        defaults.MaxConcurrentScans.Should().Be(Environment.ProcessorCount * 2, "because default is 2x processor count");
     }
 
     [Fact]
@@ -138,25 +139,25 @@ public class CliSettingsServiceTests : IDisposable
         var cliSettings = await service.LoadCliSettingsAsync();
         
         // Assert
-        Assert.Equal(appSettings.FcxMode, cliSettings.FcxMode);
-        Assert.Equal(appSettings.ShowFormIdValues, cliSettings.ShowFormIdValues);
-        Assert.Equal(appSettings.SimplifyLogs, cliSettings.SimplifyLogs);
-        Assert.Equal(appSettings.MoveUnsolvedLogs, cliSettings.MoveUnsolvedLogs);
-        Assert.Equal(appSettings.AudioNotifications, cliSettings.AudioNotifications);
-        Assert.Equal(appSettings.VrMode, cliSettings.VrMode);
-        Assert.Equal(appSettings.DefaultScanDirectory, cliSettings.DefaultScanDirectory);
-        Assert.Equal(appSettings.DefaultGamePath, cliSettings.DefaultGamePath);
-        Assert.Equal(appSettings.DefaultOutputFormat, cliSettings.DefaultOutputFormat);
-        Assert.Equal(appSettings.DisableColors, cliSettings.DisableColors);
-        Assert.Equal(appSettings.DisableProgress, cliSettings.DisableProgress);
-        Assert.Equal(appSettings.VerboseLogging, cliSettings.VerboseLogging);
-        Assert.Equal(appSettings.MaxConcurrentScans, cliSettings.MaxConcurrentScans);
-        Assert.Equal(appSettings.CacheEnabled, cliSettings.CacheEnabled);
-        Assert.Equal(appSettings.CrashLogsDirectory, cliSettings.CrashLogsDirectory);
-        Assert.Equal(appSettings.MaxRecentItems, cliSettings.MaxRecentPaths);
-        Assert.Equal(2, cliSettings.RecentScanPaths.Count);
-        Assert.Equal("path2", cliSettings.RecentScanPaths[0]);
-        Assert.Equal("path1", cliSettings.RecentScanPaths[1]);
+        cliSettings.FcxMode.Should().Be(appSettings.FcxMode, "because settings should map correctly");
+        cliSettings.ShowFormIdValues.Should().Be(appSettings.ShowFormIdValues);
+        cliSettings.SimplifyLogs.Should().Be(appSettings.SimplifyLogs);
+        cliSettings.MoveUnsolvedLogs.Should().Be(appSettings.MoveUnsolvedLogs);
+        cliSettings.AudioNotifications.Should().Be(appSettings.AudioNotifications);
+        cliSettings.VrMode.Should().Be(appSettings.VrMode);
+        cliSettings.DefaultScanDirectory.Should().Be(appSettings.DefaultScanDirectory);
+        cliSettings.DefaultGamePath.Should().Be(appSettings.DefaultGamePath);
+        cliSettings.DefaultOutputFormat.Should().Be(appSettings.DefaultOutputFormat);
+        cliSettings.DisableColors.Should().Be(appSettings.DisableColors);
+        cliSettings.DisableProgress.Should().Be(appSettings.DisableProgress);
+        cliSettings.VerboseLogging.Should().Be(appSettings.VerboseLogging);
+        cliSettings.MaxConcurrentScans.Should().Be(appSettings.MaxConcurrentScans);
+        cliSettings.CacheEnabled.Should().Be(appSettings.CacheEnabled);
+        cliSettings.CrashLogsDirectory.Should().Be(appSettings.CrashLogsDirectory);
+        cliSettings.MaxRecentPaths.Should().Be(appSettings.MaxRecentItems);
+        cliSettings.RecentScanPaths.Should().HaveCount(2, "because two paths were added");
+        cliSettings.RecentScanPaths[0].Should().Be("path2", "because most recent path is first");
+        cliSettings.RecentScanPaths[1].Should().Be("path1");
     }
 
     [Fact]
@@ -191,25 +192,25 @@ public class CliSettingsServiceTests : IDisposable
         
         // Assert - Load back as app settings
         var appSettings = await service.LoadSettingsAsync();
-        Assert.Equal(cliSettings.FcxMode, appSettings.FcxMode);
-        Assert.Equal(cliSettings.ShowFormIdValues, appSettings.ShowFormIdValues);
-        Assert.Equal(cliSettings.SimplifyLogs, appSettings.SimplifyLogs);
-        Assert.Equal(cliSettings.MoveUnsolvedLogs, appSettings.MoveUnsolvedLogs);
-        Assert.Equal(cliSettings.AudioNotifications, appSettings.AudioNotifications);
-        Assert.Equal(cliSettings.VrMode, appSettings.VrMode);
-        Assert.Equal(cliSettings.DefaultScanDirectory, appSettings.DefaultScanDirectory);
-        Assert.Equal(cliSettings.DefaultGamePath, appSettings.DefaultGamePath);
-        Assert.Equal(cliSettings.DefaultOutputFormat, appSettings.DefaultOutputFormat);
-        Assert.Equal(cliSettings.DisableColors, appSettings.DisableColors);
-        Assert.Equal(cliSettings.DisableProgress, appSettings.DisableProgress);
-        Assert.Equal(cliSettings.VerboseLogging, appSettings.VerboseLogging);
-        Assert.Equal(cliSettings.MaxConcurrentScans, appSettings.MaxConcurrentScans);
-        Assert.Equal(cliSettings.CacheEnabled, appSettings.CacheEnabled);
-        Assert.Equal(cliSettings.CrashLogsDirectory, appSettings.CrashLogsDirectory);
-        Assert.Equal(cliSettings.MaxRecentPaths, appSettings.MaxRecentItems);
-        Assert.Equal(2, appSettings.RecentScanDirectories.Count);
-        Assert.Equal("cli-path2", appSettings.RecentScanDirectories[0]);
-        Assert.Equal("cli-path1", appSettings.RecentScanDirectories[1]);
+        appSettings.FcxMode.Should().Be(cliSettings.FcxMode, "because settings should map correctly");
+        appSettings.ShowFormIdValues.Should().Be(cliSettings.ShowFormIdValues);
+        appSettings.SimplifyLogs.Should().Be(cliSettings.SimplifyLogs);
+        appSettings.MoveUnsolvedLogs.Should().Be(cliSettings.MoveUnsolvedLogs);
+        appSettings.AudioNotifications.Should().Be(cliSettings.AudioNotifications);
+        appSettings.VrMode.Should().Be(cliSettings.VrMode);
+        appSettings.DefaultScanDirectory.Should().Be(cliSettings.DefaultScanDirectory);
+        appSettings.DefaultGamePath.Should().Be(cliSettings.DefaultGamePath);
+        appSettings.DefaultOutputFormat.Should().Be(cliSettings.DefaultOutputFormat);
+        appSettings.DisableColors.Should().Be(cliSettings.DisableColors);
+        appSettings.DisableProgress.Should().Be(cliSettings.DisableProgress);
+        appSettings.VerboseLogging.Should().Be(cliSettings.VerboseLogging);
+        appSettings.MaxConcurrentScans.Should().Be(cliSettings.MaxConcurrentScans);
+        appSettings.CacheEnabled.Should().Be(cliSettings.CacheEnabled);
+        appSettings.CrashLogsDirectory.Should().Be(cliSettings.CrashLogsDirectory);
+        appSettings.MaxRecentItems.Should().Be(cliSettings.MaxRecentPaths);
+        appSettings.RecentScanDirectories.Should().HaveCount(2, "because two paths were added");
+        appSettings.RecentScanDirectories[0].Should().Be("cli-path2", "because most recent path is first");
+        appSettings.RecentScanDirectories[1].Should().Be("cli-path1");
     }
 
     [Fact]
@@ -231,12 +232,12 @@ public class CliSettingsServiceTests : IDisposable
         var loadedCli = await service.LoadCliSettingsAsync();
         
         // Assert
-        Assert.Equal(originalCli.FcxMode, loadedCli.FcxMode);
-        Assert.Equal(originalCli.ShowFormIdValues, loadedCli.ShowFormIdValues);
-        Assert.Equal(originalCli.MaxConcurrentScans, loadedCli.MaxConcurrentScans);
-        Assert.Equal(originalCli.DefaultOutputFormat, loadedCli.DefaultOutputFormat);
-        Assert.Single(loadedCli.RecentScanPaths);
-        Assert.Equal("test-path", loadedCli.RecentScanPaths[0]);
+        loadedCli.FcxMode.Should().Be(originalCli.FcxMode, "because settings should round-trip correctly");
+        loadedCli.ShowFormIdValues.Should().Be(originalCli.ShowFormIdValues);
+        loadedCli.MaxConcurrentScans.Should().Be(originalCli.MaxConcurrentScans);
+        loadedCli.DefaultOutputFormat.Should().Be(originalCli.DefaultOutputFormat);
+        loadedCli.RecentScanPaths.Should().ContainSingle("because one path was added");
+        loadedCli.RecentScanPaths[0].Should().Be("test-path");
     }
 
     [Fact]
@@ -260,12 +261,12 @@ public class CliSettingsServiceTests : IDisposable
         
         // Assert - Unmapped values should be preserved
         var reloadedApp = await service.LoadSettingsAsync();
-        Assert.Equal(1920, reloadedApp.WindowWidth);
-        Assert.Equal(1080, reloadedApp.WindowHeight);
-        Assert.False(reloadedApp.RememberWindowSize);
-        Assert.Contains("log1.txt", reloadedApp.RecentLogFiles);
-        Assert.Contains("game1", reloadedApp.RecentGamePaths);
-        Assert.True(reloadedApp.FcxMode); // CLI setting was applied
+        reloadedApp.WindowWidth.Should().Be(1920, "because window width should be preserved");
+        reloadedApp.WindowHeight.Should().Be(1080, "because window height should be preserved");
+        reloadedApp.RememberWindowSize.Should().BeFalse("because RememberWindowSize should be preserved");
+        reloadedApp.RecentLogFiles.Should().Contain("log1.txt", "because recent log files should be preserved");
+        reloadedApp.RecentGamePaths.Should().Contain("game1", "because recent game paths should be preserved");
+        reloadedApp.FcxMode.Should().BeTrue("because CLI setting was applied");
     }
 
     [Fact]
@@ -282,7 +283,7 @@ public class CliSettingsServiceTests : IDisposable
         await service.SaveCliSettingsAsync(cliSettings);
         var loaded = await service.LoadCliSettingsAsync();
         
-        Assert.NotNull(loaded.RecentScanPaths);
+        loaded.RecentScanPaths.Should().NotBeNull("because null paths should be handled gracefully");
     }
 
     [Fact]
@@ -297,8 +298,8 @@ public class CliSettingsServiceTests : IDisposable
         await service.SaveSettingAsync("DefaultOutputFormat", "xml");
         
         var settings = await service.LoadSettingsAsync();
-        Assert.True(settings.FcxMode);
-        Assert.Equal(24, settings.MaxConcurrentScans);
-        Assert.Equal("xml", settings.DefaultOutputFormat);
+        settings.FcxMode.Should().BeTrue("because FcxMode was set to true");
+        settings.MaxConcurrentScans.Should().Be(24, "because MaxConcurrentScans was set to 24");
+        settings.DefaultOutputFormat.Should().Be("xml", "because DefaultOutputFormat was set to xml");
     }
 }

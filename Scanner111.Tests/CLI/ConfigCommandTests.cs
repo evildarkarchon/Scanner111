@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
@@ -32,9 +33,11 @@ public class ConfigCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
-        Assert.Contains(_messageCapture.InfoMessages, msg => msg.Contains("Unified Settings file:"));
-        Assert.Contains(_messageCapture.InfoMessages, msg => msg.Contains("File exists:"));
+        result.Should().Be(0, "because the command should succeed");
+        _messageCapture.InfoMessages.Should().Contain(msg => msg.Contains("Unified Settings file:"), 
+            "because the settings path should be displayed");
+        _messageCapture.InfoMessages.Should().Contain(msg => msg.Contains("File exists:"),
+            "because the file existence status should be shown");
     }
 
     [Fact]
@@ -47,15 +50,17 @@ public class ConfigCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
-        Assert.Contains("Resetting configuration to defaults...", _messageCapture.InfoMessages);
-        Assert.Contains("Configuration reset to defaults.", _messageCapture.SuccessMessages);
-        Assert.True(_mockSettingsService.SaveSettingsCalled);
+        result.Should().Be(0, "because the reset should succeed");
+        _messageCapture.InfoMessages.Should().Contain("Resetting configuration to defaults...",
+            "because reset progress should be shown");
+        _messageCapture.SuccessMessages.Should().Contain("Configuration reset to defaults.",
+            "because success should be reported");
+        _mockSettingsService.SaveSettingsCalled.Should().BeTrue("because settings should be saved after reset");
         var lastSaved = _mockSettingsService.LastSavedSettings;
-        Assert.NotNull(lastSaved);
+        lastSaved.Should().NotBeNull("because settings should have been saved");
         // Verify it's default settings (all should be default values)
-        Assert.False(lastSaved.FcxMode);
-        Assert.False(lastSaved.ShowFormIdValues);
+        lastSaved.FcxMode.Should().BeFalse("because FCX mode should be disabled by default");
+        lastSaved.ShowFormIdValues.Should().BeFalse("because FormID values should be hidden by default");
     }
 
     [Fact]
@@ -84,22 +89,23 @@ public class ConfigCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
-        Assert.Contains("Current Scanner111 Configuration:", _messageCapture.InfoMessages);
-        Assert.Contains("FCX Mode: True", _messageCapture.InfoMessages);
-        Assert.Contains("Show FormID Values: False", _messageCapture.InfoMessages);
-        Assert.Contains("Simplify Logs: True", _messageCapture.InfoMessages);
-        Assert.Contains("Move Unsolved Logs: False", _messageCapture.InfoMessages);
-        Assert.Contains("Crash Logs Directory: /test/path", _messageCapture.InfoMessages);
-        Assert.Contains("Audio Notifications: True", _messageCapture.InfoMessages);
-        Assert.Contains("VR Mode: False", _messageCapture.InfoMessages);
-        Assert.Contains("Disable Colors: False", _messageCapture.InfoMessages);
-        Assert.Contains("Disable Progress: True", _messageCapture.InfoMessages);
-        Assert.Contains("Default Output Format: detailed", _messageCapture.InfoMessages);
-        Assert.Contains("Default Game Path: /game/path", _messageCapture.InfoMessages);
-        Assert.Contains("Default Scan Directory: /scan/path", _messageCapture.InfoMessages);
-        Assert.Contains("Enable Update Check: True", _messageCapture.InfoMessages);
-        Assert.Contains("Update Source: Both", _messageCapture.InfoMessages);
+        result.Should().Be(0, "because listing configuration should succeed");
+        _messageCapture.InfoMessages.Should().Contain("Current Scanner111 Configuration:",
+            "because configuration header should be shown");
+        _messageCapture.InfoMessages.Should().Contain("FCX Mode: True");
+        _messageCapture.InfoMessages.Should().Contain("Show FormID Values: False");
+        _messageCapture.InfoMessages.Should().Contain("Simplify Logs: True");
+        _messageCapture.InfoMessages.Should().Contain("Move Unsolved Logs: False");
+        _messageCapture.InfoMessages.Should().Contain("Crash Logs Directory: /test/path");
+        _messageCapture.InfoMessages.Should().Contain("Audio Notifications: True");
+        _messageCapture.InfoMessages.Should().Contain("VR Mode: False");
+        _messageCapture.InfoMessages.Should().Contain("Disable Colors: False");
+        _messageCapture.InfoMessages.Should().Contain("Disable Progress: True");
+        _messageCapture.InfoMessages.Should().Contain("Default Output Format: detailed");
+        _messageCapture.InfoMessages.Should().Contain("Default Game Path: /game/path");
+        _messageCapture.InfoMessages.Should().Contain("Default Scan Directory: /scan/path");
+        _messageCapture.InfoMessages.Should().Contain("Enable Update Check: True");
+        _messageCapture.InfoMessages.Should().Contain("Update Source: Both");
     }
 
     [Fact]
@@ -112,12 +118,14 @@ public class ConfigCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
-        Assert.Contains("Set FcxMode = true", _messageCapture.SuccessMessages);
-        Assert.Contains("Setting saved to configuration file.", _messageCapture.InfoMessages);
-        Assert.True(_mockSettingsService.SaveSettingAsyncCalled);
-        Assert.Equal("FcxMode", _mockSettingsService.LastSavedKey);
-        Assert.Equal("true", _mockSettingsService.LastSavedValue);
+        result.Should().Be(0, "because setting a valid value should succeed");
+        _messageCapture.SuccessMessages.Should().Contain("Set FcxMode = true",
+            "because the set operation should be confirmed");
+        _messageCapture.InfoMessages.Should().Contain("Setting saved to configuration file.",
+            "because saving should be reported");
+        _mockSettingsService.SaveSettingAsyncCalled.Should().BeTrue("because the setting should be saved");
+        _mockSettingsService.LastSavedKey.Should().Be("FcxMode", "because the correct key should be saved");
+        _mockSettingsService.LastSavedValue.Should().Be("true", "because the correct value should be saved");
     }
 
     [Fact]
@@ -130,9 +138,11 @@ public class ConfigCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(1, result);
-        Assert.Contains("Invalid set format. Use: --set \"key=value\"", _messageCapture.ErrorMessages);
-        Assert.Contains("Available settings:", _messageCapture.InfoMessages);
+        result.Should().Be(1, "because invalid format should fail");
+        _messageCapture.ErrorMessages.Should().Contain("Invalid set format. Use: --set \"key=value\"",
+            "because error message should explain the correct format");
+        _messageCapture.InfoMessages.Should().Contain("Available settings:",
+            "because available settings should be shown after error");
     }
 
     [Fact]
@@ -146,8 +156,9 @@ public class ConfigCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(1, result);
-        Assert.Contains("Unknown setting: InvalidKey", _messageCapture.ErrorMessages);
+        result.Should().Be(1, "because invalid setting key should fail");
+        _messageCapture.ErrorMessages.Should().Contain("Unknown setting: InvalidKey",
+            "because error should indicate the unknown setting");
     }
 
     [Fact]
@@ -165,11 +176,14 @@ public class ConfigCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
+        result.Should().Be(0, "because all operations should succeed");
         // Verify all operations were performed
-        Assert.Contains(_messageCapture.InfoMessages, msg => msg.Contains("Unified Settings file:"));
-        Assert.Contains("Current Scanner111 Configuration:", _messageCapture.InfoMessages);
-        Assert.Contains("Set FcxMode = true", _messageCapture.SuccessMessages);
+        _messageCapture.InfoMessages.Should().Contain(msg => msg.Contains("Unified Settings file:"),
+            "because path should be shown");
+        _messageCapture.InfoMessages.Should().Contain("Current Scanner111 Configuration:",
+            "because configuration should be listed");
+        _messageCapture.SuccessMessages.Should().Contain("Set FcxMode = true",
+            "because setting should be applied");
     }
 
     public void Dispose()

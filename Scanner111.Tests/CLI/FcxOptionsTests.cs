@@ -1,4 +1,5 @@
 using CommandLine;
+using FluentAssertions;
 using Scanner111.CLI.Models;
 using Xunit;
 
@@ -23,10 +24,10 @@ public class FcxOptionsTests
         var result = _parser.ParseArguments<FcxOptions>(args);
         
         // Assert
-        Assert.True(result.Tag == ParserResultType.Parsed);
+        result.Tag.Should().Be(ParserResultType.Parsed, "because FCX command should parse successfully");
         result.WithParsed<FcxOptions>(opts =>
         {
-            Assert.Equal("Fallout4", opts.Game);
+            opts.Game.Should().Be("Fallout4", "because game was specified");
         });
     }
     
@@ -56,22 +57,22 @@ public class FcxOptionsTests
         var result = _parser.ParseArguments<FcxOptions>(args);
         
         // Assert
-        Assert.True(result.Tag == ParserResultType.Parsed);
+        result.Tag.Should().Be(ParserResultType.Parsed, "because all options should parse successfully");
         result.WithParsed<FcxOptions>(opts =>
         {
-            Assert.Equal("Fallout4", opts.Game);
-            Assert.True(opts.CheckOnly);
-            Assert.True(opts.ValidateHashes);
-            Assert.True(opts.CheckMods);
-            Assert.True(opts.CheckIni);
-            Assert.True(opts.Backup);
-            Assert.Equal(@"C:\Games\Fallout4", opts.GamePath);
-            Assert.Equal(@"C:\Mods", opts.ModsFolder);
-            Assert.Equal(@"C:\Ini", opts.IniFolder);
-            Assert.True(opts.Verbose);
-            Assert.True(opts.DisableColors);
-            Assert.True(opts.DisableProgress);
-            Assert.Equal("results.txt", opts.OutputFile);
+            opts.Game.Should().Be("Fallout4", "because game was specified");
+            opts.CheckOnly.Should().BeTrue("because check-only flag was set");
+            opts.ValidateHashes.Should().BeTrue("because validate-hashes flag was set");
+            opts.CheckMods.Should().BeTrue("because check-mods flag was set");
+            opts.CheckIni.Should().BeTrue("because check-ini flag was set");
+            opts.Backup.Should().BeTrue("because backup flag was set");
+            opts.GamePath.Should().Be(@"C:\Games\Fallout4", "because game path was specified");
+            opts.ModsFolder.Should().Be(@"C:\Mods", "because mods folder was specified");
+            opts.IniFolder.Should().Be(@"C:\Ini", "because ini folder was specified");
+            opts.Verbose.Should().BeTrue("because verbose flag was set");
+            opts.DisableColors.Should().BeTrue("because disable-colors flag was set");
+            opts.DisableProgress.Should().BeTrue("because disable-progress flag was set");
+            opts.OutputFile.Should().Be("results.txt", "because output file was specified");
         });
     }
     
@@ -85,10 +86,10 @@ public class FcxOptionsTests
         var result = _parser.ParseArguments<FcxOptions>(args);
         
         // Assert
-        Assert.True(result.Tag == ParserResultType.Parsed);
+        result.Tag.Should().Be(ParserResultType.Parsed, "because restore option should parse successfully");
         result.WithParsed<FcxOptions>(opts =>
         {
-            Assert.Equal(@"C:\Backups\backup.zip", opts.RestorePath);
+            opts.RestorePath.Should().Be(@"C:\Backups\backup.zip", "because restore path was specified");
         });
     }
     
@@ -108,12 +109,12 @@ public class FcxOptionsTests
         var result = _parser.ParseArguments<FcxOptions>(args);
         
         // Assert
-        Assert.True(result.Tag == ParserResultType.Parsed);
+        result.Tag.Should().Be(ParserResultType.Parsed, "because short options should parse successfully");
         result.WithParsed<FcxOptions>(opts =>
         {
-            Assert.Equal("Fallout4", opts.Game);
-            Assert.True(opts.Verbose);
-            Assert.Equal("output.txt", opts.OutputFile);
+            opts.Game.Should().Be("Fallout4", "because game was specified with -g");
+            opts.Verbose.Should().BeTrue("because verbose was set with -v");
+            opts.OutputFile.Should().Be("output.txt", "because output file was specified with -o");
         });
     }
     
@@ -127,23 +128,23 @@ public class FcxOptionsTests
         var result = _parser.ParseArguments<FcxOptions>(args);
         
         // Assert
-        Assert.True(result.Tag == ParserResultType.Parsed);
+        result.Tag.Should().Be(ParserResultType.Parsed, "because FCX without options should use defaults");
         result.WithParsed<FcxOptions>(opts =>
         {
-            Assert.Equal("Fallout4", opts.Game); // Default value
-            Assert.False(opts.CheckOnly);
-            Assert.False(opts.ValidateHashes);
-            Assert.False(opts.CheckMods);
-            Assert.False(opts.CheckIni);
-            Assert.False(opts.Backup);
-            Assert.Null(opts.RestorePath);
-            Assert.Null(opts.GamePath);
-            Assert.Null(opts.ModsFolder);
-            Assert.Null(opts.IniFolder);
-            Assert.False(opts.Verbose);
-            Assert.False(opts.DisableColors);
-            Assert.False(opts.DisableProgress);
-            Assert.Null(opts.OutputFile);
+            opts.Game.Should().Be("Fallout4", "because it's the default game");
+            opts.CheckOnly.Should().BeFalse("because it's not set by default");
+            opts.ValidateHashes.Should().BeFalse("because it's not set by default");
+            opts.CheckMods.Should().BeFalse("because it's not set by default");
+            opts.CheckIni.Should().BeFalse("because it's not set by default");
+            opts.Backup.Should().BeFalse("because it's not set by default");
+            opts.RestorePath.Should().BeNull("because no restore path was specified");
+            opts.GamePath.Should().BeNull("because no game path was specified");
+            opts.ModsFolder.Should().BeNull("because no mods folder was specified");
+            opts.IniFolder.Should().BeNull("because no ini folder was specified");
+            opts.Verbose.Should().BeFalse("because it's not set by default");
+            opts.DisableColors.Should().BeFalse("because it's not set by default");
+            opts.DisableProgress.Should().BeFalse("because it's not set by default");
+            opts.OutputFile.Should().BeNull("because no output file was specified");
         });
     }
     
@@ -158,10 +159,10 @@ public class FcxOptionsTests
         var result = _parser.ParseArguments<ScanOptions, DemoOptions, ConfigOptions, AboutOptions, FcxOptions>(args);
         
         // Assert
-        Assert.Equal(ParserResultType.Parsed, result.Tag);
+        result.Tag.Should().Be(ParserResultType.Parsed, "because scan is the default verb");
         result.WithParsed<ScanOptions>(opts =>
         {
-            Assert.Equal("some-file.log", opts.LogFile);
+            opts.LogFile.Should().Be("some-file.log", "because log file was specified");
         });
     }
 }

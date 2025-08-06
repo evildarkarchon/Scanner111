@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Scanner111.Core.Models;
 
 namespace Scanner111.Tests.Models;
@@ -34,12 +35,12 @@ public class ScanResultTests
     {
         var result = new ScanResult { LogPath = "test.log" };
 
-        Assert.Equal("test.log", result.LogPath);
-        Assert.Empty(result.Report);
-        Assert.False(result.Failed);
-        Assert.NotNull(result.Statistics);
-        Assert.Equal(string.Empty, result.ReportText);
-        Assert.Equal("test-AUTOSCAN.md", result.OutputPath);
+        result.LogPath.Should().Be("test.log", "because LogPath should match the input value");
+        result.Report.Should().BeEmpty("because no report was provided");
+        result.Failed.Should().BeFalse("because default status is not failed");
+        result.Statistics.Should().NotBeNull("because Statistics should be initialized");
+        result.ReportText.Should().Be(string.Empty, "because no report content exists");
+        result.OutputPath.Should().Be("test-AUTOSCAN.md", "because OutputPath appends -AUTOSCAN.md to the base name");
     }
 
     /// <summary>
@@ -58,7 +59,7 @@ public class ScanResultTests
             Report = new List<string> { "Line 1\n", "Line 2\n", "Line 3\n" }
         };
 
-        Assert.Equal("Line 1\nLine 2\nLine 3\n", result.ReportText);
+        result.ReportText.Should().Be("Line 1\nLine 2\nLine 3\n", "because ReportText concatenates all report lines");
     }
 
     /// <summary>
@@ -77,7 +78,7 @@ public class ScanResultTests
         var result = new ScanResult { LogPath = sampleFile };
 
         var expectedOutput = Path.Combine(_sampleLogsPath, "crash-2024-01-11-08-19-43-AUTOSCAN.md");
-        Assert.Equal(expectedOutput, result.OutputPath);
+        result.OutputPath.Should().Be(expectedOutput, "because OutputPath should append -AUTOSCAN.md to the log file base name");
     }
 
     /// <summary>
@@ -97,12 +98,12 @@ public class ScanResultTests
     {
         var stats = new ScanStatistics();
 
-        Assert.Equal(0, stats["scanned"]);
-        Assert.Equal(0, stats["incomplete"]);
-        Assert.Equal(0, stats["failed"]);
-        Assert.Equal(0, stats.Scanned);
-        Assert.Equal(0, stats.Incomplete);
-        Assert.Equal(0, stats.Failed);
+        stats["scanned"].Should().Be(0, "because 'scanned' counter starts at 0");
+        stats["incomplete"].Should().Be(0, "because 'incomplete' counter starts at 0");
+        stats["failed"].Should().Be(0, "because 'failed' counter starts at 0");
+        stats.Scanned.Should().Be(0, "because Scanned property starts at 0");
+        stats.Incomplete.Should().Be(0, "because Incomplete property starts at 0");
+        stats.Failed.Should().Be(0, "because Failed property starts at 0");
     }
 
     /// <summary>
@@ -125,9 +126,9 @@ public class ScanResultTests
             Failed = 1
         };
 
-        Assert.Equal(5, stats["scanned"]);
-        Assert.Equal(2, stats["incomplete"]);
-        Assert.Equal(1, stats["failed"]);
+        stats["scanned"].Should().Be(5, "because Scanned property was set to 5");
+        stats["incomplete"].Should().Be(2, "because Incomplete property was set to 2");
+        stats["failed"].Should().Be(1, "because Failed property was set to 1");
     }
 
     /// <summary>
@@ -151,10 +152,10 @@ public class ScanResultTests
         stats.Increment("failed");
         stats.Increment("custom");
 
-        Assert.Equal(2, stats["scanned"]);
-        Assert.Equal(1, stats["failed"]);
-        Assert.Equal(1, stats["custom"]);
-        Assert.Equal(0, stats["incomplete"]);
+        stats["scanned"].Should().Be(2, "because 'scanned' was incremented twice");
+        stats["failed"].Should().Be(1, "because 'failed' was incremented once");
+        stats["custom"].Should().Be(1, "because 'custom' was incremented once");
+        stats["incomplete"].Should().Be(0, "because 'incomplete' was not incremented");
     }
 
     /// <summary>
@@ -183,10 +184,10 @@ public class ScanResultTests
         };
         result.Status = ScanStatus.Failed;
 
-        Assert.True(result.Failed);
-        Assert.Equal("Error analysis:\n- Issue found\n", result.ReportText);
-        Assert.Equal(1, result.Statistics.Scanned);
-        Assert.Equal(1, result.Statistics.Failed);
-        Assert.Contains("crash-2024-01-11-08-19-43-AUTOSCAN.md", result.OutputPath);
+        result.Failed.Should().BeTrue("because Status was set to Failed");
+        result.ReportText.Should().Be("Error analysis:\n- Issue found\n", "because ReportText concatenates report lines");
+        result.Statistics.Scanned.Should().Be(1, "because 'scanned' was incremented once");
+        result.Statistics.Failed.Should().Be(1, "because 'failed' was incremented once");
+        result.OutputPath.Should().Contain("crash-2024-01-11-08-19-43-AUTOSCAN.md", "because OutputPath is derived from LogPath");
     }
 }

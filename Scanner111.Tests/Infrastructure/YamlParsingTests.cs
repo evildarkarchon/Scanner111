@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
@@ -101,26 +102,24 @@ exclude_log_files:
         var result = _yamlProvider.LoadYaml<ClassicMainYaml>("ClassicMain.yaml");
         
         // Assert
-        Assert.NotNull(result);
-        Assert.NotNull(result.ClassicInfo);
-        Assert.Equal("1.0.0", result.ClassicInfo.Version);
-        // Author property removed from model, checking Version instead
-        Assert.Equal("1.0.0", result.ClassicInfo.Version);
+        result.Should().NotBeNull("because YAML file should be parsed successfully");
+        result.ClassicInfo.Should().NotBeNull("because classic_info section should be parsed");
+        result.ClassicInfo.Version.Should().Be("1.0.0", "because version should be parsed correctly");
         
-        Assert.NotNull(result.ClassicAutoBackup);
-        Assert.Equal(2, result.ClassicAutoBackup.Count);
-        Assert.Contains("backup1.dll", result.ClassicAutoBackup);
-        Assert.Contains("backup2.exe", result.ClassicAutoBackup);
+        result.ClassicAutoBackup.Should().NotBeNull("because classic_auto_backup should be parsed");
+        result.ClassicAutoBackup.Should().HaveCount(2, "because two backup items were defined");
+        result.ClassicAutoBackup.Should().Contain("backup1.dll", "because it was defined in the YAML");
+        result.ClassicAutoBackup.Should().Contain("backup2.exe", "because it was defined in the YAML");
         
-        Assert.NotNull(result.ClassicInterface);
-        Assert.Equal("Welcome to Scanner 111", result.ClassicInterface.StartMessage);
-        Assert.Equal("This is the main help", result.ClassicInterface.HelpPopupMain);
+        result.ClassicInterface.Should().NotBeNull("because classic_interface should be parsed");
+        result.ClassicInterface.StartMessage.Should().Be("Welcome to Scanner 111", "because start_message was defined");
+        result.ClassicInterface.HelpPopupMain.Should().Be("This is the main help", "because help_popup_main was defined");
         
-        Assert.NotNull(result.CatchLogErrors);
-        Assert.Equal(2, result.CatchLogErrors.Count);
+        result.CatchLogErrors.Should().NotBeNull("because catch_log_errors should be parsed");
+        result.CatchLogErrors.Should().HaveCount(2, "because two error patterns were defined");
         
-        Assert.NotNull(result.ExcludeLogFiles);
-        Assert.Equal(2, result.ExcludeLogFiles.Count);
+        result.ExcludeLogFiles.Should().NotBeNull("because exclude_log_files should be parsed");
+        result.ExcludeLogFiles.Should().HaveCount(2, "because two exclude files were defined");
     }
     
     [Fact]
@@ -235,51 +234,51 @@ mods_opc2:
         var result = _yamlProvider.LoadYaml<ClassicFallout4Yaml>("ClassicFallout4.yaml");
         
         // Assert
-        Assert.NotNull(result);
+        result.Should().NotBeNull("because YAML file should be parsed successfully");
         
         // Game Info
-        Assert.NotNull(result.GameInfo);
-        Assert.Equal("Fallout 4", result.GameInfo.MainRootName);
-        Assert.Equal("1.10.163.0", result.GameInfo.GameVersion);
-        Assert.Equal("Fallout4", result.GameInfo.MainDocsName);
+        result.GameInfo.Should().NotBeNull("because game_info section should be parsed");
+        result.GameInfo.MainRootName.Should().Be("Fallout 4", "because main_root_name was defined");
+        result.GameInfo.GameVersion.Should().Be("1.10.163.0", "because game_version was defined");
+        result.GameInfo.MainDocsName.Should().Be("Fallout4", "because main_docs_name was defined");
         
         // Game VR Info
-        Assert.NotNull(result.GameVrInfo);
-        Assert.Equal("Fallout 4 VR", result.GameVrInfo.MainRootName);
-        Assert.Equal("Fallout4VR", result.GameVrInfo.MainDocsName);
+        result.GameVrInfo.Should().NotBeNull("because game_vr_info section should be parsed");
+        result.GameVrInfo.MainRootName.Should().Be("Fallout 4 VR", "because VR main_root_name was defined");
+        result.GameVrInfo.MainDocsName.Should().Be("Fallout4VR", "because VR main_docs_name was defined");
         
         // XSE Hashes
-        Assert.NotNull(result.XseHashedScripts);
-        Assert.Equal(2, result.XseHashedScripts.Count);
-        Assert.Equal("ABC123DEF456", result.XseHashedScripts["f4se_1_10_163.dll"]);
+        result.XseHashedScripts.Should().NotBeNull("because xse_hashed_scripts should be parsed");
+        result.XseHashedScripts.Should().HaveCount(2, "because two XSE scripts were defined");
+        result.XseHashedScripts["f4se_1_10_163.dll"].Should().Be("ABC123DEF456", "because the hash was defined");
         
         // Backup configurations
-        Assert.NotNull(result.BackupEnb);
-        Assert.Equal(3, result.BackupEnb.Count);
-        Assert.Contains("d3d11.dll", result.BackupEnb);
+        result.BackupEnb.Should().NotBeNull("because backup_enb should be parsed");
+        result.BackupEnb.Should().HaveCount(3, "because three ENB files were defined");
+        result.BackupEnb.Should().Contain("d3d11.dll", "because it was defined in backup_enb");
         
-        Assert.NotNull(result.BackupXse);
-        Assert.Equal(3, result.BackupXse.Count);
-        Assert.Contains("f4se_loader.exe", result.BackupXse);
+        result.BackupXse.Should().NotBeNull("because backup_xse should be parsed");
+        result.BackupXse.Should().HaveCount(3, "because three XSE files were defined");
+        result.BackupXse.Should().Contain("f4se_loader.exe", "because it was defined in backup_xse");
         
         // Game hints
-        Assert.NotNull(result.GameHints);
-        Assert.Equal(2, result.GameHints.Count);
+        result.GameHints.Should().NotBeNull("because game_hints should be parsed");
+        result.GameHints.Should().HaveCount(2, "because two hints were defined");
         
         // Mod configurations
-        Assert.NotNull(result.ModsCore);
-        Assert.Equal(2, result.ModsCore.Count);
-        Assert.True(result.ModsCore.ContainsKey("Buffout4.dll"));
+        result.ModsCore.Should().NotBeNull("because mods_core should be parsed");
+        result.ModsCore.Should().HaveCount(2, "because two core mods were defined");
+        result.ModsCore.Should().ContainKey("Buffout4.dll", "because it was defined in mods_core");
         
         // Crash log configurations
-        Assert.NotNull(result.CrashlogErrorCheck);
-        Assert.Equal(2, result.CrashlogErrorCheck.Count);
-        Assert.Equal("Memory access violation detected", result.CrashlogErrorCheck["EXCEPTION_ACCESS_VIOLATION"]);
+        result.CrashlogErrorCheck.Should().NotBeNull("because crashlog_error_check should be parsed");
+        result.CrashlogErrorCheck.Should().HaveCount(2, "because two error checks were defined");
+        result.CrashlogErrorCheck["EXCEPTION_ACCESS_VIOLATION"].Should().Be("Memory access violation detected", "because the error message was defined");
         
-        Assert.NotNull(result.CrashlogStackCheck);
-        Assert.Equal(2, result.CrashlogStackCheck.Count);
-        Assert.True(result.CrashlogStackCheck.ContainsKey("Buffout4.dll"));
-        Assert.Equal(2, result.CrashlogStackCheck["Buffout4.dll"].Count);
+        result.CrashlogStackCheck.Should().NotBeNull("because crashlog_stack_check should be parsed");
+        result.CrashlogStackCheck.Should().HaveCount(2, "because two stack checks were defined");
+        result.CrashlogStackCheck.Should().ContainKey("Buffout4.dll", "because it was defined in crashlog_stack_check");
+        result.CrashlogStackCheck["Buffout4.dll"].Should().HaveCount(2, "because two messages were defined for Buffout4.dll");
     }
     
     [Fact]
@@ -292,10 +291,10 @@ mods_opc2:
         var result = _yamlProvider.LoadYaml<ClassicMainYaml>("Empty.yaml");
         
         // Assert
-        Assert.NotNull(result);
-        Assert.NotNull(result.ClassicInfo);
-        Assert.NotNull(result.ClassicAutoBackup);
-        Assert.Empty(result.ClassicAutoBackup);
+        result.Should().NotBeNull("because empty YAML should still return an object");
+        result.ClassicInfo.Should().NotBeNull("because object should have default values");
+        result.ClassicAutoBackup.Should().NotBeNull("because lists should be initialized");
+        result.ClassicAutoBackup.Should().BeEmpty("because no backup items were defined");
     }
     
     [Fact]
@@ -311,8 +310,8 @@ classic_info:
         CreateYamlFile("Invalid.yaml", invalidYaml);
         
         // Act & Assert
-        Assert.ThrowsAny<YamlDotNet.Core.YamlException>(() => 
-            _yamlProvider.LoadYaml<ClassicMainYaml>("Invalid.yaml"));
+        var act = () => _yamlProvider.LoadYaml<ClassicMainYaml>("Invalid.yaml");
+        act.Should().Throw<YamlDotNet.Core.YamlException>("because the YAML has invalid syntax");
     }
     
     [Fact]
@@ -322,7 +321,7 @@ classic_info:
         var result = _yamlProvider.LoadYaml<ClassicMainYaml>("NonExistent.yaml");
         
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull("because the file does not exist");
     }
     
     [Fact]
@@ -344,13 +343,13 @@ catch_log_errors:
         var result = _yamlProvider.LoadYaml<ClassicMainYaml>("Partial.yaml");
         
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal("2.0.0", result.ClassicInfo.Version);
-        Assert.Equal(3, result.CatchLogErrors.Count);
+        result.Should().NotBeNull("because partial YAML should still be parsed");
+        result.ClassicInfo.Version.Should().Be("2.0.0", "because version was defined");
+        result.CatchLogErrors.Should().HaveCount(3, "because three errors were defined");
         
         // Other properties should have default values
-        Assert.NotNull(result.ClassicInterface);
-        Assert.Empty(result.ClassicInterface.StartMessage);
+        result.ClassicInterface.Should().NotBeNull("because unspecified sections should have defaults");
+        result.ClassicInterface.StartMessage.Should().BeEmpty("because start_message was not defined");
     }
     
     [Fact]
@@ -387,15 +386,15 @@ mods_conf:
         var result = _yamlProvider.LoadYaml<ClassicFallout4Yaml>("Complex.yaml");
         
         // Assert
-        Assert.NotNull(result);
-        Assert.NotNull(result.CrashlogStackCheck);
-        Assert.Equal(3, result.CrashlogStackCheck.Count);
-        Assert.Equal(3, result.CrashlogStackCheck["Module1.dll"].Count);
-        Assert.Equal(4, result.CrashlogStackCheck["Module3.dll"].Count);
+        result.Should().NotBeNull("because complex YAML should be parsed");
+        result.CrashlogStackCheck.Should().NotBeNull("because crashlog_stack_check should be parsed");
+        result.CrashlogStackCheck.Should().HaveCount(3, "because three modules were defined");
+        result.CrashlogStackCheck["Module1.dll"].Should().HaveCount(3, "because Module1 has three messages");
+        result.CrashlogStackCheck["Module3.dll"].Should().HaveCount(4, "because Module3 has four messages");
         
-        Assert.NotNull(result.ModsConf);
-        Assert.Equal(4, result.ModsConf.Count);
-        Assert.Equal("Core dependency", result.ModsConf["ModC.esp"]);
+        result.ModsConf.Should().NotBeNull("because mods_conf should be parsed");
+        result.ModsConf.Should().HaveCount(4, "because four mod configurations were defined");
+        result.ModsConf["ModC.esp"].Should().Be("Core dependency", "because the value was defined");
     }
     
     [Fact]
@@ -422,11 +421,11 @@ game_hints:
         var result = _yamlProvider.LoadYaml<ClassicMainYaml>("SpecialChars.yaml");
         
         // Assert
-        Assert.NotNull(result);
-        Assert.Contains("™", result.ClassicInterface.StartMessage);
-        Assert.Contains("你好世界", result.ClassicInterface.HelpPopupMain);
-        Assert.Contains("🚀", result.ClassicInterface.HelpPopupMain);
-        Assert.Contains("\"double quotes\"", result.ClassicInterface.UpdatePopupText);
+        result.Should().NotBeNull("because YAML with special characters should be parsed");
+        result.ClassicInterface.StartMessage.Should().Contain("™", "because trademark symbol should be preserved");
+        result.ClassicInterface.HelpPopupMain.Should().Contain("你好世界", "because Unicode text should be preserved");
+        result.ClassicInterface.HelpPopupMain.Should().Contain("🚀", "because emoji should be preserved");
+        result.ClassicInterface.UpdatePopupText.Should().Contain("\"double quotes\"", "because escaped quotes should be preserved");
     }
     
     [Fact]
@@ -457,10 +456,10 @@ classic_info:
         var result4 = _yamlProvider.LoadYaml<ClassicMainYaml>("Cached.yaml");
         
         // Assert
-        Assert.Equal("1.0.0", result1?.ClassicInfo.Version);
-        Assert.Equal("1.0.0", result2?.ClassicInfo.Version);
-        Assert.Equal("1.0.0", result3?.ClassicInfo.Version); // Still cached
-        Assert.Equal("2.0.0", result4?.ClassicInfo.Version); // New value after cache clear
+        result1?.ClassicInfo.Version.Should().Be("1.0.0", "because initial load should return version 1.0.0");
+        result2?.ClassicInfo.Version.Should().Be("1.0.0", "because second load should return cached value");
+        result3?.ClassicInfo.Version.Should().Be("1.0.0", "because file change should not affect cached value");
+        result4?.ClassicInfo.Version.Should().Be("2.0.0", "because cache was cleared and file was reloaded");
     }
     
     [Fact]
@@ -493,9 +492,9 @@ game_info:
         // Future: var skyrimResult = _yamlProvider.LoadYaml<ClassicSkyrimYaml>("ClassicSkyrim.yaml");
         
         // Assert
-        Assert.NotNull(fallout4Result);
-        Assert.Equal("Fallout 4", fallout4Result.GameInfo.MainRootName);
-        Assert.Equal("Fallout4", fallout4Result.GameInfo.MainDocsName);
+        fallout4Result.Should().NotBeNull("because Fallout 4 YAML should be parsed");
+        fallout4Result.GameInfo.MainRootName.Should().Be("Fallout 4", "because main_root_name was defined");
+        fallout4Result.GameInfo.MainDocsName.Should().Be("Fallout4", "because main_docs_name was defined");
     }
     
     [Theory]
@@ -521,8 +520,8 @@ game_info:
         var dict = serializer.Deserialize<Dictionary<string, string>>(yamlContent);
         
         // Assert
-        Assert.True(dict.ContainsKey(yamlKey));
-        Assert.Equal("Test Value", dict[yamlKey]);
+        dict.Should().ContainKey(yamlKey, "because the YAML key should be preserved");
+        dict[yamlKey].Should().Be("Test Value", "because the value should be parsed correctly");
     }
     
     private string CreateYamlFile(string fileName, string content)

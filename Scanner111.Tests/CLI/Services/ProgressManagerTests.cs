@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Channels;
+using FluentAssertions;
 using Spectre.Console;
 using Spectre.Console.Testing;
 using Scanner111.CLI.Services;
@@ -56,8 +57,8 @@ public class ProgressManagerTests : IAsyncLifetime
         var context = _progressManager.CreateContext("Test Progress", 100);
 
         // Assert
-        Assert.NotNull(context);
-        Assert.IsType<ProgressContextAdapter>(context);
+        context.Should().NotBeNull("because a valid progress context should be created");
+        context.Should().BeOfType<ProgressContextAdapter>("because CreateContext returns a ProgressContextAdapter");
     }
 
     [Fact]
@@ -68,9 +69,9 @@ public class ProgressManagerTests : IAsyncLifetime
         var context2 = _progressManager.CreateContext("Progress 2", 100);
 
         // Assert
-        Assert.NotNull(context1);
-        Assert.NotNull(context2);
-        Assert.NotSame(context1, context2);
+        context1.Should().NotBeNull("because first context should be created");
+        context2.Should().NotBeNull("because second context should be created");
+        context1.Should().NotBeSameAs(context2, "because each context should be unique");
     }
 
     [Fact]
@@ -84,7 +85,7 @@ public class ProgressManagerTests : IAsyncLifetime
         await Task.Delay(150); // Allow command processing
 
         // Assert
-        Assert.True(_progressManager.ActiveTaskCount > initialCount);
+        _progressManager.ActiveTaskCount.Should().BeGreaterThan(initialCount, "because a new task was added");
     }
 
     #endregion
@@ -106,7 +107,7 @@ public class ProgressManagerTests : IAsyncLifetime
         await Task.Delay(150);
 
         // Assert - no exceptions thrown
-        Assert.NotNull(context);
+        context.Should().NotBeNull("because context should remain valid after updates");
     }
 
     [Fact]
@@ -122,7 +123,7 @@ public class ProgressManagerTests : IAsyncLifetime
         await Task.Delay(150);
 
         // Assert
-        Assert.True(_progressManager.ActiveTaskCount < countWithTask);
+        _progressManager.ActiveTaskCount.Should().BeLessThan(countWithTask, "because completed task should be removed");
     }
 
     #endregion
@@ -145,8 +146,8 @@ public class ProgressManagerTests : IAsyncLifetime
         var contexts = await Task.WhenAll(tasks);
 
         // Assert
-        Assert.Equal(10, contexts.Length);
-        Assert.All(contexts, c => Assert.NotNull(c));
+        contexts.Should().HaveCount(10, "because 10 contexts were created");
+        contexts.Should().AllSatisfy(c => c.Should().NotBeNull("because all contexts should be created successfully"));
     }
 
     [Fact]
@@ -172,7 +173,7 @@ public class ProgressManagerTests : IAsyncLifetime
         await Task.WhenAll(updateTasks);
 
         // Assert - all updates should process without exceptions
-        Assert.Equal(5, contexts.Count);
+        contexts.Should().HaveCount(5, "because all contexts should remain valid after updates");
     }
 
     [Fact]
@@ -197,7 +198,7 @@ public class ProgressManagerTests : IAsyncLifetime
         await Task.Delay(150);
 
         // Assert
-        Assert.Equal(0, _progressManager.ActiveTaskCount);
+        _progressManager.ActiveTaskCount.Should().Be(0, "because all tasks should be completed");
     }
 
     #endregion
@@ -243,10 +244,10 @@ public class ProgressManagerTests : IAsyncLifetime
         var panel = _progressManager.GetProgressPanel();
 
         // Assert
-        Assert.NotNull(panel);
+        panel.Should().NotBeNull("because GetProgressPanel should return a valid panel");
         // Panel should contain "No active tasks" text
         var panelString = panel.ToString();
-        Assert.NotNull(panelString);
+        panelString.Should().NotBeNull("because panel should have a string representation");
     }
 
     [Fact]
@@ -261,10 +262,10 @@ public class ProgressManagerTests : IAsyncLifetime
         var panel = _progressManager.GetProgressPanel();
 
         // Assert
-        Assert.NotNull(panel);
+        panel.Should().NotBeNull("because GetProgressPanel should return a valid panel");
         // Panel should show task information
         var panelString = panel.ToString();
-        Assert.NotNull(panelString);
+        panelString.Should().NotBeNull("because panel should have a string representation");
     }
 
     #endregion
@@ -287,7 +288,7 @@ public class ProgressManagerTests : IAsyncLifetime
         await manager.DisposeAsync();
 
         // Assert - disposal should complete without exceptions
-        Assert.NotNull(manager);
+        manager.Should().NotBeNull("because manager should remain valid after disposal");
     }
 
     [Fact]
@@ -304,7 +305,7 @@ public class ProgressManagerTests : IAsyncLifetime
         await manager.DisposeAsync();
 
         // Assert - should handle cancellation gracefully
-        Assert.NotNull(manager);
+        manager.Should().NotBeNull("because manager should handle cancellation gracefully");
     }
 
     #endregion
@@ -326,12 +327,12 @@ public class ProgressContextAdapterTests
         adapter.Update(50, "Half way");
 
         // Assert
-        Assert.True(channel.Reader.TryRead(out var command));
-        Assert.IsType<UpdateProgressCommand>(command);
+        channel.Reader.TryRead(out var command).Should().BeTrue("because a command should be available");
+        command.Should().BeOfType<UpdateProgressCommand>("because Update sends UpdateProgressCommand");
         var updateCommand = (UpdateProgressCommand)command;
-        Assert.Equal("test-id", updateCommand.Id);
-        Assert.Equal(50, updateCommand.Current);
-        Assert.Equal("Half way", updateCommand.Message);
+        updateCommand.Id.Should().Be("test-id");
+        updateCommand.Current.Should().Be(50);
+        updateCommand.Message.Should().Be("Half way");
     }
 
     [Fact]
@@ -345,9 +346,9 @@ public class ProgressContextAdapterTests
         adapter.Complete();
 
         // Assert
-        Assert.True(channel.Reader.TryRead(out var command));
-        Assert.IsType<CompleteProgressCommand>(command);
-        Assert.Equal("test-id", command.Id);
+        channel.Reader.TryRead(out var command).Should().BeTrue("because a command should be available");
+        command.Should().BeOfType<CompleteProgressCommand>("because Complete sends CompleteProgressCommand");
+        command.Id.Should().Be("test-id");
     }
 
     [Fact]
@@ -368,8 +369,8 @@ public class ProgressContextAdapterTests
         {
             commands.Add(command);
         }
-        Assert.Single(commands);
-        Assert.IsType<CompleteProgressCommand>(commands[0]);
+        commands.Should().ContainSingle("because only one complete command should be sent");
+        commands[0].Should().BeOfType<CompleteProgressCommand>("because the single command should be CompleteProgressCommand");
     }
 
     [Fact]
@@ -404,7 +405,7 @@ public class ProgressContextAdapterTests
         {
             commands.Add(command);
         }
-        Assert.Single(commands);
+        commands.Should().ContainSingle("because only one complete command should be sent even after dispose");
     }
 
     [Fact]
@@ -424,11 +425,11 @@ public class ProgressContextAdapterTests
         adapter.Report(progressInfo);
 
         // Assert
-        Assert.True(channel.Reader.TryRead(out var command));
-        Assert.IsType<UpdateProgressCommand>(command);
+        channel.Reader.TryRead(out var command).Should().BeTrue("because a command should be available");
+        command.Should().BeOfType<UpdateProgressCommand>("because Report sends UpdateProgressCommand");
         var updateCommand = (UpdateProgressCommand)command;
-        Assert.Equal(75, updateCommand.Current);
-        Assert.Equal("75% complete", updateCommand.Message);
+        updateCommand.Current.Should().Be(75);
+        updateCommand.Message.Should().Be("75% complete");
     }
 
     [Fact]
@@ -447,7 +448,7 @@ public class ProgressContextAdapterTests
         adapter.Update(50, "Should be ignored");
 
         // Assert - no new commands after disposal
-        Assert.False(channel.Reader.TryRead(out _));
+        channel.Reader.TryRead(out _).Should().BeFalse("because updates after disposal should be ignored");
     }
 
     [Fact]
@@ -466,6 +467,6 @@ public class ProgressContextAdapterTests
         adapter.Update(50, "Should be ignored");
 
         // Assert - no new commands after completion
-        Assert.False(channel.Reader.TryRead(out _));
+        channel.Reader.TryRead(out _).Should().BeFalse("because updates after completion should be ignored");
     }
 }

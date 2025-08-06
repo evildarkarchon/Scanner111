@@ -13,6 +13,7 @@ using Scanner111.Core.Models;
 using Scanner111.Core.Models.Yaml;
 using Scanner111.Tests.TestHelpers;
 using Xunit;
+using FluentAssertions;
 
 namespace Scanner111.Tests.FCX;
 
@@ -92,11 +93,11 @@ public class ModScannerTests : IDisposable
         var result = await _scanner.ScanAllModsAsync(modPath, progress);
         
         // Assert
-        Assert.NotNull(result);
-        Assert.True(result.TotalFilesScanned > 0);
-        Assert.True(result.TotalArchivesScanned > 0);
-        Assert.Contains("Scanning unpacked mod files...", progressMessages);
-        Assert.Contains("Scanning archived mod files...", progressMessages);
+        result.Should().NotBeNull("scan result should not be null");
+        result.TotalFilesScanned.Should().BeGreaterThan(0, "files should have been scanned");
+        result.TotalArchivesScanned.Should().BeGreaterThan(0, "archives should have been scanned");
+        progressMessages.Should().Contain("Scanning unpacked mod files...", "unpacked scan progress should be reported");
+        progressMessages.Should().Contain("Scanning archived mod files...", "archived scan progress should be reported");
     }
 
     [Fact]
@@ -109,10 +110,10 @@ public class ModScannerTests : IDisposable
         var result = await _scanner.ScanAllModsAsync(invalidPath);
         
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(0, result.TotalFilesScanned);
-        Assert.Equal(0, result.TotalArchivesScanned);
-        Assert.Empty(result.Issues);
+        result.Should().NotBeNull("scan result should not be null even for invalid path");
+        result.TotalFilesScanned.Should().Be(0, "no files should be scanned for non-existent path");
+        result.TotalArchivesScanned.Should().Be(0, "no archives should be scanned for non-existent path");
+        result.Issues.Should().BeEmpty("no issues should be reported for non-existent path");
         // Verify logger was called for both unpacked and archived scans
         // Note: NSubstitute verification removed due to logger extension method limitations
     }
@@ -131,9 +132,9 @@ public class ModScannerTests : IDisposable
         
         // Assert
         var fomodIssue = result.Issues.FirstOrDefault(i => i.Type == ModIssueType.CleanupFile);
-        Assert.NotNull(fomodIssue);
-        Assert.Contains("FOMod folder", fomodIssue.Description);
-        Assert.Contains("fomod", fomodIssue.FilePath.ToLower());
+        fomodIssue.Should().NotBeNull("FOMOD folder should be detected as a cleanup issue");
+        fomodIssue.Description.Should().Contain("FOMod folder", "description should mention FOMOD");
+        fomodIssue.FilePath.ToLower().Should().Contain("fomod", "file path should contain fomod");
     }
 
     [Fact]
@@ -149,9 +150,9 @@ public class ModScannerTests : IDisposable
         
         // Assert
         var textureIssues = result.Issues.Where(i => i.Type == ModIssueType.TextureFormatIncorrect).ToList();
-        Assert.Equal(2, textureIssues.Count);
-        Assert.Contains(textureIssues, i => i.Description.Contains("PNG"));
-        Assert.Contains(textureIssues, i => i.Description.Contains("TGA"));
+        textureIssues.Should().HaveCount(2, "both PNG and TGA files should be detected");
+        textureIssues.Should().Contain(i => i.Description.Contains("PNG"), "PNG format issue should be detected");
+        textureIssues.Should().Contain(i => i.Description.Contains("TGA"), "TGA format issue should be detected");
     }
 
     [Fact]
@@ -167,9 +168,9 @@ public class ModScannerTests : IDisposable
         
         // Assert
         var dimensionIssue = result.Issues.FirstOrDefault(i => i.Type == ModIssueType.TextureDimensionsInvalid);
-        Assert.NotNull(dimensionIssue);
-        Assert.Contains("not divisible by 2", dimensionIssue.Description);
-        Assert.Contains("1023x513", dimensionIssue.AdditionalInfo);
+        dimensionIssue.Should().NotBeNull("invalid DDS dimensions should be detected");
+        dimensionIssue.Description.Should().Contain("not divisible by 2", "description should mention divisibility issue");
+        dimensionIssue.AdditionalInfo.Should().Contain("1023x513", "actual dimensions should be reported");
     }
 
     [Fact]
@@ -185,9 +186,9 @@ public class ModScannerTests : IDisposable
         
         // Assert
         var soundIssues = result.Issues.Where(i => i.Type == ModIssueType.SoundFormatIncorrect).ToList();
-        Assert.Equal(2, soundIssues.Count);
-        Assert.Contains(soundIssues, i => i.Description.Contains("MP3"));
-        Assert.Contains(soundIssues, i => i.Description.Contains("M4A"));
+        soundIssues.Should().HaveCount(2, "both MP3 and M4A files should be detected");
+        soundIssues.Should().Contain(i => i.Description.Contains("MP3"), "MP3 format issue should be detected");
+        soundIssues.Should().Contain(i => i.Description.Contains("M4A"), "M4A format issue should be detected");
     }
 
     [Fact]
@@ -204,8 +205,8 @@ public class ModScannerTests : IDisposable
         
         // Assert
         var animIssue = result.Issues.FirstOrDefault(i => i.Type == ModIssueType.AnimationData);
-        Assert.NotNull(animIssue);
-        Assert.Contains("custom animation file data", animIssue.Description);
+        animIssue.Should().NotBeNull("animation data should be detected");
+        animIssue.Description.Should().Contain("custom animation file data", "description should mention animation data");
     }
 
     [Fact]
@@ -221,8 +222,8 @@ public class ModScannerTests : IDisposable
         
         // Assert
         var previsIssue = result.Issues.FirstOrDefault(i => i.Type == ModIssueType.PrevisFile);
-        Assert.NotNull(previsIssue);
-        Assert.Contains("precombine/previs files", previsIssue.Description);
+        previsIssue.Should().NotBeNull("previs files should be detected");
+        previsIssue.Description.Should().Contain("precombine/previs files", "description should mention precombine/previs");
     }
 
     [Fact]
@@ -244,7 +245,7 @@ public class ModScannerTests : IDisposable
         await _scanner.ScanUnpackedModsAsync(modPath, progress);
         
         // Assert
-        Assert.Contains(progressMessages, msg => msg.Contains("Analyzed") && msg.Contains("files"));
+        progressMessages.Should().Contain(msg => msg.Contains("Analyzed") && msg.Contains("files"), "progress should report analyzed files");
     }
 
     [Fact]
@@ -260,8 +261,8 @@ public class ModScannerTests : IDisposable
         
         // Assert
         var textureIssues = result.Issues.Where(i => i.Type == ModIssueType.TextureFormatIncorrect).ToList();
-        Assert.Single(textureIssues); // Only the non-BodySlide PNG should be flagged
-        Assert.Contains("Regular", textureIssues[0].FilePath);
+        textureIssues.Should().ContainSingle("only non-BodySlide PNG should be flagged");
+        textureIssues[0].FilePath.Should().Contain("Regular", "only the regular texture should be flagged");
     }
 
     [Fact]
@@ -281,8 +282,8 @@ public class ModScannerTests : IDisposable
         
         // Assert
         var formatIssue = result.Issues.FirstOrDefault(i => i.Type == ModIssueType.ArchiveFormatIncorrect);
-        Assert.NotNull(formatIssue);
-        Assert.Contains("incorrect format", formatIssue.Description);
+        formatIssue.Should().NotBeNull("invalid BA2 format should be detected");
+        formatIssue.Description.Should().Contain("incorrect format", "description should mention incorrect format");
     }
 
     [Fact]
@@ -305,9 +306,9 @@ public class ModScannerTests : IDisposable
         var result = await _scanner.ScanArchivedModsAsync(modPath);
         
         // Assert
-        Assert.Equal(2, result.TotalArchivesScanned); // Both files are counted
+        result.TotalArchivesScanned.Should().Be(2, "both files should be counted as scanned");
         // Only regular.ba2 will have format issue since prp - main.ba2 is skipped before format check
-        Assert.Equal(1, result.Issues.Count(i => i.Type == ModIssueType.ArchiveFormatIncorrect));
+        result.Issues.Count(i => i.Type == ModIssueType.ArchiveFormatIncorrect).Should().Be(1, "only regular.ba2 should have format issue");
     }
 
     [Fact]
@@ -327,8 +328,8 @@ public class ModScannerTests : IDisposable
         cts.Cancel(); // Cancel immediately
         
         // Act & Assert
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => _scanner.ScanAllModsAsync(modPath, null, cts.Token));
+        var action = () => _scanner.ScanAllModsAsync(modPath, null, cts.Token);
+        await action.Should().ThrowAsync<OperationCanceledException>("scan should be cancelled when token is cancelled");
     }
 
     [Fact]
@@ -344,10 +345,10 @@ public class ModScannerTests : IDisposable
         var result = await _scanner.ScanUnpackedModsAsync(modPath);
         
         // Assert
-        Assert.Equal(2, result.CleanedFiles.Count);
-        Assert.Contains(result.CleanedFiles, f => f.Contains("readme.txt"));
-        Assert.Contains(result.CleanedFiles, f => f.Contains("changelog.txt"));
-        Assert.DoesNotContain(result.CleanedFiles, f => f.Contains("important.txt"));
+        result.CleanedFiles.Should().HaveCount(2, "two documentation files should be cleaned");
+        result.CleanedFiles.Should().Contain(f => f.Contains("readme.txt"), "readme should be cleaned");
+        result.CleanedFiles.Should().Contain(f => f.Contains("changelog.txt"), "changelog should be cleaned");
+        result.CleanedFiles.Should().NotContain(f => f.Contains("important.txt"), "important.txt should not be cleaned");
     }
 
     // Helper methods

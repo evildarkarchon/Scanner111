@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using FluentAssertions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.GUI.Converters;
@@ -19,7 +20,7 @@ public class AnalysisResultSummaryConverterTests
         var result = _converter.Convert(null, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("No analysis data available", result);
+        result.Should().Be("No analysis data available", "because null value should return default message");
     }
 
     [Fact]
@@ -29,7 +30,7 @@ public class AnalysisResultSummaryConverterTests
         var result = _converter.Convert("not an analysis result", typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("No analysis data available", result);
+        result.Should().Be("No analysis data available", "because null value should return default message");
     }
 
     [Theory]
@@ -53,7 +54,7 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal(expectedMessage, convertedResult);
+        convertedResult.Should().Be(expectedMessage, "because analyzer without findings should return appropriate message");
     }
 
     [Fact]
@@ -72,7 +73,7 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("Found 3 FormIDs - 2 unresolved (potential issues)", convertedResult);
+        convertedResult.Should().Be("Found 3 FormIDs - 2 unresolved (potential issues)", "because unresolved FormIDs should be reported");
     }
 
     [Fact]
@@ -95,7 +96,7 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("Found 2 FormIDs - all resolved successfully", convertedResult);
+        convertedResult.Should().Be("Found 2 FormIDs - all resolved successfully", "because all FormIDs are resolved");
     }
 
     [Fact]
@@ -114,7 +115,7 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("No FormIDs found in crash log", convertedResult);
+        convertedResult.Should().Be("No FormIDs found in crash log", "because no FormIDs exist");
     }
 
     [Fact]
@@ -138,7 +139,7 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("Found 3 plugins - 1 potentially problematic", convertedResult);
+        convertedResult.Should().Be("Found 3 plugins - 1 potentially problematic", "because suspected plugins should be reported");
     }
 
     [Fact]
@@ -161,7 +162,7 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("Found 2 plugins - no obvious conflicts", convertedResult);
+        convertedResult.Should().Be("Found 2 plugins - no obvious conflicts", "because no plugins are suspected");
     }
 
     [Fact]
@@ -180,7 +181,7 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("No plugins detected in crash log", convertedResult);
+        convertedResult.Should().Be("No plugins detected in crash log", "because no plugins exist");
     }
 
     [Fact]
@@ -206,7 +207,7 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("Detected 2 error pattern(s) and 1 stack pattern(s)", convertedResult);
+        convertedResult.Should().Be("Detected 2 error pattern(s) and 1 stack pattern(s)", "because both error and stack patterns were found");
     }
 
     [Fact]
@@ -228,7 +229,7 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("Detected 1 error pattern(s)", convertedResult);
+        convertedResult.Should().Be("Detected 1 error pattern(s)", "because only error patterns were found");
     }
 
     [Fact]
@@ -251,7 +252,7 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("Detected 2 stack pattern(s)", convertedResult);
+        convertedResult.Should().Be("Detected 2 stack pattern(s)", "because only stack patterns were found");
     }
 
     [Fact]
@@ -270,7 +271,7 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("No known error patterns detected", convertedResult);
+        convertedResult.Should().Be("No known error patterns detected", "because no patterns were detected");
     }
 
     [Fact]
@@ -288,7 +289,7 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("2 finding(s) - First finding", convertedResult);
+        convertedResult.Should().Be("2 finding(s) - First finding", "because report lines should be summarized");
     }
 
     [Fact]
@@ -306,7 +307,7 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("Analysis completed - see full report for details", convertedResult);
+        convertedResult.Should().Be("Analysis completed - see full report for details", "because empty report lines should show generic message");
     }
 
     [Fact]
@@ -324,15 +325,15 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("Analysis completed with 2 finding(s)", convertedResult);
+        convertedResult.Should().Be("Analysis completed with 2 finding(s)", "because empty first line should show count only");
     }
 
     [Fact]
     public void ConvertBack_ThrowsNotImplementedException()
     {
         // Assert
-        Assert.Throws<NotImplementedException>(() =>
-            _converter.ConvertBack("Some text", typeof(AnalysisResult), null, CultureInfo.InvariantCulture));
+        var action = () => _converter.ConvertBack("Some text", typeof(AnalysisResult), null, CultureInfo.InvariantCulture);
+        action.Should().Throw<NotImplementedException>("because ConvertBack is not implemented");
     }
 
     [Fact]
@@ -343,7 +344,7 @@ public class AnalysisResultSummaryConverterTests
         var instance2 = AnalysisResultSummaryConverter.Instance;
 
         // Assert
-        Assert.Same(instance1, instance2);
+        instance1.Should().BeSameAs(instance2, "because Instance should return singleton");
     }
 
     // Test implementation of AnalysisResult for testing purposes

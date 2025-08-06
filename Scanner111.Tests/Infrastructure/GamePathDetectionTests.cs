@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using FluentAssertions;
 using Scanner111.Core.Infrastructure;
 using Xunit;
 
@@ -39,7 +40,7 @@ public class GamePathDetectionTests : IDisposable
         var result = GamePathDetection.ValidateGamePath(gamePath);
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
     }
 
     [Fact]
@@ -52,7 +53,7 @@ public class GamePathDetectionTests : IDisposable
         var result = GamePathDetection.ValidateGamePath(gamePath);
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -62,7 +63,7 @@ public class GamePathDetectionTests : IDisposable
         var result = GamePathDetection.ValidateGamePath(null!);
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -72,7 +73,7 @@ public class GamePathDetectionTests : IDisposable
         var result = GamePathDetection.ValidateGamePath("");
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -85,7 +86,7 @@ public class GamePathDetectionTests : IDisposable
         var result = GamePathDetection.ValidateGamePath(nonExistentPath);
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -98,7 +99,7 @@ public class GamePathDetectionTests : IDisposable
         var expectedPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "My Games", "Fallout4");
-        Assert.Equal(expectedPath, result);
+        result.Should().Be(expectedPath);
     }
 
     [Fact]
@@ -111,7 +112,7 @@ public class GamePathDetectionTests : IDisposable
         var expectedPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "My Games", "Skyrim Special Edition");
-        Assert.Equal(expectedPath, result);
+        result.Should().Be(expectedPath);
     }
 
     [Fact]
@@ -121,7 +122,7 @@ public class GamePathDetectionTests : IDisposable
         var result = GamePathDetection.GetGameDocumentsPath("UnknownGame");
 
         // Assert
-        Assert.Equal("", result);
+        result.Should().Be("");
     }
 
     [Fact]
@@ -157,7 +158,7 @@ public class GamePathDetectionTests : IDisposable
             // Assert
             // We can't validate against the exact path since it needs to exist
             // But we can check that the method attempted to parse the log
-            Assert.NotNull(result);
+            result.Should().NotBeNull();
         }
         finally
         {
@@ -181,7 +182,7 @@ public class GamePathDetectionTests : IDisposable
         var result = GamePathDetection.TryGetGamePathFromXseLog();
 
         // Assert
-        Assert.Equal("", result);
+        result.Should().Be("");
     }
 
     [Fact]
@@ -197,11 +198,11 @@ public class GamePathDetectionTests : IDisposable
         // Config might be null if no game is installed, which is fine for unit tests
         if (config != null)
         {
-            Assert.Equal("Fallout4", config.GameName);
-            Assert.NotEmpty(config.RootPath);
-            Assert.Contains("Fallout4.exe", config.ExecutablePath);
-            Assert.NotEmpty(config.DocumentsPath);
-            Assert.NotEmpty(config.Platform);
+            config.GameName.Should().Be("Fallout4");
+            config.RootPath.Should().NotBeEmpty();
+            config.ExecutablePath.Should().Contain("Fallout4.exe");
+            config.DocumentsPath.Should().NotBeEmpty();
+            config.Platform.Should().NotBeEmpty();
         }
     }
 
@@ -216,7 +217,7 @@ public class GamePathDetectionTests : IDisposable
         // Assert
         // Result depends on whether game is actually installed
         // We're just verifying the method executes without error
-        Assert.NotNull(result);
+        result.Should().NotBeNull();
     }
 
     [SkippableFact]
@@ -228,7 +229,7 @@ public class GamePathDetectionTests : IDisposable
         var result = GamePathDetection.TryGetGamePathFromRegistry();
 
         // Assert
-        Assert.Equal("", result);
+        result.Should().Be("");
     }
 
     [Fact]
@@ -240,7 +241,7 @@ public class GamePathDetectionTests : IDisposable
         // Assert
         // Result depends on system configuration
         // We're verifying the method completes without error
-        Assert.NotNull(result);
+        result.Should().NotBeNull();
     }
 
     [Fact]
@@ -252,7 +253,7 @@ public class GamePathDetectionTests : IDisposable
         // Assert
         // Result depends on system configuration
         // We're verifying the method completes without error
-        Assert.NotNull(result);
+        result.Should().NotBeNull();
     }
 
     [Theory]
@@ -287,7 +288,7 @@ public class GamePathDetectionTests : IDisposable
             detectedPlatform = "Unknown";
 
         // Assert that the detected platform matches the expected platform
-        Assert.Equal(expectedPlatform, detectedPlatform);
+        detectedPlatform.Should().Be(expectedPlatform);
     }
 
     [Fact]
@@ -303,7 +304,7 @@ public class GamePathDetectionTests : IDisposable
         var result = GamePathDetection.ValidateGamePath(subPath);
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
     }
 
     [Fact]
@@ -323,7 +324,7 @@ public class GamePathDetectionTests : IDisposable
             var result = GamePathDetection.ValidateGamePath(longPath);
 
             // Assert
-            Assert.True(result);
+            result.Should().BeTrue();
         }
         catch (PathTooLongException)
         {
@@ -358,8 +359,8 @@ public class GamePathDetectionTests : IDisposable
         }
 
         // Assert
-        Assert.NotNull(config.XsePath);
-        Assert.Contains("f4se_loader.exe", config.XsePath);
+        config.XsePath.Should().NotBeNull();
+        config.XsePath.Should().Contain("f4se_loader.exe");
     }
 
     [Fact]
@@ -394,7 +395,7 @@ public class GamePathDetectionTests : IDisposable
             var result = GamePathDetection.TryGetGamePathFromXseLog();
 
             // Assert
-            Assert.Equal("", result);
+            result.Should().Be("");
         }
         finally
         {
@@ -428,7 +429,7 @@ public class GamePathDetectionTests : IDisposable
             var result = GamePathDetection.TryGetGamePathFromXseLog();
 
             // Assert
-            Assert.Equal("", result);
+            result.Should().Be("");
         }
         finally
         {
@@ -476,7 +477,7 @@ public class GamePathDetectionTests : IDisposable
 
             // Assert - Since the extracted path won't exist, it will return empty
             // But we're testing the extraction logic
-            Assert.NotNull(result);
+            result.Should().NotBeNull();
         }
         finally
         {
@@ -498,7 +499,7 @@ public class GamePathDetectionTests : IDisposable
             var result = GamePathDetection.ValidateGamePath(tempFile);
 
             // Assert
-            Assert.False(result);
+            result.Should().BeFalse();
         }
         finally
         {
@@ -518,7 +519,7 @@ public class GamePathDetectionTests : IDisposable
         var result = GamePathDetection.ValidateGamePath(path);
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -539,7 +540,7 @@ public class GamePathDetectionTests : IDisposable
         foreach (var path in invalidPaths)
         {
             var result = GamePathDetection.ValidateGamePath(path);
-            Assert.False(result);
+            result.Should().BeFalse();
         }
     }
 
@@ -555,7 +556,7 @@ public class GamePathDetectionTests : IDisposable
         var result = GamePathDetection.GetGameDocumentsPath(gameType);
 
         // Assert
-        Assert.Equal("", result);
+        result.Should().Be("");
     }
 
     [Fact]
@@ -569,7 +570,7 @@ public class GamePathDetectionTests : IDisposable
         // So we either expect null or a config with the requested game name
         if (result != null)
         {
-            Assert.Equal("NonExistentGame12345", result.GameName);
+            result.GameName.Should().Be("NonExistentGame12345");
         }
         // If null, that's also valid
     }
@@ -595,7 +596,7 @@ public class GamePathDetectionTests : IDisposable
             detectedPlatform = "Unknown";
 
         // Assert
-        Assert.Equal(expectedPlatform, detectedPlatform);
+        detectedPlatform.Should().Be(expectedPlatform);
     }
 
     [Fact]
@@ -605,7 +606,7 @@ public class GamePathDetectionTests : IDisposable
         var result = GamePathDetection.TryDetectGamePath("InvalidGame123!@#");
 
         // Assert
-        Assert.NotNull(result); // Should return empty string, not throw
+        result.Should().NotBeNull(); // Should return empty string, not throw
     }
 
     [SkippableFact]
@@ -620,7 +621,7 @@ public class GamePathDetectionTests : IDisposable
         var result = GamePathDetection.TryGetGamePathFromRegistry();
 
         // Assert
-        Assert.NotNull(result); // Should return string (empty or path), not throw
+        result.Should().NotBeNull(); // Should return string (empty or path), not throw
     }
 
     private string CreateTempDirectory()

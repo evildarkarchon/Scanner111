@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Scanner111.CLI.Commands;
@@ -111,7 +112,7 @@ public class FcxCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
         
         // Assert
-        Assert.Equal(0, result);
+        result.Should().Be(0, "because restore operation should succeed");
         Mock.Get(_backupService).Verify(x => x.RestoreBackupAsync(
             options.RestorePath,
             settings.GamePath,
@@ -245,9 +246,9 @@ public class FcxCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
         
         // Assert
-        Assert.Equal(options.GamePath, settings.GamePath);
-        Assert.Equal(options.ModsFolder, settings.ModsFolder);
-        Assert.Equal(options.IniFolder, settings.IniFolder);
+        settings.GamePath.Should().Be(options.GamePath, "because command line override should be applied");
+        settings.ModsFolder.Should().Be(options.ModsFolder, "because command line override should be applied");
+        settings.IniFolder.Should().Be(options.IniFolder, "because command line override should be applied");
     }
     
     [Fact]
@@ -267,7 +268,7 @@ public class FcxCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
         
         // Assert
-        Assert.Equal(1, result);
+        result.Should().Be(1, "because exception should result in error code");
         // Note: Cannot verify logger extension methods with Moq
         // The important assertion is that error code 1 is returned
     }

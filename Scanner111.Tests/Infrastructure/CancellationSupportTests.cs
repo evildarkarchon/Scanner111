@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using FluentAssertions;
 using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Tests.Infrastructure;
@@ -41,7 +42,7 @@ public class CancellationSupportTests : IDisposable
         _disposables.Add(cts);
 
         // Assert
-        Assert.False(cts.IsCancellationRequested);
+        cts.IsCancellationRequested.Should().BeFalse("newly created token should not be cancelled");
     }
 
     /// <summary>
@@ -63,8 +64,8 @@ public class CancellationSupportTests : IDisposable
         cts.Cancel();
 
         // Assert
-        Assert.True(cts.IsCancellationRequested);
-        Assert.True(cts.Token.IsCancellationRequested);
+        cts.IsCancellationRequested.Should().BeTrue("cancellation should be requested after Cancel()");
+        cts.Token.IsCancellationRequested.Should().BeTrue("token should reflect cancellation state");
     }
 
     /// <summary>
@@ -88,7 +89,7 @@ public class CancellationSupportTests : IDisposable
         Thread.Sleep(100); // Wait longer than timeout
 
         // Assert
-        Assert.True(cts.IsCancellationRequested);
+        cts.IsCancellationRequested.Should().BeTrue("token should be cancelled after timeout");
     }
 
     /// <summary>
@@ -111,7 +112,7 @@ public class CancellationSupportTests : IDisposable
         Thread.Sleep(100);
 
         // Assert
-        Assert.True(cts.IsCancellationRequested);
+        cts.IsCancellationRequested.Should().BeTrue("token should be cancelled after CancelAfter timeout");
     }
 
     /// <summary>
@@ -131,12 +132,10 @@ public class CancellationSupportTests : IDisposable
         cts.Cancel();
 
         // Act & Assert
-        var exception = Assert.Throws<OperationCanceledException>(() =>
-        {
-            cts.Token.ThrowIfCancellationRequested("test operation");
-        });
-
-        Assert.Contains("test operation", exception.Message);
+        var act = () => cts.Token.ThrowIfCancellationRequested("test operation");
+        var exception = act.Should().Throw<OperationCanceledException>("cancelled token should throw")
+            .Which;
+        exception.Message.Should().Contain("test operation", "exception message should include operation description");
     }
 
     /// <summary>
@@ -178,10 +177,8 @@ public class CancellationSupportTests : IDisposable
         await cts.CancelAsync();
 
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-        {
-            await cts.Token.CheckpointAsync("test operation");
-        });
+        var act = () => cts.Token.CheckpointAsync("test operation");
+        await act.Should().ThrowAsync<OperationCanceledException>("checkpoint should throw when cancelled");
     }
 
     /// <summary>
@@ -208,7 +205,7 @@ public class CancellationSupportTests : IDisposable
         await cts.Token.CheckpointAsync("test operation", progress);
 
         // Assert
-        Assert.Equal("test operation", reportedProgress);
+        reportedProgress.Should().Be("test operation", "progress should be reported with operation name");
     }
 
     /// <summary>
@@ -230,11 +227,11 @@ public class CancellationSupportTests : IDisposable
         using var linked = CancellationHelper.CreateLinkedTokenSource(cts1.Token, cts2.Token);
 
         // Assert
-        Assert.False(linked.Token.IsCancellationRequested);
+        linked.Token.IsCancellationRequested.Should().BeFalse("linked token should not be cancelled initially");
 
         // Cancel one source
         cts1.Cancel();
-        Assert.True(linked.Token.IsCancellationRequested);
+        linked.Token.IsCancellationRequested.Should().BeTrue("linked token should be cancelled when any source is cancelled");
     }
 
     /// <summary>
@@ -252,9 +249,9 @@ public class CancellationSupportTests : IDisposable
         using var timeoutSource = CancellationHelper.CreateTimeoutToken(TimeSpan.FromMilliseconds(50));
 
         // Assert
-        Assert.False(timeoutSource.Token.IsCancellationRequested);
+        timeoutSource.Token.IsCancellationRequested.Should().BeFalse("token should not be cancelled initially");
         Thread.Sleep(100);
-        Assert.True(timeoutSource.Token.IsCancellationRequested);
+        timeoutSource.Token.IsCancellationRequested.Should().BeTrue("token should be cancelled after timeout");
     }
 
     /// <summary>
@@ -275,11 +272,11 @@ public class CancellationSupportTests : IDisposable
             userSource.Token, TimeSpan.FromSeconds(1));
 
         // Act & Assert
-        Assert.False(combinedSource.Token.IsCancellationRequested);
+        combinedSource.Token.IsCancellationRequested.Should().BeFalse("combined token should not be cancelled initially");
 
         // Cancel user token
         userSource.Cancel();
-        Assert.True(combinedSource.Token.IsCancellationRequested);
+        combinedSource.Token.IsCancellationRequested.Should().BeTrue("combined token should be cancelled when user token is cancelled");
     }
 
     /// <summary>
@@ -303,7 +300,7 @@ public class CancellationSupportTests : IDisposable
         cancellableProgress.Report("test value");
 
         // Assert
-        Assert.Equal("test value", reportedValue);
+        reportedValue.Should().Be("test value", "progress should be reported");
     }
 
     /// <summary>
@@ -329,7 +326,7 @@ public class CancellationSupportTests : IDisposable
         cancellableProgress.Report("test value");
 
         // Assert
-        Assert.Null(reportedValue); // Should not report when cancelled
+        reportedValue.Should().BeNull("progress should not be reported when cancelled");
     }
 
     /// <summary>
@@ -352,7 +349,7 @@ public class CancellationSupportTests : IDisposable
         using var acquired = await semaphore.WaitAsync();
 
         // Assert
-        Assert.NotNull(acquired);
+        acquired.Should().NotBeNull("semaphore should be successfully acquired");
     }
 
     /// <summary>
@@ -372,7 +369,8 @@ public class CancellationSupportTests : IDisposable
         await cts.CancelAsync();
 
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(async () => { await semaphore.WaitAsync(cts.Token); });
+        var act = () => semaphore.WaitAsync(cts.Token);
+        await act.Should().ThrowAsync<OperationCanceledException>("semaphore wait should throw when cancelled");
     }
 
     /// <summary>
@@ -396,7 +394,7 @@ public class CancellationSupportTests : IDisposable
         var acquired = await semaphore.WaitAsync(TimeSpan.FromMilliseconds(50), cts.Token);
 
         // Assert
-        Assert.Null(acquired); // Should timeout
+        acquired.Should().BeNull("semaphore should return null on timeout");
     }
 
     /// <summary>
@@ -419,7 +417,7 @@ public class CancellationSupportTests : IDisposable
         cts.Cancel();
 
         // Assert
-        Assert.True(callbackCalled);
+        callbackCalled.Should().BeTrue("callback should be invoked when token is cancelled");
     }
 
     /// <summary>
@@ -451,7 +449,7 @@ public class CancellationSupportTests : IDisposable
         await Task.Delay(50);
 
         // Assert
-        Assert.True(callbackCalled);
+        callbackCalled.Should().BeTrue("async callback should be invoked when token is cancelled");
     }
 
     /// <summary>
@@ -474,7 +472,7 @@ public class CancellationSupportTests : IDisposable
         await waitTask;
 
         // Assert - Should complete without throwing
-        Assert.True(waitTask.IsCompletedSuccessfully);
+        waitTask.IsCompletedSuccessfully.Should().BeTrue("wait task should complete successfully when cancelled");
     }
 
     /// <summary>
@@ -499,7 +497,8 @@ public class CancellationSupportTests : IDisposable
         await cts.CancelAsync();
 
         // Assert
-        await Assert.ThrowsAsync<TaskCanceledException>(async () => { await longRunningTask.WaitAsync(cts.Token); });
+        var act = () => longRunningTask.WaitAsync(cts.Token);
+        await act.Should().ThrowAsync<TaskCanceledException>("task should throw when cancellation is requested");
     }
 
     /// <summary>
@@ -524,7 +523,7 @@ public class CancellationSupportTests : IDisposable
         var result = await shortTask.WithCancellation(cts.Token);
 
         // Assert
-        Assert.Equal("success", result);
+        result.Should().Be("success", "task should complete normally without cancellation");
     }
 
     /// <summary>
@@ -563,8 +562,8 @@ public class CancellationSupportTests : IDisposable
         var completed = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
         // Assert
-        Assert.True(completed);
-        Assert.Equal("test value", reportedValue);
+        completed.Should().BeTrue("progress report should complete");
+        reportedValue.Should().Be("test value", "correct value should be reported");
     }
 
     /// <summary>
@@ -601,8 +600,8 @@ public class CancellationSupportTests : IDisposable
         var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
 
         // Assert
-        Assert.Equal(timeoutTask, completedTask); // Should timeout, not complete
-        Assert.Null(reportedValue); // Should not report when cancelled
+        completedTask.Should().Be(timeoutTask, "should timeout rather than complete");
+        reportedValue.Should().BeNull("value should not be reported when cancelled");
     }
 
     /// <summary>
@@ -648,11 +647,11 @@ public class CancellationSupportTests : IDisposable
         var completed = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
         // Assert
-        Assert.True(completed);
-        Assert.Equal(expectedReports, reportedValues.Count);
-        Assert.Contains("report 1", reportedValues);
-        Assert.Contains("report 2", reportedValues);
-        Assert.Contains("report 3", reportedValues);
+        completed.Should().BeTrue("all progress reports should complete");
+        reportedValues.Should().HaveCount(expectedReports, "all reports should be received");
+        reportedValues.Should().Contain("report 1", "first report should be received");
+        reportedValues.Should().Contain("report 2", "second report should be received");
+        reportedValues.Should().Contain("report 3", "third report should be received");
     }
 }
 

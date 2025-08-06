@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
@@ -50,7 +51,7 @@ public class UpdateServiceTests
         var result = await _service.IsLatestVersionAsync();
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse("because update checking is disabled");
         _messageHandlerMock.Verify(x => x.ShowError(It.IsAny<string>(), It.IsAny<MessageTarget>()), Times.Once);
     }
 
@@ -65,7 +66,7 @@ public class UpdateServiceTests
         var result = await _service.IsLatestVersionAsync(quiet: true);
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse("because update checking is disabled");
         _messageHandlerMock.Verify(x => x.ShowError(It.IsAny<string>(), It.IsAny<MessageTarget>()), Times.Never);
         _messageHandlerMock.Verify(x => x.ShowWarning(It.IsAny<string>(), It.IsAny<MessageTarget>()), Times.Never);
         _messageHandlerMock.Verify(x => x.ShowSuccess(It.IsAny<string>(), It.IsAny<MessageTarget>()), Times.Never);
@@ -82,8 +83,8 @@ public class UpdateServiceTests
         var result = await _service.GetUpdateInfoAsync();
 
         // Assert
-        Assert.False(result.CheckSuccessful);
-        Assert.Equal("Update checking is disabled in settings", result.ErrorMessage);
+        result.CheckSuccessful.Should().BeFalse("because update checking is disabled");
+        result.ErrorMessage.Should().Be("Update checking is disabled in settings");
     }
 
     [Theory]
@@ -100,8 +101,8 @@ public class UpdateServiceTests
         var result = await _service.GetUpdateInfoAsync();
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(updateSource, result.UpdateSource);
+        result.Should().NotBeNull();
+        result.UpdateSource.Should().Be(updateSource, "because the update source should match settings");
     }
 
     [Fact]
@@ -114,7 +115,7 @@ public class UpdateServiceTests
         // Act & Assert
         // The method might handle cancellation gracefully or propagate it
         var result = await _service.GetUpdateInfoAsync(cts.Token);
-        Assert.NotNull(result);
+        result.Should().NotBeNull("because the method handles cancellation gracefully");
     }
 
     [Fact]
@@ -133,13 +134,13 @@ public class UpdateServiceTests
         };
 
         // Assert
-        Assert.True(result.CheckSuccessful);
-        Assert.False(result.IsUpdateAvailable);
-        Assert.Equal(new Version(1, 2, 3), result.CurrentVersion);
-        Assert.Equal(new Version(1, 2, 4), result.LatestGitHubVersion);
-        Assert.Equal(new Version(1, 2, 5), result.LatestNexusVersion);
-        Assert.Equal("Both", result.UpdateSource);
-        Assert.Null(result.ErrorMessage);
+        result.CheckSuccessful.Should().BeTrue("because the check was successful");
+        result.IsUpdateAvailable.Should().BeFalse("because no update is available");
+        result.CurrentVersion.Should().Be(new Version(1, 2, 3));
+        result.LatestGitHubVersion.Should().Be(new Version(1, 2, 4));
+        result.LatestNexusVersion.Should().Be(new Version(1, 2, 5));
+        result.UpdateSource.Should().Be("Both");
+        result.ErrorMessage.Should().BeNull("because there was no error");
     }
 
     [Theory]
@@ -153,7 +154,7 @@ public class UpdateServiceTests
         // This tests the version parsing logic indirectly
         // Since TryParseVersion is private, we test it through the public API
         var version = Version.Parse(string.Join(".", expectedParts));
-        Assert.NotNull(version);
+        version.Should().NotBeNull("because the version string should be parseable");
     }
 
     [Theory]
@@ -166,7 +167,7 @@ public class UpdateServiceTests
     public void TryParseVersion_InvalidFormats_ReturnsNull(string input)
     {
         // Test that invalid formats don't crash the service
-        Assert.True(true); // Placeholder since we can't directly test private method
+        true.Should().BeTrue("because this is a placeholder test for private method validation");
     }
 
     [Theory]
@@ -181,7 +182,7 @@ public class UpdateServiceTests
     {
         // This tests the update detection logic
         // Since IsUpdateAvailable is private, we verify through integration
-        Assert.True(true); // Placeholder
+        true.Should().BeTrue("because this is a placeholder test for private method validation");
     }
 
     [Fact]
@@ -192,7 +193,9 @@ public class UpdateServiceTests
             .ThrowsAsync(new Exception("Test exception"));
 
         // Act & Assert - The method lets the exception propagate
-        await Assert.ThrowsAsync<Exception>(async () => await _service.GetUpdateInfoAsync());
+        var act = async () => await _service.GetUpdateInfoAsync();
+        await act.Should().ThrowAsync<Exception>()
+            .WithMessage("Test exception");
     }
 
     [Fact]
@@ -205,7 +208,8 @@ public class UpdateServiceTests
         var result = await _service.IsLatestVersionAsync();
 
         // Assert
-        Assert.NotNull(result);
+        // Result is a bool indicating if we have the latest version - just verify it doesn't throw
+        var _ = result; // We're just verifying the method completes without error
     }
 
     [Theory]
@@ -222,7 +226,7 @@ public class UpdateServiceTests
         var result = await _service.GetUpdateInfoAsync();
 
         // Assert
-        Assert.NotNull(result);
+        result.Should().NotBeNull("because the method should return a result");
         // Verify appropriate error handling based on configuration
     }
 
@@ -234,8 +238,9 @@ public class UpdateServiceTests
             .ReturnsAsync((ApplicationSettings)null!);
 
         // Act & Assert - should not throw
-        await Assert.ThrowsAsync<NullReferenceException>(async () => 
-            await _service.GetUpdateInfoAsync());
+        var act = () => _service.GetUpdateInfoAsync();
+        await act.Should().ThrowAsync<NullReferenceException>()
+            .WithMessage("*", "because null settings should cause a NullReferenceException");
     }
 
     [Fact]
@@ -245,7 +250,7 @@ public class UpdateServiceTests
         var service = new UpdateService(_loggerMock.Object, _settingsServiceMock.Object, _messageHandlerMock.Object);
         
         // Assert
-        Assert.NotNull(service);
+        service.Should().NotBeNull("because the constructor should create a valid instance");
     }
 
     [Theory]
@@ -274,6 +279,6 @@ public class UpdateServiceTests
         var results = await Task.WhenAll(tasks);
 
         // Assert
-        Assert.All(results, r => Assert.False(r)); // All should return same result
+        results.Should().AllSatisfy(r => r.Should().BeFalse("because all concurrent calls should return the same result"));
     }
 }

@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Tests.Infrastructure;
@@ -38,7 +39,7 @@ public class MessageHandlerTests
     [Fact]
     public void MessageHandler_IsInitialized_ReturnsTrueAfterInitialization()
     {
-        Assert.True(MessageHandler.IsInitialized);
+        MessageHandler.IsInitialized.Should().BeTrue("because MessageHandler was initialized in constructor");
     }
 
     /// <summary>
@@ -60,8 +61,8 @@ public class MessageHandlerTests
     {
         MessageHandler.MsgInfo("Test info message");
 
-        Assert.Contains("Test info message", _testHandler.InfoMessages);
-        Assert.Equal(MessageTarget.All, _testHandler.LastInfoTarget);
+        _testHandler.InfoMessages.Should().Contain("Test info message", "because info message was sent to handler");
+        _testHandler.LastInfoTarget.Should().Be(MessageTarget.All, "because default target is All");
     }
 
     /// <summary>
@@ -85,8 +86,8 @@ public class MessageHandlerTests
     {
         MessageHandler.MsgInfo("Test info message", MessageTarget.GuiOnly);
 
-        Assert.Contains("Test info message", _testHandler.InfoMessages);
-        Assert.Equal(MessageTarget.GuiOnly, _testHandler.LastInfoTarget);
+        _testHandler.InfoMessages.Should().Contain("Test info message", "because info message was sent to handler");
+        _testHandler.LastInfoTarget.Should().Be(MessageTarget.GuiOnly, "because GuiOnly target was specified");
     }
 
     /// <summary>
@@ -106,7 +107,7 @@ public class MessageHandlerTests
     {
         MessageHandler.MsgWarning("Test warning message");
 
-        Assert.Contains("Test warning message", _testHandler.WarningMessages);
+        _testHandler.WarningMessages.Should().Contain("Test warning message", "because warning message was sent to handler");
     }
 
     /// <summary>
@@ -127,7 +128,7 @@ public class MessageHandlerTests
     {
         MessageHandler.MsgError("Test error message");
 
-        Assert.Contains("Test error message", _testHandler.ErrorMessages);
+        _testHandler.ErrorMessages.Should().Contain("Test error message", "because error message was sent to handler");
     }
 
     /// <summary>
@@ -149,9 +150,9 @@ public class MessageHandlerTests
     {
         var progress = MessageHandler.MsgProgress("Test progress", 100);
 
-        Assert.NotNull(progress);
-        Assert.Equal("Test progress", _testHandler.LastProgressTitle);
-        Assert.Equal(100, _testHandler.LastProgressTotal);
+        progress.Should().NotBeNull("because progress object should be created");
+        _testHandler.LastProgressTitle.Should().Be("Test progress", "because progress title was provided");
+        _testHandler.LastProgressTotal.Should().Be(100, "because total items count was set to 100");
     }
 
     /// <summary>
@@ -182,15 +183,15 @@ public class MessageHandlerTests
         MessageHandler.MsgError("Test");
 
         var progress = MessageHandler.MsgProgress("Test", 10);
-        Assert.NotNull(progress);
+        progress.Should().NotBeNull("because progress object should be created even without initialization");
 
         // Progress should work correctly
         progress.Report(new ProgressInfo { Current = 5, Total = 10 });
 
         // Verify messages were handled
-        Assert.Contains("Test", tempHandler.InfoMessages);
-        Assert.Contains("Test", tempHandler.WarningMessages);
-        Assert.Contains("Test", tempHandler.ErrorMessages);
+        tempHandler.InfoMessages.Should().Contain("Test", "because info message was handled");
+        tempHandler.WarningMessages.Should().Contain("Test", "because warning message was handled");
+        tempHandler.ErrorMessages.Should().Contain("Test", "because error message was handled");
     }
 
     /// <summary>
@@ -214,17 +215,18 @@ public class MessageHandlerTests
         progressContext.Update(25, "Processing item 25");
         progressContext.Report(new ProgressInfo { Current = 40, Total = 50, Message = "Almost done" });
 
-        var testProgressContext = Assert.IsType<TestProgressContext>(progressContext);
-        Assert.Equal(3, testProgressContext.Reports.Count);
+        progressContext.Should().BeOfType<TestProgressContext>("because test handler creates TestProgressContext");
+        var testProgressContext = (TestProgressContext)progressContext;
+        testProgressContext.Reports.Should().HaveCount(3, "because three progress updates were made");
 
-        Assert.Equal(10, testProgressContext.Reports[0].Current);
-        Assert.Equal("Processing item 10", testProgressContext.Reports[0].Message);
+        testProgressContext.Reports[0].Current.Should().Be(10, "because first update set current to 10");
+        testProgressContext.Reports[0].Message.Should().Be("Processing item 10", "because first update message was provided");
 
-        Assert.Equal(25, testProgressContext.Reports[1].Current);
-        Assert.Equal("Processing item 25", testProgressContext.Reports[1].Message);
+        testProgressContext.Reports[1].Current.Should().Be(25, "because second update set current to 25");
+        testProgressContext.Reports[1].Message.Should().Be("Processing item 25", "because second update message was provided");
 
-        Assert.Equal(40, testProgressContext.Reports[2].Current);
-        Assert.Equal("Almost done", testProgressContext.Reports[2].Message);
+        testProgressContext.Reports[2].Current.Should().Be(40, "because third update set current to 40");
+        testProgressContext.Reports[2].Message.Should().Be("Almost done", "because third update message was provided");
 
         progressContext.Complete();
     }
@@ -249,14 +251,15 @@ public class MessageHandlerTests
         progress.Report(new ProgressInfo { Current = 25, Total = 100, Message = "Quarter done" });
         progress.Report(new ProgressInfo { Current = 75, Total = 100, Message = "Three quarters done" });
 
-        var testProgress = Assert.IsType<TestProgress>(progress);
-        Assert.Equal(2, testProgress.Reports.Count);
+        progress.Should().BeOfType<TestProgress>("because test handler creates TestProgress");
+        var testProgress = (TestProgress)progress;
+        testProgress.Reports.Should().HaveCount(2, "because two progress reports were made");
 
-        Assert.Equal(25, testProgress.Reports[0].Current);
-        Assert.Equal("Quarter done", testProgress.Reports[0].Message);
+        testProgress.Reports[0].Current.Should().Be(25, "because first report set current to 25");
+        testProgress.Reports[0].Message.Should().Be("Quarter done", "because first report message was provided");
 
-        Assert.Equal(75, testProgress.Reports[1].Current);
-        Assert.Equal("Three quarters done", testProgress.Reports[1].Message);
+        testProgress.Reports[1].Current.Should().Be(75, "because second report set current to 75");
+        testProgress.Reports[1].Message.Should().Be("Three quarters done", "because second report message was provided");
     }
 
     /// <summary>
@@ -277,13 +280,14 @@ public class MessageHandlerTests
     public void MessageHandler_ProgressContext_DisposesCorrectly()
     {
         var progressContext = _testHandler.CreateProgressContext("Test Progress", 50);
-        var testProgressContext = Assert.IsType<TestProgressContext>(progressContext);
+        progressContext.Should().BeOfType<TestProgressContext>("because test handler creates TestProgressContext");
+        var testProgressContext = (TestProgressContext)progressContext;
 
-        Assert.False(testProgressContext.IsDisposed);
+        testProgressContext.IsDisposed.Should().BeFalse("because context is not disposed initially");
 
         progressContext.Dispose();
 
-        Assert.True(testProgressContext.IsDisposed);
+        testProgressContext.IsDisposed.Should().BeTrue("because context was disposed");
     }
 
     /// <summary>
@@ -308,10 +312,10 @@ public class MessageHandlerTests
             Message = "Processing..."
         };
 
-        Assert.Equal(25, progress.Current);
-        Assert.Equal(100, progress.Total);
-        Assert.Equal("Processing...", progress.Message);
-        Assert.Equal(25.0, progress.Percentage);
+        progress.Current.Should().Be(25, "because Current was set to 25");
+        progress.Total.Should().Be(100, "because Total was set to 100");
+        progress.Message.Should().Be("Processing...", "because Message was set");
+        progress.Percentage.Should().Be(25.0, "because 25/100 = 25%");
     }
 
     /// <summary>
@@ -334,7 +338,7 @@ public class MessageHandlerTests
             Total = 0
         };
 
-        Assert.Equal(0.0, progress.Percentage);
+        progress.Percentage.Should().Be(0.0, "because percentage should be 0 when Total is 0");
     }
 
     /// <summary>
@@ -350,9 +354,9 @@ public class MessageHandlerTests
     [Fact]
     public void MessageTarget_AllValues_AreAccessible()
     {
-        Assert.Equal(MessageTarget.All, MessageTarget.All);
-        Assert.Equal(MessageTarget.GuiOnly, MessageTarget.GuiOnly);
-        Assert.Equal(MessageTarget.CliOnly, MessageTarget.CliOnly);
+        MessageTarget.All.Should().Be(MessageTarget.All, "because enum value should equal itself");
+        MessageTarget.GuiOnly.Should().Be(MessageTarget.GuiOnly, "because enum value should equal itself");
+        MessageTarget.CliOnly.Should().Be(MessageTarget.CliOnly, "because enum value should equal itself");
     }
 }
 

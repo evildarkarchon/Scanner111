@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Scanner111.CLI.Services;
 using Xunit;
 
@@ -23,8 +24,8 @@ public class CircularBufferTests
 
         // Assert
         var items = buffer.GetItems().ToList();
-        Assert.Single(items);
-        Assert.Equal(1, items[0]);
+        items.Should().ContainSingle("because only one item was added");
+        items[0].Should().Be(1);
     }
 
     [Fact]
@@ -40,10 +41,10 @@ public class CircularBufferTests
 
         // Assert
         var items = buffer.GetItems().ToList();
-        Assert.Equal(3, items.Count);
-        Assert.Equal("First", items[0]);
-        Assert.Equal("Second", items[1]);
-        Assert.Equal("Third", items[2]);
+        items.Should().HaveCount(3, "because three items were added");
+        items[0].Should().Be("First");
+        items[1].Should().Be("Second");
+        items[2].Should().Be("Third");
     }
 
     [Fact]
@@ -61,10 +62,10 @@ public class CircularBufferTests
 
         // Assert
         var items = buffer.GetItems().ToList();
-        Assert.Equal(3, items.Count);
-        Assert.Equal(3, items[0]);
-        Assert.Equal(4, items[1]);
-        Assert.Equal(5, items[2]);
+        items.Should().HaveCount(3, "because buffer capacity is 3");
+        items[0].Should().Be(3, "because oldest items were overwritten");
+        items[1].Should().Be(4);
+        items[2].Should().Be(5);
     }
 
     [Fact]
@@ -77,7 +78,7 @@ public class CircularBufferTests
         var items = buffer.GetItems().ToList();
 
         // Assert
-        Assert.Empty(items);
+        items.Should().BeEmpty("because no items were added");
     }
 
     #endregion
@@ -98,10 +99,10 @@ public class CircularBufferTests
 
         // Assert - Should have last 3 items
         var items = buffer.GetItems().ToList();
-        Assert.Equal(3, items.Count);
-        Assert.Equal(4, items[0]);
-        Assert.Equal(5, items[1]);
-        Assert.Equal(6, items[2]);
+        items.Should().HaveCount(3, "because buffer capacity is 3");
+        items[0].Should().Be(4, "because oldest items were overwritten");
+        items[1].Should().Be(5);
+        items[2].Should().Be(6);
     }
 
     [Fact]
@@ -120,9 +121,9 @@ public class CircularBufferTests
 
         // Assert
         var items = buffer.GetItems().ToList();
-        Assert.Equal(2, items.Count);
-        Assert.Equal("E", items[0]);
-        Assert.Equal("F", items[1]);
+        items.Should().HaveCount(2, "because buffer capacity is 2");
+        items[0].Should().Be("E", "because earlier items were overwritten");
+        items[1].Should().Be("F");
     }
 
     #endregion
@@ -153,8 +154,8 @@ public class CircularBufferTests
 
         // Assert - Should have exactly 100 items (or less if capacity)
         var items = buffer.GetItems().ToList();
-        Assert.Equal(100, items.Count);
-        Assert.All(items, item => Assert.InRange(item, 0, 99));
+        items.Should().HaveCount(100, "because buffer capacity matches items added");
+        items.Should().AllSatisfy(item => item.Should().BeInRange(0, 99, "because all items should be within the expected range"));
     }
 
     [Fact]
@@ -206,7 +207,7 @@ public class CircularBufferTests
         await Task.WhenAll(writeTask, readTask);
 
         // Assert - No exceptions should occur
-        Assert.Empty(exceptions);
+        exceptions.Should().BeEmpty("because concurrent operations should be thread-safe");
     }
 
     [Fact]
@@ -241,8 +242,8 @@ public class CircularBufferTests
         {
             if (snapshot[i] != 0) // Skip default values
             {
-                Assert.True(snapshot[i] >= snapshot[i - 1], 
-                    $"Items not in order: {snapshot[i - 1]} followed by {snapshot[i]}");
+                snapshot[i].Should().BeGreaterThanOrEqualTo(snapshot[i - 1], 
+                    $"because items should maintain order: {snapshot[i - 1]} followed by {snapshot[i]}");
             }
         }
     }
@@ -264,8 +265,8 @@ public class CircularBufferTests
 
         // Assert
         var items = buffer.GetItems().ToList();
-        Assert.Single(items);
-        Assert.Equal("Third", items[0]);
+        items.Should().ContainSingle("because buffer capacity is 1");
+        items[0].Should().Be("Third", "because it's the last item added");
     }
 
     [Fact]
@@ -282,9 +283,9 @@ public class CircularBufferTests
 
         // Assert
         var items = buffer.GetItems().ToList();
-        Assert.Equal(5000, items.Count);
-        Assert.Equal(0, items.First());
-        Assert.Equal(4999, items.Last());
+        items.Should().HaveCount(5000, "because 5000 items were added within capacity");
+        items.First().Should().Be(0, "because items weren't overwritten");
+        items.Last().Should().Be(4999);
     }
 
     [Fact]
@@ -300,9 +301,9 @@ public class CircularBufferTests
 
         // Assert
         var items = buffer.GetItems().ToList();
-        Assert.Equal(2, items.Count); // Null values are filtered out in GetItems
-        Assert.Equal("First", items[0]);
-        Assert.Equal("Third", items[1]);
+        items.Should().HaveCount(2, "because null values are filtered out in GetItems");
+        items[0].Should().Be("First");
+        items[1].Should().Be("Third");
     }
 
     [Fact]
@@ -321,8 +322,8 @@ public class CircularBufferTests
         var items3 = buffer.GetItems().ToList();
 
         // Assert
-        Assert.Equal(items1, items2);
-        Assert.Equal(items2, items3);
+        items1.Should().Equal(items2, "because multiple calls should return the same results");
+        items2.Should().Equal(items3);
     }
 
     #endregion
@@ -344,11 +345,11 @@ public class CircularBufferTests
         sw.Stop();
 
         // Assert - Should complete quickly (under 1 second)
-        Assert.True(sw.ElapsedMilliseconds < 1000, 
-            $"Adding 100k items took {sw.ElapsedMilliseconds}ms");
+        sw.ElapsedMilliseconds.Should().BeLessThan(1000, 
+            $"because adding 100k items should be efficient (took {sw.ElapsedMilliseconds}ms)");
         
         var items = buffer.GetItems().ToList();
-        Assert.Equal(1000, items.Count);
+        items.Should().HaveCount(1000, "because buffer capacity is 1000");
     }
 
     [Fact]
@@ -367,9 +368,9 @@ public class CircularBufferTests
         sw.Stop();
 
         // Assert
-        Assert.True(sw.ElapsedMilliseconds < 100, 
-            $"Getting 10k items took {sw.ElapsedMilliseconds}ms");
-        Assert.Equal(10000, items.Count);
+        sw.ElapsedMilliseconds.Should().BeLessThan(100, 
+            $"because getting 10k items should be efficient (took {sw.ElapsedMilliseconds}ms)");
+        items.Should().HaveCount(10000, "because buffer is at full capacity");
     }
 
     #endregion

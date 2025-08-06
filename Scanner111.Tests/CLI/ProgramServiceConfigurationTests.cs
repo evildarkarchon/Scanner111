@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Scanner111.CLI.Commands;
@@ -26,30 +27,30 @@ public class ProgramServiceConfigurationTests
         var serviceProvider = services.BuildServiceProvider();
         
         // Assert - Core services
-        Assert.NotNull(serviceProvider.GetService<IApplicationSettingsService>());
-        Assert.NotNull(serviceProvider.GetService<IUpdateService>());
-        Assert.NotNull(serviceProvider.GetService<ICacheManager>());
-        Assert.NotNull(serviceProvider.GetService<IUnsolvedLogsMover>());
+        serviceProvider.GetService<IApplicationSettingsService>().Should().NotBeNull();
+        serviceProvider.GetService<IUpdateService>().Should().NotBeNull();
+        serviceProvider.GetService<ICacheManager>().Should().NotBeNull();
+        serviceProvider.GetService<IUnsolvedLogsMover>().Should().NotBeNull();
         
         // Assert - CLI services
-        Assert.NotNull(serviceProvider.GetService<ICliSettingsService>());
-        Assert.NotNull(serviceProvider.GetService<IFileScanService>());
-        Assert.NotNull(serviceProvider.GetService<IScanResultProcessor>());
-        Assert.NotNull(serviceProvider.GetService<IMessageHandler>());
+        serviceProvider.GetService<ICliSettingsService>().Should().NotBeNull();
+        serviceProvider.GetService<IFileScanService>().Should().NotBeNull();
+        serviceProvider.GetService<IScanResultProcessor>().Should().NotBeNull();
+        serviceProvider.GetService<IMessageHandler>().Should().NotBeNull();
         
         // Assert - FCX services
-        Assert.NotNull(serviceProvider.GetService<IHashValidationService>());
-        Assert.NotNull(serviceProvider.GetService<IBackupService>());
-        Assert.NotNull(serviceProvider.GetService<IYamlSettingsProvider>());
-        Assert.NotNull(serviceProvider.GetService<IModScanner>());
-        Assert.NotNull(serviceProvider.GetService<IModCompatibilityService>());
+        serviceProvider.GetService<IHashValidationService>().Should().NotBeNull();
+        serviceProvider.GetService<IBackupService>().Should().NotBeNull();
+        serviceProvider.GetService<IYamlSettingsProvider>().Should().NotBeNull();
+        serviceProvider.GetService<IModScanner>().Should().NotBeNull();
+        serviceProvider.GetService<IModCompatibilityService>().Should().NotBeNull();
         
         // Assert - Commands
-        Assert.NotNull(serviceProvider.GetService<ScanCommand>());
-        Assert.NotNull(serviceProvider.GetService<DemoCommand>());
-        Assert.NotNull(serviceProvider.GetService<ConfigCommand>());
-        Assert.NotNull(serviceProvider.GetService<AboutCommand>());
-        Assert.NotNull(serviceProvider.GetService<FcxCommand>());
+        serviceProvider.GetService<ScanCommand>().Should().NotBeNull();
+        serviceProvider.GetService<DemoCommand>().Should().NotBeNull();
+        serviceProvider.GetService<ConfigCommand>().Should().NotBeNull();
+        serviceProvider.GetService<AboutCommand>().Should().NotBeNull();
+        serviceProvider.GetService<FcxCommand>().Should().NotBeNull();
     }
 
     [Fact]
@@ -82,8 +83,8 @@ public class ProgramServiceConfigurationTests
         foreach (var serviceType in singletonTypes)
         {
             var descriptor = services.FirstOrDefault(d => d.ServiceType == serviceType);
-            Assert.NotNull(descriptor);
-            Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
+            descriptor.Should().NotBeNull();
+            descriptor!.Lifetime.Should().Be(ServiceLifetime.Singleton);
         }
         
         // Assert - Verify transient registrations
@@ -99,8 +100,8 @@ public class ProgramServiceConfigurationTests
         foreach (var serviceType in transientTypes)
         {
             var descriptor = services.FirstOrDefault(d => d.ServiceType == serviceType);
-            Assert.NotNull(descriptor);
-            Assert.Equal(ServiceLifetime.Transient, descriptor.Lifetime);
+            descriptor.Should().NotBeNull();
+            descriptor!.Lifetime.Should().Be(ServiceLifetime.Transient);
         }
     }
 
@@ -115,24 +116,24 @@ public class ProgramServiceConfigurationTests
         
         // Act & Assert - Verify all commands can be instantiated
         var scanCommand = serviceProvider.GetRequiredService<ScanCommand>();
-        Assert.NotNull(scanCommand);
-        Assert.IsType<ScanCommand>(scanCommand);
+        scanCommand.Should().NotBeNull();
+        scanCommand.Should().BeOfType<ScanCommand>();
         
         var demoCommand = serviceProvider.GetRequiredService<DemoCommand>();
-        Assert.NotNull(demoCommand);
-        Assert.IsType<DemoCommand>(demoCommand);
+        demoCommand.Should().NotBeNull();
+        demoCommand.Should().BeOfType<DemoCommand>();
         
         var configCommand = serviceProvider.GetRequiredService<ConfigCommand>();
-        Assert.NotNull(configCommand);
-        Assert.IsType<ConfigCommand>(configCommand);
+        configCommand.Should().NotBeNull();
+        configCommand.Should().BeOfType<ConfigCommand>();
         
         var aboutCommand = serviceProvider.GetRequiredService<AboutCommand>();
-        Assert.NotNull(aboutCommand);
-        Assert.IsType<AboutCommand>(aboutCommand);
+        aboutCommand.Should().NotBeNull();
+        aboutCommand.Should().BeOfType<AboutCommand>();
         
         var fcxCommand = serviceProvider.GetRequiredService<FcxCommand>();
-        Assert.NotNull(fcxCommand);
-        Assert.IsType<FcxCommand>(fcxCommand);
+        fcxCommand.Should().NotBeNull();
+        fcxCommand.Should().BeOfType<FcxCommand>();
     }
 
     [Fact]
@@ -146,12 +147,12 @@ public class ProgramServiceConfigurationTests
             // On Windows, we expect UTF-8 encoding to be set
             // Since we can't test the actual console in unit tests,
             // we just verify the platform check works
-            Assert.True(OperatingSystem.IsWindows());
+            OperatingSystem.IsWindows().Should().BeTrue();
         }
         else
         {
             // On non-Windows, the encoding setup is skipped
-            Assert.False(OperatingSystem.IsWindows());
+            OperatingSystem.IsWindows().Should().BeFalse();
         }
     }
 
@@ -168,8 +169,8 @@ public class ProgramServiceConfigurationTests
         var messageHandler = serviceProvider.GetRequiredService<IMessageHandler>();
         
         // Assert
-        Assert.NotNull(messageHandler);
-        Assert.IsType<SpectreMessageHandler>(messageHandler);
+        messageHandler.Should().NotBeNull();
+        messageHandler.Should().BeOfType<SpectreMessageHandler>();
     }
 
     [Fact]
@@ -185,8 +186,8 @@ public class ProgramServiceConfigurationTests
         var messageHandler = serviceProvider.GetRequiredService<IMessageHandler>();
         
         // Assert
-        Assert.NotNull(messageHandler);
-        Assert.IsType<EnhancedSpectreMessageHandler>(messageHandler);
+        messageHandler.Should().NotBeNull();
+        messageHandler.Should().BeOfType<EnhancedSpectreMessageHandler>();
     }
 
     [Theory]
@@ -204,8 +205,8 @@ public class ProgramServiceConfigurationTests
         var messageHandler = serviceProvider.GetRequiredService<IMessageHandler>();
         
         // Assert
-        Assert.NotNull(messageHandler);
-        Assert.IsType(expectedHandlerType, messageHandler);
+        messageHandler.Should().NotBeNull();
+        messageHandler.Should().BeOfType(expectedHandlerType);
     }
     
     // Helper method that duplicates the service configuration from Program.cs

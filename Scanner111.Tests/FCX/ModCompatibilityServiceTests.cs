@@ -8,6 +8,7 @@ using Scanner111.Core.FCX;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Xunit;
+using FluentAssertions;
 
 namespace Scanner111.Tests.FCX;
 
@@ -33,7 +34,7 @@ public class ModCompatibilityServiceTests
         var result = await _service.GetCompatibilityInfoAsync("TestMod", GameType.Fallout4, "1.10.163.0");
         
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull("no compatibility info should be returned when data file doesn't exist");
     }
 
     [Fact]
@@ -44,7 +45,7 @@ public class ModCompatibilityServiceTests
         var result = await _service.GetCompatibilityInfoAsync("NonExistentMod", GameType.Fallout4, "1.10.163.0");
         
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull("no compatibility info should be returned when data file doesn't exist");
     }
 
     [Fact]
@@ -54,8 +55,8 @@ public class ModCompatibilityServiceTests
         var result = await _service.GetKnownIssuesAsync(GameType.Fallout4, "1.10.163.0");
         
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        result.Should().NotBeNull("method should return a list even when data file doesn't exist");
+        result.Should().BeEmpty("empty list should be returned when no data is available");
     }
 
     [Fact]
@@ -65,8 +66,8 @@ public class ModCompatibilityServiceTests
         var result = await _service.GetXseRequirementsAsync(GameType.Fallout4, "1.10.163.0");
         
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        result.Should().NotBeNull("method should return a list even when data file doesn't exist");
+        result.Should().BeEmpty("empty list should be returned when no data is available");
     }
 
     [Theory]
@@ -80,7 +81,7 @@ public class ModCompatibilityServiceTests
     {
         // This tests the private method indirectly through the expected behavior
         // We would need to create a test YAML file to properly test this
-        Assert.True(true); // Placeholder for now
+        true.Should().BeTrue("placeholder test for version compatibility logic");
     }
 
     [Fact]
@@ -98,7 +99,7 @@ public class ModCompatibilityServiceTests
         var results = await Task.WhenAll(tasks);
         
         // Assert
-        Assert.All(results, r => Assert.Null(r)); // All should be null since no data file exists
+        results.Should().AllSatisfy(r => r.Should().BeNull("all results should be null since no data file exists"));
     }
 
     [Fact]
@@ -109,10 +110,10 @@ public class ModCompatibilityServiceTests
         var skyrimIssues = await _service.GetKnownIssuesAsync(GameType.SkyrimSE, "1.6.640.0");
         
         // Assert
-        Assert.NotNull(fallout4Issues);
-        Assert.NotNull(skyrimIssues);
-        Assert.Empty(fallout4Issues);
-        Assert.Empty(skyrimIssues);
+        fallout4Issues.Should().NotBeNull("Fallout 4 issues list should not be null");
+        skyrimIssues.Should().NotBeNull("Skyrim issues list should not be null");
+        fallout4Issues.Should().BeEmpty("no Fallout 4 issues when data doesn't exist");
+        skyrimIssues.Should().BeEmpty("no Skyrim issues when data doesn't exist");
     }
 
     [Fact]
@@ -124,8 +125,8 @@ public class ModCompatibilityServiceTests
         
         // Assert
         // Since we don't have actual data, we just verify no exceptions
-        Assert.NotNull(f4seRequirements);
-        Assert.NotNull(skseRequirements);
+        f4seRequirements.Should().NotBeNull("F4SE requirements list should not be null");
+        skseRequirements.Should().NotBeNull("SKSE requirements list should not be null");
     }
 
     [Fact]
@@ -143,12 +144,12 @@ public class ModCompatibilityServiceTests
         };
         
         // Assert
-        Assert.Equal("TestMod", info.ModName);
-        Assert.Equal("1.0.0", info.MinVersion);
-        Assert.Equal("2.0.0", info.MaxVersion);
-        Assert.Equal("Test notes", info.Notes);
-        Assert.True(info.IsCompatible);
-        Assert.Null(info.RecommendedAction);
+        info.ModName.Should().Be("TestMod", "mod name should be set correctly");
+        info.MinVersion.Should().Be("1.0.0", "min version should be set correctly");
+        info.MaxVersion.Should().Be("2.0.0", "max version should be set correctly");
+        info.Notes.Should().Be("Test notes", "notes should be set correctly");
+        info.IsCompatible.Should().BeTrue("compatibility flag should be set correctly");
+        info.RecommendedAction.Should().BeNull("recommended action should be null when not set");
     }
 
     [Fact]
@@ -164,10 +165,10 @@ public class ModCompatibilityServiceTests
         };
         
         // Assert
-        Assert.Equal("ProblematicMod", issue.ModName);
-        Assert.Equal(2, issue.AffectedVersions.Count);
-        Assert.Equal("Crashes on startup", issue.Issue);
-        Assert.Equal("Update to version 2.0", issue.Solution);
+        issue.ModName.Should().Be("ProblematicMod", "mod name should be set correctly");
+        issue.AffectedVersions.Should().HaveCount(2, "affected versions list should contain two items");
+        issue.Issue.Should().Be("Crashes on startup", "issue description should be set correctly");
+        issue.Solution.Should().Be("Update to version 2.0", "solution should be set correctly");
     }
 
     [Fact]
@@ -182,10 +183,10 @@ public class ModCompatibilityServiceTests
         };
         
         // Assert
-        Assert.Equal("TestPlugin", requirement.PluginName);
-        Assert.Equal("0.6.23", requirement.RequiredXseVersion);
-        Assert.Single(requirement.CompatibleGameVersions);
-        Assert.Equal("1.10.163.0", requirement.CompatibleGameVersions[0]);
+        requirement.PluginName.Should().Be("TestPlugin", "plugin name should be set correctly");
+        requirement.RequiredXseVersion.Should().Be("0.6.23", "required XSE version should be set correctly");
+        requirement.CompatibleGameVersions.Should().ContainSingle("compatible game versions should have one entry");
+        requirement.CompatibleGameVersions[0].Should().Be("1.10.163.0", "compatible game version should be set correctly");
     }
 
     [Theory]
@@ -206,7 +207,7 @@ public class ModCompatibilityServiceTests
         
         // The service should handle invalid versions gracefully
         // In the absence of data, result will be null, but no exceptions should occur
-        Assert.Null(result);
+        result.Should().BeNull("no compatibility info should be returned when data file doesn't exist");
     }
 
     [Fact]
@@ -214,7 +215,7 @@ public class ModCompatibilityServiceTests
     {
         // Act & Assert - should not throw
         var result = await _service.GetCompatibilityInfoAsync(null!, GameType.Fallout4, "1.10.163.0");
-        Assert.Null(result);
+        result.Should().BeNull("no compatibility info should be returned when data file doesn't exist");
     }
 
     [Fact]
@@ -222,7 +223,7 @@ public class ModCompatibilityServiceTests
     {
         // Act & Assert - should not throw
         var result = await _service.GetCompatibilityInfoAsync("", GameType.Fallout4, "1.10.163.0");
-        Assert.Null(result);
+        result.Should().BeNull("no compatibility info should be returned when data file doesn't exist");
     }
 
     [Fact]
@@ -232,8 +233,8 @@ public class ModCompatibilityServiceTests
         var result = await _service.GetKnownIssuesAsync(GameType.Fallout4, "invalid.version");
         
         // Assert
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        result.Should().NotBeNull("method should return a list even when data file doesn't exist");
+        result.Should().BeEmpty("empty list should be returned when no data is available");
     }
 
     [Fact]
@@ -241,8 +242,8 @@ public class ModCompatibilityServiceTests
     {
         // Act & Assert - should not throw
         var result = await _service.GetXseRequirementsAsync(GameType.SkyrimSE, null!);
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        result.Should().NotBeNull("method should return a list even when data file doesn't exist");
+        result.Should().BeEmpty("empty list should be returned when no data is available");
     }
 
     [Fact]
@@ -255,8 +256,8 @@ public class ModCompatibilityServiceTests
         var result3 = await _service.GetCompatibilityInfoAsync("TestMod", GameType.Fallout4, "1.10.163.0");
         
         // All should return the same result (null in this case)
-        Assert.Equal(result1, result2);
-        Assert.Equal(result2, result3);
+        result1.Should().Be(result2, "results should be the same regardless of casing");
+        result2.Should().Be(result3, "results should be the same regardless of casing");
     }
 
     [Theory]
@@ -271,9 +272,9 @@ public class ModCompatibilityServiceTests
         var requirements = await _service.GetXseRequirementsAsync(gameType, "1.0.0");
         
         // Assert - all should handle gracefully
-        Assert.Null(compatInfo);
-        Assert.NotNull(issues);
-        Assert.NotNull(requirements);
+        compatInfo.Should().BeNull("compatibility info should be null when data doesn't exist");
+        issues.Should().NotBeNull("issues list should not be null");
+        requirements.Should().NotBeNull("requirements list should not be null");
     }
 
     [Fact]
@@ -310,12 +311,12 @@ public class ModCompatibilityServiceTests
         };
         
         // Assert - verify nulls are handled
-        Assert.Null(info.ModName);
-        Assert.Null(info.MinVersion);
-        Assert.Null(info.MaxVersion);
-        Assert.Null(info.Notes);
-        Assert.False(info.IsCompatible);
-        Assert.Null(info.RecommendedAction);
+        info.ModName.Should().BeNull("mod name can be null");
+        info.MinVersion.Should().BeNull("min version can be null");
+        info.MaxVersion.Should().BeNull("max version can be null");
+        info.Notes.Should().BeNull("notes can be null");
+        info.IsCompatible.Should().BeFalse("compatibility flag should be false");
+        info.RecommendedAction.Should().BeNull("recommended action can be null");
     }
 
     [Fact]
@@ -331,8 +332,8 @@ public class ModCompatibilityServiceTests
         };
         
         // Assert
-        Assert.Empty(issue.AffectedVersions);
-        Assert.Null(issue.Solution);
+        issue.AffectedVersions.Should().BeEmpty("affected versions list can be empty");
+        issue.Solution.Should().BeNull("solution can be null");
     }
 
     [Fact]
@@ -347,9 +348,9 @@ public class ModCompatibilityServiceTests
         };
         
         // Assert
-        Assert.Empty(requirement.PluginName);
-        Assert.Empty(requirement.RequiredXseVersion);
-        Assert.Empty(requirement.CompatibleGameVersions);
+        requirement.PluginName.Should().BeEmpty("plugin name can be empty");
+        requirement.RequiredXseVersion.Should().BeEmpty("required XSE version can be empty");
+        requirement.CompatibleGameVersions.Should().BeEmpty("compatible game versions list can be empty");
     }
 
     [Fact]
@@ -371,7 +372,7 @@ public class ModCompatibilityServiceTests
         {
             // Act & Assert - should not throw
             var result = await _service.GetCompatibilityInfoAsync(name, GameType.Fallout4, "1.10.163.0");
-            Assert.Null(result);
+            result.Should().BeNull("no compatibility info should be returned when data file doesn't exist");
         }
     }
 
@@ -383,6 +384,6 @@ public class ModCompatibilityServiceTests
     {
         // Act & Assert - should handle extreme version numbers
         var result = await _service.GetCompatibilityInfoAsync("Mod", GameType.Fallout4, version);
-        Assert.Null(result);
+        result.Should().BeNull("no compatibility info should be returned when data file doesn't exist");
     }
 }

@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
@@ -39,9 +40,9 @@ public class ScanCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(1, result);
-        Assert.Contains("No crash log files found to analyze", _messageCapture.ErrorMessages);
-        Assert.Contains("Supported file patterns:", _messageCapture.InfoMessages);
+        result.Should().Be(1);
+        _messageCapture.ErrorMessages.Should().Contain(m => m.Contains("No crash log files found to analyze"));
+        _messageCapture.InfoMessages.Should().Contain(m => m.Contains("Supported file patterns:"));
     }
 
     [Fact]
@@ -56,9 +57,9 @@ public class ScanCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
-        Assert.Contains("Starting analysis of 1 files...", _messageCapture.SuccessMessages);
-        Assert.Contains("Analysis complete! Processed 1 files.", _messageCapture.SuccessMessages);
+        result.Should().Be(0);
+        _messageCapture.SuccessMessages.Should().Contain(m => m.Contains("Starting analysis of 1 files..."));
+        _messageCapture.SuccessMessages.Should().Contain(m => m.Contains("Analysis complete! Processed 1 files."));
     }
 
     [Fact]
@@ -73,9 +74,9 @@ public class ScanCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
-        Assert.Contains("Starting analysis of 3 files...", _messageCapture.SuccessMessages);
-        Assert.Contains("Analysis complete! Processed 3 files.", _messageCapture.SuccessMessages);
+        result.Should().Be(0);
+        _messageCapture.SuccessMessages.Should().Contain(m => m.Contains("Starting analysis of 3 files..."));
+        _messageCapture.SuccessMessages.Should().Contain(m => m.Contains("Analysis complete! Processed 3 files."));
     }
 
     [Fact]
@@ -94,9 +95,9 @@ public class ScanCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
-        Assert.Contains("=== SCAN SUMMARY ===", _messageCapture.InfoMessages);
-        Assert.Contains("Total files scanned:", _messageCapture.InfoMessages);
+        result.Should().Be(0);
+        _messageCapture.InfoMessages.Should().Contain(m => m.Contains("=== SCAN SUMMARY ==="));
+        _messageCapture.InfoMessages.Should().Contain(m => m.Contains("Total files scanned:"));
     }
 
     [Fact]
@@ -115,7 +116,7 @@ public class ScanCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
+        result.Should().Be(0);
         // Verbose mode would enable debug logging in the pipeline
     }
 
@@ -135,7 +136,7 @@ public class ScanCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
+        result.Should().Be(0);
         // FCX mode would be enabled in the pipeline
     }
 
@@ -169,15 +170,15 @@ public class ScanCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
+        result.Should().Be(0);
         // Settings should be overridden by command line options
         var processedSettings = _mockResultProcessor.LastUsedSettings;
-        Assert.NotNull(processedSettings);
-        Assert.True(processedSettings.FcxMode);
-        Assert.True(processedSettings.ShowFormIdValues);
-        Assert.False(processedSettings.SimplifyLogs);
-        Assert.True(processedSettings.MoveUnsolvedLogs);
-        Assert.Equal("/custom/dir", processedSettings.CrashLogsDirectory);
+        processedSettings.Should().NotBeNull();
+        processedSettings.FcxMode.Should().BeTrue("command line option should override setting");
+        processedSettings.ShowFormIdValues.Should().BeTrue("command line option should override setting");
+        processedSettings.SimplifyLogs.Should().BeFalse("command line option should override setting");
+        processedSettings.MoveUnsolvedLogs.Should().BeTrue("command line option should override setting");
+        processedSettings.CrashLogsDirectory.Should().Be("/custom/dir");
     }
 
     [Fact]
@@ -191,8 +192,8 @@ public class ScanCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(1, result);
-        Assert.Contains("Fatal error during scan:", _messageCapture.CriticalMessages);
+        result.Should().Be(1);
+        _messageCapture.CriticalMessages.Should().Contain(m => m.Contains("Fatal error during scan:"));
     }
 
     [Fact]
@@ -207,9 +208,10 @@ public class ScanCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
-        Assert.True(_mockSettingsService.SaveSettingsCalled);
-        Assert.Contains("/new/scan/dir", _mockSettingsService.LastSavedSettings?.RecentScanDirectories ?? new List<string>());
+        result.Should().Be(0);
+        _mockSettingsService.SaveSettingsCalled.Should().BeTrue();
+        (_mockSettingsService.LastSavedSettings?.RecentScanDirectories ?? new List<string>())
+            .Should().Contain("/new/scan/dir");
     }
 
     [Fact]
@@ -228,7 +230,7 @@ public class ScanCommandTests : IDisposable
         var result = await _command.ExecuteAsync(options);
 
         // Assert
-        Assert.Equal(0, result);
+        result.Should().Be(0);
         // Message handler should be initialized without colors
     }
 

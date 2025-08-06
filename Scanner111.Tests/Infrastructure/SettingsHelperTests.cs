@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Scanner111.Core.Infrastructure;
 using Xunit;
 
@@ -40,7 +41,7 @@ public class SettingsHelperTests : IDisposable
         var directory = SettingsHelper.GetSettingsDirectory();
         
         // Assert
-        Assert.EndsWith(Path.Combine("Scanner111"), directory);
+        directory.Should().EndWith(Path.Combine("Scanner111"));
     }
 
     [Fact]
@@ -53,7 +54,7 @@ public class SettingsHelperTests : IDisposable
         SettingsHelper.EnsureSettingsDirectoryExists();
         
         // Assert
-        Assert.True(Directory.Exists(settingsDir));
+        Directory.Exists(settingsDir).Should().BeTrue();
     }
 
     [Fact]
@@ -76,16 +77,16 @@ public class SettingsHelperTests : IDisposable
         var loaded = await SettingsHelper.LoadSettingsAsync(filePath, () => defaultSettings);
         
         // Assert
-        Assert.NotNull(loaded);
-        Assert.Equal("Default", loaded.Value);
-        Assert.Equal(42, loaded.Number);
-        Assert.True(File.Exists(filePath));
+        loaded.Should().NotBeNull();
+        loaded.Value.Should().Be("Default");
+        loaded.Number.Should().Be(42);
+        File.Exists(filePath).Should().BeTrue();
         
         // Verify the file was saved with correct format
         var savedJson = await File.ReadAllTextAsync(filePath);
         var savedSettings = JsonSerializer.Deserialize<TestSettings>(savedJson, SettingsHelper.JsonOptions);
-        Assert.Equal(defaultSettings.Value, savedSettings?.Value);
-        Assert.Equal(defaultSettings.Number, savedSettings?.Number);
+        savedSettings?.Value.Should().Be(defaultSettings.Value);
+        savedSettings?.Number.Should().Be(defaultSettings.Number);
     }
 
     [Fact]
@@ -106,9 +107,9 @@ public class SettingsHelperTests : IDisposable
         var loaded = await SettingsHelper.LoadSettingsAsync(filePath, () => new TestSettings());
         
         // Assert
-        Assert.NotNull(loaded);
-        Assert.Equal("Saved", loaded.Value);
-        Assert.Equal(123, loaded.Number);
+        loaded.Should().NotBeNull();
+        loaded.Value.Should().Be("Saved");
+        loaded.Number.Should().Be(123);
     }
 
     [Fact]
@@ -125,9 +126,9 @@ public class SettingsHelperTests : IDisposable
         var loaded = await SettingsHelper.LoadSettingsAsync(filePath, () => defaultSettings);
         
         // Assert
-        Assert.NotNull(loaded);
-        Assert.Equal("Default", loaded.Value);
-        Assert.Equal(99, loaded.Number);
+        loaded.Should().NotBeNull();
+        loaded.Value.Should().Be("Default");
+        loaded.Number.Should().Be(99);
     }
 
     [Fact]
@@ -144,9 +145,9 @@ public class SettingsHelperTests : IDisposable
         var loaded = await SettingsHelper.LoadSettingsAsync(filePath, () => defaultSettings);
         
         // Assert
-        Assert.NotNull(loaded);
-        Assert.Equal("Default", loaded.Value);
-        Assert.Equal(77, loaded.Number);
+        loaded.Should().NotBeNull();
+        loaded.Value.Should().Be("Default");
+        loaded.Number.Should().Be(77);
     }
 
     [Fact]
@@ -160,17 +161,17 @@ public class SettingsHelperTests : IDisposable
         await SettingsHelper.SaveSettingsAsync(filePath, settings);
         
         // Assert
-        Assert.True(File.Exists(filePath));
+        File.Exists(filePath).Should().BeTrue();
         
         var savedJson = await File.ReadAllTextAsync(filePath);
-        Assert.Contains("\"value\":", savedJson); // camelCase property naming
-        Assert.Contains("\"number\":", savedJson);
-        Assert.Contains("\n", savedJson); // WriteIndented = true
+        savedJson.Should().Contain("\"value\":"); // camelCase property naming
+        savedJson.Should().Contain("\"number\":");
+        savedJson.Should().Contain("\n"); // WriteIndented = true
         
         // Verify it can be loaded back
         var loaded = JsonSerializer.Deserialize<TestSettings>(savedJson, SettingsHelper.JsonOptions);
-        Assert.Equal(settings.Value, loaded?.Value);
-        Assert.Equal(settings.Number, loaded?.Number);
+        loaded?.Value.Should().Be(settings.Value);
+        loaded?.Number.Should().Be(settings.Number);
     }
 
     [Fact]
@@ -188,8 +189,8 @@ public class SettingsHelperTests : IDisposable
         await SettingsHelper.SaveSettingsAsync(settingsPath, settings);
         
         // Assert
-        Assert.True(File.Exists(settingsPath));
-        Assert.True(Directory.Exists(SettingsHelper.GetSettingsDirectory()));
+        File.Exists(settingsPath).Should().BeTrue();
+        Directory.Exists(SettingsHelper.GetSettingsDirectory()).Should().BeTrue();
         
         // Restore original APPDATA
         Environment.SetEnvironmentVariable("APPDATA", _originalAppData);
@@ -211,8 +212,8 @@ public class SettingsHelperTests : IDisposable
         try
         {
             // Act & Assert
-            await Assert.ThrowsAsync<UnauthorizedAccessException>(
-                () => SettingsHelper.SaveSettingsAsync(filePath, settings));
+            var act = () => SettingsHelper.SaveSettingsAsync(filePath, settings);
+            await act.Should().ThrowAsync<UnauthorizedAccessException>();
         }
         finally
         {
@@ -244,16 +245,16 @@ public class SettingsHelperTests : IDisposable
         var result = SettingsHelper.ConvertValue(input, targetType);
         
         // Assert
-        Assert.Equal(expected, result);
+        result.Should().Be(expected);
     }
 
     [Fact]
     public void ConvertValue_InvalidBoolString_ThrowsArgumentException()
     {
         // Act & Assert
-        var ex = Assert.Throws<ArgumentException>(() => 
-            SettingsHelper.ConvertValue("maybe", typeof(bool)));
-        Assert.Contains("Invalid boolean value", ex.Message);
+        var act = () => SettingsHelper.ConvertValue("maybe", typeof(bool));
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*Invalid boolean value*");
     }
 
     [Theory]
@@ -266,15 +267,15 @@ public class SettingsHelperTests : IDisposable
         var result = SettingsHelper.ConvertValue(input, targetType);
         
         // Assert
-        Assert.Equal(expected, result);
+        result.Should().Be(expected);
     }
 
     [Fact]
     public void ConvertValue_InvalidIntString_ThrowsFormatException()
     {
         // Act & Assert
-        Assert.Throws<FormatException>(() => 
-            SettingsHelper.ConvertValue("not-a-number", typeof(int)));
+        var act = () => SettingsHelper.ConvertValue("not-a-number", typeof(int));
+        act.Should().Throw<FormatException>();
     }
 
     [Fact]
@@ -284,7 +285,7 @@ public class SettingsHelperTests : IDisposable
         var result = SettingsHelper.ConvertValue(null!, typeof(string));
         
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull();
     }
 
     [Theory]
@@ -297,7 +298,7 @@ public class SettingsHelperTests : IDisposable
         var result = SettingsHelper.ConvertValue(input, targetType);
         
         // Assert
-        Assert.Equal(expected, result);
+        result.Should().Be(expected);
     }
 
     [Theory]
@@ -319,7 +320,7 @@ public class SettingsHelperTests : IDisposable
         var result = SettingsHelper.ToPascalCase(input);
         
         // Assert
-        Assert.Equal(expected, result);
+        result.Should().Be(expected);
     }
 
     [Fact]
@@ -329,9 +330,9 @@ public class SettingsHelperTests : IDisposable
         var options = SettingsHelper.JsonOptions;
         
         // Assert
-        Assert.NotNull(options);
-        Assert.True(options.WriteIndented);
-        Assert.Equal(JsonNamingPolicy.CamelCase, options.PropertyNamingPolicy);
+        options.Should().NotBeNull();
+        options.WriteIndented.Should().BeTrue();
+        options.PropertyNamingPolicy.Should().Be(JsonNamingPolicy.CamelCase);
     }
 
     // Test helper class

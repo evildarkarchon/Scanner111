@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
@@ -27,10 +28,10 @@ public class NullImplementationsTests
         var result3 = cache.GetOrSetYamlSetting("test.yaml", "test.key", Factory, TimeSpan.FromMinutes(5));
         
         // Assert
-        Assert.Equal("test value", result1);
-        Assert.Equal("test value", result2);
-        Assert.Equal("test value", result3);
-        Assert.Equal(3, factoryCallCount); // Factory called every time since no caching
+        result1.Should().Be("test value");
+        result2.Should().Be("test value");
+        result3.Should().Be("test value");
+        factoryCallCount.Should().Be(3); // Factory called every time since no caching
     }
 
     [Fact]
@@ -66,7 +67,7 @@ public class NullImplementationsTests
         var cachedResult = cache.GetCachedAnalysisResult("test.log", "TestAnalyzer");
         
         // Assert
-        Assert.Null(cachedResult);
+        cachedResult.Should().BeNull();
     }
 
     [Fact]
@@ -81,9 +82,9 @@ public class NullImplementationsTests
         var isValid3 = cache.IsFileCacheValid("");
         
         // Assert
-        Assert.False(isValid1);
-        Assert.False(isValid2);
-        Assert.False(isValid3);
+        isValid1.Should().BeFalse();
+        isValid2.Should().BeFalse();
+        isValid3.Should().BeFalse();
     }
 
     [Fact]
@@ -106,11 +107,11 @@ public class NullImplementationsTests
         var stats = cache.GetStatistics();
         
         // Assert
-        Assert.Equal(0, stats.TotalHits);
-        Assert.Equal(0, stats.TotalMisses);
-        Assert.Equal(0, stats.HitRate);
-        Assert.Equal(0, stats.CachedFiles);
-        Assert.Equal(0, stats.MemoryUsage);
+        stats.TotalHits.Should().Be(0);
+        stats.TotalMisses.Should().Be(0);
+        stats.HitRate.Should().Be(0);
+        stats.CachedFiles.Should().Be(0);
+        stats.MemoryUsage.Should().Be(0);
     }
 
     [Fact]
@@ -124,9 +125,9 @@ public class NullImplementationsTests
         var result = policy.HandleError(exception, "test context", 1);
         
         // Assert
-        Assert.Equal(ErrorAction.Fail, result.Action);
-        Assert.Equal("Operation was cancelled", result.Message);
-        Assert.Equal(LogLevel.Information, result.LogLevel);
+        result.Action.Should().Be(ErrorAction.Fail);
+        result.Message.Should().Be("Operation was cancelled");
+        result.LogLevel.Should().Be(LogLevel.Information);
     }
 
     [Fact]
@@ -140,9 +141,9 @@ public class NullImplementationsTests
         var result = policy.HandleError(exception, "test context", 1);
         
         // Assert
-        Assert.Equal(ErrorAction.Skip, result.Action);
-        Assert.Equal("Error in test context: Test error", result.Message);
-        Assert.Equal(LogLevel.Error, result.LogLevel);
+        result.Action.Should().Be(ErrorAction.Skip);
+        result.Message.Should().Be("Error in test context: Test error");
+        result.LogLevel.Should().Be(LogLevel.Error);
     }
 
     [Theory]
@@ -159,9 +160,9 @@ public class NullImplementationsTests
         var result = policy.HandleError(exception, "test context", 1);
         
         // Assert
-        Assert.Equal(ErrorAction.Skip, result.Action);
-        Assert.Contains("Test error", result.Message);
-        Assert.Equal(LogLevel.Error, result.LogLevel);
+        result.Action.Should().Be(ErrorAction.Skip);
+        result.Message.Should().Contain("Test error");
+        result.LogLevel.Should().Be(LogLevel.Error);
     }
 
     [Theory]
@@ -179,7 +180,7 @@ public class NullImplementationsTests
         var result = policy.HandleError(exception, "context", attemptNumber);
         
         // Assert
-        Assert.Equal(ErrorAction.Skip, result.Action);
+        result.Action.Should().Be(ErrorAction.Skip);
     }
 
     [Fact]
@@ -189,10 +190,10 @@ public class NullImplementationsTests
         var policy = new NoRetryErrorPolicy();
         
         // Act & Assert
-        Assert.False(policy.ShouldRetry(new Exception(), 1));
-        Assert.False(policy.ShouldRetry(new IOException(), 2));
-        Assert.False(policy.ShouldRetry(new TimeoutException(), 3));
-        Assert.False(policy.ShouldRetry(new OperationCanceledException(), 1));
+        policy.ShouldRetry(new Exception(), 1).Should().BeFalse();
+        policy.ShouldRetry(new IOException(), 2).Should().BeFalse();
+        policy.ShouldRetry(new TimeoutException(), 3).Should().BeFalse();
+        policy.ShouldRetry(new OperationCanceledException(), 1).Should().BeFalse();
     }
 
     [Fact]

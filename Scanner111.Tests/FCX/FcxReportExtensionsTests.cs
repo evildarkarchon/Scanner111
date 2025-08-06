@@ -4,6 +4,7 @@ using Scanner111.Core.Analyzers;
 using Scanner111.Core.FCX;
 using Scanner111.Core.Models;
 using Xunit;
+using FluentAssertions;
 
 namespace Scanner111.Tests.FCX;
 
@@ -31,8 +32,8 @@ public class FcxReportExtensionsTests
         report.AddFcxReportSections(scanResult);
         
         // Assert
-        Assert.Single(report);
-        Assert.Equal("Initial content", report[0]);
+        report.Should().ContainSingle("report should not be modified when no FCX findings exist");
+        report[0].Should().Be("Initial content", "original content should remain unchanged");
     }
 
     [Fact]
@@ -58,10 +59,10 @@ public class FcxReportExtensionsTests
         report.AddFcxReportSections(scanResult);
         
         // Assert
-        Assert.Contains("FCX MODE - ADVANCED FILE INTEGRITY CHECKING\n", report);
-        Assert.Contains("# FILE INTEGRITY CHECK RESULTS #\n", report);
-        Assert.Contains("FCX finding 1", report);
-        Assert.Contains("FCX finding 2", report);
+        report.Should().Contain("FCX MODE - ADVANCED FILE INTEGRITY CHECKING\n", "FCX header should be added");
+        report.Should().Contain("# FILE INTEGRITY CHECK RESULTS #\n", "FCX section header should be present");
+        report.Should().Contain("FCX finding 1", "first finding should be included");
+        report.Should().Contain("FCX finding 2", "second finding should be included");
     }
 
     [Fact]
@@ -87,10 +88,10 @@ public class FcxReportExtensionsTests
         report.AddFcxReportSections(scanResult);
         
         // Assert
-        Assert.Contains("FCX MODE - ADVANCED FILE INTEGRITY CHECKING\n", report);
-        Assert.Contains("# MOD CONFLICT ANALYSIS #\n", report);
-        Assert.Contains("Conflict 1", report);
-        Assert.Contains("Conflict 2", report);
+        report.Should().Contain("FCX MODE - ADVANCED FILE INTEGRITY CHECKING\n", "FCX header should be added");
+        report.Should().Contain("# MOD CONFLICT ANALYSIS #\n", "mod conflict section header should be present");
+        report.Should().Contain("Conflict 1", "first conflict should be included");
+        report.Should().Contain("Conflict 2", "second conflict should be included");
     }
 
     [Fact]
@@ -116,10 +117,10 @@ public class FcxReportExtensionsTests
         report.AddFcxReportSections(scanResult);
         
         // Assert
-        Assert.Contains("FCX MODE - ADVANCED FILE INTEGRITY CHECKING\n", report);
-        Assert.Contains("# GAME VERSION INFORMATION #\n", report);
-        Assert.Contains("Version info 1", report);
-        Assert.Contains("Version info 2", report);
+        report.Should().Contain("FCX MODE - ADVANCED FILE INTEGRITY CHECKING\n", "FCX header should be added");
+        report.Should().Contain("# GAME VERSION INFORMATION #\n", "version section header should be present");
+        report.Should().Contain("Version info 1", "first version info should be included");
+        report.Should().Contain("Version info 2", "second version info should be included");
     }
 
     [Fact]
@@ -157,13 +158,13 @@ public class FcxReportExtensionsTests
         report.AddFcxReportSections(scanResult);
         
         // Assert
-        Assert.Contains("FCX MODE - ADVANCED FILE INTEGRITY CHECKING\n", report);
-        Assert.Contains("# GAME VERSION INFORMATION #\n", report);
-        Assert.Contains("# FILE INTEGRITY CHECK RESULTS #\n", report);
-        Assert.Contains("# MOD CONFLICT ANALYSIS #\n", report);
-        Assert.Contains("Version finding", report);
-        Assert.Contains("FCX finding", report);
-        Assert.Contains("Conflict finding", report);
+        report.Should().Contain("FCX MODE - ADVANCED FILE INTEGRITY CHECKING\n", "FCX header should be added");
+        report.Should().Contain("# GAME VERSION INFORMATION #\n", "version section should be present");
+        report.Should().Contain("# FILE INTEGRITY CHECK RESULTS #\n", "FCX section should be present");
+        report.Should().Contain("# MOD CONFLICT ANALYSIS #\n", "conflict section should be present");
+        report.Should().Contain("Version finding", "version finding should be included");
+        report.Should().Contain("FCX finding", "FCX finding should be included");
+        report.Should().Contain("Conflict finding", "conflict finding should be included");
     }
 
     [Fact]
@@ -205,8 +206,8 @@ public class FcxReportExtensionsTests
         var fcxIndex = report.FindIndex(s => s.Contains("# FILE INTEGRITY CHECK RESULTS #\n"));
         var conflictIndex = report.FindIndex(s => s.Contains("# MOD CONFLICT ANALYSIS #\n"));
         
-        Assert.True(versionIndex < fcxIndex);
-        Assert.True(fcxIndex < conflictIndex);
+        versionIndex.Should().BeLessThan(fcxIndex, "version section should come before FCX section");
+        fcxIndex.Should().BeLessThan(conflictIndex, "FCX section should come before conflict section");
     }
 
     [Fact]
@@ -221,7 +222,8 @@ public class FcxReportExtensionsTests
         };
         
         // Act & Assert - Should throw NullReferenceException since the code doesn't check for null
-        Assert.Throws<NullReferenceException>(() => report.AddFcxReportSections(scanResult));
+        var action = () => report.AddFcxReportSections(scanResult);
+        action.Should().Throw<NullReferenceException>("code doesn't check for null analysis results");
     }
 
     [Fact]
@@ -239,7 +241,7 @@ public class FcxReportExtensionsTests
         report.AddFcxReportSections(scanResult);
         
         // Assert
-        Assert.Empty(report);
+        report.Should().BeEmpty("no sections should be added when there are no analysis results");
     }
 
     [Fact]
@@ -262,8 +264,9 @@ public class FcxReportExtensionsTests
         };
         
         // Act & Assert - Should not throw
-        report.AddFcxReportSections(scanResult);
-        Assert.Contains("FCX MODE - ADVANCED FILE INTEGRITY CHECKING\n", report);
+        var action = () => report.AddFcxReportSections(scanResult);
+        action.Should().NotThrow("null report lines should be handled gracefully");
+        report.Should().Contain("FCX MODE - ADVANCED FILE INTEGRITY CHECKING\n", "FCX header should still be added");
     }
 
     [Fact]
@@ -295,9 +298,9 @@ public class FcxReportExtensionsTests
         report.AddFcxReportSections(scanResult);
         
         // Assert
-        Assert.Contains("Version info", report);
-        Assert.DoesNotContain("Should not appear", report);
-        Assert.DoesNotContain("# FILE INTEGRITY CHECK RESULTS #\n", report);
+        report.Should().Contain("Version info", "version info from analyzer with findings should be included");
+        report.Should().NotContain("Should not appear", "content from analyzer without findings should not be included");
+        report.Should().NotContain("# FILE INTEGRITY CHECK RESULTS #\n", "FCX section should not be added when FCX analyzer has no findings");
     }
 
     [Fact]
@@ -307,9 +310,9 @@ public class FcxReportExtensionsTests
         var result = FcxReportExtensions.GenerateFcxSectionForSettings(true);
         
         // Assert
-        Assert.Contains("FCX MODE IS ENABLED", result);
-        Assert.Contains("PERFORMING ADVANCED FILE INTEGRITY CHECKS", result);
-        Assert.Contains("FCX Mode checks game file integrity and detects mod conflicts", result);
+        result.Should().Contain("FCX MODE IS ENABLED", "enabled status should be shown");
+        result.Should().Contain("PERFORMING ADVANCED FILE INTEGRITY CHECKS", "active status should be indicated");
+        result.Should().Contain("FCX Mode checks game file integrity and detects mod conflicts", "description should be included");
     }
 
     [Fact]
@@ -319,9 +322,9 @@ public class FcxReportExtensionsTests
         var result = FcxReportExtensions.GenerateFcxSectionForSettings(false);
         
         // Assert
-        Assert.Contains("FCX MODE IS DISABLED", result);
-        Assert.Contains("YOU CAN ENABLE IT TO DETECT PROBLEMS", result);
-        Assert.Contains("FCX Mode can be enabled in the Scanner 111 application settings", result);
+        result.Should().Contain("FCX MODE IS DISABLED", "disabled status should be shown");
+        result.Should().Contain("YOU CAN ENABLE IT TO DETECT PROBLEMS", "suggestion to enable should be included");
+        result.Should().Contain("FCX Mode can be enabled in the Scanner 111 application settings", "instructions should be provided");
     }
 
     [Fact]
@@ -351,10 +354,10 @@ public class FcxReportExtensionsTests
         report.AddFcxReportSections(scanResult);
         
         // Assert
-        Assert.Contains("# FCX SUMMARY #\n", report);
-        Assert.Contains("  • 5 modified game files detected\n", report);
-        Assert.Contains("  • 3 missing game files detected\n", report);
-        Assert.Contains("* For detailed FCX documentation and solutions, see: https://github.com/evildarkarchon/Scanner111/wiki/FCX-Mode *\n", report);
+        report.Should().Contain("# FCX SUMMARY #\n", "FCX summary section should be added");
+        report.Should().Contain("  • 5 modified game files detected\n", "modified files count should be shown");
+        report.Should().Contain("  • 3 missing game files detected\n", "missing files count should be shown");
+        report.Should().Contain("* For detailed FCX documentation and solutions, see: https://github.com/evildarkarchon/Scanner111/wiki/FCX-Mode *\n", "wiki link should be included");
     }
 
     [Fact]
@@ -383,8 +386,8 @@ public class FcxReportExtensionsTests
         report.AddFcxReportSections(scanResult);
         
         // Assert
-        Assert.Contains("# FCX SUMMARY #\n", report);
-        Assert.Contains("  • 7 mod conflicts detected\n", report);
+        report.Should().Contain("# FCX SUMMARY #\n", "FCX summary section should be added");
+        report.Should().Contain("  • 7 mod conflicts detected\n", "mod conflicts count should be shown");
     }
 
     [Fact]
@@ -413,8 +416,8 @@ public class FcxReportExtensionsTests
         report.AddFcxReportSections(scanResult);
         
         // Assert
-        Assert.Contains("# FCX SUMMARY #\n", report);
-        Assert.Contains("  • Game version downgrade detected\n", report);
+        report.Should().Contain("# FCX SUMMARY #\n", "FCX summary section should be added");
+        report.Should().Contain("  • Game version downgrade detected\n", "downgrade warning should be shown");
     }
 
     [Fact]
@@ -443,7 +446,7 @@ public class FcxReportExtensionsTests
         report.AddFcxReportSections(scanResult);
         
         // Assert
-        Assert.DoesNotContain("# FCX SUMMARY #\n", report);
+        report.Should().NotContain("# FCX SUMMARY #\n", "summary should not be added when no issues are detected");
     }
 
     [Fact]
@@ -495,11 +498,11 @@ public class FcxReportExtensionsTests
         report.AddFcxReportSections(scanResult);
         
         // Assert
-        Assert.Contains("# FCX SUMMARY #\n", report);
-        Assert.Contains("  • 2 modified game files detected\n", report);
-        Assert.Contains("  • 1 missing game files detected\n", report);
-        Assert.Contains("  • 3 mod conflicts detected\n", report);
-        Assert.Contains("  • Game version downgrade detected\n", report);
-        Assert.Contains("The following issues were detected:\n", report);
+        report.Should().Contain("# FCX SUMMARY #\n", "FCX summary section should be added");
+        report.Should().Contain("  • 2 modified game files detected\n", "modified files count should be shown");
+        report.Should().Contain("  • 1 missing game files detected\n", "missing files count should be shown");
+        report.Should().Contain("  • 3 mod conflicts detected\n", "mod conflicts count should be shown");
+        report.Should().Contain("  • Game version downgrade detected\n", "downgrade warning should be shown");
+        report.Should().Contain("The following issues were detected:\n", "summary header should be included");
     }
 }

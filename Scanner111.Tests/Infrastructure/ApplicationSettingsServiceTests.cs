@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using System.Text.Json;
@@ -56,13 +57,13 @@ public class ApplicationSettingsServiceTests : IDisposable
         var settings = await _service.LoadSettingsAsync();
 
         // Assert
-        Assert.NotNull(settings);
-        Assert.False(settings.FcxMode);
-        Assert.False(settings.ShowFormIdValues);
-        Assert.True(settings.AutoSaveResults);
-        Assert.True(settings.CacheEnabled);
-        Assert.Equal("detailed", settings.DefaultOutputFormat);
-        Assert.Equal(Environment.ProcessorCount * 2, settings.MaxConcurrentScans);
+        settings.Should().NotBeNull();
+        settings.FcxMode.Should().BeFalse();
+        settings.ShowFormIdValues.Should().BeFalse();
+        settings.AutoSaveResults.Should().BeTrue();
+        settings.CacheEnabled.Should().BeTrue();
+        settings.DefaultOutputFormat.Should().Be("detailed");
+        settings.MaxConcurrentScans.Should().Be(Environment.ProcessorCount * 2);
     }
 
     [Fact]
@@ -102,16 +103,17 @@ public class ApplicationSettingsServiceTests : IDisposable
         var loadedSettings = JsonSerializer.Deserialize<ApplicationSettings>(json);
 
         // Assert
-        Assert.NotNull(loadedSettings);
-        Assert.Equal(settings.FcxMode, loadedSettings.FcxMode);
-        Assert.Equal(settings.ShowFormIdValues, loadedSettings.ShowFormIdValues);
-        Assert.Equal(settings.SimplifyLogs, loadedSettings.SimplifyLogs);
-        Assert.Equal(settings.DefaultLogPath, loadedSettings.DefaultLogPath);
-        Assert.Equal(settings.DefaultGamePath, loadedSettings.DefaultGamePath);
-        Assert.Equal(settings.DefaultOutputFormat, loadedSettings.DefaultOutputFormat);
-        Assert.Equal(settings.MaxConcurrentScans, loadedSettings.MaxConcurrentScans);
-        Assert.Equal(settings.WindowWidth, loadedSettings.WindowWidth);
-        Assert.Equal(settings.WindowHeight, loadedSettings.WindowHeight);
+        loadedSettings.Should().NotBeNull();
+        loadedSettings.Should().BeEquivalentTo(settings, options => options
+            .Including(s => s.FcxMode)
+            .Including(s => s.ShowFormIdValues)
+            .Including(s => s.SimplifyLogs)
+            .Including(s => s.DefaultLogPath)
+            .Including(s => s.DefaultGamePath)
+            .Including(s => s.DefaultOutputFormat)
+            .Including(s => s.MaxConcurrentScans)
+            .Including(s => s.WindowWidth)
+            .Including(s => s.WindowHeight));
     }
 
     [Fact]
@@ -124,10 +126,10 @@ public class ApplicationSettingsServiceTests : IDisposable
         var settings = await _service.LoadSettingsAsync();
 
         // Assert
-        Assert.NotNull(settings);
+        settings.Should().NotBeNull();
         // Should return defaults when file is corrupted
-        Assert.False(settings.FcxMode);
-        Assert.Equal("detailed", settings.DefaultOutputFormat);
+        settings.FcxMode.Should().BeFalse("defaults should be returned when file is corrupted");
+        settings.DefaultOutputFormat.Should().Be("detailed");
     }
 
     [Fact]
@@ -150,9 +152,9 @@ public class ApplicationSettingsServiceTests : IDisposable
 
         // Assert - One of the writes should have succeeded
         var finalSettings = await _service.LoadSettingsAsync();
-        Assert.NotNull(finalSettings);
+        finalSettings.Should().NotBeNull();
         // The final state should be from one of the two writes
-        Assert.True(finalSettings.FcxMode == true || finalSettings.FcxMode == false);
+        (finalSettings.FcxMode == true || finalSettings.FcxMode == false).Should().BeTrue("the final state should be from one of the two writes");
     }
 
     [Fact]
@@ -160,32 +162,32 @@ public class ApplicationSettingsServiceTests : IDisposable
     {
         // Arrange
         var initialSettings = await _service.LoadSettingsAsync();
-        Assert.False(initialSettings.FcxMode);
+        initialSettings.FcxMode.Should().BeFalse();
 
         // Act
         await _service.SaveSettingAsync("FcxMode", true);
         
         // Assert
         var updatedSettings = await _service.LoadSettingsAsync();
-        Assert.True(updatedSettings.FcxMode);
+        updatedSettings.FcxMode.Should().BeTrue();
         // Other settings should remain unchanged
-        Assert.Equal(initialSettings.DefaultOutputFormat, updatedSettings.DefaultOutputFormat);
+        updatedSettings.DefaultOutputFormat.Should().Be(initialSettings.DefaultOutputFormat);
     }
 
     [Fact]
     public async Task SaveSettingAsync_WithInvalidKey_ThrowsException()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => 
-            _service.SaveSettingAsync("NonExistentProperty", "value"));
+        Func<Task> act = async () => await _service.SaveSettingAsync("NonExistentProperty", "value");
+        await act.Should().ThrowAsync<ArgumentException>();
     }
 
     [Fact]
     public async Task SaveSettingAsync_WithInvalidValueType_ThrowsException()
     {
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => 
-            _service.SaveSettingAsync("MaxConcurrentScans", "not a number"));
+        Func<Task> act = async () => await _service.SaveSettingAsync("MaxConcurrentScans", "not a number");
+        await act.Should().ThrowAsync<ArgumentException>();
     }
 
     [Fact]
@@ -196,7 +198,7 @@ public class ApplicationSettingsServiceTests : IDisposable
         
         // Assert
         var settings = await _service.LoadSettingsAsync();
-        Assert.True(settings.FcxMode);
+        settings.FcxMode.Should().BeTrue();
     }
 
     [Fact]
@@ -206,22 +208,22 @@ public class ApplicationSettingsServiceTests : IDisposable
         var defaults = _service.GetDefaultSettings();
 
         // Assert
-        Assert.NotNull(defaults);
-        Assert.False(defaults.FcxMode);
-        Assert.False(defaults.ShowFormIdValues);
-        Assert.False(defaults.SimplifyLogs);
-        Assert.False(defaults.MoveUnsolvedLogs);
-        Assert.False(defaults.VrMode);
-        Assert.True(defaults.AutoSaveResults);
-        Assert.True(defaults.AutoLoadF4SeLogs);
-        Assert.False(defaults.SkipXseCopy);
-        Assert.True(defaults.CacheEnabled);
-        Assert.False(defaults.EnableDebugLogging);
-        Assert.True(defaults.EnableProgressNotifications);
-        Assert.False(defaults.DisableProgress);
-        Assert.False(defaults.DisableColors);
-        Assert.Equal(1200, defaults.WindowWidth);
-        Assert.Equal(800, defaults.WindowHeight);
+        defaults.Should().NotBeNull();
+        defaults.FcxMode.Should().BeFalse();
+        defaults.ShowFormIdValues.Should().BeFalse();
+        defaults.SimplifyLogs.Should().BeFalse();
+        defaults.MoveUnsolvedLogs.Should().BeFalse();
+        defaults.VrMode.Should().BeFalse();
+        defaults.AutoSaveResults.Should().BeTrue();
+        defaults.AutoLoadF4SeLogs.Should().BeTrue();
+        defaults.SkipXseCopy.Should().BeFalse();
+        defaults.CacheEnabled.Should().BeTrue();
+        defaults.EnableDebugLogging.Should().BeFalse();
+        defaults.EnableProgressNotifications.Should().BeTrue();
+        defaults.DisableProgress.Should().BeFalse();
+        defaults.DisableColors.Should().BeFalse();
+        defaults.WindowWidth.Should().Be(1200);
+        defaults.WindowHeight.Should().Be(800);
     }
 
     [Fact]
@@ -238,10 +240,10 @@ public class ApplicationSettingsServiceTests : IDisposable
         var loaded = await newService.LoadSettingsAsync();
 
         // Assert
-        Assert.True(loaded.FcxMode); // Modified value
-        Assert.Equal(1600, loaded.WindowWidth); // Modified value
-        Assert.True(loaded.AutoSaveResults); // Default value preserved
-        Assert.Equal("detailed", loaded.DefaultOutputFormat); // Default value preserved
+        loaded.FcxMode.Should().BeTrue("FcxMode was modified");
+        loaded.WindowWidth.Should().Be(1600, "WindowWidth was modified");
+        loaded.AutoSaveResults.Should().BeTrue("default value should be preserved");
+        loaded.DefaultOutputFormat.Should().Be("detailed", "default value should be preserved");
     }
 
     [Fact]
@@ -256,7 +258,7 @@ public class ApplicationSettingsServiceTests : IDisposable
         await service.SaveSettingsAsync(new ApplicationSettings());
 
         // Assert
-        Assert.True(Directory.Exists(newDir));
-        Assert.True(File.Exists(Path.Combine(newDir, "settings.json")));
+        Directory.Exists(newDir).Should().BeTrue("directory should be created");
+        File.Exists(Path.Combine(newDir, "settings.json")).Should().BeTrue("settings file should be created");
     }
 }

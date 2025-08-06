@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.Core.Infrastructure;
@@ -36,10 +37,10 @@ public class BuffoutVersionAnalyzerV2Tests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.False(genericResult.HasFindings); // Latest version
-        Assert.Contains("You have the latest version of Buffout 4!", genericResult.ReportText);
-        Assert.Contains("Detected Buffout 4 Version: Buffout 4 v1.28.6 Mar 12 2025 22:11:48", genericResult.ReportText);
+        genericResult.Success.Should().BeTrue();
+        genericResult.HasFindings.Should().BeFalse(); // Latest version
+        genericResult.ReportText.Should().Contain("You have the latest version of Buffout 4!");
+        genericResult.ReportText.Should().Contain("Detected Buffout 4 Version: Buffout 4 v1.28.6 Mar 12 2025 22:11:48");
     }
 
     [Fact]
@@ -62,9 +63,9 @@ public class BuffoutVersionAnalyzerV2Tests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.True(genericResult.HasFindings);
-        Assert.Contains("AN UPDATE IS AVAILABLE FOR Buffout 4", genericResult.ReportText);
+        genericResult.Success.Should().BeTrue();
+        genericResult.HasFindings.Should().BeTrue();
+        genericResult.ReportText.Should().Contain("AN UPDATE IS AVAILABLE FOR Buffout 4");
     }
 
     [Fact]
@@ -86,9 +87,9 @@ public class BuffoutVersionAnalyzerV2Tests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
+        genericResult.Success.Should().BeTrue();
         // Should handle gracefully and add missing version parts
-        Assert.Contains("Detected Buffout 4 Version: v1", genericResult.ReportText);
+        genericResult.ReportText.Should().Contain("Detected Buffout 4 Version: v1");
     }
 
     [Fact]
@@ -110,9 +111,9 @@ public class BuffoutVersionAnalyzerV2Tests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
+        genericResult.Success.Should().BeTrue();
         // Should not find version since it doesn't start with 'v'
-        Assert.Contains("Detected Buffout 4 Version: 1.28.6", genericResult.ReportText);
+        genericResult.ReportText.Should().Contain("Detected Buffout 4 Version: 1.28.6");
     }
 
     [Fact]
@@ -134,9 +135,9 @@ public class BuffoutVersionAnalyzerV2Tests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.False(genericResult.HasFindings); // Should be latest
-        Assert.Contains("You have the latest version of Buffout 4!", genericResult.ReportText);
+        genericResult.Success.Should().BeTrue();
+        genericResult.HasFindings.Should().BeFalse(); // Should be latest
+        genericResult.ReportText.Should().Contain("You have the latest version of Buffout 4!");
     }
 
     [Fact]
@@ -155,10 +156,10 @@ public class BuffoutVersionAnalyzerV2Tests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.False(genericResult.HasFindings);
-        Assert.Contains("Detected Buffout 4 Version: v1.28", genericResult.ReportText);
-        Assert.Contains("You have the latest version of Buffout 4!", genericResult.ReportText);
+        genericResult.Success.Should().BeTrue();
+        genericResult.HasFindings.Should().BeFalse();
+        genericResult.ReportText.Should().Contain("Detected Buffout 4 Version: v1.28");
+        genericResult.ReportText.Should().Contain("You have the latest version of Buffout 4!");
     }
 
     [Fact]
@@ -177,9 +178,9 @@ public class BuffoutVersionAnalyzerV2Tests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
-        Assert.False(genericResult.HasFindings);
-        Assert.Empty(genericResult.ReportLines);
+        genericResult.Success.Should().BeTrue();
+        genericResult.HasFindings.Should().BeFalse();
+        genericResult.ReportLines.Should().BeEmpty();
     }
 
     [Fact]
@@ -200,9 +201,9 @@ public class BuffoutVersionAnalyzerV2Tests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.False(genericResult.Success);
-        Assert.False(genericResult.HasFindings);
-        Assert.Contains("Warning: Could not load Buffout 4 version data", genericResult.ReportText);
+        genericResult.Success.Should().BeFalse();
+        genericResult.HasFindings.Should().BeFalse();
+        genericResult.ReportText.Should().Contain("Warning: Could not load Buffout 4 version data");
     }
 
     [Fact]
@@ -221,19 +222,19 @@ public class BuffoutVersionAnalyzerV2Tests
 
         // Assert
         var genericResult = (GenericAnalysisResult)result;
-        Assert.True(genericResult.Success);
+        genericResult.Success.Should().BeTrue();
         // The test YAML provider should have v1.28.6 as latest
-        Assert.False(genericResult.HasFindings);
-        Assert.Contains("You have the latest version of Buffout 4!", genericResult.ReportText);
+        genericResult.HasFindings.Should().BeFalse();
+        genericResult.ReportText.Should().Contain("You have the latest version of Buffout 4!");
     }
 
     [Fact]
     public void AnalyzerProperties_AreSetCorrectly()
     {
         // Assert
-        Assert.Equal("Buffout Version Analyzer", _analyzer.Name);
-        Assert.Equal(95, _analyzer.Priority);
-        Assert.True(_analyzer.CanRunInParallel);
+        _analyzer.Name.Should().Be("Buffout Version Analyzer");
+        _analyzer.Priority.Should().Be(95);
+        _analyzer.CanRunInParallel.Should().BeTrue();
     }
 
     /// <summary>

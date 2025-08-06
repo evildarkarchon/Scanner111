@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Tests.Infrastructure;
@@ -63,13 +64,13 @@ PLUGINS:
             var result = await CrashLogParser.ParseAsync(tempFile);
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Empty(result.Plugins);
-            Assert.True(result.IsIncomplete, "Crash log with no plugins should be marked as incomplete");
-            Assert.Equal("Fallout 4 v1.10.163", result.GameVersion);
-            Assert.Equal("Buffout 4 v1.26.2", result.CrashGenVersion);
-            Assert.NotEmpty(result.XseModules);
-            Assert.NotEmpty(result.CallStack);
+            result.Should().NotBeNull();
+            result.Plugins.Should().BeEmpty();
+            result.IsIncomplete.Should().BeTrue("crash log with no plugins should be marked as incomplete");
+            result.GameVersion.Should().Be("Fallout 4 v1.10.163");
+            result.CrashGenVersion.Should().Be("Buffout 4 v1.26.2");
+            result.XseModules.Should().NotBeEmpty();
+            result.CallStack.Should().NotBeEmpty();
         }
         finally
         {
@@ -127,11 +128,11 @@ PLUGINS:
             var result = await CrashLogParser.ParseAsync(tempFile);
 
             // Assert
-            Assert.NotNull(result);
-            Assert.Equal(2, result.Plugins.Count);
-            Assert.False(result.IsIncomplete);
-            Assert.True(result.Plugins.ContainsKey("Fallout4.esm"));
-            Assert.True(result.Plugins.ContainsKey("DLCRobot.esm"));
+            result.Should().NotBeNull();
+            result.Plugins.Should().HaveCount(2);
+            result.IsIncomplete.Should().BeFalse();
+            result.Plugins.Should().ContainKey("Fallout4.esm");
+            result.Plugins.Should().ContainKey("DLCRobot.esm");
         }
         finally
         {

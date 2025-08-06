@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using FluentAssertions;
 using Scanner111.GUI.Converters;
 using Xunit;
 
@@ -18,7 +19,7 @@ public class BooleanToFindingsColorConverterTests
         var result = _converter.Convert(hasFindings, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal(expectedColor, result);
+        result.Should().Be(expectedColor, "because boolean value should map to correct color");
     }
 
     [Theory]
@@ -32,15 +33,15 @@ public class BooleanToFindingsColorConverterTests
         var result = _converter.Convert(value, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        Assert.Equal("#FF666666", result); // Gray for unknown
+        result.Should().Be("#FF666666", "because invalid values should return gray color");
     }
 
     [Fact]
     public void ConvertBack_ThrowsNotImplementedException()
     {
         // Assert
-        Assert.Throws<NotImplementedException>(() =>
-            _converter.ConvertBack("#FFFF9500", typeof(bool), null, CultureInfo.InvariantCulture));
+        var action = () => _converter.ConvertBack("#FFFF9500", typeof(bool), null, CultureInfo.InvariantCulture);
+        action.Should().Throw<NotImplementedException>("because ConvertBack is not implemented");
     }
 
     [Fact]
@@ -51,6 +52,6 @@ public class BooleanToFindingsColorConverterTests
         var instance2 = BooleanToFindingsColorConverter.Instance;
 
         // Assert
-        Assert.Same(instance1, instance2);
+        instance1.Should().BeSameAs(instance2, "because Instance should return singleton");
     }
 }

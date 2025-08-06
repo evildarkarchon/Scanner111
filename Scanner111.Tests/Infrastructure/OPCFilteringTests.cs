@@ -1,4 +1,5 @@
 using System.Reflection;
+using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
 
@@ -57,12 +58,12 @@ public class OpcFilteringTests : IDisposable
         var filtered = InvokeFilterReportContent(reportContent);
 
         // Assert
-        Assert.Contains("Normal content before", filtered);
-        Assert.Contains("Normal content after", filtered);
-        Assert.DoesNotContain("OPC content to be removed", filtered);
-        Assert.DoesNotContain("More OPC content", filtered);
-        Assert.DoesNotContain(opcHeader, filtered);
-        Assert.Contains("NEXT VALID SECTION", filtered);
+        filtered.Should().Contain("Normal content before", "because normal content before OPC section should be preserved");
+        filtered.Should().Contain("Normal content after", "because normal content after OPC section should be preserved");
+        filtered.Should().NotContain("OPC content to be removed", "because OPC content should be filtered out");
+        filtered.Should().NotContain("More OPC content", "because all OPC content should be removed");
+        filtered.Should().NotContain(opcHeader, "because OPC headers should be removed");
+        filtered.Should().Contain("NEXT VALID SECTION", "because non-OPC sections should be preserved");
     }
 
     /// <summary>
@@ -90,11 +91,11 @@ public class OpcFilteringTests : IDisposable
         var filtered = InvokeFilterReportContent(reportContent);
 
         // Assert
-        Assert.Contains("Regular analysis", filtered);
-        Assert.Contains("Continuing with normal analysis", filtered);
-        Assert.DoesNotContain("FOUND NO PROBLEMATIC MODS THAT ARE ALREADY PATCHED THROUGH THE OPC INSTALLER", filtered);
-        Assert.DoesNotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER", filtered);
-        Assert.Contains("CHECKING FOR MODS THAT IF IMPORTANT PATCHES & FIXES ARE INSTALLED", filtered);
+        filtered.Should().Contain("Regular analysis", "because non-OPC content should be preserved");
+        filtered.Should().Contain("Continuing with normal analysis", "because content after OPC section should remain");
+        filtered.Should().NotContain("FOUND NO PROBLEMATIC MODS THAT ARE ALREADY PATCHED THROUGH THE OPC INSTALLER", "because OPC result messages should be removed");
+        filtered.Should().NotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER", "because OPC headers should be removed");
+        filtered.Should().Contain("CHECKING FOR MODS THAT IF IMPORTANT PATCHES & FIXES ARE INSTALLED", "because non-OPC sections should be preserved");
     }
 
     /// <summary>
@@ -120,13 +121,13 @@ public class OpcFilteringTests : IDisposable
         var filtered = InvokeFilterReportContent(reportContent);
 
         // Assert
-        Assert.Contains("Start", filtered);
-        Assert.Contains("End", filtered);
-        Assert.Contains("REGULAR SECTION NAME", filtered);
-        Assert.DoesNotContain("First OPC section", filtered);
-        Assert.DoesNotContain("Second OPC section", filtered);
-        Assert.DoesNotContain("MODS PATCHED THROUGH OPC INSTALLER", filtered);
-        Assert.DoesNotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER", filtered);
+        filtered.Should().Contain("Start", "because content before OPC sections should be preserved");
+        filtered.Should().Contain("End", "because content after OPC sections should be preserved");
+        filtered.Should().Contain("REGULAR SECTION NAME", "because non-OPC sections should be preserved");
+        filtered.Should().NotContain("First OPC section", "because first OPC section content should be removed");
+        filtered.Should().NotContain("Second OPC section", "because second OPC section content should be removed");
+        filtered.Should().NotContain("MODS PATCHED THROUGH OPC INSTALLER", "because OPC headers should be removed");
+        filtered.Should().NotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER", "because all OPC headers should be removed");
     }
 
     /// <summary>
@@ -151,10 +152,10 @@ public class OpcFilteringTests : IDisposable
         var filtered = InvokeFilterReportContent(reportContent);
 
         // Assert
-        Assert.DoesNotContain("OPC content at start", filtered);
-        Assert.DoesNotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER", filtered);
-        Assert.Contains("NORMAL SECTION", filtered);
-        Assert.Contains("Normal content", filtered);
+        filtered.Should().NotContain("OPC content at start", "because OPC content at the beginning should be removed");
+        filtered.Should().NotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER", "because OPC headers should be removed");
+        filtered.Should().Contain("NORMAL SECTION", "because non-OPC sections should be preserved");
+        filtered.Should().Contain("Normal content", "because normal content should be preserved");
     }
 
     /// <summary>
@@ -178,11 +179,11 @@ public class OpcFilteringTests : IDisposable
         var filtered = InvokeFilterReportContent(reportContent);
 
         // Assert
-        Assert.Contains("Normal content", filtered);
-        Assert.Contains("More normal content", filtered);
-        Assert.Contains("REGULAR SECTION", filtered);
-        Assert.DoesNotContain("OPC content at end", filtered);
-        Assert.DoesNotContain("MODS PATCHED THROUGH OPC INSTALLER", filtered);
+        filtered.Should().Contain("Normal content", "because normal content should be preserved");
+        filtered.Should().Contain("More normal content", "because all normal content should be preserved");
+        filtered.Should().Contain("REGULAR SECTION", "because non-OPC sections should be preserved");
+        filtered.Should().NotContain("OPC content at end", "because OPC content at the end should be removed");
+        filtered.Should().NotContain("MODS PATCHED THROUGH OPC INSTALLER", "because OPC headers should be removed");
     }
 
     /// <summary>
@@ -207,7 +208,7 @@ public class OpcFilteringTests : IDisposable
         var filtered = InvokeFilterReportContent(reportContent);
 
         // Assert
-        Assert.Equal(reportContent, filtered);
+        filtered.Should().Be(reportContent, "because no OPC content is present to filter");
     }
 
     /// <summary>
@@ -228,7 +229,7 @@ public class OpcFilteringTests : IDisposable
         var filtered = InvokeFilterReportContent(reportContent);
 
         // Assert
-        Assert.Equal("", filtered);
+        filtered.Should().Be("", "because empty input should return empty output");
     }
 
     /// <summary>
@@ -247,7 +248,7 @@ public class OpcFilteringTests : IDisposable
         var filtered = InvokeFilterReportContent(reportContent);
 
         // Assert
-        Assert.Null(filtered);
+        filtered.Should().BeNull("because null input should return null");
     }
 
     /// <summary>
@@ -271,9 +272,9 @@ public class OpcFilteringTests : IDisposable
         var filtered = InvokeFilterReportContent(reportContent);
 
         // Assert
-        Assert.Equal(reportContent, filtered);
-        Assert.Contains("This line mentions OPC INSTALLER but is not a section header", filtered);
-        Assert.Contains("Some plugins may need OPC installer patches", filtered);
+        filtered.Should().Be(reportContent, "because OPC mentions in regular content should not be filtered");
+        filtered.Should().Contain("This line mentions OPC INSTALLER but is not a section header", "because OPC mentions outside headers should be preserved");
+        filtered.Should().Contain("Some plugins may need OPC installer patches", "because OPC references in content should remain");
     }
 
     /// <summary>
@@ -299,12 +300,12 @@ public class OpcFilteringTests : IDisposable
         var filtered = InvokeFilterReportContent(reportContent);
 
         // Assert
-        Assert.Contains("Normal content", filtered);
-        Assert.Contains("End content", filtered);
-        Assert.Contains("NORMAL SECTION", filtered);
+        filtered.Should().Contain("Normal content", "because normal content should be preserved");
+        filtered.Should().Contain("End content", "because content after OPC section should be preserved");
+        filtered.Should().Contain("NORMAL SECTION", "because non-OPC sections should be preserved");
         // Note: The current implementation is case-sensitive, so this would NOT be filtered
         // This test documents the current behavior
-        Assert.Contains("checking for mods that are patched through opc installer", filtered);
+        filtered.Should().Contain("checking for mods that are patched through opc installer", "because lowercase OPC headers are not filtered in current implementation");
     }
 
     /// <summary>
@@ -334,11 +335,11 @@ public class OpcFilteringTests : IDisposable
         var filtered = InvokeFilterReportContent(reportContent);
 
         // Assert
-        Assert.Contains("Analysis start", filtered);
-        Assert.Contains("Analysis continues", filtered);
-        Assert.Contains("NEXT SECTION", filtered);
-        Assert.DoesNotContain(opcResultMessage, filtered);
-        Assert.DoesNotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER", filtered);
+        filtered.Should().Contain("Analysis start", "because content before OPC section should be preserved");
+        filtered.Should().Contain("Analysis continues", "because content after OPC section should be preserved");
+        filtered.Should().Contain("NEXT SECTION", "because non-OPC sections should be preserved");
+        filtered.Should().NotContain(opcResultMessage, "because OPC result messages should be removed");
+        filtered.Should().NotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER", "because OPC headers should be removed");
     }
 
     /// <summary>

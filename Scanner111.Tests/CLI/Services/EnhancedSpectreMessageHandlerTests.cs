@@ -9,6 +9,7 @@ using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Tests.CLI.TestHelpers;
 using Xunit;
+using FluentAssertions;
 
 namespace Scanner111.Tests.CLI.Services;
 
@@ -51,7 +52,7 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("Test info message", output);
+        output.Should().Contain("Test info message", "should contain expected text");
     }
 
     [Fact]
@@ -66,7 +67,7 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("Test warning message", output);
+        output.Should().Contain("Test warning message", "should contain expected text");
     }
 
     [Fact]
@@ -81,7 +82,7 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("Test error message", output);
+        output.Should().Contain("Test error message", "should contain expected text");
     }
 
     [Fact]
@@ -96,7 +97,7 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("Test success message", output);
+        output.Should().Contain("Test success message", "should contain expected text");
     }
 
     [Fact]
@@ -111,7 +112,7 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("Test debug message", output);
+        output.Should().Contain("Test debug message", "should contain expected text");
     }
 
     [Fact]
@@ -126,7 +127,7 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("Test critical message", output);
+        output.Should().Contain("Test critical message", "should contain expected text");
     }
 
     [Fact]
@@ -141,8 +142,8 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("Main message", output);
-        Assert.Contains("Additional details", output);
+        output.Should().Contain("Main message", "should contain expected text");
+        output.Should().Contain("Additional details", "should contain expected text");
     }
 
     [Fact]
@@ -156,7 +157,7 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
         // Assert
         // Messages should not be logged since they're GUI only
         // This is verified by the handler not adding them to the message logger
-        Assert.NotNull(_handler); // Messages are ignored, no exception
+        _handler.Should().NotBeNull("value should not be null"); // Messages are ignored, no exception
     }
 
     #endregion
@@ -170,8 +171,8 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
         var context = _handler.CreateProgressContext("Test Progress", 100);
 
         // Assert
-        Assert.NotNull(context);
-        Assert.IsAssignableFrom<IProgressContext>(context);
+        context.Should().NotBeNull("value should not be null");
+        context.Should().BeAssignableTo<IProgressContext>("context should implement IProgressContext");
     }
 
     [Fact]
@@ -188,7 +189,7 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
         await Task.Delay(150);
 
         // Assert - no exceptions thrown
-        Assert.NotNull(context);
+        context.Should().NotBeNull("value should not be null");
     }
 
     [Fact]
@@ -204,7 +205,7 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
         await Task.Delay(150);
 
         // Assert - no exceptions thrown
-        Assert.NotNull(context);
+        context.Should().NotBeNull("value should not be null");
     }
 
     [Fact]
@@ -218,7 +219,7 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
         }
 
         // Assert - no exceptions thrown during disposal
-        Assert.NotNull(_handler);
+        _handler.Should().NotBeNull("value should not be null");
     }
 
     [Fact]
@@ -238,7 +239,7 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
         await Task.Delay(150);
 
         // Assert - no exceptions thrown
-        Assert.NotNull(context);
+        context.Should().NotBeNull("value should not be null");
     }
 
     [Fact]
@@ -249,8 +250,8 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
         await Task.Delay(100);
 
         // Assert
-        Assert.NotNull(progress);
-        Assert.IsAssignableFrom<IProgress<ProgressInfo>>(progress);
+        progress.Should().NotBeNull("value should not be null");
+        progress.Should().BeAssignableTo<IProgress<ProgressInfo>>("progress should implement IProgress<ProgressInfo>");
     }
 
     [Fact]
@@ -283,8 +284,8 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
         }
 
         // Assert - no exceptions thrown
-        Assert.Equal(5, contexts.Count);
-        Assert.All(contexts, c => Assert.NotNull(c));
+        contexts.Count.Should().Be(5, "value should match expected");
+        contexts.Should().AllSatisfy(c => c.Should().NotBeNull("all contexts should be created"));
     }
 
     #endregion
@@ -314,7 +315,7 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
         await Task.Delay(200);
 
         // Assert - all messages should be handled without exceptions
-        Assert.NotNull(_handler);
+        _handler.Should().NotBeNull("value should not be null");
     }
 
     [Fact]
@@ -341,7 +342,7 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
         await Task.WhenAll(tasks);
 
         // Assert - all operations should complete without exceptions
-        Assert.Equal(5, contexts.Count);
+        contexts.Count.Should().Be(5, "value should match expected");
     }
 
     #endregion
@@ -360,8 +361,9 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
 
         // Assert - disposal should complete without exceptions
         // Try to use the handler after disposal should not crash
-        var exception = Record.Exception(() => handler.ShowInfo("After disposal"));
-        Assert.Null(exception);
+        var action = () => handler.ShowInfo("After disposal");
+        var exception = Record.Exception(action);
+        exception.Should().BeNull("value should be null");
     }
 
     [Fact]
@@ -395,9 +397,9 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("Scanner111", output); // Header
-        Assert.Contains("Progress", output); // Progress panel
-        Assert.Contains("Logs", output); // Logs panel
+        output.Should().Contain("Scanner111", "should contain expected text"); // Header
+        output.Should().Contain("Progress", "should contain expected text"); // Progress panel
+        output.Should().Contain("Logs", "should contain expected text"); // Logs panel
     }
 
     [Fact]
@@ -413,8 +415,8 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
 
         // Assert
         var output = _console.Output;
-        Assert.Contains("Active Tasks", output); // Status bar shows active task count
-        Assert.Contains("Memory", output); // Status bar shows memory usage
+        output.Should().Contain("Active Tasks", "should contain expected text"); // Status bar shows active task count
+        output.Should().Contain("Memory", "should contain expected text"); // Status bar shows memory usage
     }
 
     #endregion

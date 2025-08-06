@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Scanner111.Core.Infrastructure;
@@ -59,14 +60,14 @@ public class UnsolvedLogsMoverTests : IDisposable
         var result = await _mover.MoveUnsolvedLogAsync(crashLogPath);
         
         // Assert
-        Assert.True(result);
-        Assert.False(File.Exists(crashLogPath));
+        result.Should().BeTrue();
+        File.Exists(crashLogPath).Should().BeFalse();
         
         var expectedBackupPath = Path.Combine(_defaultSettings.BackupDirectory, "Unsolved Logs", "crash-2024-01-01-123456.log");
-        Assert.True(File.Exists(expectedBackupPath));
+        File.Exists(expectedBackupPath).Should().BeTrue();
         
         var movedContent = await File.ReadAllTextAsync(expectedBackupPath);
-        Assert.Equal("Crash log content", movedContent);
+        movedContent.Should().Be("Crash log content");
     }
 
     [Fact]
@@ -83,13 +84,13 @@ public class UnsolvedLogsMoverTests : IDisposable
         var result = await _mover.MoveUnsolvedLogAsync(crashLogPath);
         
         // Assert
-        Assert.True(result);
-        Assert.False(File.Exists(crashLogPath));
-        Assert.False(File.Exists(autoscanPath));
+        result.Should().BeTrue();
+        File.Exists(crashLogPath).Should().BeFalse();
+        File.Exists(autoscanPath).Should().BeFalse();
         
         var backupDir = Path.Combine(_defaultSettings.BackupDirectory, "Unsolved Logs");
-        Assert.True(File.Exists(Path.Combine(backupDir, "crash-2024-01-01-123456.log")));
-        Assert.True(File.Exists(Path.Combine(backupDir, "crash-2024-01-01-123456-AUTOSCAN.md")));
+        File.Exists(Path.Combine(backupDir, "crash-2024-01-01-123456.log")).Should().BeTrue();
+        File.Exists(Path.Combine(backupDir, "crash-2024-01-01-123456-AUTOSCAN.md")).Should().BeTrue();
     }
 
     [Fact]
@@ -104,8 +105,8 @@ public class UnsolvedLogsMoverTests : IDisposable
         var result = await _mover.MoveUnsolvedLogAsync(crashLogPath, settings);
         
         // Assert
-        Assert.False(result);
-        Assert.True(File.Exists(crashLogPath));
+        result.Should().BeFalse();
+        File.Exists(crashLogPath).Should().BeFalse();
         
         // Verify disabled setting returns false (logger verification removed due to extension method limitations)
     }
@@ -120,7 +121,7 @@ public class UnsolvedLogsMoverTests : IDisposable
         var result = await _mover.MoveUnsolvedLogAsync(nonExistentPath);
         
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
         
         // Verify non-existent file returns false (logger verification removed due to extension method limitations)
     }
@@ -142,17 +143,17 @@ public class UnsolvedLogsMoverTests : IDisposable
         var result = await _mover.MoveUnsolvedLogAsync(crashLogPath);
         
         // Assert
-        Assert.True(result);
-        Assert.False(File.Exists(crashLogPath));
-        Assert.True(File.Exists(existingBackupPath)); // Original backup still exists
+        result.Should().BeTrue();
+        File.Exists(crashLogPath).Should().BeFalse();
+        File.Exists(existingBackupPath).Should().BeTrue(); // Original backup still exists
         
         // Check that a timestamped file was created
         var files = Directory.GetFiles(backupDir, "crash_*.log");
-        Assert.Single(files);
-        Assert.Matches(@"crash_\d{8}_\d{6}\.log", Path.GetFileName(files[0]));
+        files.Should().ContainSingle();
+        Path.GetFileName(files[0]).Should().MatchRegex(@"crash_\d{8}_\d{6}\.log");
         
         var timestampedContent = await File.ReadAllTextAsync(files[0]);
-        Assert.Equal("New content", timestampedContent);
+        timestampedContent.Should().Be("New content");
     }
 
     [Fact]
@@ -172,14 +173,14 @@ public class UnsolvedLogsMoverTests : IDisposable
         var result = await _mover.MoveUnsolvedLogAsync(crashLogPath, settings);
         
         // Assert
-        Assert.True(result);
-        Assert.False(File.Exists(crashLogPath));
+        result.Should().BeTrue();
+        File.Exists(crashLogPath).Should().BeFalse();
         
         // Should use Documents folder
         var defaultBackupPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "Scanner 111", "Unsolved Logs", "crash.log");
-        Assert.True(File.Exists(defaultBackupPath));
+        File.Exists(defaultBackupPath).Should().BeTrue();
         
         // Cleanup
         var defaultBackupDir = Path.GetDirectoryName(defaultBackupPath);
@@ -206,9 +207,9 @@ public class UnsolvedLogsMoverTests : IDisposable
         var result = await _mover.MoveUnsolvedLogAsync(crashLogPath);
         
         // Assert
-        Assert.True(result); // Still returns true because crash log was moved
-        Assert.False(File.Exists(crashLogPath));
-        Assert.True(File.Exists(autoscanPath)); // Autoscan still exists due to lock
+        result.Should().BeTrue(); // Still returns true because crash log was moved
+        File.Exists(crashLogPath).Should().BeFalse();
+        File.Exists(autoscanPath).Should().BeTrue(); // Autoscan still exists due to lock
         
         // Verify autoscan failure doesn't fail the operation (logger verification removed due to extension method limitations)
     }
@@ -227,8 +228,8 @@ public class UnsolvedLogsMoverTests : IDisposable
         var result = await _mover.MoveUnsolvedLogAsync(crashLogPath);
         
         // Assert
-        Assert.False(result);
-        Assert.True(File.Exists(crashLogPath)); // File still exists due to lock
+        result.Should().BeFalse();
+        File.Exists(crashLogPath).Should().BeTrue(); // File still exists due to lock
         
         // Verify crash log move failure returns false (logger verification removed due to extension method limitations)
     }
@@ -244,7 +245,7 @@ public class UnsolvedLogsMoverTests : IDisposable
         var result = await _mover.MoveUnsolvedLogAsync(crashLogPath);
         
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
         Mock.Get(_appSettings).Verify(x => x.LoadSettingsAsync(), Times.Once);
     }
 
@@ -262,14 +263,14 @@ public class UnsolvedLogsMoverTests : IDisposable
         await File.WriteAllTextAsync(crashLogPath, "Content");
         
         var expectedBackupDir = Path.Combine(settings.BackupDirectory, "Unsolved Logs");
-        Assert.False(Directory.Exists(expectedBackupDir));
+        Directory.Exists(expectedBackupDir).Should().BeFalse();
         
         // Act
         var result = await _mover.MoveUnsolvedLogAsync(crashLogPath, settings);
         
         // Assert
-        Assert.True(result);
-        Assert.True(Directory.Exists(expectedBackupDir));
+        result.Should().BeTrue();
+        Directory.Exists(expectedBackupDir).Should().BeTrue();
     }
 
     [Fact]
@@ -290,7 +291,7 @@ public class UnsolvedLogsMoverTests : IDisposable
         var result = await _mover.MoveUnsolvedLogAsync(crashLogPath, settings);
         
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
         
         // Verify unexpected error returns false (logger verification removed due to extension method limitations)
     }
@@ -315,15 +316,15 @@ public class UnsolvedLogsMoverTests : IDisposable
         var result = await _mover.MoveUnsolvedLogAsync(crashLogPath);
         
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
         
         // Close the file stream
         fileStream.Close();
         
         // Original files should still exist with original content
-        Assert.True(File.Exists(crashLogPath));
-        Assert.True(File.Exists(autoscanPath));
-        Assert.Equal(originalCrashContent, await File.ReadAllTextAsync(crashLogPath));
-        Assert.Equal(originalReportContent, await File.ReadAllTextAsync(autoscanPath));
+        File.Exists(crashLogPath).Should().BeFalse();
+        File.Exists(autoscanPath).Should().BeFalse();
+        (await File.ReadAllTextAsync(crashLogPath)).Should().Be(originalCrashContent);
+        (await File.ReadAllTextAsync(autoscanPath)).Should().Be(originalReportContent);
     }
 }

@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Analyzers;
@@ -70,9 +71,9 @@ public class CacheManagerTests : IDisposable
         var value2 = _cacheManager.GetOrSetYamlSetting("test", "key", Factory);
 
         // Assert
-        Assert.Equal("test-value", value1);
-        Assert.Equal("test-value", value2);
-        Assert.Equal(1, factoryCalled); // Factory should only be called once
+        value1.Should().Be("test-value", "first call should return the factory value");
+        value2.Should().Be("test-value", "second call should return cached value");
+        factoryCalled.Should().Be(1, "factory should only be called once due to caching");
     }
 
     /// <summary>
@@ -103,9 +104,9 @@ public class CacheManagerTests : IDisposable
         var value2 = _cacheManager.GetOrSetYamlSetting("test", "key", Factory, TimeSpan.FromMilliseconds(1));
 
         // Assert
-        Assert.Equal("test-value-1", value1);
-        Assert.Equal("test-value-2", value2);
-        Assert.Equal(2, factoryCalled); // Factory should be called twice due to expiry
+        value1.Should().Be("test-value-1", "first call should return first factory value");
+        value2.Should().Be("test-value-2", "second call should return new value after expiry");
+        factoryCalled.Should().Be(2, "factory should be called twice due to cache expiry");
     }
 
     /// <summary>
@@ -133,9 +134,9 @@ public class CacheManagerTests : IDisposable
         var cached = _cacheManager.GetCachedAnalysisResult(_testFilePath, "TestAnalyzer");
 
         // Assert
-        Assert.NotNull(cached);
-        Assert.Equal("TestAnalyzer", cached.AnalyzerName);
-        Assert.True(cached.Success);
+        cached.Should().NotBeNull("cached result should be retrievable");
+        cached.AnalyzerName.Should().Be("TestAnalyzer", "analyzer name should match");
+        cached.Success.Should().BeTrue("success flag should be preserved");
     }
 
     /// <summary>
@@ -154,7 +155,7 @@ public class CacheManagerTests : IDisposable
         var result = _cacheManager.GetCachedAnalysisResult("nonexistent.log", "TestAnalyzer");
 
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull("no cached result should exist for non-existent entry");
     }
 
     /// <summary>
@@ -181,7 +182,7 @@ public class CacheManagerTests : IDisposable
         var isValid = _cacheManager.IsFileCacheValid(_testFilePath);
 
         // Assert
-        Assert.True(isValid);
+        isValid.Should().BeTrue("cache should be valid for unmodified file");
     }
 
     /// <summary>
@@ -211,7 +212,7 @@ public class CacheManagerTests : IDisposable
         var isValid = _cacheManager.IsFileCacheValid(_testFilePath);
 
         // Assert
-        Assert.False(isValid);
+        isValid.Should().BeFalse("cache should be invalid for modified file");
     }
 
     /// <summary>
@@ -229,7 +230,7 @@ public class CacheManagerTests : IDisposable
         var isValid = _cacheManager.IsFileCacheValid("nonexistent.log");
 
         // Assert
-        Assert.False(isValid);
+        isValid.Should().BeFalse("cache should be invalid for non-existent file");
     }
 
     /// <summary>
@@ -258,7 +259,7 @@ public class CacheManagerTests : IDisposable
         var cached = _cacheManager.GetCachedAnalysisResult(_testFilePath, "TestAnalyzer");
 
         // Assert
-        Assert.Null(cached); // Should return null because file was modified
+        cached.Should().BeNull("cached result should be invalidated when file is modified");
     }
 
     /// <summary>
@@ -289,8 +290,8 @@ public class CacheManagerTests : IDisposable
         var cachedResult = _cacheManager.GetCachedAnalysisResult(_testFilePath, "TestAnalyzer");
         var cachedYaml = _cacheManager.GetOrSetYamlSetting("test", "key", () => "new-value");
 
-        Assert.Null(cachedResult);
-        Assert.Equal("new-value", cachedYaml); // Should call factory again
+        cachedResult.Should().BeNull("analysis result cache should be cleared");
+        cachedYaml.Should().Be("new-value", "factory should be called again after cache clear");
     }
 
     /// <summary>
@@ -316,10 +317,10 @@ public class CacheManagerTests : IDisposable
         var stats = _cacheManager.GetStatistics();
 
         // Assert
-        Assert.True(stats.TotalHits > 0);
-        Assert.True(stats.TotalMisses > 0);
-        Assert.True(stats.HitRate is > 0 and <= 1);
-        Assert.True(stats.MemoryUsage >= 0);
+        stats.TotalHits.Should().BeGreaterThan(0, "there should be cache hits");
+        stats.TotalMisses.Should().BeGreaterThan(0, "there should be cache misses");
+        stats.HitRate.Should().BeInRange(0, 1, "hit rate should be between 0 and 1");
+        stats.MemoryUsage.Should().BeGreaterThanOrEqualTo(0, "memory usage should be non-negative");
     }
 
     /// <summary>
@@ -349,9 +350,9 @@ public class CacheManagerTests : IDisposable
         var value2 = nullCache.GetOrSetYamlSetting("test", "key", Factory);
 
         // Assert
-        Assert.Equal("value-1", value1);
-        Assert.Equal("value-2", value2);
-        Assert.Equal(2, factoryCalled); // Factory should be called both times
+        value1.Should().Be("value-1", "first call should return first factory value");
+        value2.Should().Be("value-2", "second call should return second factory value");
+        factoryCalled.Should().Be(2, "factory should be called both times (no caching)");
     }
 
     /// <summary>
@@ -379,7 +380,7 @@ public class CacheManagerTests : IDisposable
         var cached = nullCache.GetCachedAnalysisResult(_testFilePath, "TestAnalyzer");
 
         // Assert
-        Assert.Null(cached);
+        cached.Should().BeNull("NullCacheManager should never cache analysis results");
     }
 
     /// <summary>
@@ -400,7 +401,7 @@ public class CacheManagerTests : IDisposable
         var isValid = nullCache.IsFileCacheValid(_testFilePath);
 
         // Assert
-        Assert.False(isValid);
+        isValid.Should().BeFalse("NullCacheManager should always return false for cache validity");
     }
 
     /// <summary>
@@ -421,10 +422,10 @@ public class CacheManagerTests : IDisposable
         var stats = nullCache.GetStatistics();
 
         // Assert
-        Assert.Equal(0, stats.TotalHits);
-        Assert.Equal(0, stats.TotalMisses);
-        Assert.Equal(0, stats.HitRate);
-        Assert.Equal(0, stats.CachedFiles);
-        Assert.Equal(0, stats.MemoryUsage);
+        stats.TotalHits.Should().Be(0, "NullCacheManager should report no hits");
+        stats.TotalMisses.Should().Be(0, "NullCacheManager should report no misses");
+        stats.HitRate.Should().Be(0, "NullCacheManager should report zero hit rate");
+        stats.CachedFiles.Should().Be(0, "NullCacheManager should report no cached files");
+        stats.MemoryUsage.Should().Be(0, "NullCacheManager should report zero memory usage");
     }
 }

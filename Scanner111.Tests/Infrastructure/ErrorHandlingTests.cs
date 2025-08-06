@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
@@ -39,9 +40,9 @@ public class ErrorHandlingTests
         var result = policy.HandleError(exception, "test context", 1);
 
         // Assert
-        Assert.Equal(ErrorAction.Fail, result.Action);
-        Assert.Equal(LogLevel.Information, result.LogLevel);
-        Assert.Contains("cancelled", result.Message);
+        result.Action.Should().Be(ErrorAction.Fail, "because the action should fail");
+        result.LogLevel.Should().Be(LogLevel.Information, "because log level is Information");
+        result.Message.Should().Contain("cancelled", "because cancellation message should be included");
     }
 
     /// Verifies that the DefaultErrorHandlingPolicy correctly handles an UnauthorizedAccessException.
@@ -65,9 +66,9 @@ public class ErrorHandlingTests
         var result = policy.HandleError(exception, "test context", 1);
 
         // Assert
-        Assert.Equal(ErrorAction.Skip, result.Action);
-        Assert.Equal(LogLevel.Warning, result.LogLevel);
-        Assert.Contains("Access denied", result.Message);
+        result.Action.Should().Be(ErrorAction.Skip, "because the action should skip");
+        result.LogLevel.Should().Be(LogLevel.Warning, "because log level is Warning");
+        result.Message.Should().Contain("Access denied", "because exception message should be included");
     }
 
     /// Verifies that the DefaultErrorHandlingPolicy correctly handles a FileNotFoundException.
@@ -91,9 +92,9 @@ public class ErrorHandlingTests
         var result = policy.HandleError(exception, "test context", 1);
 
         // Assert
-        Assert.Equal(ErrorAction.Skip, result.Action);
-        Assert.Equal(LogLevel.Warning, result.LogLevel);
-        Assert.Contains("File not found", result.Message);
+        result.Action.Should().Be(ErrorAction.Skip, "because the action should skip");
+        result.LogLevel.Should().Be(LogLevel.Warning, "because log level is Warning");
+        result.Message.Should().Contain("File not found", "because exception message should be included");
     }
 
     /// Confirms that the DefaultErrorHandlingPolicy retries appropriately when an IOException occurs.
@@ -119,10 +120,10 @@ public class ErrorHandlingTests
         var result = policy.HandleError(exception, "test context", 1);
 
         // Assert
-        Assert.Equal(ErrorAction.Retry, result.Action);
-        Assert.NotNull(result.RetryDelay);
-        Assert.True(result.RetryDelay.Value.TotalMilliseconds > 0);
-        Assert.Equal(LogLevel.Warning, result.LogLevel);
+        result.Action.Should().Be(ErrorAction.Retry, "because IO errors should be retried");
+        result.RetryDelay.Should().NotBeNull("because retry needs a delay");
+        result.RetryDelay.Value.TotalMilliseconds.Should().BeGreaterThan(0, "because retry delay should be positive");
+        result.LogLevel.Should().Be(LogLevel.Warning, "because log level is Warning");
     }
 
     /// Validates that DefaultErrorHandlingPolicy does not retry an operation after exceeding the maximum allowed retry attempts.
@@ -145,7 +146,7 @@ public class ErrorHandlingTests
         var result = policy.HandleError(exception, "test context", 3); // Exceeds max retries
 
         // Assert
-        Assert.Equal(ErrorAction.Skip, result.Action);
+        result.Action.Should().Be(ErrorAction.Skip, "because the action should skip");
     }
 
     /// Verifies that the DefaultErrorHandlingPolicy correctly handles an OutOfMemoryException.
@@ -169,9 +170,9 @@ public class ErrorHandlingTests
         var result = policy.HandleError(exception, "test context", 1);
 
         // Assert
-        Assert.Equal(ErrorAction.Fail, result.Action);
-        Assert.Equal(LogLevel.Critical, result.LogLevel);
-        Assert.Contains("Out of memory", result.Message);
+        result.Action.Should().Be(ErrorAction.Fail, "because the action should fail");
+        result.LogLevel.Should().Be(LogLevel.Critical, "because log level is Critical");
+        result.Message.Should().Contain("Out of memory", "because exception message should be included");
     }
 
     /// Ensures that the DefaultErrorHandlingPolicy accurately respects the maximum retry limit
@@ -192,10 +193,10 @@ public class ErrorHandlingTests
         var exception = new IOException("IO error");
 
         // Act & Assert
-        Assert.True(policy.ShouldRetry(exception, 1));
-        Assert.True(policy.ShouldRetry(exception, 2));
-        Assert.True(policy.ShouldRetry(exception, 3));
-        Assert.False(policy.ShouldRetry(exception, 4));
+        policy.ShouldRetry(exception, 1).Should().BeTrue("because first retry is allowed");
+        policy.ShouldRetry(exception, 2).Should().BeTrue("because second retry is allowed");
+        policy.ShouldRetry(exception, 3).Should().BeTrue("because third retry is allowed");
+        policy.ShouldRetry(exception, 4).Should().BeFalse("because fourth retry exceeds max retries");
     }
 
     /// Verifies that the ResilientExecutor successfully executes an operation
@@ -226,7 +227,7 @@ public class ErrorHandlingTests
             "test operation");
 
         // Assert
-        Assert.Equal(expectedResult, result);
+        result.Should().Be(expectedResult, "because operation should complete successfully");
     }
 
     /// Verifies that ResilientExecutor retries a failed operation the configured number of times
@@ -256,8 +257,8 @@ public class ErrorHandlingTests
         }, "test operation");
 
         // Assert
-        Assert.Equal("success", result);
-        Assert.Equal(3, attemptCount);
+        result.Should().Be("success", "because operation completed successfully");
+        attemptCount.Should().Be(3, "because it took 3 attempts to succeed");
     }
 
     /// Validates that the ResilientExecutor throws an exception after exceeding the maximum retry attempts.
@@ -279,11 +280,12 @@ public class ErrorHandlingTests
         var executor = new ResilientExecutor(policy, _executorLogger);
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-        {
+        var action = async () =>
             await executor.ExecuteAsync(_ => throw new InvalidOperationException("Persistent failure"),
                 "test operation");
-        });
+        
+        await action.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Persistent failure*", "because the exception should propagate after max retries");
     }
 
     /// Validates that the ResilientExecutor properly handles task cancellation scenarios.
@@ -303,15 +305,16 @@ public class ErrorHandlingTests
         using var cts = new CancellationTokenSource();
 
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-        {
+        var action = async () =>
             await executor.ExecuteAsync(ct =>
             {
                 cts.Cancel();
                 ct.ThrowIfCancellationRequested();
                 return Task.FromResult("should not reach here");
             }, "test operation", cts.Token);
-        });
+        
+        await action.Should().ThrowAsync<OperationCanceledException>()
+            .WithMessage("*", "because cancellation should be propagated");
     }
 
     /// Verifies that the ResilientExecutor correctly executes an asynchronous operation
@@ -340,7 +343,7 @@ public class ErrorHandlingTests
         }, "test operation");
 
         // Assert
-        Assert.True(executed);
+        executed.Should().BeTrue("because operation should have been executed");
     }
 
     /// Ensures that the CircuitBreaker permits operations to execute successfully
@@ -364,7 +367,7 @@ public class ErrorHandlingTests
         var result = await circuitBreaker.ExecuteAsync(() => Task.FromResult("success"));
 
         // Assert
-        Assert.Equal("success", result);
+        result.Should().Be("success", "because operation completed successfully");
     }
 
     /// Validates that the CircuitBreaker transitions to an open state after the failure threshold is exceeded.
@@ -395,10 +398,11 @@ public class ErrorHandlingTests
             }
 
         // Assert - Circuit should be open now
-        await Assert.ThrowsAsync<CircuitBreakerOpenException>(async () =>
-        {
+        var action = async () =>
             await circuitBreaker.ExecuteAsync(() => Task.FromResult("should not execute"));
-        });
+        
+        await action.Should().ThrowAsync<CircuitBreakerOpenException>()
+            .WithMessage("*", "because circuit breaker opened after threshold exceeded");
     }
 
     /// Validates that the NoRetryErrorPolicy never retries when an exception occurs.
@@ -420,7 +424,7 @@ public class ErrorHandlingTests
         var shouldRetry = policy.ShouldRetry(exception, 1);
 
         // Assert
-        Assert.False(shouldRetry);
+        shouldRetry.Should().BeFalse("because NoRetryErrorPolicy never allows retries");
     }
 
     /// Validates that the NoRetryErrorPolicy handles errors by either skipping or failing,
@@ -448,8 +452,8 @@ public class ErrorHandlingTests
         var cancellationResult = policy.HandleError(cancellationException, "test context", 1);
 
         // Assert
-        Assert.Equal(ErrorAction.Skip, ioResult.Action);
-        Assert.Equal(ErrorAction.Fail, cancellationResult.Action);
+        ioResult.Action.Should().Be(ErrorAction.Skip, "because IO errors are skipped without retry");
+        cancellationResult.Action.Should().Be(ErrorAction.Fail, "because cancellation fails immediately");
     }
 
     /// Validates that the DefaultErrorHandlingPolicy accurately determines whether a retry
@@ -486,7 +490,7 @@ public class ErrorHandlingTests
         var shouldRetry = policy.ShouldRetry(exception, attemptNumber);
 
         // Assert
-        Assert.Equal(expectedResult, shouldRetry);
+        shouldRetry.Should().Be(expectedResult, $"because attempt {attemptNumber} should {(expectedResult ? "allow" : "deny")} retry");
     }
 
     /// Verifies the default properties of the ErrorHandlingResult object.
@@ -510,10 +514,10 @@ public class ErrorHandlingTests
         };
 
         // Assert
-        Assert.Equal(ErrorAction.Continue, result.Action);
-        Assert.Equal("Test message", result.Message);
-        Assert.True(result.ShouldLog);
-        Assert.Equal(LogLevel.Error, result.LogLevel);
-        Assert.Null(result.RetryDelay);
+        result.Action.Should().Be(ErrorAction.Continue, "because Action was set to Continue");
+        result.Message.Should().Be("Test message", "because Message was set");
+        result.ShouldLog.Should().BeTrue("because ShouldLog defaults to true");
+        result.LogLevel.Should().Be(LogLevel.Error, "because log level defaults to Error");
+        result.RetryDelay.Should().BeNull("because RetryDelay was not set");
     }
 }
