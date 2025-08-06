@@ -525,6 +525,7 @@ public class TestApplicationSettingsService : IApplicationSettingsService
 public class TestScanPipeline : IScanPipeline
 {
     private readonly List<ScanResult> _results = new();
+    private readonly Dictionary<string, ScanResult> _resultsByPath = new();
     
     public List<string> ProcessedPaths { get; } = new();
     public bool IsDisposed { get; private set; }
@@ -532,23 +533,68 @@ public class TestScanPipeline : IScanPipeline
     public void SetResult(ScanResult result)
     {
         _results.Clear();
+        _resultsByPath.Clear();
         _results.Add(result);
+        if (!string.IsNullOrEmpty(result.LogPath))
+        {
+            _resultsByPath[result.LogPath] = result;
+        }
     }
 
     public void SetBatchResults(IEnumerable<ScanResult> results)
     {
         _results.Clear();
+        _resultsByPath.Clear();
         _results.AddRange(results);
+        foreach (var result in _results)
+        {
+            if (!string.IsNullOrEmpty(result.LogPath))
+            {
+                _resultsByPath[result.LogPath] = result;
+            }
+        }
     }
 
-    public Task<ScanResult> ProcessSingleAsync(string logPath, CancellationToken cancellationToken = default)
+    public virtual Task<ScanResult> ProcessSingleAsync(string logPath, CancellationToken cancellationToken = default)
     {
         ProcessedPaths.Add(logPath);
-        return Task.FromResult(_results.FirstOrDefault() ?? new ScanResult
+        
+        // First check if we have a result specifically for this path
+        if (_resultsByPath.TryGetValue(logPath, out var specificResult))
         {
-            LogPath = logPath,
-            AnalysisResults = new List<AnalysisResult>()
-        });
+            return Task.FromResult(specificResult);
+        }
+        
+        // If no specific result, return the first available result (for single result scenarios)
+        // but update its LogPath to match the requested path
+        var result = _results.FirstOrDefault();
+        if (result != null)
+        {
+            // Clone the result with the correct path
+            result = new ScanResult
+            {
+                LogPath = logPath,
+                AnalysisResults = result.AnalysisResults,
+                CrashLog = result.CrashLog,
+                ErrorMessages = result.ErrorMessages,
+                ProcessingTime = result.ProcessingTime,
+                Report = result.Report,
+                Statistics = result.Statistics,
+                Status = result.Status,
+                WasCopiedFromXse = result.WasCopiedFromXse
+            };
+        }
+        else
+        {
+            // Default empty result
+            result = new ScanResult
+            {
+                LogPath = logPath,
+                AnalysisResults = new List<AnalysisResult>()
+            };
+        }
+        
+        return Task.FromResult(result);
     }
 
     public async IAsyncEnumerable<ScanResult> ProcessBatchAsync(

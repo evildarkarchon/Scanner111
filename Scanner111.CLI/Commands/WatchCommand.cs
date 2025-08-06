@@ -250,28 +250,45 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
 
         if (existingFiles.Length == 0)
         {
-            AnsiConsole.MarkupLine("[yellow]No existing crash logs found[/]");
+            if (!options.ShowDashboard && options.ShowNotifications != false)
+            {
+                AnsiConsole.MarkupLine("[yellow]No existing crash logs found[/]");
+            }
             return;
         }
 
-        AnsiConsole.MarkupLine($"[cyan]Scanning {existingFiles.Length} existing files...[/]");
-
-        await AnsiConsole.Progress()
-            .AutoClear(false)
-            .HideCompleted(false)
-            .StartAsync(async ctx =>
+        // Skip progress display when notifications are disabled (typically in tests)
+        if (options.ShowNotifications == false)
+        {
+            foreach (var file in existingFiles)
             {
-                var task = ctx.AddTask("[cyan]Scanning existing logs[/]", maxValue: existingFiles.Length);
+                if (cancellationToken.IsCancellationRequested)
+                    break;
 
-                foreach (var file in existingFiles)
+                await ProcessNewFile(file, options);
+            }
+        }
+        else
+        {
+            AnsiConsole.MarkupLine($"[cyan]Scanning {existingFiles.Length} existing files...[/]");
+
+            await AnsiConsole.Progress()
+                .AutoClear(false)
+                .HideCompleted(false)
+                .StartAsync(async ctx =>
                 {
-                    if (cancellationToken.IsCancellationRequested)
-                        break;
+                    var task = ctx.AddTask("[cyan]Scanning existing logs[/]", maxValue: existingFiles.Length);
 
-                    await ProcessNewFile(file, options);
-                    task.Increment(1);
-                }
-            });
+                    foreach (var file in existingFiles)
+                    {
+                        if (cancellationToken.IsCancellationRequested)
+                            break;
+
+                        await ProcessNewFile(file, options);
+                        task.Increment(1);
+                    }
+                });
+        }
     }
 
     private string DetermineWatchPath(WatchOptions options)
