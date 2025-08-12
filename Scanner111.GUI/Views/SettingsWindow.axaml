@@ -111,6 +111,50 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Mod Manager Settings Section -->
+                <Border Background="#3c3c3c" CornerRadius="5" Padding="15">
+                    <StackPanel Spacing="15">
+                        <TextBlock Text="Mod Manager Integration" FontSize="16" FontWeight="Bold" Foreground="#0e639c" />
+                        
+                        <CheckBox Content="Enable mod manager integration (uncheck to disable if experiencing issues)" 
+                                  IsChecked="{Binding AutoDetectModManagers}"
+                                  ToolTip.Tip="When disabled, Scanner111 will not attempt to detect or use mod managers" />
+                        
+                        <!-- Default Mod Manager -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Default Mod Manager:" />
+                            <ComboBox SelectedItem="{Binding DefaultModManager}" Width="200"
+                                      HorizontalAlignment="Left">
+                                <ComboBoxItem Content="None" />
+                                <ComboBoxItem Content="ModOrganizer2" />
+                                <ComboBoxItem Content="Vortex" />
+                            </ComboBox>
+                        </StackPanel>
+                        
+                        <!-- MO2 Path -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Mod Organizer 2 Installation Path:" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBox Grid.Column="0" Text="{Binding MO2InstallPath}"
+                                         Watermark="Optional: Override MO2 installation path..." />
+                                <Button Grid.Column="1" Content="Browse" Margin="5,0,0,0" Width="80"
+                                        Command="{Binding BrowseMO2PathCommand}" />
+                            </Grid>
+                        </StackPanel>
+                        
+                        <!-- Vortex Path -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Vortex Data Path:" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBox Grid.Column="0" Text="{Binding VortexDataPath}"
+                                         Watermark="Optional: Override Vortex data path..." />
+                                <Button Grid.Column="1" Content="Browse" Margin="5,0,0,0" Width="80"
+                                        Command="{Binding BrowseVortexPathCommand}" />
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
                 <!-- Update Settings Section -->
                 <Border Background="#3c3c3c" CornerRadius="5" Padding="15">
                     <StackPanel Spacing="15">

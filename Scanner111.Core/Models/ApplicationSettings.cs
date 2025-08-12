@@ -86,6 +86,26 @@ public class ApplicationSettings
     [JsonPropertyName("updateSource")]
     public string UpdateSource { get; set; } = "Both"; // "Both", "GitHub", "Nexus"
 
+    // === Mod Manager Settings ===
+
+    [JsonPropertyName("autoDetectModManagers")]
+    public bool AutoDetectModManagers { get; set; } = true;
+
+    [JsonPropertyName("defaultModManager")]
+    public string? DefaultModManager { get; set; }
+
+    [JsonPropertyName("mo2InstallPath")]
+    public string? MO2InstallPath { get; set; }
+
+    [JsonPropertyName("mo2DefaultProfile")]
+    public string? MO2DefaultProfile { get; set; }
+
+    [JsonPropertyName("vortexDataPath")]
+    public string? VortexDataPath { get; set; }
+
+    [JsonPropertyName("modManagerSettings")]
+    public ModManagerSettings? ModManagerSettings { get; set; }
+
     // === CLI-Specific Display Settings ===
 
     [JsonPropertyName("disableColors")] public bool DisableColors { get; set; }
@@ -172,4 +192,28 @@ public class ApplicationSettings
     {
         AddRecentScanDirectory(path);
     }
+}
+
+/// <summary>
+///     Mod manager specific settings
+/// </summary>
+public class ModManagerSettings
+{
+    [JsonPropertyName("autoDetectModManagers")]
+    public bool AutoDetectModManagers { get; set; } = true;
+
+    [JsonPropertyName("defaultManager")]
+    public string? DefaultManager { get; set; }
+
+    [JsonPropertyName("mo2InstallPath")]
+    public string? MO2InstallPath { get; set; }
+
+    [JsonPropertyName("mo2DefaultProfile")]
+    public string? MO2DefaultProfile { get; set; }
+
+    [JsonPropertyName("vortexDataPath")]
+    public string? VortexDataPath { get; set; }
+
+    [JsonPropertyName("skipModManagerIntegration")]
+    public bool SkipModManagerIntegration { get; set; }
 }

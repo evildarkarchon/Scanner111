@@ -46,4 +46,21 @@ public class ScanOptions
 
     [Option("legacy-progress", HelpText = "Use legacy progress display instead of enhanced multi-progress view")]
     public bool UseLegacyProgress { get; set; }
+
+    // === Mod Manager Options ===
+
+    [Option("mo2-path", HelpText = "Override MO2 installation path")]
+    public string? MO2Path { get; set; }
+
+    [Option("mo2-profile", HelpText = "Specify MO2 profile to use")]
+    public string? MO2Profile { get; set; }
+
+    [Option("vortex-path", HelpText = "Override Vortex data path")]
+    public string? VortexPath { get; set; }
+
+    [Option("skip-mod-managers", HelpText = "Disable mod manager integration")]
+    public bool SkipModManagers { get; set; }
+
+    [Option("prefer-mod-manager", HelpText = "Preferred mod manager: MO2 or Vortex")]
+    public string? PreferredModManager { get; set; }
 }

@@ -4,6 +4,8 @@ using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
+using Scanner111.Core.Services;
+using Scanner111.Core.ModManagers;
 using CliScanOptions = Scanner111.CLI.Models.ScanOptions;
 
 namespace Scanner111.CLI.Commands;
@@ -14,17 +16,20 @@ public class ScanCommand : ICommand<CliScanOptions>
     private readonly IScanResultProcessor _scanResultProcessor;
     private readonly ICliSettingsService _settingsService;
     private readonly IMessageHandler _messageHandler;
+    private readonly IModManagerService? _modManagerService;
 
     public ScanCommand(
         ICliSettingsService settingsService,
         IFileScanService fileScanService,
         IScanResultProcessor scanResultProcessor,
-        IMessageHandler messageHandler)
+        IMessageHandler messageHandler,
+        IModManagerService? modManagerService = null)
     {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _fileScanService = fileScanService ?? throw new ArgumentNullException(nameof(fileScanService));
         _scanResultProcessor = scanResultProcessor ?? throw new ArgumentNullException(nameof(scanResultProcessor));
         _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
+        _modManagerService = modManagerService;
     }
 
     /// Executes the scan command asynchronously, handling crash log file scanning based on the given options.
@@ -174,6 +179,53 @@ public class ScanCommand : ICommand<CliScanOptions>
         if (options.MoveUnsolved.HasValue) settings.MoveUnsolvedLogs = options.MoveUnsolved.Value;
 
         if (!string.IsNullOrEmpty(options.CrashLogsDirectory)) settings.CrashLogsDirectory = options.CrashLogsDirectory;
+
+        // Apply mod manager settings
+        if (!string.IsNullOrEmpty(options.MO2Path)) 
+        {
+            settings.MO2InstallPath = options.MO2Path;
+            if (settings.ModManagerSettings == null)
+                settings.ModManagerSettings = new ModManagerSettings();
+            settings.ModManagerSettings.MO2InstallPath = options.MO2Path;
+        }
+
+        if (!string.IsNullOrEmpty(options.MO2Profile))
+        {
+            settings.MO2DefaultProfile = options.MO2Profile;
+            if (settings.ModManagerSettings == null)
+                settings.ModManagerSettings = new ModManagerSettings();
+            settings.ModManagerSettings.MO2DefaultProfile = options.MO2Profile;
+        }
+
+        if (!string.IsNullOrEmpty(options.VortexPath))
+        {
+            settings.VortexDataPath = options.VortexPath;
+            if (settings.ModManagerSettings == null)
+                settings.ModManagerSettings = new ModManagerSettings();
+            settings.ModManagerSettings.VortexDataPath = options.VortexPath;
+        }
+
+        if (options.SkipModManagers)
+        {
+            settings.AutoDetectModManagers = false;
+            if (settings.ModManagerSettings == null)
+                settings.ModManagerSettings = new ModManagerSettings();
+            settings.ModManagerSettings.SkipModManagerIntegration = true;
+        }
+
+        if (!string.IsNullOrEmpty(options.PreferredModManager))
+        {
+            settings.DefaultModManager = options.PreferredModManager;
+            if (settings.ModManagerSettings == null)
+                settings.ModManagerSettings = new ModManagerSettings();
+            settings.ModManagerSettings.DefaultManager = options.PreferredModManager;
+            
+            // Set preference in the mod manager service if available
+            if (_modManagerService != null && Enum.TryParse<ModManagerType>(options.PreferredModManager, true, out var managerType))
+            {
+                _modManagerService.SetPreferredManager(managerType);
+            }
+        }
 
         // Apply defaults from settings if not specified on command line
         if (string.IsNullOrEmpty(options.GamePath) && !string.IsNullOrEmpty(settings.DefaultGamePath))

@@ -35,6 +35,10 @@ public class SettingsWindowViewModel : ViewModelBase
     private bool _moveUnsolvedLogs = false;
     private string _modsFolder = "";
     private string _iniFolder = "";
+    private bool _autoDetectModManagers = true;
+    private string _mo2InstallPath = "";
+    private string _vortexDataPath = "";
+    private string _defaultModManager = "None";
 
     public SettingsWindowViewModel() : this(new SettingsService())
     {
@@ -50,6 +54,8 @@ public class SettingsWindowViewModel : ViewModelBase
         BrowseScanDirectoryCommand = ReactiveCommand.CreateFromTask(BrowseScanDirectory);
         BrowseModsFolderCommand = ReactiveCommand.CreateFromTask(BrowseModsFolder);
         BrowseIniFolderCommand = ReactiveCommand.CreateFromTask(BrowseIniFolder);
+        BrowseMO2PathCommand = ReactiveCommand.CreateFromTask(BrowseMO2Path);
+        BrowseVortexPathCommand = ReactiveCommand.CreateFromTask(BrowseVortexPath);
         ClearRecentFilesCommand = ReactiveCommand.Create(ClearRecentFiles);
         ResetToDefaultsCommand = ReactiveCommand.Create(ResetToDefaults);
         SaveCommand = ReactiveCommand.CreateFromTask(SaveSettings);
@@ -260,6 +266,42 @@ public class SettingsWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _iniFolder, value);
     }
 
+    /// <summary>
+    /// Gets or sets whether mod managers should be automatically detected.
+    /// </summary>
+    public bool AutoDetectModManagers
+    {
+        get => _autoDetectModManagers;
+        set => this.RaiseAndSetIfChanged(ref _autoDetectModManagers, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the Mod Organizer 2 installation path.
+    /// </summary>
+    public string MO2InstallPath
+    {
+        get => _mo2InstallPath;
+        set => this.RaiseAndSetIfChanged(ref _mo2InstallPath, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the Vortex data path.
+    /// </summary>
+    public string VortexDataPath
+    {
+        get => _vortexDataPath;
+        set => this.RaiseAndSetIfChanged(ref _vortexDataPath, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the default mod manager.
+    /// </summary>
+    public string DefaultModManager
+    {
+        get => _defaultModManager;
+        set => this.RaiseAndSetIfChanged(ref _defaultModManager, value);
+    }
+
     public ObservableCollection<string> RecentLogFiles { get; } = [];
     public ObservableCollection<string> RecentGamePaths { get; } = [];
     public ObservableCollection<string> RecentScanDirectories { get; } = [];
@@ -273,6 +315,8 @@ public class SettingsWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> BrowseScanDirectoryCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowseModsFolderCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowseIniFolderCommand { get; }
+    public ReactiveCommand<Unit, Unit> BrowseMO2PathCommand { get; }
+    public ReactiveCommand<Unit, Unit> BrowseVortexPathCommand { get; }
     public ReactiveCommand<Unit, Unit> ClearRecentFilesCommand { get; }
     public ReactiveCommand<Unit, Unit> ResetToDefaultsCommand { get; }
     public ReactiveCommand<Unit, Unit> SaveCommand { get; }
@@ -417,6 +461,10 @@ public class SettingsWindowViewModel : ViewModelBase
         MoveUnsolvedLogs = settings.MoveUnsolvedLogs;
         ModsFolder = settings.ModsFolder;
         IniFolder = settings.IniFolder;
+        AutoDetectModManagers = settings.AutoDetectModManagers;
+        MO2InstallPath = settings.MO2InstallPath ?? "";
+        VortexDataPath = settings.VortexDataPath ?? "";
+        DefaultModManager = settings.DefaultModManager ?? "None";
 
         RecentLogFiles.Clear();
         foreach (var file in settings.RecentLogFiles)
@@ -466,7 +514,11 @@ public class SettingsWindowViewModel : ViewModelBase
             FcxMode = FcxMode,
             MoveUnsolvedLogs = MoveUnsolvedLogs,
             ModsFolder = ModsFolder,
-            IniFolder = IniFolder
+            IniFolder = IniFolder,
+            AutoDetectModManagers = AutoDetectModManagers,
+            MO2InstallPath = MO2InstallPath,
+            VortexDataPath = VortexDataPath,
+            DefaultModManager = DefaultModManager
         };
 
         foreach (var file in RecentLogFiles)
@@ -561,6 +613,30 @@ public class SettingsWindowViewModel : ViewModelBase
         {
             var result = await ShowFolderPickerAsync("Select INI Folder");
             if (!string.IsNullOrEmpty(result)) IniFolder = result;
+        }
+    }
+
+    /// <summary>
+    /// Opens a folder picker dialog to allow the user to select the MO2 installation path.
+    /// </summary>
+    private async Task BrowseMO2Path()
+    {
+        if (ShowFolderPickerAsync != null)
+        {
+            var result = await ShowFolderPickerAsync("Select Mod Organizer 2 Installation Folder");
+            if (!string.IsNullOrEmpty(result)) MO2InstallPath = result;
+        }
+    }
+
+    /// <summary>
+    /// Opens a folder picker dialog to allow the user to select the Vortex data path.
+    /// </summary>
+    private async Task BrowseVortexPath()
+    {
+        if (ShowFolderPickerAsync != null)
+        {
+            var result = await ShowFolderPickerAsync("Select Vortex Data Folder");
+            if (!string.IsNullOrEmpty(result)) VortexDataPath = result;
         }
     }
 

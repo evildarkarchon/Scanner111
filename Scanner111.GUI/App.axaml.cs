@@ -8,6 +8,8 @@ using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Pipeline;
 using Scanner111.Core.Services;
+using Scanner111.Core.ModManagers;
+using Scanner111.Core.FCX;
 using Scanner111.GUI.Services;
 using Scanner111.GUI.ViewModels;
 using Scanner111.GUI.Views;
@@ -99,6 +101,15 @@ public class App : Application
         services.AddTransient<SuspectScanner>();
         services.AddTransient<FileIntegrityAnalyzer>();
         services.AddTransient<BuffoutVersionAnalyzerV2>();
+
+        // Register FCX services
+        services.AddSingleton<IModScanner, ModScanner>();
+        services.AddSingleton<IModCompatibilityService, ModCompatibilityService>();
+        services.AddSingleton<IBackupService, BackupService>();
+
+        // Register Mod Manager services
+        services.AddSingleton<IModManagerDetector, ModManagerDetector>();
+        services.AddSingleton<IModManagerService, ModManagerService>();
 
         // Register GUI services
         services.AddSingleton<ISettingsService, SettingsService>();

@@ -360,6 +360,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
@@ -395,8 +396,49 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Mod Manager Status -->
+                    <Border Grid.Row="1" Background="#FF3c3c3c" Padding="10" Margin="5,0,5,5"
+                            IsVisible="{Binding ModManagerDetected}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                                <TextBlock Text="Mod Manager:" 
+                                           Foreground="White" 
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding ModManagerStatus}" 
+                                           Foreground="#FF0e639c"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" 
+                                        HorizontalAlignment="Center"
+                                        IsVisible="{Binding ModManagerDetected}">
+                                <TextBlock Text="Active Mods:" 
+                                           Foreground="White"
+                                           VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding DetectedMods.Count}" 
+                                           Foreground="#FF0e639c"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                            
+                            <Button Grid.Column="2" 
+                                    Content="Refresh" 
+                                    Command="{Binding RefreshModManagersCommand}"
+                                    Background="#FF666666" 
+                                    Foreground="White"
+                                    Padding="10,3" />
+                        </Grid>
+                    </Border>
+
                     <!-- FCX Status -->
-                    <Border Grid.Row="1" Background="#FF3c3c3c" Padding="10" Margin="5,0,5,5" 
+                    <Border Grid.Row="2" Background="#FF3c3c3c" Padding="10" Margin="5,0,5,5" 
                             IsVisible="{Binding FcxResult, Converter={x:Static ObjectConverters.IsNotNull}}">
                         <StackPanel Orientation="Horizontal" Spacing="20">
                             <TextBlock Text="FCX Status:" Foreground="White" FontWeight="Bold" />
@@ -409,7 +451,7 @@
                     </Border>
 
                     <!-- FCX Results -->
-                    <ScrollViewer Grid.Row="2" Margin="5">
+                    <ScrollViewer Grid.Row="3" Margin="5">
                         <ContentControl Content="{Binding FcxResult}">
                             <ContentControl.ContentTemplate>
                                 <DataTemplate DataType="{x:Type vm:FcxResultViewModel}">

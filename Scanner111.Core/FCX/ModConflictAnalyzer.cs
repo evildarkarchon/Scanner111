@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.Core.Infrastructure;
+using Scanner111.Core.Services;
 
 namespace Scanner111.Core.FCX
 {
@@ -16,15 +17,18 @@ namespace Scanner111.Core.FCX
         private readonly ILogger<ModConflictAnalyzer> _logger;
         private readonly IModScanner _modScanner;
         private readonly IApplicationSettingsService _appSettings;
+        private readonly IModManagerService? _modManagerService;
 
         public ModConflictAnalyzer(
             ILogger<ModConflictAnalyzer> logger,
             IModScanner modScanner,
-            IApplicationSettingsService appSettings)
+            IApplicationSettingsService appSettings,
+            IModManagerService? modManagerService = null)
         {
             _logger = logger;
             _modScanner = modScanner;
             _appSettings = appSettings;
+            _modManagerService = modManagerService;
         }
 
         public string Name => "Mod Conflict Analyzer";

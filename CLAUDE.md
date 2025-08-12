@@ -25,6 +25,10 @@ dotnet run --project Scanner111.CLI -- scan
 # Run CLI with specific log file
 dotnet run --project Scanner111.CLI -- scan -l "path/to/crash.log"
 
+# Run CLI watch mode (monitors for new crash logs)
+dotnet run --project Scanner111.CLI -- watch
+dotnet run --project Scanner111.CLI -- watch --path "C:/path/to/logs" --auto-move --dashboard
+
 # Run CLI demo mode
 dotnet run --project Scanner111.CLI -- demo
 
@@ -126,9 +130,9 @@ UI-agnostic communication through `IMessageHandler`:
   - Services/: GUI-specific services
 
 - **Scanner111.CLI**: Console application using CommandLineParser
-  - Commands/: ICommand implementations (ScanCommand, DemoCommand, etc.)
+  - Commands/: ICommand implementations (ScanCommand, WatchCommand, DemoCommand, etc.)
   - Models/: CLI options classes with CommandLineParser attributes
-  - Services/: CLI-specific services
+  - Services/: CLI-specific services including EnhancedSpectreMessageHandler
 
 - **Scanner111.Tests**: xUnit test project
   - Integration/: End-to-end test scenarios
@@ -159,6 +163,7 @@ UI-agnostic communication through `IMessageHandler`:
 
 ### Commands (Verbs)
 - `scan` (default): Scan crash log files for issues
+- `watch`: Monitor directory for new crash logs with real-time analysis
 - `demo`: Demonstrate message handler features
 - `config`: Manage Scanner111 configuration
 - `about`: Show version and about information
@@ -180,6 +185,16 @@ UI-agnostic communication through `IMessageHandler`:
 - `--disable-colors`: Disable colored output
 - `-o, --output-format`: Output format (detailed or summary)
 - `--legacy-progress`: Use legacy progress display instead of enhanced multi-progress view
+
+### Watch Command Options
+- `-p, --path`: Directory path to monitor for crash logs
+- `-g, --game`: Game type (Fallout4 or Skyrim) for auto-detection of paths
+- `-r, --recursive`: Monitor subdirectories recursively
+- `--pattern`: File pattern to watch (default: *.txt)
+- `--scan-existing`: Scan existing files when starting
+- `--auto-move`: Automatically move solved logs to 'Solved' folder
+- `--dashboard`: Show live dashboard with statistics
+- `--notifications`: Show notifications for new files (default: true)
 
 ## Async I/O Best Practices
 

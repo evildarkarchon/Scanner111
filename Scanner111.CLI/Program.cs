@@ -10,6 +10,7 @@ using Scanner111.Core.Services;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.FCX;
 using Scanner111.Core.Pipeline;
+using Scanner111.Core.ModManagers;
 
 // Ensure UTF-8 encoding for Windows console
 if (OperatingSystem.IsWindows())
@@ -95,6 +96,10 @@ static void ConfigureServices(IServiceCollection services, bool useLegacyProgres
     services.AddSingleton<IYamlSettingsProvider, YamlSettingsService>();
     services.AddSingleton<IModScanner, ModScanner>();
     services.AddSingleton<IModCompatibilityService, ModCompatibilityService>();
+    
+    // Register Mod Manager services
+    services.AddSingleton<IModManagerDetector, ModManagerDetector>();
+    services.AddSingleton<IModManagerService, ModManagerService>();
     
     // Register commands
     services.AddTransient<ScanCommand>();

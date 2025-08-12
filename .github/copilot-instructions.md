@@ -48,6 +48,8 @@ await foreach (var result in pipeline.ProcessBatchAsync(logPaths, options, progr
 - **`IYamlSettingsProvider`** for game-specific YAML data access
 - **Service lifetimes**: Core services are Singletons, Commands are Transient
 - **Registration**: CLI uses `ServiceCollection` in `Program.cs`, GUI in `App.axaml.cs`
+- **Key Services**: `IUpdateService`, `ICacheManager`, `IUnsolvedLogsMover`, `IModManagerDetector`
+- **Message Handler Selection**: `--legacy-progress` flag controls handler registration at startup
 
 ## Project Structure
 
@@ -57,6 +59,7 @@ Scanner111.Core/          # Business logic library
 ├── FCX/                  # File Check Xtended - game integrity analyzers
 ├── Infrastructure/       # Cross-cutting services (23+ services)
 ├── Models/              # Domain models (CrashLog, ScanResult)
+├── ModManagers/         # MO2/Vortex integration services
 ├── Pipeline/            # IScanPipeline and builders
 └── Services/            # Update service and utilities
 
@@ -66,7 +69,7 @@ Scanner111.GUI/          # Avalonia MVVM desktop app
 └── Services/            # GUI-specific services
 
 Scanner111.CLI/          # Console app with CommandLineParser
-├── Commands/            # ICommand implementations (6 commands)
+├── Commands/            # ICommand implementations (8 commands: scan, watch, demo, config, about, fcx, interactive)
 ├── Models/              # CLI-specific options
 └── Services/            # CLI-specific services
 
@@ -100,6 +103,7 @@ dotnet run --project Scanner111.CLI -- scan -l "sample_logs/crash-2023-09-15-01-
 ```bash
 # CLI uses verb-based commands with CommandLineParser
 dotnet run --project Scanner111.CLI -- scan -l "path/to/crash.log" --verbose
+dotnet run --project Scanner111.CLI -- watch -p "C:/path/to/logs" --auto-move --dashboard  # Monitor directory
 dotnet run --project Scanner111.CLI -- fcx -g "C:\Games\Fallout 4" --check-integrity  # FCX mode
 dotnet run --project Scanner111.CLI -- demo  # Shows sample analysis
 dotnet run --project Scanner111.CLI -- config  # Manages settings
@@ -140,6 +144,8 @@ dotnet run --project Scanner111.CLI
 - **Data files**: `Data/` directory contains game-specific lookup tables
 - **FCX Mode**: File integrity checking via `HashValidationService` and `IBackupService`
 - **Game integrity**: FCX analyzers validate game files, scripts, and mod compatibility
+- **Mod Manager Support**: `ModManagerDetector` and `ModManagerService` for MO2/Vortex integration
+- **Update Service**: Automatic version checking with configurable startup checks
 
 ### Performance Monitoring
 - **Decorator pattern**: `PerformanceMonitoringPipeline` wraps base pipeline
@@ -163,6 +169,7 @@ dotnet run --project Scanner111.CLI
 - **TestHelpers/TestImplementations.cs**: Mock services for unit tests
 - **xUnit framework**: All test projects use xUnit with proper async patterns
 - **Integration tests**: `Scanner111.Tests/Integration/` for end-to-end scenarios
+- **Component tests**: Separate folders for Analyzers/, CLI/, FCX/, GUI/, ModManagers/
 - **Test data**: Use `sample_logs/` files to verify analyzer output format exactly matches expected
 - **Resource management**: All tests use `using` statements and proper disposal patterns
 - **Mock services**: Use `TestApplicationSettingsService`, `TestMessageHandler`, etc. from TestHelpers
@@ -176,8 +183,9 @@ dotnet run --project Scanner111.CLI
 - **Theme**: Dark theme with `#2d2d30` background, `#0e639c` primary color
 
 ### CLI Commands
-- **CommandLineParser**: Use verbs pattern (`scan`, `demo`, `config`, `about`, `fcx`, `interactive`)
+- **CommandLineParser**: Use verbs pattern (`scan`, `watch`, `demo`, `config`, `about`, `fcx`, `interactive`)
 - **Options classes**: In `Scanner111.CLI/Models/` with proper attributes
+- **Watch Command**: `WatchCommand` for real-time directory monitoring with FileSystemWatcher
 - **FCX Command**: `FcxCommand` for game integrity checking with hash validation
 - **Interactive Command**: `InteractiveCommand` launches full TUI via `ITerminalUIService`
 - **Async execution**: All commands implement `ICommand` with async execution

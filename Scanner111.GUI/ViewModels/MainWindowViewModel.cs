@@ -17,6 +17,7 @@ using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
 using Scanner111.Core.Services;
+using Scanner111.Core.ModManagers;
 using Scanner111.GUI.Models;
 using Scanner111.GUI.Services;
 using Scanner111.GUI.Views;
@@ -38,6 +39,7 @@ public class MainWindowViewModel : ViewModelBase
     private readonly GuiMessageHandlerService _messageHandlerService;
     private readonly IUpdateService _updateService;
     private readonly ICacheManager _cacheManager;
+    private readonly IModManagerService? _modManagerService;
     private UserSettings _currentSettings;
     private bool _isScanning;
     private IMessageHandler? _messageHandler;
@@ -48,6 +50,9 @@ public class MainWindowViewModel : ViewModelBase
     private CancellationTokenSource? _scanCancellationTokenSource;
     private FcxResultViewModel? _fcxResult;
     private IUnsolvedLogsMover? _unsolvedLogsMover;
+    private string _modManagerStatus = "No mod manager detected";
+    private bool _modManagerDetected;
+    private ObservableCollection<ModInfo> _detectedMods = new();
 
     private IScanPipeline? _scanPipeline;
     private string _selectedGamePath = "";
@@ -56,13 +61,20 @@ public class MainWindowViewModel : ViewModelBase
     private string _selectedScanDirectory = "";
     private string _statusText = "Ready";
 
-    public MainWindowViewModel(ISettingsService settingsService, GuiMessageHandlerService messageHandlerService, IUpdateService updateService, ICacheManager cacheManager, IUnsolvedLogsMover unsolvedLogsMover)
+    public MainWindowViewModel(
+        ISettingsService settingsService, 
+        GuiMessageHandlerService messageHandlerService, 
+        IUpdateService updateService, 
+        ICacheManager cacheManager, 
+        IUnsolvedLogsMover unsolvedLogsMover,
+        IModManagerService? modManagerService = null)
     {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _messageHandlerService = messageHandlerService ?? throw new ArgumentNullException(nameof(messageHandlerService));
         _updateService = updateService ?? throw new ArgumentNullException(nameof(updateService));
         _cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
         _unsolvedLogsMover = unsolvedLogsMover ?? throw new ArgumentNullException(nameof(unsolvedLogsMover));
+        _modManagerService = modManagerService;
         _currentSettings = new UserSettings();
 
         // Set this view model in the message handler service
@@ -85,6 +97,9 @@ public class MainWindowViewModel : ViewModelBase
         RunFcxScanCommand = ReactiveCommand.CreateFromTask(RunFcxScan);
         BackupGameFilesCommand = ReactiveCommand.CreateFromTask(BackupGameFiles);
         ValidateGameInstallCommand = ReactiveCommand.CreateFromTask(ValidateGameInstall);
+        
+        // Mod Manager Commands
+        RefreshModManagersCommand = ReactiveCommand.CreateFromTask(DetectModManagersAsync);
 
         StatusText = "Ready - Select a crash log file to begin";
 
@@ -253,6 +268,45 @@ public class MainWindowViewModel : ViewModelBase
 
     public ObservableCollection<ScanResultViewModel> ScanResults { get; } = new();
     public ObservableCollection<string> LogMessages { get; } = new();
+    
+    /// <summary>
+    /// Gets the collection of detected mods from the active mod manager.
+    /// </summary>
+    public ObservableCollection<ModInfo> DetectedMods
+    {
+        get => _detectedMods;
+        private set => this.RaiseAndSetIfChanged(ref _detectedMods, value);
+    }
+
+    /// <summary>
+    /// Gets or sets the mod manager status text displayed in the UI.
+    /// </summary>
+    public string ModManagerStatus
+    {
+        get => _modManagerStatus;
+        set
+        {
+            if (Dispatcher.UIThread.CheckAccess())
+                this.RaiseAndSetIfChanged(ref _modManagerStatus, value);
+            else
+                Dispatcher.UIThread.InvokeAsync(() => this.RaiseAndSetIfChanged(ref _modManagerStatus, value));
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets whether a mod manager has been detected.
+    /// </summary>
+    public bool ModManagerDetected
+    {
+        get => _modManagerDetected;
+        set
+        {
+            if (Dispatcher.UIThread.CheckAccess())
+                this.RaiseAndSetIfChanged(ref _modManagerDetected, value);
+            else
+                Dispatcher.UIThread.InvokeAsync(() => this.RaiseAndSetIfChanged(ref _modManagerDetected, value));
+        }
+    }
 
     /// <summary>
     /// Gets or sets the FCX scan result view model.
@@ -281,6 +335,7 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> RunFcxScanCommand { get; }
     public ReactiveCommand<Unit, Unit> BackupGameFilesCommand { get; }
     public ReactiveCommand<Unit, Unit> ValidateGameInstallCommand { get; }
+    public ReactiveCommand<Unit, Unit> RefreshModManagersCommand { get; }
 
     // File picker delegates - set by the View
     public Func<string, string, Task<string>>? ShowFilePickerAsync { get; set; }
@@ -785,6 +840,72 @@ public class MainWindowViewModel : ViewModelBase
     {
         await LoadSettingsAsync();
         await PerformStartupUpdateCheckAsync();
+        await DetectModManagersAsync();
+    }
+
+    /// <summary>
+    /// Detects installed mod managers and updates the UI accordingly.
+    /// </summary>
+    private async Task DetectModManagersAsync()
+    {
+        // Check if mod manager support is disabled in settings
+        if (!_currentSettings.AutoDetectModManagers)
+        {
+            ModManagerStatus = "Mod manager integration disabled";
+            ModManagerDetected = false;
+            AddLogMessage("Mod manager integration is disabled in settings");
+            return;
+        }
+
+        if (_modManagerService == null)
+        {
+            ModManagerStatus = "Mod manager support not available";
+            ModManagerDetected = false;
+            return;
+        }
+
+        try
+        {
+            AddLogMessage("Detecting installed mod managers...");
+            
+            var managers = await _modManagerService.GetAvailableManagersAsync();
+            if (!managers.Any())
+            {
+                ModManagerStatus = "No mod managers detected";
+                ModManagerDetected = false;
+                AddLogMessage("No mod managers found on this system");
+                return;
+            }
+
+            var activeManager = await _modManagerService.GetActiveManagerAsync();
+            if (activeManager != null)
+            {
+                ModManagerStatus = $"{activeManager.Name} detected";
+                ModManagerDetected = true;
+                
+                // Load mods if FCX mode is enabled
+                if (_currentSettings.FcxMode)
+                {
+                    var mods = await _modManagerService.GetAllModsAsync();
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        DetectedMods.Clear();
+                        foreach (var mod in mods.Where(m => m.IsEnabled))
+                        {
+                            DetectedMods.Add(mod);
+                        }
+                    });
+                    
+                    AddLogMessage($"Loaded {mods.Count()} mods from {activeManager.Name} ({mods.Count(m => m.IsEnabled)} enabled)");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ModManagerStatus = "Error detecting mod managers";
+            ModManagerDetected = false;
+            AddLogMessage($"Error detecting mod managers: {ex.Message}");
+        }
     }
 
     /// <summary>

@@ -1,5 +1,6 @@
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
+using Scanner111.Core.Services;
 
 namespace Scanner111.Core.Analyzers;
 
@@ -12,17 +13,20 @@ public class FileIntegrityAnalyzer : IAnalyzer
     private readonly IApplicationSettingsService _settingsService;
     private readonly IYamlSettingsProvider _yamlSettings;
     private readonly IMessageHandler _messageHandler;
+    private readonly IModManagerService? _modManagerService;
 
     public FileIntegrityAnalyzer(
         IHashValidationService hashValidationService,
         IApplicationSettingsService settingsService,
         IYamlSettingsProvider yamlSettings,
-        IMessageHandler messageHandler)
+        IMessageHandler messageHandler,
+        IModManagerService? modManagerService = null)
     {
         _hashValidationService = hashValidationService;
         _settingsService = settingsService;
         _yamlSettings = yamlSettings;
         _messageHandler = messageHandler;
+        _modManagerService = modManagerService;
     }
 
     /// <summary>
@@ -96,6 +100,13 @@ public class FileIntegrityAnalyzer : IAnalyzer
 
             // Check core mod files
             await CheckCoreMods(gameConfig, result, reportLines, cancellationToken).ConfigureAwait(false);
+
+            // Check mod manager staging folder if available and enabled
+            if (_modManagerService != null && settings.AutoDetectModManagers && 
+                settings.ModManagerSettings?.SkipModManagerIntegration != true)
+            {
+                await CheckModManagerFiles(gameConfig, result, reportLines, cancellationToken).ConfigureAwait(false);
+            }
 
             // Determine overall status
             DetermineOverallStatus(result);
@@ -436,14 +447,99 @@ public class FileIntegrityAnalyzer : IAnalyzer
         }
     }
 
+    private async Task CheckModManagerFiles(GameConfiguration gameConfig, FcxScanResult result,
+        List<string> reportLines, CancellationToken cancellationToken)
+    {
+        reportLines.Add("\n📁 Mod Manager Check:\n");
+
+        try
+        {
+            var activeManager = await _modManagerService!.GetActiveManagerAsync();
+            if (activeManager == null)
+            {
+                reportLines.Add("   ℹ️  No mod manager detected\n");
+                return;
+            }
+
+            reportLines.Add($"   ✅ {activeManager.Name} detected\n");
+
+            // Get staging folder
+            var stagingFolder = await _modManagerService.GetModStagingFolderAsync();
+            if (!string.IsNullOrEmpty(stagingFolder))
+            {
+                reportLines.Add($"   📂 Staging folder: {stagingFolder}\n");
+            }
+
+            // Get mod list
+            var mods = await _modManagerService.GetAllModsAsync();
+            var modCount = mods.Count();
+            var enabledCount = mods.Count(m => m.IsEnabled);
+
+            reportLines.Add($"   📦 Mods installed: {modCount} ({enabledCount} enabled)\n");
+
+            // Check for problematic mods
+            var problematicMods = new List<string>();
+            foreach (var mod in mods.Where(m => m.IsEnabled))
+            {
+                // Check for known problematic mods
+                if (mod.Name.Contains("Unofficial", StringComparison.OrdinalIgnoreCase) &&
+                    mod.Name.Contains("Patch", StringComparison.OrdinalIgnoreCase))
+                {
+                    problematicMods.Add($"{mod.Name} - May cause issues with certain mods");
+                }
+                
+                // Check for outdated F4SE plugins
+                if (mod.Files.Any(f => f.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) &&
+                                      f.Contains("f4se", StringComparison.OrdinalIgnoreCase)))
+                {
+                    if (!mod.Version?.Contains("NG") ?? true)
+                    {
+                        problematicMods.Add($"{mod.Name} - F4SE plugin may need update for game version");
+                    }
+                }
+            }
+
+            if (problematicMods.Count > 0)
+            {
+                reportLines.Add("\n   ⚠️  Potentially problematic mods:\n");
+                foreach (var warning in problematicMods)
+                {
+                    reportLines.Add($"      • {warning}\n");
+                    result.VersionWarnings.Add(warning);
+                }
+            }
+
+            // Check load order
+            var loadOrder = await _modManagerService.GetConsolidatedLoadOrderAsync();
+            if (loadOrder.Count > 0)
+            {
+                reportLines.Add($"   📋 Load order contains {loadOrder.Count} plugins\n");
+                
+                // Check for missing masters
+                var espFiles = loadOrder.Keys.Where(k => k.EndsWith(".esp", StringComparison.OrdinalIgnoreCase) ||
+                                                         k.EndsWith(".esm", StringComparison.OrdinalIgnoreCase) ||
+                                                         k.EndsWith(".esl", StringComparison.OrdinalIgnoreCase));
+                
+                if (espFiles.Count() > 254)
+                {
+                    reportLines.Add("   ❌ Plugin limit exceeded! Max 254 ESP/ESM files\n");
+                    result.RecommendedFixes.Add("Reduce plugin count or merge plugins");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            reportLines.Add($"   ⚠️  Failed to check mod manager: {ex.Message}\n");
+        }
+    }
+
     private Dictionary<string, string> GetKnownGameVersions()
     {
         // TODO: Load these from YAML configuration
         // For now, return known hashes for Fallout 4 versions
         return new Dictionary<string, string>
         {
-            ["1.10.163.0"] = "7B0E5D0B7C5B4E8F9C2A3D4E5F6A7B8C9D0E1F2A3B4C5D6E7F8A9B0C1D2E3F4", // Pre-NG Update
-            ["1.10.984.0"] = "8C1F2E3D4C5B6A7F8E9D0C1B2A3F4E5D6C7B8A9F0E1D2C3B4A5F6E7D8C9B0A1"  // Next Gen Update
+            ["1.10.163.0"] = "7B0E5D0B7C5B4E8F9C2A3D4E5F6A7B8C9D0E1F2A3B4C5D6C7B8A9F0E1D2C3B4A5F6E7D8C9B0A1"  // Next Gen Update
             // Note: These are placeholder hashes - real hashes need to be collected from community
         };
     }

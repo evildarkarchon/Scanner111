@@ -87,6 +87,14 @@ public class UserSettings
 
     [JsonPropertyName("backupDirectory")] public string BackupDirectory { get; set; } = "";
 
+    [JsonPropertyName("autoDetectModManagers")] public bool AutoDetectModManagers { get; set; } = true;
+
+    [JsonPropertyName("mo2InstallPath")] public string? MO2InstallPath { get; set; }
+
+    [JsonPropertyName("vortexDataPath")] public string? VortexDataPath { get; set; }
+
+    [JsonPropertyName("defaultModManager")] public string? DefaultModManager { get; set; }
+
     /// Adds a specified log file path to the list of recent log files.
     /// Maintains the maximum number of recent items as defined by MaxRecentItems.
     /// If the path already exists in the list, it is moved to the most recent position.
