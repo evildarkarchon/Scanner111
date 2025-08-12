@@ -243,6 +243,7 @@ public class BuffoutVersionAnalyzerV2Tests
     private class NullYamlSettingsProvider : IYamlSettingsProvider
     {
         public T? LoadYaml<T>(string yamlFile) where T : class => null;
+        public Task<T?> LoadYamlAsync<T>(string yamlFile) where T : class => Task.FromResult<T?>(null);
         public void ClearCache() { }
     }
 }

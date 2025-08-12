@@ -126,8 +126,8 @@ public class CrashLog
     /// </summary>
     public void DisposeOriginalLines()
     {
-        OriginalLines.Clear();
-        OriginalLines.TrimExcess();
+        OriginalLines?.Clear();
+        OriginalLines = null!; // Allow GC to collect the list
     }
 
     /// <summary>

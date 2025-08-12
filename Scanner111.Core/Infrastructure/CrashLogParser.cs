@@ -25,7 +25,7 @@ public static partial class CrashLogParser
         try
         {
             // Read file with UTF-8 encoding and ignore errors (matching Python implementation)
-            var lines = await File.ReadAllLinesAsync(filePath, cancellationToken);
+            var lines = await File.ReadAllLinesAsync(filePath, cancellationToken).ConfigureAwait(false);
 
             if (lines.Length < 20) // Too short to be a valid crash log
                 return null;

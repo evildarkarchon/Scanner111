@@ -22,7 +22,7 @@ public class UnsolvedLogsMover : IUnsolvedLogsMover
         try
         {
             // Use provided settings if available, otherwise load from settings service
-            settings ??= await _applicationSettings.LoadSettingsAsync();
+            settings ??= await _applicationSettings.LoadSettingsAsync().ConfigureAwait(false);
             if (!settings.MoveUnsolvedLogs)
             {
                 _logger.LogDebug("Move unsolved logs is disabled");

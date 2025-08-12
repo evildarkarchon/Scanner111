@@ -58,7 +58,7 @@ public class GameVersionDetection
             
         try
         {
-            var hash = await CalculateFileHashAsync(executablePath, cancellationToken);
+            var hash = await CalculateFileHashAsync(executablePath, cancellationToken).ConfigureAwait(false);
             
             if (KnownFallout4Versions.TryGetValue(hash, out var versionInfo))
             {
@@ -98,7 +98,7 @@ public class GameVersionDetection
             using var sha256 = SHA256.Create();
             using var stream = File.OpenRead(filePath);
             
-            var hashBytes = await sha256.ComputeHashAsync(stream, cancellationToken);
+            var hashBytes = await sha256.ComputeHashAsync(stream, cancellationToken).ConfigureAwait(false);
             return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
         }
         catch (OperationCanceledException)

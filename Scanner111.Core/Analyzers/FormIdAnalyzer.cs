@@ -61,13 +61,11 @@ public class FormIdAnalyzer : IAnalyzer
     /// <returns>FormID analysis result</returns>
     public async Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask; // Make it async-ready
-
         var formIds = ExtractFormIds(crashLog.CallStack);
         var reportLines = new List<string>();
 
         // Load settings from ApplicationSettingsService
-        var settings = await _appSettings.LoadSettingsAsync();
+        var settings = await _appSettings.LoadSettingsAsync().ConfigureAwait(false);
         var showFormIdValues = settings.ShowFormIdValues;
         var formIdDbExists = _formIdDatabase.DatabaseExists;
 

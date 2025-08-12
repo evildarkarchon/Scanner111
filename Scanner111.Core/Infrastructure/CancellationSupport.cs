@@ -288,7 +288,7 @@ public class CancellableSemaphore : IDisposable
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        await _semaphore.WaitAsync(cancellationToken);
+        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         _logger?.LogTrace("Semaphore acquired");
 
         return new SemaphoreReleaser(_semaphore, _logger);
@@ -305,7 +305,7 @@ public class CancellableSemaphore : IDisposable
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var acquired = await _semaphore.WaitAsync(timeout, cancellationToken);
+        var acquired = await _semaphore.WaitAsync(timeout, cancellationToken).ConfigureAwait(false);
         if (acquired)
         {
             _logger?.LogTrace("Semaphore acquired");
@@ -387,10 +387,10 @@ public static class CancellationTokenExtensions
     public static async Task<T> WithCancellation<T>(this Task<T> task, CancellationToken cancellationToken)
     {
         var cancellationTask = cancellationToken.WaitForCancellationAsync();
-        var completedTask = await Task.WhenAny(task, cancellationTask);
+        var completedTask = await Task.WhenAny(task, cancellationTask).ConfigureAwait(false);
 
         if (completedTask == cancellationTask) cancellationToken.ThrowIfCancellationRequested();
 
-        return await task;
+        return await task.ConfigureAwait(false);
     }
 }

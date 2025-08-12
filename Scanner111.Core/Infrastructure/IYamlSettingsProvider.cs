@@ -12,6 +12,11 @@ public interface IYamlSettingsProvider
     T? LoadYaml<T>(string yamlFile) where T : class;
 
     /// <summary>
+    ///     Load a complete YAML file as an object (async version)
+    /// </summary>
+    Task<T?> LoadYamlAsync<T>(string yamlFile) where T : class;
+
+    /// <summary>
     ///     Clear the settings cache
     /// </summary>
     void ClearCache();

@@ -33,6 +33,11 @@ public class TestYamlSettingsProvider : IYamlSettingsProvider
         };
     }
 
+    public Task<T?> LoadYamlAsync<T>(string yamlFile) where T : class
+    {
+        return Task.FromResult(LoadYaml<T>(yamlFile));
+    }
+
     private ClassicMainYaml CreateTestMainYaml()
     {
         return new ClassicMainYaml
@@ -380,6 +385,24 @@ public class TestCacheManager : ICacheManager
         }
         
         var result = factory();
+        if (result != null)
+        {
+            _yamlCache[cacheKey] = result;
+        }
+        
+        return result;
+    }
+
+    public async Task<T?> GetOrSetYamlSettingAsync<T>(string yamlFile, string keyPath, Func<Task<T?>> factory, TimeSpan? expiry = null)
+    {
+        var cacheKey = $"{yamlFile}:{keyPath}";
+        
+        if (_yamlCache.TryGetValue(cacheKey, out var cached))
+        {
+            return (T?)cached;
+        }
+        
+        var result = await factory().ConfigureAwait(false);
         if (result != null)
         {
             _yamlCache[cacheKey] = result;

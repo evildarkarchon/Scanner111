@@ -255,7 +255,7 @@ public class ResilientExecutor
                 cancellationToken.ThrowIfCancellationRequested();
 
                 _logger.LogTrace("Executing operation: {Context} (attempt {Attempt})", context, attemptNumber);
-                var result = await operation(cancellationToken);
+                var result = await operation(cancellationToken).ConfigureAwait(false);
 
                 if (attemptNumber > 1)
                     _logger.LogInformation(
@@ -282,7 +282,7 @@ public class ResilientExecutor
                         throw;
                     case ErrorAction.Retry:
                         if (errorResult.RetryDelay.HasValue)
-                            await Task.Delay(errorResult.RetryDelay.Value, cancellationToken);
+                            await Task.Delay(errorResult.RetryDelay.Value, cancellationToken).ConfigureAwait(false);
                         attemptNumber++;
                         continue;
                     default:
@@ -305,7 +305,7 @@ public class ResilientExecutor
     {
         await ExecuteAsync(async ct =>
         {
-            await operation(ct);
+            await operation(ct).ConfigureAwait(false);
             return true; // Dummy return value
         }, context, cancellationToken);
     }
@@ -348,7 +348,7 @@ public class CircuitBreaker
 
         try
         {
-            var result = await operation();
+            var result = await operation().ConfigureAwait(false);
             OnSuccess();
             return result;
         }

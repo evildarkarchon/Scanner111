@@ -24,7 +24,8 @@ namespace Scanner111.Core.FCX
         
         private readonly HashSet<string> _xseScriptFiles = new();
         private string _xseAcronym = "XSE"; // Default value
-        private readonly SemaphoreSlim _fileLock = new(1, 1);
+        // Increase concurrency for file operations (2x CPU count for I/O bound operations)
+        private readonly SemaphoreSlim _fileLock = new(Environment.ProcessorCount * 2, Environment.ProcessorCount * 2);
         private bool _initialized;
 
         public ModScanner(
@@ -46,7 +47,7 @@ namespace Scanner111.Core.FCX
         {
             if (_initialized) return;
             
-            var settings = await _appSettings.LoadSettingsAsync();
+            var settings = await _appSettings.LoadSettingsAsync().ConfigureAwait(false);
             
             // Detect game type from path
             var gameTypeString = CrashLogDirectoryManager.DetectGameType(settings.DefaultGamePath);
@@ -87,7 +88,7 @@ namespace Scanner111.Core.FCX
 
         public async Task<ModScanResult> ScanAllModsAsync(string modPath, IProgress<string>? progress = null, CancellationToken ct = default)
         {
-            await InitializeAsync();
+            await InitializeAsync().ConfigureAwait(false);
             var stopwatch = Stopwatch.StartNew();
             var result = new ModScanResult();
             
@@ -108,7 +109,7 @@ namespace Scanner111.Core.FCX
 
         public async Task<ModScanResult> ScanUnpackedModsAsync(string modPath, IProgress<string>? progress = null, CancellationToken ct = default)
         {
-            await InitializeAsync();
+            await InitializeAsync().ConfigureAwait(false);
             var result = new ModScanResult();
             var stopwatch = Stopwatch.StartNew();
             
@@ -118,7 +119,7 @@ namespace Scanner111.Core.FCX
                 return result;
             }
             
-            var settings = await _appSettings.LoadSettingsAsync();
+            var settings = await _appSettings.LoadSettingsAsync().ConfigureAwait(false);
             var backupPath = string.IsNullOrEmpty(settings.BackupDirectory) 
                 ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Scanner 111", "Backup", "Cleaned Files")
                 : Path.Combine(settings.BackupDirectory, "Cleaned Files");
@@ -137,7 +138,7 @@ namespace Scanner111.Core.FCX
 
         public async Task<ModScanResult> ScanArchivedModsAsync(string modPath, IProgress<string>? progress = null, CancellationToken ct = default)
         {
-            await InitializeAsync();
+            await InitializeAsync().ConfigureAwait(false);
             var result = new ModScanResult();
             var stopwatch = Stopwatch.StartNew();
             
@@ -147,7 +148,7 @@ namespace Scanner111.Core.FCX
                 return result;
             }
             
-            var settings = await _appSettings.LoadSettingsAsync();
+            var settings = await _appSettings.LoadSettingsAsync().ConfigureAwait(false);
             var bsarchPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "BSArch.exe");
             
             if (!File.Exists(bsarchPath))
@@ -166,9 +167,9 @@ namespace Scanner111.Core.FCX
         private async Task CleanupModFilesAsync(string modPath, string backupPath, ModScanResult result, CancellationToken ct)
         {
             var filterNames = new[] { "readme", "changes", "changelog", "change log" };
-            var settings = await _appSettings.LoadSettingsAsync();
+            var settings = await _appSettings.LoadSettingsAsync().ConfigureAwait(false);
             
-            await foreach (var dirInfo in EnumerateDirectoriesAsync(modPath, ct))
+            await foreach (var dirInfo in EnumerateDirectoriesAsync(modPath, ct).ConfigureAwait(false))
             {
                 ct.ThrowIfCancellationRequested();
                 
@@ -199,7 +200,7 @@ namespace Scanner111.Core.FCX
             }
             
             // Cleanup text files
-            await foreach (var fileInfo in EnumerateFilesAsync(modPath, "*.txt", ct))
+            await foreach (var fileInfo in EnumerateFilesAsync(modPath, "*.txt", ct).ConfigureAwait(false))
             {
                 ct.ThrowIfCancellationRequested();
                 
@@ -235,7 +236,7 @@ namespace Scanner111.Core.FCX
             var processedDirs = new HashSet<string>();
             var fileCount = 0;
             
-            await foreach (var fileInfo in EnumerateFilesAsync(modPath, "*.*", ct))
+            await foreach (var fileInfo in EnumerateFilesAsync(modPath, "*.*", ct).ConfigureAwait(false))
             {
                 ct.ThrowIfCancellationRequested();
                 fileCount++;
@@ -333,7 +334,7 @@ namespace Scanner111.Core.FCX
         {
             var archiveCount = 0;
             
-            await foreach (var fileInfo in EnumerateFilesAsync(modPath, "*.ba2", ct))
+            await foreach (var fileInfo in EnumerateFilesAsync(modPath, "*.ba2", ct).ConfigureAwait(false))
             {
                 ct.ThrowIfCancellationRequested();
                 archiveCount++;
@@ -460,7 +461,7 @@ namespace Scanner111.Core.FCX
                 
                 if (process.ExitCode != 0)
                 {
-                    _logger.LogError("BSArch failed for {Archive}: {Error}", fileName, await process.StandardError.ReadToEndAsync());
+                    _logger.LogError("BSArch failed for {Archive}: {Error}", fileName, await process.StandardError.ReadToEndAsync().ConfigureAwait(false));
                     return;
                 }
                 
@@ -540,7 +541,7 @@ namespace Scanner111.Core.FCX
                 
                 if (process.ExitCode != 0)
                 {
-                    _logger.LogError("BSArch failed for {Archive}: {Error}", fileName, await process.StandardError.ReadToEndAsync());
+                    _logger.LogError("BSArch failed for {Archive}: {Error}", fileName, await process.StandardError.ReadToEndAsync().ConfigureAwait(false));
                     return;
                 }
                 

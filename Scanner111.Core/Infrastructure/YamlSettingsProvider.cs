@@ -14,6 +14,7 @@ public class YamlSettingsService : IYamlSettingsProvider
     private readonly IDeserializer _deserializer;
     private readonly ISerializer _serializer;
     private readonly ILogger<YamlSettingsService> _logger;
+    private readonly SemaphoreSlim _fileSemaphore = new(1, 1);
 
     public YamlSettingsService(ICacheManager cacheManager, ILogger<YamlSettingsService> logger)
     {
@@ -32,11 +33,16 @@ public class YamlSettingsService : IYamlSettingsProvider
 
     public T? LoadYaml<T>(string yamlFile) where T : class
     {
-        return _cacheManager.GetOrSetYamlSetting(
+        return LoadYamlAsync<T>(yamlFile).GetAwaiter().GetResult();
+    }
+
+    public async Task<T?> LoadYamlAsync<T>(string yamlFile) where T : class
+    {
+        return await _cacheManager.GetOrSetYamlSettingAsync(
             yamlFile,
             "__FULL_FILE__",
-            () => LoadFullFile<T>(yamlFile),
-            TimeSpan.FromMinutes(30));
+            () => LoadFullFileAsync<T>(yamlFile),
+            TimeSpan.FromMinutes(30)).ConfigureAwait(false);
     }
 
     public void ClearCache()
@@ -44,7 +50,7 @@ public class YamlSettingsService : IYamlSettingsProvider
         _cacheManager.ClearCache();
     }
 
-    private T? LoadFullFile<T>(string yamlFile) where T : class
+    private async Task<T?> LoadFullFileAsync<T>(string yamlFile) where T : class
     {
         try
         {
@@ -52,8 +58,16 @@ public class YamlSettingsService : IYamlSettingsProvider
             if (!File.Exists(yamlPath))
                 return null;
 
-            var yaml = File.ReadAllText(yamlPath, Encoding.UTF8);
-            return _deserializer.Deserialize<T>(yaml);
+            await _fileSemaphore.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                var yaml = await File.ReadAllTextAsync(yamlPath, Encoding.UTF8).ConfigureAwait(false);
+                return _deserializer.Deserialize<T>(yaml);
+            }
+            finally
+            {
+                _fileSemaphore.Release();
+            }
         }
         catch (Exception ex)
         {

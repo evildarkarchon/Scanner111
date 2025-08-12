@@ -24,7 +24,7 @@ public class HashValidationService : IHashValidationService
     /// </summary>
     public async Task<string> CalculateFileHashAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        return await CalculateFileHashWithProgressAsync(filePath, null, cancellationToken);
+        return await CalculateFileHashWithProgressAsync(filePath, null, cancellationToken).ConfigureAwait(false);
     }
     
     /// <summary>
@@ -59,7 +59,7 @@ public class HashValidationService : IHashValidationService
         long totalBytesRead = 0;
         int bytesRead;
         
-        while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
+        while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
         {
             sha256.TransformBlock(buffer, 0, bytesRead, null, 0);
             totalBytesRead += bytesRead;
@@ -99,7 +99,7 @@ public class HashValidationService : IHashValidationService
                 return validation;
             }
             
-            validation.ActualHash = await CalculateFileHashAsync(filePath, cancellationToken);
+            validation.ActualHash = await CalculateFileHashAsync(filePath, cancellationToken).ConfigureAwait(false);
             
             if (validation.IsValid)
             {
@@ -130,10 +130,10 @@ public class HashValidationService : IHashValidationService
         
         var tasks = fileHashMap.Select(async kvp =>
         {
-            await semaphore.WaitAsync(cancellationToken);
+            await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                var validation = await ValidateFileAsync(kvp.Key, kvp.Value, cancellationToken);
+                var validation = await ValidateFileAsync(kvp.Key, kvp.Value, cancellationToken).ConfigureAwait(false);
                 lock (results)
                 {
                     results[kvp.Key] = validation;
@@ -145,7 +145,7 @@ public class HashValidationService : IHashValidationService
             }
         });
         
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(tasks).ConfigureAwait(false);
         
         var validCount = results.Count(r => r.Value.IsValid);
         _logger.LogInformation("Batch validation complete: {Valid}/{Total} files valid", validCount, results.Count);

@@ -50,7 +50,7 @@ public class SuspectScanner : IAnalyzer
     /// <returns>Suspect analysis result</returns>
     public async Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask; // Make it async-ready
+        await Task.CompletedTask.ConfigureAwait(false); // Make it async-ready
 
         var reportLines = new List<string>();
         var errorMatches = new List<string>();

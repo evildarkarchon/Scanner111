@@ -53,7 +53,7 @@ public class SettingsScanner : IAnalyzer
     /// <returns>A task that represents the analysis operation, containing the analysis result</returns>
     public async Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask; // Make it async-ready
+        await Task.CompletedTask.ConfigureAwait(false); // Make it async-ready
 
         var reportLines = new List<string>();
 

@@ -46,7 +46,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
     public async Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
     {
         // Only run if FCX mode is enabled
-        var settings = await _settingsService.LoadSettingsAsync();
+        var settings = await _settingsService.LoadSettingsAsync().ConfigureAwait(false);
         if (!settings.FcxMode)
         {
             return new FcxScanResult
@@ -89,13 +89,13 @@ public class FileIntegrityAnalyzer : IAnalyzer
             result.GameConfig = gameConfig;
 
             // Check game executable
-            await CheckGameExecutable(gameConfig, result, reportLines, cancellationToken);
+            await CheckGameExecutable(gameConfig, result, reportLines, cancellationToken).ConfigureAwait(false);
 
             // Check F4SE installation
-            await CheckF4SE(gameConfig, result, reportLines, cancellationToken);
+            await CheckF4SE(gameConfig, result, reportLines, cancellationToken).ConfigureAwait(false);
 
             // Check core mod files
-            await CheckCoreMods(gameConfig, result, reportLines, cancellationToken);
+            await CheckCoreMods(gameConfig, result, reportLines, cancellationToken).ConfigureAwait(false);
 
             // Determine overall status
             DetermineOverallStatus(result);
@@ -210,7 +210,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
 
                 // Calculate hash to determine version
                 var hash = await _hashValidationService.CalculateFileHashAsync(
-                    gameConfig.ExecutablePath, cancellationToken);
+                    gameConfig.ExecutablePath, cancellationToken).ConfigureAwait(false);
 
                 // Check against known hashes
                 var knownVersions = GetKnownGameVersions();
@@ -283,7 +283,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
             try
             {
                 // Use async file info retrieval to justify async method
-                var fileInfo = await Task.Run(() => new FileInfo(gameConfig.XsePath), cancellationToken);
+                var fileInfo = await Task.Run(() => new FileInfo(gameConfig.XsePath), cancellationToken).ConfigureAwait(false);
                 f4seCheck.FileSize = fileInfo.Length;
                 f4seCheck.LastModified = fileInfo.LastWriteTime;
                 f4seCheck.IsValid = true;
@@ -293,8 +293,8 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 var f4seDllPathNewGen = Path.Combine(gameConfig.RootPath, "f4se_1_10_984.dll");
 
                 // Use async file existence checks
-                var hasPreNgDll = await Task.Run(() => File.Exists(f4seDllPath), cancellationToken);
-                var hasNextGenDll = await Task.Run(() => File.Exists(f4seDllPathNewGen), cancellationToken);
+                var hasPreNgDll = await Task.Run(() => File.Exists(f4seDllPath), cancellationToken).ConfigureAwait(false);
+                var hasNextGenDll = await Task.Run(() => File.Exists(f4seDllPathNewGen), cancellationToken).ConfigureAwait(false);
 
                 if (hasPreNgDll)
                 {
@@ -353,7 +353,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
             var fullPath = Path.Combine(gameConfig.RootPath, relativePath);
 
             // Use async file existence check
-            var exists = await Task.Run(() => File.Exists(fullPath), cancellationToken);
+            var exists = await Task.Run(() => File.Exists(fullPath), cancellationToken).ConfigureAwait(false);
 
             var modCheck = new FileIntegrityCheck
             {
@@ -378,7 +378,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 try
                 {
                     // Use async file info retrieval
-                    var fileInfo = await Task.Run(() => new FileInfo(fullPath), cancellationToken);
+                    var fileInfo = await Task.Run(() => new FileInfo(fullPath), cancellationToken).ConfigureAwait(false);
                     modCheck.FileSize = fileInfo.Length;
                     modCheck.LastModified = fileInfo.LastWriteTime;
                     modCheck.IsValid = true;

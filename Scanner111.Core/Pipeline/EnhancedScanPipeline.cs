@@ -57,7 +57,7 @@ public class EnhancedScanPipeline : IScanPipeline
                     _logger.LogInformation("Starting enhanced scan of {LogPath}", logPath);
 
                     // Parse crash log with caching
-                    var crashLog = await ParseCrashLogWithCaching(logPath, ct);
+                    var crashLog = await ParseCrashLogWithCaching(logPath, ct).ConfigureAwait(false);
                     if (crashLog == null)
                     {
                         result.Status = ScanStatus.Failed;
@@ -68,7 +68,7 @@ public class EnhancedScanPipeline : IScanPipeline
                     result.CrashLog = crashLog;
 
                     // Run analyzers with caching and error handling
-                    await RunAnalyzersWithCaching(result, crashLog, ct);
+                    await RunAnalyzersWithCaching(result, crashLog, ct).ConfigureAwait(false);
 
                     result.Status = result.HasErrors ? ScanStatus.CompletedWithErrors : ScanStatus.Completed;
 
@@ -147,7 +147,7 @@ public class EnhancedScanPipeline : IScanPipeline
                 foreach (var path in paths)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    await channel.Writer.WriteAsync(path, cancellationToken);
+                    await channel.Writer.WriteAsync(path, cancellationToken).ConfigureAwait(false);
                 }
             }
             finally
@@ -168,7 +168,7 @@ public class EnhancedScanPipeline : IScanPipeline
         var failedScans = 0;
         var incompleteScans = 0;
 
-        await foreach (var result in MergeResultsAsync(consumerTasks, cancellationToken))
+        await foreach (var result in MergeResultsAsync(consumerTasks, cancellationToken).ConfigureAwait(false))
         {
             processedFiles++;
 
@@ -217,7 +217,7 @@ public class EnhancedScanPipeline : IScanPipeline
             yield return result;
         }
 
-        await producerTask;
+        await producerTask.ConfigureAwait(false);
 
         // Log final statistics
         var cacheStats = _cacheManager.GetStatistics();
@@ -257,7 +257,7 @@ public class EnhancedScanPipeline : IScanPipeline
                     // For now, just parse normally but with resilient execution
                 }
 
-                return await CrashLog.ParseAsync(logPath, ct);
+                return await CrashLog.ParseAsync(logPath, ct).ConfigureAwait(false);
             }, $"ParseCrashLog:{logPath}", cancellationToken);
     }
 
@@ -279,14 +279,14 @@ public class EnhancedScanPipeline : IScanPipeline
             else
             {
                 // Run sequential analyzers immediately and wait
-                var analysisResult = await RunAnalyzerWithCaching(analyzer, crashLog, cancellationToken);
+                var analysisResult = await RunAnalyzerWithCaching(analyzer, crashLog, cancellationToken).ConfigureAwait(false);
                 if (analysisResult != null) result.AddAnalysisResult(analysisResult);
             }
 
         // Wait for all parallel analyzers
         if (analyzerTasks.Any())
         {
-            var parallelResults = await Task.WhenAll(analyzerTasks);
+            var parallelResults = await Task.WhenAll(analyzerTasks).ConfigureAwait(false);
             foreach (var analysisResult in parallelResults)
                 if (analysisResult != null)
                     result.AddAnalysisResult(analysisResult);

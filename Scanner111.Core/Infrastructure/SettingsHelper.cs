@@ -58,11 +58,11 @@ public static class SettingsHelper
             if (!File.Exists(filePath))
             {
                 var defaultSettings = defaultFactory();
-                await SaveSettingsAsync(filePath, defaultSettings);
+                await SaveSettingsAsync(filePath, defaultSettings).ConfigureAwait(false);
                 return defaultSettings;
             }
 
-            var json = await File.ReadAllTextAsync(filePath);
+            var json = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
             var settings = JsonSerializer.Deserialize<T>(json, JsonOptions);
 
             return settings ?? defaultFactory();
@@ -96,7 +96,7 @@ public static class SettingsHelper
             }
 
             var json = JsonSerializer.Serialize(settings, JsonOptions);
-            await File.WriteAllTextAsync(filePath, json);
+            await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
         }
         catch
         {

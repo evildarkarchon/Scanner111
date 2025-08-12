@@ -22,7 +22,7 @@ public class BuffoutVersionAnalyzer : IAnalyzer
 
     public async Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask; // Keep async for consistency
+        await Task.CompletedTask.ConfigureAwait(false); // Keep async for consistency
         
         var result = new GenericAnalysisResult
         {

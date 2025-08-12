@@ -27,7 +27,7 @@ public class ReportWriter : IReportWriter
     /// <returns>A task that represents the asynchronous write operation. The task result contains a boolean indicating whether the report was written successfully.</returns>
     public async Task<bool> WriteReportAsync(ScanResult scanResult, CancellationToken cancellationToken = default)
     {
-        return await WriteReportAsync(scanResult, scanResult.OutputPath, cancellationToken);
+        return await WriteReportAsync(scanResult, scanResult.OutputPath, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -44,7 +44,7 @@ public class ReportWriter : IReportWriter
         var normalizedPath = Path.GetFullPath(outputPath).ToLowerInvariant();
         var fileLock = FileLocks.GetOrAdd(normalizedPath, _ => new SemaphoreSlim(1, 1));
 
-        await fileLock.WaitAsync(cancellationToken);
+        await fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var reportContent = FilterReportContent(scanResult.ReportText);
@@ -52,7 +52,7 @@ public class ReportWriter : IReportWriter
             var directory = Path.GetDirectoryName(outputPath);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory)) Directory.CreateDirectory(directory);
 
-            await File.WriteAllTextAsync(outputPath, reportContent, Encoding.UTF8, cancellationToken);
+            await File.WriteAllTextAsync(outputPath, reportContent, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("Report written successfully to: {OutputPath}", outputPath);
             return true;

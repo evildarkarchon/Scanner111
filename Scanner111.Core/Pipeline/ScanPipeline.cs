@@ -27,7 +27,7 @@ public class ScanPipeline : IScanPipeline
         IMessageHandler messageHandler,
         IYamlSettingsProvider settingsProvider)
     {
-        _analyzers = analyzers.OrderBy(a => a.Priority).ToList();
+        _analyzers = analyzers; // Store IEnumerable without materializing
         _logger = logger;
         _messageHandler = messageHandler;
         _settingsProvider = settingsProvider;
@@ -52,7 +52,7 @@ public class ScanPipeline : IScanPipeline
             _logger.LogInformation("Starting scan of {LogPath}", logPath);
 
             // Parse crash log
-            var crashLog = await CrashLog.ParseAsync(logPath, cancellationToken);
+            var crashLog = await CrashLog.ParseAsync(logPath, cancellationToken).ConfigureAwait(false);
             if (crashLog == null)
             {
                 result.Status = ScanStatus.Failed;
@@ -67,7 +67,7 @@ public class ScanPipeline : IScanPipeline
             // Run analyzers
             var analyzerTasks = new List<Task<AnalysisResult>>();
 
-            foreach (var analyzer in _analyzers)
+            foreach (var analyzer in _analyzers.OrderBy(a => a.Priority))
                 if (analyzer.CanRunInParallel)
                 {
                     analyzerTasks.Add(RunAnalyzerAsync(analyzer, crashLog, cancellationToken));
@@ -75,14 +75,14 @@ public class ScanPipeline : IScanPipeline
                 else
                 {
                     // Run sequential analyzers immediately and wait
-                    var analysisResult = await RunAnalyzerAsync(analyzer, crashLog, cancellationToken);
+                    var analysisResult = await RunAnalyzerAsync(analyzer, crashLog, cancellationToken).ConfigureAwait(false);
                     result.AddAnalysisResult(analysisResult);
                 }
 
             // Wait for all parallel analyzers
             if (analyzerTasks.Any())
             {
-                var parallelResults = await Task.WhenAll(analyzerTasks);
+                var parallelResults = await Task.WhenAll(analyzerTasks).ConfigureAwait(false);
                 foreach (var analysisResult in parallelResults) result.AddAnalysisResult(analysisResult);
             }
 
@@ -141,9 +141,10 @@ public class ScanPipeline : IScanPipeline
         var incompleteScans = 0;
         var startTime = DateTime.UtcNow;
 
-        // Create channel for producer/consumer pattern
-        var channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions
+        // Create bounded channel with backpressure for producer/consumer pattern
+        var channel = Channel.CreateBounded<string>(new BoundedChannelOptions(100)
         {
+            FullMode = BoundedChannelFullMode.Wait,
             SingleReader = false,
             SingleWriter = true
         });
@@ -153,7 +154,7 @@ public class ScanPipeline : IScanPipeline
         {
             try
             {
-                foreach (var path in paths) await channel.Writer.WriteAsync(path, cancellationToken);
+                foreach (var path in paths) await channel.Writer.WriteAsync(path, cancellationToken).ConfigureAwait(false);
             }
             finally
             {
@@ -168,7 +169,7 @@ public class ScanPipeline : IScanPipeline
             .ToList();
 
         // Process results as they complete
-        await foreach (var result in MergeResultsAsync(consumerTasks, cancellationToken))
+        await foreach (var result in MergeResultsAsync(consumerTasks, cancellationToken).ConfigureAwait(false))
         {
             processedFiles++;
 
@@ -211,7 +212,7 @@ public class ScanPipeline : IScanPipeline
             yield return result;
         }
 
-        await producerTask;
+        await producerTask.ConfigureAwait(false);
     }
 
     /// <summary>

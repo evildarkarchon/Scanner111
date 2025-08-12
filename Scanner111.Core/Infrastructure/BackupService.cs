@@ -46,7 +46,7 @@ public class BackupService : IBackupService
             }
 
             // Ensure backup directory exists
-            var backupDir = await GetBackupDirectoryAsync();
+            var backupDir = await GetBackupDirectoryAsync().ConfigureAwait(false);
             Directory.CreateDirectory(backupDir);
 
             // Create backup filename with timestamp including milliseconds
@@ -82,7 +82,7 @@ public class BackupService : IBackupService
                         {
                             // Add file to zip with relative path
                             var entryName = file.Replace(Path.DirectorySeparatorChar, '/');
-                            await Task.Run(() => zipArchive.CreateEntryFromFile(sourceFile, entryName), cancellationToken);
+                            await Task.Run(() => zipArchive.CreateEntryFromFile(sourceFile, entryName), cancellationToken).ConfigureAwait(false);
                             
                             result.BackedUpFiles.Add(file);
                             var fileInfo = new FileInfo(sourceFile);
@@ -185,7 +185,7 @@ public class BackupService : IBackupService
             criticalFiles.AddRange(pluginFiles);
         }
 
-        return await CreateBackupAsync(gamePath, criticalFiles, progress, cancellationToken);
+        return await CreateBackupAsync(gamePath, criticalFiles, progress, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -252,7 +252,7 @@ public class BackupService : IBackupService
                         }
 
                         // Extract file
-                        await Task.Run(() => entry.ExtractToFile(targetPath, true), cancellationToken);
+                        await Task.Run(() => entry.ExtractToFile(targetPath, true), cancellationToken).ConfigureAwait(false);
                         
                         _logger.LogDebug("Restored file: {File}", entry.FullName);
                     }
@@ -285,7 +285,7 @@ public class BackupService : IBackupService
         
         try
         {
-            var backupDir = backupDirectory ?? await GetBackupDirectoryAsync();
+            var backupDir = backupDirectory ?? await GetBackupDirectoryAsync().ConfigureAwait(false);
             
             if (!Directory.Exists(backupDir))
             {
@@ -346,7 +346,7 @@ public class BackupService : IBackupService
         {
             if (File.Exists(backupPath))
             {
-                await Task.Run(() => File.Delete(backupPath));
+                await Task.Run(() => File.Delete(backupPath)).ConfigureAwait(false);
                 _logger.LogInformation("Deleted backup: {BackupPath}", backupPath);
                 return true;
             }
@@ -363,7 +363,7 @@ public class BackupService : IBackupService
 
     private async Task<string> GetBackupDirectoryAsync()
     {
-        var settings = await _settingsService.LoadSettingsAsync();
+        var settings = await _settingsService.LoadSettingsAsync().ConfigureAwait(false);
         return !string.IsNullOrEmpty(settings.BackupDirectory) 
             ? settings.BackupDirectory 
             : _defaultBackupDirectory;

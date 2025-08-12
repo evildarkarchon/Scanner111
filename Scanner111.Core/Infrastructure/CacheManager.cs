@@ -16,6 +16,11 @@ public interface ICacheManager
     T? GetOrSetYamlSetting<T>(string yamlFile, string keyPath, Func<T?> factory, TimeSpan? expiry = null);
 
     /// <summary>
+    ///     Get or set YAML settings with caching (async version)
+    /// </summary>
+    Task<T?> GetOrSetYamlSettingAsync<T>(string yamlFile, string keyPath, Func<Task<T?>> factory, TimeSpan? expiry = null);
+
+    /// <summary>
     ///     Cache analysis result for a file
     /// </summary>
     void CacheAnalysisResult(string filePath, string analyzerName, AnalysisResult result);
@@ -83,6 +88,32 @@ public class CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger
         _logger.LogTrace("Cache miss for YAML setting: {CacheKey}", cacheKey);
 
         var value = factory();
+        var options = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = expiry ?? TimeSpan.FromMinutes(30),
+            Priority = CacheItemPriority.Normal
+        };
+
+        _memoryCache.Set(cacheKey, value, options);
+        return value;
+    }
+
+    public async Task<T?> GetOrSetYamlSettingAsync<T>(string yamlFile, string keyPath, Func<Task<T?>> factory, TimeSpan? expiry = null)
+    {
+        CheckDisposed();
+        var cacheKey = $"{YamlPrefix}{yamlFile}:{keyPath}";
+
+        if (_memoryCache.TryGetValue(cacheKey, out T? cached))
+        {
+            RecordCacheHit(cacheKey);
+            _logger.LogTrace("Cache hit for YAML setting: {CacheKey}", cacheKey);
+            return cached;
+        }
+
+        RecordCacheMiss(cacheKey);
+        _logger.LogTrace("Cache miss for YAML setting: {CacheKey}", cacheKey);
+
+        var value = await factory().ConfigureAwait(false);
         var options = new MemoryCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = expiry ?? TimeSpan.FromMinutes(30),

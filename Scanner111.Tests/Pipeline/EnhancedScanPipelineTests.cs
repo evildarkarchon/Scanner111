@@ -769,6 +769,11 @@ SETTINGS:
             return null;
         }
 
+        public Task<T?> LoadYamlAsync<T>(string yamlFile) where T : class
+        {
+            return Task.FromResult<T?>(null);
+        }
+
         /// <summary>
         /// Clears the cached settings maintained by the TestYamlSettingsProvider.
         /// </summary>

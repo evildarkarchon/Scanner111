@@ -56,13 +56,13 @@ public class PluginAnalyzer : IAnalyzer
     /// <returns>An analysis result with information about the detected plugins.</returns>
     public async Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask; // Make it async-ready
+        await Task.CompletedTask.ConfigureAwait(false); // Make it async-ready
 
         var reportLines = new List<string>();
         var plugins = new List<Plugin>();
 
         // Check if loadorder.txt exists
-        var (loadorderPlugins, pluginsLoaded) = await LoadorderScanLoadorderTxt(reportLines);
+        var (loadorderPlugins, pluginsLoaded) = await LoadorderScanLoadorderTxt(reportLines).ConfigureAwait(false);
 
         if (pluginsLoaded)
             // Use loadorder.txt plugins
@@ -131,7 +131,7 @@ public class PluginAnalyzer : IAnalyzer
 
         try
         {
-            var loadorderData = await File.ReadAllLinesAsync(loadorderPath, Encoding.UTF8);
+            var loadorderData = await File.ReadAllLinesAsync(loadorderPath, Encoding.UTF8).ConfigureAwait(false);
 
             // Skip the header line (first line) of the loadorder.txt file
             if (loadorderData.Length > 1)

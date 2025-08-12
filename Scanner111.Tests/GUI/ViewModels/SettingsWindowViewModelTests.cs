@@ -88,7 +88,7 @@ public class SettingsWindowViewModelTests
     }
 
     [Fact]
-    public void CancelCommand_RestoresOriginalSettings()
+    public async Task CancelCommand_RestoresOriginalSettings()
     {
         // Arrange
         var closeWindowCalled = false;
@@ -97,7 +97,7 @@ public class SettingsWindowViewModelTests
         _viewModel.DefaultLogPath = @"C:\Modified\Path.log";
 
         // Act
-        _viewModel.CancelCommand.Execute();
+        await _viewModel.CancelCommand.Execute().FirstAsync();
 
         // Assert
         _viewModel.DefaultLogPath.Should().Be(originalLogPath, "because settings should be restored on cancel");
@@ -105,7 +105,7 @@ public class SettingsWindowViewModelTests
     }
 
     [Fact]
-    public void ResetToDefaultsCommand_ResetsAllSettings()
+    public async Task ResetToDefaultsCommand_ResetsAllSettings()
     {
         // Arrange
         _viewModel.DefaultLogPath = @"C:\Custom\Path.log";
@@ -113,7 +113,7 @@ public class SettingsWindowViewModelTests
         _viewModel.EnableDebugLogging = true;
 
         // Act
-        _viewModel.ResetToDefaultsCommand.Execute();
+        await _viewModel.ResetToDefaultsCommand.Execute().FirstAsync();
 
         // Assert
         _viewModel.DefaultLogPath.Should().Be("", "because default log path should be reset");
@@ -124,7 +124,7 @@ public class SettingsWindowViewModelTests
     }
 
     [Fact]
-    public void ClearRecentFilesCommand_ClearsAllRecentCollections()
+    public async Task ClearRecentFilesCommand_ClearsAllRecentCollections()
     {
         // Arrange
         _viewModel.RecentLogFiles.Add(@"C:\log1.log");
@@ -133,7 +133,7 @@ public class SettingsWindowViewModelTests
         _viewModel.RecentScanDirectories.Add(@"C:\Scans");
 
         // Act
-        _viewModel.ClearRecentFilesCommand.Execute();
+        await _viewModel.ClearRecentFilesCommand.Execute().FirstAsync();
 
         // Assert
         _viewModel.RecentLogFiles.Should().BeEmpty("because recent log files should be cleared");
@@ -250,10 +250,17 @@ public class SettingsWindowViewModelTests
     [InlineData(nameof(SettingsWindowViewModel.EnableUpdateCheck), false)]
     [InlineData(nameof(SettingsWindowViewModel.FcxMode), true)]
     [InlineData(nameof(SettingsWindowViewModel.MoveUnsolvedLogs), true)]
-    public void BooleanProperties_UpdateCorrectly(string propertyName, bool value)
+    public async Task BooleanProperties_UpdateCorrectly(string propertyName, bool value)
     {
         // Arrange
+        await Task.Delay(100); // Allow async initialization to complete
+        
         var property = _viewModel.GetType().GetProperty(propertyName);
+        
+        // First set to opposite value to ensure change will happen
+        var oppositeValue = !value;
+        property?.SetValue(_viewModel, oppositeValue);
+        
         var propertyChanged = false;
         _viewModel.PropertyChanged += (sender, args) =>
         {

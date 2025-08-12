@@ -48,7 +48,7 @@ public class RecordScanner : IAnalyzer
     /// <returns>A task that represents the asynchronous operation, containing the record analysis result.</returns>
     public async Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask; // Make it async-ready
+        await Task.CompletedTask.ConfigureAwait(false); // Make it async-ready
 
         var reportLines = new List<string>();
         var recordsMatches = new List<string>();
@@ -114,11 +114,37 @@ public class RecordScanner : IAnalyzer
         var ignoredList = fallout4Yaml?.CrashlogRecordsExclude ?? [];
         var lowerIgnore = ignoredList.Select(r => r.ToLower()).ToHashSet();
 
-        foreach (var line in from line in segmentCallstack
-                 let lowerLine = line.ToLower()
-                 where lowerRecords.Any(lowerLine.Contains) &&
-                       !lowerIgnore.Any(lowerLine.Contains) select line)
+        // Optimize by processing each line once
+        foreach (var line in segmentCallstack)
         {
+            var lowerLine = line.ToLower();
+            
+            // Check if line contains any record pattern
+            bool hasMatch = false;
+            foreach (var record in lowerRecords)
+            {
+                if (lowerLine.Contains(record))
+                {
+                    hasMatch = true;
+                    break;
+                }
+            }
+            
+            if (!hasMatch) continue;
+            
+            // Check if it should be ignored
+            bool shouldIgnore = false;
+            foreach (var ignore in lowerIgnore)
+            {
+                if (lowerLine.Contains(ignore))
+                {
+                    shouldIgnore = true;
+                    break;
+                }
+            }
+            
+            if (shouldIgnore) continue;
+            
             // Extract the relevant part of the line based on format
             if (line.Contains(rspMarker))
             {

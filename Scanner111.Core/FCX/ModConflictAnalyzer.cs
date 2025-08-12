@@ -141,7 +141,7 @@ namespace Scanner111.Core.FCX
         public async Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
         {
             var reportLines = new List<string>();
-            var settings = await _appSettings.LoadSettingsAsync();
+            var settings = await _appSettings.LoadSettingsAsync().ConfigureAwait(false);
             
             // Only run in FCX mode
             if (!settings.FcxMode)

@@ -23,7 +23,7 @@ public class ApplicationSettingsService : IApplicationSettingsService
     /// <returns>An instance of ApplicationSettings containing the current configuration.</returns>
     public async Task<ApplicationSettings> LoadSettingsAsync()
     {
-        var settings = await SettingsHelper.LoadSettingsAsync(GetSettingsFilePath(), GetDefaultSettings);
+        var settings = await SettingsHelper.LoadSettingsAsync(GetSettingsFilePath(), GetDefaultSettings).ConfigureAwait(false);
         _cachedSettings = settings;
         return settings;
     }
@@ -34,7 +34,7 @@ public class ApplicationSettingsService : IApplicationSettingsService
     /// <returns>A Task representing the asynchronous save operation.</returns>
     public async Task SaveSettingsAsync(ApplicationSettings settings)
     {
-        await SettingsHelper.SaveSettingsAsync(GetSettingsFilePath(), settings);
+        await SettingsHelper.SaveSettingsAsync(GetSettingsFilePath(), settings).ConfigureAwait(false);
         _cachedSettings = settings;
     }
 
@@ -50,7 +50,7 @@ public class ApplicationSettingsService : IApplicationSettingsService
     /// </exception>
     public async Task SaveSettingAsync(string key, object value)
     {
-        var settings = _cachedSettings ?? await LoadSettingsAsync();
+        var settings = _cachedSettings ?? await LoadSettingsAsync().ConfigureAwait(false);
 
         // Update the specific setting using reflection
         // First try exact match, then case-insensitive match, then PascalCase conversion
@@ -65,7 +65,7 @@ public class ApplicationSettingsService : IApplicationSettingsService
                 // Convert value to appropriate type
                 var convertedValue = SettingsHelper.ConvertValue(value, property.PropertyType);
                 property.SetValue(settings, convertedValue);
-                await SaveSettingsAsync(settings);
+                await SaveSettingsAsync(settings).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

@@ -563,6 +563,15 @@ public class TestableYamlSettingsService : IYamlSettingsProvider
             TimeSpan.FromMinutes(30));
     }
 
+    public async Task<T?> LoadYamlAsync<T>(string yamlFile) where T : class
+    {
+        return await _cacheManager.GetOrSetYamlSettingAsync(
+            yamlFile,
+            "__FULL_FILE__",
+            () => Task.FromResult(LoadFullFile<T>(yamlFile)),
+            TimeSpan.FromMinutes(30)).ConfigureAwait(false);
+    }
+
     public void ClearCache()
     {
         _cacheManager.ClearCache();

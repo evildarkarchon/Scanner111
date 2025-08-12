@@ -77,7 +77,10 @@ public class ScanResultViewModelTests
         // Arrange
         var scanResult = new ScanResult { LogPath = "test.log" };
         if (failed)
+        {
+            scanResult.Status = ScanStatus.Failed;
             scanResult.AddError("Failed scan");
+        }
         if (hasErrors)
             scanResult.AddError("Test error");
         var viewModel = new ScanResultViewModel(scanResult);

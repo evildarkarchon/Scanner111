@@ -175,11 +175,11 @@ public class MockGuiMessageHandlerService : GuiMessageHandlerService
     public List<string> Messages { get; } = new();
     public List<double> ProgressValues { get; } = new();
     public List<string> ProgressTexts { get; } = new();
-    public MainWindowViewModel? ViewModel { get; private set; }
+    public MainWindowViewModel? TestViewModel { get; private set; }
 
     public new void SetViewModel(MainWindowViewModel viewModel)
     {
-        ViewModel = viewModel;
+        TestViewModel = viewModel;
         base.SetViewModel(viewModel);
     }
 
@@ -193,10 +193,10 @@ public class MockGuiMessageHandlerService : GuiMessageHandlerService
     {
         ProgressValues.Add(value);
         ProgressTexts.Add(text);
-        if (ViewModel != null)
+        if (TestViewModel != null)
         {
-            ViewModel.ProgressValue = value;
-            ViewModel.ProgressText = text;
+            TestViewModel.ProgressValue = value;
+            TestViewModel.ProgressText = text;
         }
     }
 }
@@ -262,6 +262,22 @@ public class MockCacheManager : ICacheManager
         }
 
         var value = factory();
+        if (value != null)
+        {
+            _cache[cacheKey] = value;
+        }
+        return value;
+    }
+
+    public async Task<T?> GetOrSetYamlSettingAsync<T>(string yamlFile, string keyPath, Func<Task<T?>> factory, TimeSpan? expiry = null)
+    {
+        var cacheKey = $"yaml:{yamlFile}:{keyPath}";
+        if (_cache.TryGetValue(cacheKey, out var cached) && cached is T typedValue)
+        {
+            return typedValue;
+        }
+
+        var value = await factory().ConfigureAwait(false);
         if (value != null)
         {
             _cache[cacheKey] = value;
