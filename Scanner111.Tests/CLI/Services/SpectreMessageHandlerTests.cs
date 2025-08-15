@@ -19,82 +19,26 @@ public class SpectreMessageHandlerTests
         _handler = new SpectreMessageHandler();
     }
 
-    [Fact]
-    public void ShowInfo_WritesInfoMessageWithCorrectFormatting()
+    [Theory]
+    [InlineData("ShowInfo", "This is an info message", "ℹ", "info messages include the info icon")]
+    [InlineData("ShowWarning", "This is a warning", "⚠", "warning messages include the warning icon")]
+    [InlineData("ShowError", "This is an error", "✗", "error messages include the error icon")]
+    [InlineData("ShowSuccess", "Operation successful", "✓", "success messages include the success icon")]
+    [InlineData("ShowDebug", "Debug information", "🐛", "debug messages include the debug icon")]
+    [InlineData("ShowCritical", "Critical error!", "‼", "critical messages include the critical icon")]
+    public void ShowMessage_WritesMessageWithCorrectFormatting(string methodName, string message, string expectedIcon,
+        string reason)
     {
-        // Act
-        _handler.ShowInfo("This is an info message");
+        // Act - Use reflection to call the appropriate method
+        var method = _handler.GetType().GetMethod(methodName);
+        method.Should().NotBeNull($"because {methodName} method should exist");
+        method!.Invoke(_handler, new object[] { message });
 
         // Assert
         var output = _console.Output;
-        output.Should().Contain("ℹ", "because info messages include the info icon");
-        output.Should().Contain("This is an info message");
-        // Note: [blue] markup is rendered as ANSI color codes, not literal text
-    }
-
-    [Fact]
-    public void ShowWarning_WritesWarningMessageWithCorrectFormatting()
-    {
-        // Act
-        _handler.ShowWarning("This is a warning");
-
-        // Assert
-        var output = _console.Output;
-        output.Should().Contain("⚠", "because warning messages include the warning icon");
-        output.Should().Contain("This is a warning");
-        // Note: [yellow] markup is rendered as ANSI color codes, not literal text
-    }
-
-    [Fact]
-    public void ShowError_WritesErrorMessageWithCorrectFormatting()
-    {
-        // Act
-        _handler.ShowError("This is an error");
-
-        // Assert
-        var output = _console.Output;
-        output.Should().Contain("✗", "because error messages include the error icon");
-        output.Should().Contain("This is an error");
-        // Note: [red] markup is rendered as ANSI color codes, not literal text
-    }
-
-    [Fact]
-    public void ShowSuccess_WritesSuccessMessageWithCorrectFormatting()
-    {
-        // Act
-        _handler.ShowSuccess("Operation successful");
-
-        // Assert
-        var output = _console.Output;
-        output.Should().Contain("✓", "because success messages include the success icon");
-        output.Should().Contain("Operation successful");
-        // Note: [green] markup is rendered as ANSI color codes, not literal text
-    }
-
-    [Fact]
-    public void ShowDebug_WritesDebugMessageWithCorrectFormatting()
-    {
-        // Act
-        _handler.ShowDebug("Debug information");
-
-        // Assert
-        var output = _console.Output;
-        output.Should().Contain("🐛", "because debug messages include the debug icon");
-        output.Should().Contain("Debug information");
-        // Note: [dim] markup is rendered as ANSI color codes, not literal text
-    }
-
-    [Fact]
-    public void ShowCritical_WritesCriticalMessageWithCorrectFormatting()
-    {
-        // Act
-        _handler.ShowCritical("Critical error!");
-
-        // Assert
-        var output = _console.Output;
-        output.Should().Contain("‼", "because critical messages include the critical icon");
-        output.Should().Contain("Critical error!");
-        // Note: [bold red] markup is rendered as ANSI color codes, not literal text
+        output.Should().Contain(expectedIcon, $"because {reason}");
+        output.Should().Contain(message);
+        // Note: Color markup is rendered as ANSI color codes, not literal text
     }
 
     [Fact]

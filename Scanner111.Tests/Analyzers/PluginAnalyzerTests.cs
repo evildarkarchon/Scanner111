@@ -29,22 +29,15 @@ public class PluginAnalyzerTests : AnalyzerTestBase<PluginAnalyzer>
     public async Task AnalyzeAsync_WithValidPlugins_ReturnsPluginAnalysisResult()
     {
         // Arrange
-        var crashLog = new CrashLog
-        {
-            FilePath = "test.log",
-            CallStack = new List<string>
-            {
+        var crashLog = new CrashLogBuilder()
+            .WithFilePath("test.log")
+            .WithCallStack(
                 "some line with testplugin.esp mentioned",
                 "another line with anotherplugin.esp",
                 "testplugin.esp appears again",
-                "unrelated line"
-            },
-            Plugins = new Dictionary<string, string>
-            {
-                { "TestPlugin.esp", "00" },
-                { "AnotherPlugin.esp", "01" }
-            }
-        };
+                "unrelated line")
+            .WithPlugins("TestPlugin.esp", "AnotherPlugin.esp")
+            .Build();
 
         // Act
         var result = await Analyzer.AnalyzeAsync(crashLog);
@@ -73,17 +66,13 @@ public class PluginAnalyzerTests : AnalyzerTestBase<PluginAnalyzer>
     public async Task AnalyzeAsync_WithNoPlugins_ReturnsEmptyResult()
     {
         // Arrange
-        var crashLog = new CrashLog
-        {
-            FilePath = "test.log",
-            CallStack = new List<string>
-            {
+        var crashLog = new CrashLogBuilder()
+            .WithFilePath("test.log")
+            .WithCallStack(
                 "some random line",
                 "another line without plugins",
-                "yet another line"
-            },
-            Plugins = new Dictionary<string, string>()
-        };
+                "yet another line")
+            .Build();
 
         // Act
         var result = await Analyzer.AnalyzeAsync(crashLog);

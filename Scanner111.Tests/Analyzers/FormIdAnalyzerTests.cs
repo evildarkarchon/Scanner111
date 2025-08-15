@@ -27,19 +27,10 @@ public class FormIdAnalyzerTests : AnalyzerTestBase<FormIdAnalyzer>
     public async Task AnalyzeAsync_WithValidFormIds_ReturnsFormIdAnalysisResult()
     {
         // Arrange
-        var crashLog = CreateCrashLogWithCallStack(
-            "  Form ID: 0x0001A332",
-            "  Form ID: 0x00014E45",
-            "  Form ID: 0xFF000000", // Should be skipped (starts with FF)
-            "  Some other line"
-        );
-        crashLog.Plugins = new Dictionary<string, string>
-        {
-            { "TestPlugin.esp", "00" },
-            {
-                "AnotherPlugin.esp", "01"
-            }
-        };
+        var crashLog = CrashLogBuilder.WithFormIds("0x0001A332", "0x00014E45", "0xFF000000")
+            .WithCallStack("  Some other line")
+            .WithPlugins("TestPlugin.esp", "AnotherPlugin.esp")
+            .Build();
 
         // Act
         var result = await Analyzer.AnalyzeAsync(crashLog);
@@ -69,11 +60,12 @@ public class FormIdAnalyzerTests : AnalyzerTestBase<FormIdAnalyzer>
     public async Task AnalyzeAsync_WithNoFormIds_ReturnsEmptyResult()
     {
         // Arrange
-        var crashLog = CreateCrashLogWithCallStack(
-            "  Some random line",
-            "  Another line without FormID",
-            "  Yet another line"
-        );
+        var crashLog = new CrashLogBuilder()
+            .WithCallStack(
+                "  Some random line",
+                "  Another line without FormID",
+                "  Yet another line")
+            .Build();
 
         // Act
         var result = await Analyzer.AnalyzeAsync(crashLog);
