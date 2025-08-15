@@ -18,6 +18,7 @@ namespace Scanner111.Tests.Infrastructure;
 /// <example>
 ///     See individual test methods for edge cases and specific behaviors validated in this suite.
 /// </example>
+[Collection("IO Heavy Tests")]
 public class ReportWriterTests : IDisposable
 {
     private readonly IReportWriter _reportWriter;

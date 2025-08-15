@@ -6,6 +6,7 @@ using Scanner111.CLI.Services;
 
 namespace Scanner111.Tests.CLI;
 
+[Collection("Terminal UI Tests")]
 public class InteractiveCommandTests
 {
     private readonly InteractiveCommand _command;

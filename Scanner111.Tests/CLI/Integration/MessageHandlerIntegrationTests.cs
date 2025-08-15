@@ -11,6 +11,7 @@ namespace Scanner111.Tests.CLI.Integration;
 /// <summary>
 ///     Integration tests for message handler configuration and --legacy-progress flag
 /// </summary>
+[Collection("Terminal UI Tests")]
 public class MessageHandlerIntegrationTests
 {
     #region Command Line Argument Parsing Tests

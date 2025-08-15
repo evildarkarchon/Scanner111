@@ -11,6 +11,7 @@ namespace Scanner111.Tests.Infrastructure;
 /// <summary>
 ///     Unit tests for the <see cref="BackupService" /> class
 /// </summary>
+[Collection("Backup Tests")]
 public class BackupServiceTests : IDisposable
 {
     private readonly BackupService _backupService;
@@ -32,10 +33,8 @@ public class BackupServiceTests : IDisposable
         _testGamePath = CreateTempDirectory();
         _testBackupPath = CreateTempDirectory();
 
-        // Update settings with backup directory
-        var settings = _settingsService.LoadSettingsAsync().Result;
-        settings.BackupDirectory = _testBackupPath;
-        _settingsService.SaveSettingsAsync(settings).Wait();
+        // Update settings with backup directory using async initialization
+        InitializeAsync().GetAwaiter().GetResult();
     }
 
     public void Dispose()
@@ -46,6 +45,13 @@ public class BackupServiceTests : IDisposable
                 Directory.Delete(dir, true);
 
         GC.SuppressFinalize(this);
+    }
+
+    private async Task InitializeAsync()
+    {
+        var settings = await _settingsService.LoadSettingsAsync();
+        settings.BackupDirectory = _testBackupPath;
+        await _settingsService.SaveSettingsAsync(settings);
     }
 
     [Fact]

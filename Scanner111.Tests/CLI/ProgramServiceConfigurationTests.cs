@@ -19,7 +19,7 @@ public class ProgramServiceConfigurationTests
         var services = new ServiceCollection();
 
         // Act - Manually register services as they are in Program.cs (default without legacy flag)
-        ConfigureServicesForTesting(services, false);
+        ConfigureServicesForTesting(services);
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -57,7 +57,7 @@ public class ProgramServiceConfigurationTests
         var services = new ServiceCollection();
 
         // Act
-        ConfigureServicesForTesting(services, false);
+        ConfigureServicesForTesting(services);
 
         // Assert - Verify singleton registrations
         var singletonTypes = new[]
@@ -107,7 +107,7 @@ public class ProgramServiceConfigurationTests
     {
         // Arrange
         var services = new ServiceCollection();
-        ConfigureServicesForTesting(services, false);
+        ConfigureServicesForTesting(services);
 
         var serviceProvider = services.BuildServiceProvider();
 
@@ -173,7 +173,7 @@ public class ProgramServiceConfigurationTests
         var services = new ServiceCollection();
 
         // Act - Configure without legacy progress flag (default)
-        ConfigureServicesForTesting(services, false);
+        ConfigureServicesForTesting(services);
 
         var serviceProvider = services.BuildServiceProvider();
         var messageHandler = serviceProvider.GetRequiredService<IMessageHandler>();

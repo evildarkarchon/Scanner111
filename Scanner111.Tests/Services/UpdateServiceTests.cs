@@ -7,6 +7,7 @@ using Scanner111.Core.Services;
 
 namespace Scanner111.Tests.Services;
 
+[Collection("Network Tests")]
 public class UpdateServiceTests
 {
     private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;

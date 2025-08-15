@@ -5,6 +5,7 @@ using Scanner111.GUI.Models;
 
 namespace Scanner111.Tests.GUI.Models;
 
+[Collection("GUI Tests")]
 public class ScanResultViewModelTests
 {
     [Fact]

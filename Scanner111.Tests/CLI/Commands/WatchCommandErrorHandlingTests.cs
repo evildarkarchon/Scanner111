@@ -12,6 +12,7 @@ namespace Scanner111.Tests.CLI.Commands;
 /// <summary>
 ///     Tests error handling scenarios for WatchCommand
 /// </summary>
+[Collection("FileWatcher Tests")]
 public class WatchCommandErrorHandlingTests : IDisposable
 {
     private readonly WatchCommand _command;

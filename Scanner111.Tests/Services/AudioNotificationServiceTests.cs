@@ -6,6 +6,7 @@ using Scanner111.Core.Services;
 
 namespace Scanner111.Tests.Services;
 
+[Collection("Audio Tests")]
 public class AudioNotificationServiceTests
 {
     private readonly Mock<IApplicationSettingsService> _mockSettingsService;

@@ -39,4 +39,10 @@
         <ProjectReference Include="..\Scanner111.CLI\Scanner111.CLI.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <None Update="xunit.runner.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
 </Project>

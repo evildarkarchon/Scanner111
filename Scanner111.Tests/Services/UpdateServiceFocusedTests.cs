@@ -11,6 +11,7 @@ namespace Scanner111.Tests.Services;
 /// <summary>
 ///     Focused unit tests for the <see cref="UpdateService" /> class that test behavior without HTTP interactions.
 /// </summary>
+[Collection("Network Tests")]
 public class UpdateServiceFocusedTests
 {
     private readonly Mock<ILogger<UpdateService>> _loggerMock;

@@ -12,6 +12,7 @@ namespace Scanner111.Tests.Infrastructure;
 ///     This class ensures OPC-related headers, sections, or messages within given report content
 ///     are correctly identified and removed while preserving other valid sections.
 /// </remarks>
+[Collection("IO Heavy Tests")]
 public class OpcFilteringTests : IDisposable
 {
     private readonly ReportWriter _reportWriter;

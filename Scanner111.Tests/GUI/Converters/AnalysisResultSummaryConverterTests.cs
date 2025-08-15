@@ -6,6 +6,7 @@ using Scanner111.GUI.Converters;
 
 namespace Scanner111.Tests.GUI.Converters;
 
+[Collection("GUI Tests")]
 public class AnalysisResultSummaryConverterTests
 {
     private readonly AnalysisResultSummaryConverter _converter = new();

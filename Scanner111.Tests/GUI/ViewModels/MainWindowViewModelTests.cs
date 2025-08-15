@@ -7,6 +7,7 @@ using Scanner111.Tests.GUI.TestHelpers;
 
 namespace Scanner111.Tests.GUI.ViewModels;
 
+[Collection("GUI Tests")]
 public class MainWindowViewModelTests : IDisposable
 {
     private readonly MockCacheManager _mockCacheManager;

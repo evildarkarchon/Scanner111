@@ -8,6 +8,7 @@ namespace Scanner111.Tests.Infrastructure;
 /// <summary>
 ///     Contains unit tests for the <see cref="HashValidationService" /> class
 /// </summary>
+[Collection("IO Heavy Tests")]
 public class HashValidationServiceTests : IDisposable
 {
     private readonly HashValidationService _hashService;

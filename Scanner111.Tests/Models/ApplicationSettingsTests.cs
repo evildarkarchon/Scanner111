@@ -4,6 +4,7 @@ using Scanner111.Core.Models;
 
 namespace Scanner111.Tests.Models;
 
+[Collection("Settings Tests")]
 public class ApplicationSettingsTests
 {
     [Fact]

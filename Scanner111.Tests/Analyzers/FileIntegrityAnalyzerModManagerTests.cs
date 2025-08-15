@@ -8,6 +8,7 @@ using Scanner111.Core.Services;
 
 namespace Scanner111.Tests.Analyzers;
 
+[Collection("ModManager Tests")]
 public class FileIntegrityAnalyzerModManagerTests
 {
     private readonly FileIntegrityAnalyzer _analyzer;

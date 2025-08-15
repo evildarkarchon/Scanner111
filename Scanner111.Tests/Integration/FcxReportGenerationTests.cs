@@ -13,6 +13,7 @@ namespace Scanner111.Tests.Integration;
 /// <summary>
 ///     Integration tests for FCX report generation accuracy
 /// </summary>
+[Collection("IO Heavy Tests")]
 public class FcxReportGenerationTests : IDisposable
 {
     private readonly FileIntegrityAnalyzer _fcxAnalyzer;

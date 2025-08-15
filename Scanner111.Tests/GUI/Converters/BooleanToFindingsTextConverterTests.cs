@@ -4,6 +4,7 @@ using Scanner111.GUI.Converters;
 
 namespace Scanner111.Tests.GUI.Converters;
 
+[Collection("GUI Tests")]
 public class BooleanToFindingsTextConverterTests
 {
     private readonly BooleanToFindingsTextConverter _converter = new();

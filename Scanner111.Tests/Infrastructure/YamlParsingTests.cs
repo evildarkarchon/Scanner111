@@ -14,6 +14,7 @@ namespace Scanner111.Tests.Infrastructure;
 /// <summary>
 ///     Unit tests for YAML parsing functionality across all game configurations
 /// </summary>
+[Collection("Parser Tests")]
 public class YamlParsingTests : IDisposable
 {
     private readonly ICacheManager _cacheManager;

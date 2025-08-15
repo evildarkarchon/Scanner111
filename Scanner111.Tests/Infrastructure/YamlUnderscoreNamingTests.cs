@@ -9,6 +9,7 @@ namespace Scanner111.Tests.Infrastructure;
 /// <summary>
 ///     Tests for YAML deserialization with underscore naming convention
 /// </summary>
+[Collection("Parser Tests")]
 public class YamlUnderscoreNamingTests
 {
     private readonly IDeserializer _deserializer;

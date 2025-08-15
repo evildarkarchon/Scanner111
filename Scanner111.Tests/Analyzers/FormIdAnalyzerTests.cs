@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Scanner111.Core.Analyzers;
-using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Analyzers;
@@ -10,16 +9,11 @@ namespace Scanner111.Tests.Analyzers;
 ///     verifying its ability to correctly process and analyze crash logs
 ///     for identifying and reporting Form IDs.
 /// </summary>
-public class FormIdAnalyzerTests
+public class FormIdAnalyzerTests : AnalyzerTestBase<FormIdAnalyzer>
 {
-    private readonly FormIdAnalyzer _analyzer;
-
-    public FormIdAnalyzerTests()
+    protected override FormIdAnalyzer CreateAnalyzer()
     {
-        var yamlSettings = new TestYamlSettingsProvider();
-        var formIdDatabase = new TestFormIdDatabaseService();
-        var appSettings = new TestApplicationSettingsService();
-        _analyzer = new FormIdAnalyzer(yamlSettings, formIdDatabase, appSettings);
+        return new FormIdAnalyzer(YamlSettings, FormIdDatabase, AppSettings);
     }
 
     /// <summary>
@@ -34,25 +28,22 @@ public class FormIdAnalyzerTests
     public async Task AnalyzeAsync_WithValidFormIds_ReturnsFormIdAnalysisResult()
     {
         // Arrange
-        var crashLog = new CrashLog
+        var crashLog = CreateCrashLogWithCallStack(
+            "  Form ID: 0x0001A332",
+            "  Form ID: 0x00014E45",
+            "  Form ID: 0xFF000000", // Should be skipped (starts with FF)
+            "  Some other line"
+        );
+        crashLog.Plugins = new Dictionary<string, string>
         {
-            FilePath = "test.log",
-            CallStack =
-            [
-                "  Form ID: 0x0001A332",
-                "  Form ID: 0x00014E45",
-                "  Form ID: 0xFF000000", // Should be skipped (starts with FF)
-                "  Some other line"
-            ],
-            Plugins = new Dictionary<string, string>
+            { "TestPlugin.esp", "00" },
             {
-                { "TestPlugin.esp", "00" },
-                { "AnotherPlugin.esp", "01" }
+                "AnotherPlugin.esp", "01"
             }
         };
 
         // Act
-        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var result = await Analyzer.AnalyzeAsync(crashLog);
 
         // Assert
         result.Should().BeOfType<FormIdAnalysisResult>();
@@ -79,20 +70,14 @@ public class FormIdAnalyzerTests
     public async Task AnalyzeAsync_WithNoFormIds_ReturnsEmptyResult()
     {
         // Arrange
-        var crashLog = new CrashLog
-        {
-            FilePath = "test.log",
-            CallStack =
-            [
-                "  Some random line",
-                "  Another line without FormID",
-                "  Yet another line"
-            ],
-            Plugins = new Dictionary<string, string>()
-        };
+        var crashLog = CreateCrashLogWithCallStack(
+            "  Some random line",
+            "  Another line without FormID",
+            "  Yet another line"
+        );
 
         // Act
-        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var result = await Analyzer.AnalyzeAsync(crashLog);
 
         // Assert
         var formIdResult = (FormIdAnalysisResult)result;
@@ -114,23 +99,15 @@ public class FormIdAnalyzerTests
     public async Task AnalyzeAsync_WithFormIdsStartingWithFF_SkipsThose()
     {
         // Arrange
-        var crashLog = new CrashLog
-        {
-            FilePath = "test.log",
-            CallStack =
-            [
-                "  Form ID: 0xFF000001",
-                "  Form ID: 0xFF000002",
-                "  Form ID: 0x00012345"
-            ],
-            Plugins = new Dictionary<string, string>
-            {
-                { "TestPlugin.esp", "00" }
-            }
-        };
+        var crashLog = CreateCrashLogWithCallStack(
+            "  Form ID: 0xFF000001",
+            "  Form ID: 0xFF000002",
+            "  Form ID: 0x00012345"
+        );
+        crashLog.Plugins["TestPlugin.esp"] = "00";
 
         // Act
-        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var result = await Analyzer.AnalyzeAsync(crashLog);
 
         // Assert
         var formIdResult = (FormIdAnalysisResult)result;
@@ -155,23 +132,18 @@ public class FormIdAnalyzerTests
     public async Task AnalyzeAsync_WithMatchingPlugins_GeneratesCorrectReport()
     {
         // Arrange
-        var crashLog = new CrashLog
+        var crashLog = CreateCrashLogWithCallStack(
+            "  Form ID: 0x00012345",
+            "  Form ID: 0x01006789"
+        );
+        crashLog.Plugins = new Dictionary<string, string>
         {
-            FilePath = "test.log",
-            CallStack =
-            [
-                "  Form ID: 0x00012345",
-                "  Form ID: 0x01006789"
-            ],
-            Plugins = new Dictionary<string, string>
-            {
-                { "TestPlugin.esp", "00" },
-                { "AnotherPlugin.esp", "01" }
-            }
+            { "TestPlugin.esp", "00" },
+            { "AnotherPlugin.esp", "01" }
         };
 
         // Act
-        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var result = await Analyzer.AnalyzeAsync(crashLog);
 
         // Assert
         var formIdResult = (FormIdAnalysisResult)result;
@@ -195,24 +167,16 @@ public class FormIdAnalyzerTests
     public async Task AnalyzeAsync_WithDuplicateFormIds_CountsCorrectly()
     {
         // Arrange
-        var crashLog = new CrashLog
-        {
-            FilePath = "test.log",
-            CallStack =
-            [
-                "  Form ID: 0x00012345",
-                "  Form ID: 0x00012345",
-                "  Form ID: 0x00012345",
-                "  Form ID: 0x00067890"
-            ],
-            Plugins = new Dictionary<string, string>
-            {
-                { "TestPlugin.esp", "00" }
-            }
-        };
+        var crashLog = CreateCrashLogWithCallStack(
+            "  Form ID: 0x00012345",
+            "  Form ID: 0x00012345",
+            "  Form ID: 0x00012345",
+            "  Form ID: 0x00067890"
+        );
+        crashLog.Plugins["TestPlugin.esp"] = "00";
 
         // Act
-        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var result = await Analyzer.AnalyzeAsync(crashLog);
 
         // Assert
         var formIdResult = (FormIdAnalysisResult)result;
@@ -234,24 +198,16 @@ public class FormIdAnalyzerTests
     public async Task AnalyzeAsync_WithMalformedFormIds_IgnoresThem()
     {
         // Arrange
-        var crashLog = new CrashLog
-        {
-            FilePath = "test.log",
-            CallStack =
-            [
-                "  Form ID: 0x12345", // Too short
-                "  Form ID: 0xGGGGGGGG", // Invalid hex
-                "  Form ID: 0x00012345", // Valid
-                "  Form ID: not a form id"
-            ],
-            Plugins = new Dictionary<string, string>
-            {
-                { "TestPlugin.esp", "00" }
-            }
-        };
+        var crashLog = CreateCrashLogWithCallStack(
+            "  Form ID: 0x12345", // Too short
+            "  Form ID: 0xGGGGGGGG", // Invalid hex
+            "  Form ID: 0x00012345", // Valid
+            "  Form ID: not a form id"
+        );
+        crashLog.Plugins["TestPlugin.esp"] = "00";
 
         // Act
-        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var result = await Analyzer.AnalyzeAsync(crashLog);
 
         // Assert
         var formIdResult = (FormIdAnalysisResult)result;
@@ -274,23 +230,15 @@ public class FormIdAnalyzerTests
     public async Task AnalyzeAsync_WithCaseInsensitiveFormIds_HandlesCorrectly()
     {
         // Arrange
-        var crashLog = new CrashLog
-        {
-            FilePath = "test.log",
-            CallStack =
-            [
-                "  Form ID: 0x0001abcd",
-                "  Form ID: 0x0001ABCD",
-                "  form id: 0x00012345"
-            ],
-            Plugins = new Dictionary<string, string>
-            {
-                { "TestPlugin.esp", "00" }
-            }
-        };
+        var crashLog = CreateCrashLogWithCallStack(
+            "  Form ID: 0x0001abcd",
+            "  Form ID: 0x0001ABCD",
+            "  form id: 0x00012345"
+        );
+        crashLog.Plugins["TestPlugin.esp"] = "00";
 
         // Act
-        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var result = await Analyzer.AnalyzeAsync(crashLog);
 
         // Assert
         var formIdResult = (FormIdAnalysisResult)result;

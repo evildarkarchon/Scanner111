@@ -14,6 +14,7 @@ namespace Scanner111.Tests.Integration;
 ///     Focuses on ensuring thread safety, proper disposal of resources,
 ///     and preventing data corruption under concurrent operations.
 /// </summary>
+[Collection("IO Heavy Tests")]
 public class ConcurrencyAndResourceTests : IDisposable
 {
     private readonly List<object> _disposables = new();

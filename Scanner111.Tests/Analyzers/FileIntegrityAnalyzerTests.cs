@@ -149,7 +149,7 @@ public class FileIntegrityAnalyzerTests : IDisposable
         settings.FcxMode = true;
         await _settingsService.SaveSettingsAsync(settings);
 
-        var gameDir = CreateTempGameDirectory(false);
+        var gameDir = CreateTempGameDirectory();
         var crashLog = new CrashLog
         {
             FilePath = "test.log",

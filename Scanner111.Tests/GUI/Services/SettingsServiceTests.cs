@@ -10,6 +10,7 @@ namespace Scanner111.Tests.GUI.Services;
 ///     These tests verify that the service correctly handles loading, saving, and mapping
 ///     between ApplicationSettings and UserSettings.
 /// </summary>
+[Collection("Settings Tests")]
 public class SettingsServiceTests : IDisposable
 {
     private readonly SettingsService _service;

@@ -15,6 +15,7 @@ namespace Scanner111.Tests.GUI.Integration;
 ///     These tests ensure that ViewModels correctly utilize services and that the
 ///     entire GUI layer works together properly.
 /// </summary>
+[Collection("GUI Tests")]
 public class ViewModelServiceIntegrationTests : IDisposable
 {
     private readonly GuiMessageHandlerService _messageHandler;

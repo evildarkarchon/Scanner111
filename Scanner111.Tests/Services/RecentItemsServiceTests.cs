@@ -6,6 +6,7 @@ using Scanner111.Core.Services;
 
 namespace Scanner111.Tests.Services;
 
+[Collection("Database Tests")]
 public class RecentItemsServiceTests
 {
     private readonly Mock<IApplicationSettingsService> _mockSettingsService;

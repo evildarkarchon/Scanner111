@@ -25,6 +25,7 @@ namespace Scanner111.Tests.Pipeline;
 ///     Additionally, it verifies the pipeline's ability to process logs with invalid paths and to behave appropriately
 ///     upon cancellation.
 /// </example>
+[Collection("Pipeline Tests")]
 public class ScanPipelineTests : IDisposable
 {
     private readonly ILogger<ScanPipeline> _logger;
@@ -60,7 +61,13 @@ public class ScanPipelineTests : IDisposable
     /// </remarks>
     public void Dispose()
     {
-        _pipeline.DisposeAsync().AsTask().Wait();
+        // Use blocking disposal with timeout to prevent hanging
+        var disposeTask = _pipeline.DisposeAsync().AsTask();
+        if (!disposeTask.Wait(TimeSpan.FromSeconds(5)))
+        {
+            // Log warning if disposal takes too long, but continue
+        }
+
         GC.SuppressFinalize(this);
     }
 

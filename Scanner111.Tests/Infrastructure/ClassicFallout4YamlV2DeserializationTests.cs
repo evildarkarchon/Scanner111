@@ -8,6 +8,7 @@ namespace Scanner111.Tests.Infrastructure;
 /// <summary>
 ///     Tests for ClassicFallout4YamlV2 deserialization with underscore naming convention
 /// </summary>
+[Collection("Parser Tests")]
 public class ClassicFallout4YamlV2DeserializationTests
 {
     private readonly IDeserializer _deserializer;

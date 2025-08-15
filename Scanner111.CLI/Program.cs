@@ -137,7 +137,7 @@ static async Task PerformStartupUpdateCheckAsync(IServiceProvider serviceProvide
         if (settings.EnableUpdateCheck)
         {
             var updateService = serviceProvider.GetRequiredService<IUpdateService>();
-            await updateService.IsLatestVersionAsync(false);
+            await updateService.IsLatestVersionAsync();
         }
     }
     catch (Exception ex)

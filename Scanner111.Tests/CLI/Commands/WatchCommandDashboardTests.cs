@@ -13,6 +13,7 @@ namespace Scanner111.Tests.CLI.Commands;
 /// <summary>
 ///     Tests for the Dashboard and Statistics functionality of WatchCommand
 /// </summary>
+[Collection("FileWatcher Tests")]
 public class WatchCommandDashboardTests : IDisposable
 {
     private readonly WatchCommand _command;

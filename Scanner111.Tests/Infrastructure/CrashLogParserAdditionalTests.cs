@@ -10,6 +10,7 @@ namespace Scanner111.Tests.Infrastructure;
 ///     This class contains unit tests for verifying the parsing logic of crash logs,
 ///     including scenarios such as logs with no plugins and logs containing empty lines.
 /// </remarks>
+[Collection("Parser Tests")]
 public class CrashLogParserAdditionalTests
 {
 	/// <summary>

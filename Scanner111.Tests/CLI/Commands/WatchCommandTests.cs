@@ -9,6 +9,7 @@ using Scanner111.Core.Pipeline;
 
 namespace Scanner111.Tests.CLI.Commands;
 
+[Collection("FileWatcher Tests")]
 public class WatchCommandTests : IDisposable
 {
     private readonly WatchCommand _command;

@@ -7,6 +7,7 @@ namespace Scanner111.Tests.Pipeline;
 ///     within the pipeline, including calculations of progress percentages,
 ///     performance metrics, and reporting behaviors for file and analyzer progress states.
 /// </summary>
+[Collection("Pipeline Tests")]
 public class ProgressReportingTests
 {
     /// <summary>

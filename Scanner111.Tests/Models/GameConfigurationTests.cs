@@ -3,6 +3,7 @@ using Scanner111.Core.Models;
 
 namespace Scanner111.Tests.Models;
 
+[Collection("ModManager Tests")]
 public class GameConfigurationTests
 {
     [Fact]

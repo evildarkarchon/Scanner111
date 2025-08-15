@@ -3,6 +3,7 @@ using Scanner111.Core.ModManagers.MO2;
 
 namespace Scanner111.Tests.ModManagers.MO2;
 
+[Collection("ModManager Tests")]
 public class MO2ProfileReaderTests : IDisposable
 {
     private readonly MO2ProfileReader _reader;

@@ -18,6 +18,7 @@ namespace Scanner111.Tests.Integration;
 /// with real sample data.
 /// This class implements IDisposable to manage temporary resources,
 /// such as directories and files created during testing.
+[Collection("IO Heavy Tests")]
 public class ReportWritingIntegrationTests : IDisposable
 {
     private readonly string _sampleLogsPath;

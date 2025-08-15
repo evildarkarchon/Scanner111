@@ -7,6 +7,7 @@ using Scanner111.Core.Services;
 
 namespace Scanner111.Tests.ModManagers;
 
+[Collection("ModManager Tests")]
 public class ModManagerServiceTests
 {
     private readonly Mock<IModManagerDetector> _mockDetector;

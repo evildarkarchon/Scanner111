@@ -3,6 +3,7 @@ using Scanner111.Core.ModManagers;
 
 namespace Scanner111.Tests.ModManagers;
 
+[Collection("ModManager Tests")]
 public class ModManagerDetectorTests
 {
     [Fact]

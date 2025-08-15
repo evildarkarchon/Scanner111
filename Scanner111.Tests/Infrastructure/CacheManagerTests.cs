@@ -10,6 +10,7 @@ namespace Scanner111.Tests.Infrastructure;
 ///     Contains unit tests for the <see cref="CacheManager" /> class, ensuring correct behavior of its caching mechanisms
 ///     and interactions with the underlying memory cache.
 /// </summary>
+[Collection("IO Heavy Tests")]
 public class CacheManagerTests : IDisposable
 {
     private readonly CacheManager _cacheManager;

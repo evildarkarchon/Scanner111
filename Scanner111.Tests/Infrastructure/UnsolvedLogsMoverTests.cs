@@ -6,6 +6,7 @@ using Scanner111.Core.Models;
 
 namespace Scanner111.Tests.Infrastructure;
 
+[Collection("IO Heavy Tests")]
 public class UnsolvedLogsMoverTests : IDisposable
 {
     private readonly IApplicationSettingsService _appSettings;

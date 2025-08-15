@@ -21,6 +21,7 @@ namespace Scanner111.Tests.Pipeline;
 ///     No usage examples are provided in this documentation.
 /// </example>
 /// <seealso cref="Scanner111.Core.Pipeline.EnhancedScanPipeline" />
+[Collection("Pipeline Tests")]
 public class EnhancedScanPipelineTests : IDisposable
 {
     private readonly List<IDisposable> _disposables = [];
@@ -99,7 +100,7 @@ public class EnhancedScanPipelineTests : IDisposable
             {
                 // File might still be in use by a canceled operation
                 // Try again after a short delay
-                Task.Delay(100).Wait();
+                Thread.Sleep(100);
                 try
                 {
                     File.Delete(_testLogPath);

@@ -8,6 +8,7 @@ namespace Scanner111.Tests.Infrastructure;
 ///     Validates methods responsible for managing crash log directories, detecting game types,
 ///     and handling crash log files effectively.
 /// </summary>
+[Collection("IO Heavy Tests")]
 public class CrashLogDirectoryManagerTests
 {
     /// <summary>

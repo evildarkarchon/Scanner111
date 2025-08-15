@@ -16,6 +16,7 @@ namespace Scanner111.Tests.Services;
 ///     HTTP-specific tests for the <see cref="UpdateService" /> class,
 ///     focusing on testing HTTP interactions and network scenarios.
 /// </summary>
+[Collection("Network Tests")]
 public class UpdateServiceHttpTests : IDisposable
 {
     private readonly HttpClient _httpClient;

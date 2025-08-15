@@ -5,6 +5,7 @@ using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Tests.Infrastructure;
 
+[Collection("ModManager Tests")]
 public class GameVersionDetectionTests : IDisposable
 {
     private readonly string _testDirectory;

@@ -4,6 +4,7 @@ using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Tests.Infrastructure;
 
+[Collection("Settings Tests")]
 public class SettingsHelperTests : IDisposable
 {
     private readonly string _originalAppData;

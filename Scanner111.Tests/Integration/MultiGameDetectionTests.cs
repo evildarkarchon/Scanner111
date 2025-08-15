@@ -10,6 +10,7 @@ namespace Scanner111.Tests.Integration;
 /// <summary>
 ///     Integration tests for multi-game detection functionality
 /// </summary>
+[Collection("IO Heavy Tests")]
 public class MultiGameDetectionTests : IDisposable
 {
     private readonly ILogger<object> _logger;

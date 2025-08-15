@@ -12,6 +12,7 @@ namespace Scanner111.Tests.GUI.Services;
 ///     These tests verify that the service correctly forwards messages to the MainWindowViewModel
 ///     and properly handles progress reporting.
 /// </summary>
+[Collection("GUI Tests")]
 public class GuiMessageHandlerServiceTests
 {
     private readonly Mock<MainWindowViewModel> _mockViewModel;

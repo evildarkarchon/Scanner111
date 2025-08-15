@@ -8,6 +8,7 @@ using Scanner111.Core.Pipeline;
 
 namespace Scanner111.Tests.Pipeline;
 
+[Collection("Pipeline Tests")]
 public class ScanPipelineBuilderTests
 {
     private readonly ScanPipelineBuilder _builder;

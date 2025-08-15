@@ -67,6 +67,12 @@ dotnet test Scanner111.Tests
 
 # Run tests with FluentAssertions output
 dotnet test --logger:"console;verbosity=detailed"
+
+# Run specific collection                                                                                                                                                                                                                                                                                         
+dotnet test --filter "Collection=\"IO Heavy Tests\""                                                                                                                                                                                                                                                              
+
+# Run uncollected tests (fastest)                                                                                                                                                                                                                                                                                 
+dotnet test --filter "Collection!=\"*\""
 ```
 
 ## High-Level Architecture

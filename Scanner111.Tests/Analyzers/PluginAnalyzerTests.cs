@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
@@ -10,15 +9,11 @@ namespace Scanner111.Tests.Analyzers;
 ///     Unit tests for the PluginAnalyzer class, focusing on its ability to analyze plugin-related crash logs
 ///     and produce PluginAnalysisResult objects based on various scenarios.
 /// </summary>
-public class PluginAnalyzerTests
+public class PluginAnalyzerTests : AnalyzerTestBase<PluginAnalyzer>
 {
-    private readonly PluginAnalyzer _analyzer;
-
-    public PluginAnalyzerTests()
+    protected override PluginAnalyzer CreateAnalyzer()
     {
-        var yamlSettings = new TestYamlSettingsProvider();
-        var logger = NullLogger<PluginAnalyzer>.Instance;
-        _analyzer = new PluginAnalyzer(yamlSettings, logger);
+        return new PluginAnalyzer(YamlSettings, GetNullLogger<PluginAnalyzer>());
     }
 
     /// <summary>
@@ -53,7 +48,7 @@ public class PluginAnalyzerTests
         };
 
         // Act
-        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var result = await Analyzer.AnalyzeAsync(crashLog);
 
         // Assert
         result.Should().BeOfType<PluginAnalysisResult>();
@@ -92,7 +87,7 @@ public class PluginAnalyzerTests
         };
 
         // Act
-        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var result = await Analyzer.AnalyzeAsync(crashLog);
 
         // Assert
         var pluginResult = (PluginAnalysisResult)result;
@@ -134,7 +129,7 @@ public class PluginAnalyzerTests
         };
 
         // Act
-        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var result = await Analyzer.AnalyzeAsync(crashLog);
 
         // Assert
         var pluginResult = (PluginAnalysisResult)result;
@@ -176,7 +171,7 @@ public class PluginAnalyzerTests
         };
 
         // Act
-        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var result = await Analyzer.AnalyzeAsync(crashLog);
 
         // Assert
         var pluginResult = (PluginAnalysisResult)result;
@@ -219,7 +214,7 @@ public class PluginAnalyzerTests
         };
 
         // Act
-        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var result = await Analyzer.AnalyzeAsync(crashLog);
 
         // Assert
         var pluginResult = (PluginAnalysisResult)result;
@@ -257,7 +252,7 @@ public class PluginAnalyzerTests
         };
 
         // Act
-        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var result = await Analyzer.AnalyzeAsync(crashLog);
 
         // Assert
         var pluginResult = (PluginAnalysisResult)result;
@@ -300,7 +295,7 @@ public class PluginAnalyzerTests
         };
 
         // Act
-        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var result = await Analyzer.AnalyzeAsync(crashLog);
 
         // Assert
         var pluginResult = (PluginAnalysisResult)result;
@@ -350,7 +345,7 @@ public class PluginAnalyzerTests
         };
 
         // Act
-        var result = await _analyzer.AnalyzeAsync(crashLog);
+        var result = await Analyzer.AnalyzeAsync(crashLog);
 
         // Assert
         var pluginResult = (PluginAnalysisResult)result;

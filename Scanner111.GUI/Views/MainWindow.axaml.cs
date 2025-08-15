@@ -44,6 +44,9 @@ public partial class MainWindow : Window
             unsolvedLogsMover);
         InitializeComponent();
 
+        // Set DataContext immediately so bindings work
+        DataContext = _viewModel;
+
         // Wire up file picker events
         Loaded += MainWindow_Loaded;
 
@@ -58,6 +61,9 @@ public partial class MainWindow : Window
         _viewModel = viewModel;
         InitializeComponent();
 
+        // Set DataContext immediately so bindings work
+        DataContext = _viewModel;
+
         // Wire up file picker events
         Loaded += MainWindow_Loaded;
 
@@ -67,8 +73,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    ///     Handles the Loaded event of the MainWindow, initializing the ViewModel
-    ///     and setting up necessary file picker delegates for the application.
+    ///     Handles the Loaded event of the MainWindow, setting up necessary file picker delegates for the application.
     /// </summary>
     /// <param name="sender">The source of the event, typically the MainWindow instance.</param>
     /// <param name="e">The event data associated with the Loaded event.</param>
@@ -78,9 +83,6 @@ public partial class MainWindow : Window
         _viewModel.ShowFilePickerAsync = ShowFilePickerAsync;
         _viewModel.ShowFolderPickerAsync = ShowFolderPickerAsync;
         _viewModel.TopLevel = this;
-
-        // Set DataContext
-        DataContext = _viewModel;
     }
 
     /// <summary>

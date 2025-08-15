@@ -8,6 +8,7 @@ using Spectre.Console.Testing;
 
 namespace Scanner111.Tests.CLI.Services;
 
+[Collection("Terminal UI Tests")]
 public class ProgressManagerTests : IAsyncLifetime
 {
     private readonly TestConsole _console;

@@ -6,6 +6,7 @@ using Scanner111.Tests.GUI.TestHelpers;
 
 namespace Scanner111.Tests.GUI.ViewModels;
 
+[Collection("GUI Tests")]
 public class SettingsWindowViewModelTests
 {
     private readonly MockSettingsService _mockSettingsService;

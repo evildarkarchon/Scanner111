@@ -5,6 +5,7 @@ using Scanner111.GUI.Services;
 
 namespace Scanner111.Tests.GUI.Services;
 
+[Collection("GUI Tests")]
 public class ThemeServiceTests
 {
     private readonly Mock<ISettingsService> _mockSettingsService;

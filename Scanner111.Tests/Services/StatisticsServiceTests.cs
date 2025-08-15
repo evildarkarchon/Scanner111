@@ -3,6 +3,7 @@ using Scanner111.Core.Services;
 
 namespace Scanner111.Tests.Services;
 
+[Collection("Database Tests")]
 public class StatisticsServiceTests : IDisposable
 {
     private readonly StatisticsService _service;
@@ -18,8 +19,8 @@ public class StatisticsServiceTests : IDisposable
         // Create the service with test-specific database path
         _service = new StatisticsService(_testDbPath);
 
-        // Give the database time to initialize
-        Task.Delay(100).Wait();
+        // Give the database time to initialize using async initialization
+        InitializeAsync().GetAwaiter().GetResult();
     }
 
     public void Dispose()
@@ -38,6 +39,11 @@ public class StatisticsServiceTests : IDisposable
         {
             // Ignore cleanup errors
         }
+    }
+
+    private async Task InitializeAsync()
+    {
+        await Task.Delay(100);
     }
 
     [Fact]

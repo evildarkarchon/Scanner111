@@ -7,6 +7,7 @@ using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.CLI;
 
+[Collection("Terminal UI Tests")]
 public class ConfigCommandTests : IDisposable
 {
     private readonly ConfigCommand _command;

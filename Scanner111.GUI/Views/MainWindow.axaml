@@ -10,6 +10,7 @@
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
         x:Class="Scanner111.GUI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
+        x:Name="MainWindowRoot"
         Icon="/Assets/avalonia-logo.ico"
         Title="Scanner111 - CLASSIC Crash Log Analyzer"
         MinWidth="800" MinHeight="600"
@@ -58,7 +59,7 @@
                         <DataTemplate>
                             <MenuItem Header="{Binding DisplayName}"
                                       ToolTip.Tip="{Binding Path}"
-                                      Command="{Binding $parent[Window].DataContext.OpenRecentFileCommand}"
+                                      Command="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.OpenRecentFileCommand}"
                                       CommandParameter="{Binding Path}" />
                         </DataTemplate>
                     </MenuItem.ItemTemplate>

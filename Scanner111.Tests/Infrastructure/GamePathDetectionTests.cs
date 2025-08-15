@@ -8,6 +8,7 @@ namespace Scanner111.Tests.Infrastructure;
 /// <summary>
 ///     Unit tests for the <see cref="GamePathDetection" /> class
 /// </summary>
+[Collection("ModManager Tests")]
 public class GamePathDetectionTests : IDisposable
 {
     private readonly List<string> _tempDirectories;

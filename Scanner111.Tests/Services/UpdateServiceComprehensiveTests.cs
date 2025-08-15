@@ -17,6 +17,7 @@ namespace Scanner111.Tests.Services;
 ///     Comprehensive unit tests for the <see cref="UpdateService" /> class,
 ///     verifying its ability to check for application updates from GitHub and Nexus sources.
 /// </summary>
+[Collection("Network Tests")]
 public class UpdateServiceComprehensiveTests : IDisposable
 {
     private readonly ApplicationSettings _defaultSettings;

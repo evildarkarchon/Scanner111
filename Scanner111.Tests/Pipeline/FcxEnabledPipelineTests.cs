@@ -10,6 +10,7 @@ namespace Scanner111.Tests.Pipeline;
 /// <summary>
 ///     Unit tests for the FcxEnabledPipeline class that validates FCX (File Integrity Check) functionality
 /// </summary>
+[Collection("Pipeline Tests")]
 public class FcxEnabledPipelineTests : IAsyncDisposable
 {
     private readonly TestHashValidationService _hashService;

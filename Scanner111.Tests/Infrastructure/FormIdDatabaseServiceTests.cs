@@ -7,6 +7,7 @@ using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Infrastructure;
 
+[Collection("Database Tests")]
 public class FormIdDatabaseServiceTests : IDisposable
 {
     private readonly string _localDbPath;

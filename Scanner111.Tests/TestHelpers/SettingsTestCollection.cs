@@ -5,7 +5,7 @@ namespace Scanner111.Tests.TestHelpers;
 ///     environment variable conflicts.
 /// </summary>
 [CollectionDefinition("Settings Tests")]
-public class SettingsTestCollection : ICollectionFixture<object>
+public class SettingsTestCollection : ICollectionFixture<SettingsTestFixture>
 {
     // This class has no code, and is never created. Its purpose is simply
     // to be the place to apply [CollectionDefinition] and all the

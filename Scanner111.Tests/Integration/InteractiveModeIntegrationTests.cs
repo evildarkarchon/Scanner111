@@ -13,6 +13,7 @@ using Spectre.Console.Testing;
 
 namespace Scanner111.Tests.Integration;
 
+[Collection("Terminal UI Tests")]
 public class InteractiveModeIntegrationTests : IDisposable
 {
     private readonly TestConsole _console;

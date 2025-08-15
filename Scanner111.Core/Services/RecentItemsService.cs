@@ -37,110 +37,32 @@ public class RecentItemsService : IRecentItemsService
 
     public void AddRecentLogFile(string path)
     {
-        if (string.IsNullOrWhiteSpace(path)) return;
-
-        _accessTimes[path] = DateTime.Now;
-        if (_settingsService != null)
-            Task.Run(async () =>
-            {
-                var settings = await _settingsService.LoadSettingsAsync();
-                settings.AddRecentLogFile(path);
-                await _settingsService.SaveSettingsAsync(settings);
-            });
-
-        RecentItemsChanged?.Invoke(this, new RecentItemsChangedEventArgs
-        {
-            ItemType = RecentItemType.LogFile,
-            AddedPath = path
-        });
+        AddRecentItem(path, RecentItemType.LogFile);
     }
 
     public void AddRecentGamePath(string path)
     {
-        if (string.IsNullOrWhiteSpace(path)) return;
-
-        _accessTimes[path] = DateTime.Now;
-        if (_settingsService != null)
-            Task.Run(async () =>
-            {
-                var settings = await _settingsService.LoadSettingsAsync();
-                settings.AddRecentGamePath(path);
-                await _settingsService.SaveSettingsAsync(settings);
-            });
-
-        RecentItemsChanged?.Invoke(this, new RecentItemsChangedEventArgs
-        {
-            ItemType = RecentItemType.GamePath,
-            AddedPath = path
-        });
+        AddRecentItem(path, RecentItemType.GamePath);
     }
 
     public void AddRecentScanDirectory(string path)
     {
-        if (string.IsNullOrWhiteSpace(path)) return;
-
-        _accessTimes[path] = DateTime.Now;
-        if (_settingsService != null)
-            Task.Run(async () =>
-            {
-                var settings = await _settingsService.LoadSettingsAsync();
-                settings.AddRecentScanDirectory(path);
-                await _settingsService.SaveSettingsAsync(settings);
-            });
-
-        RecentItemsChanged?.Invoke(this, new RecentItemsChangedEventArgs
-        {
-            ItemType = RecentItemType.ScanDirectory,
-            AddedPath = path
-        });
+        AddRecentItem(path, RecentItemType.ScanDirectory);
     }
 
     public void ClearRecentLogFiles()
     {
-        if (_settingsService != null)
-            Task.Run(async () =>
-            {
-                var settings = await _settingsService.LoadSettingsAsync();
-                settings.RecentLogFiles.Clear();
-                await _settingsService.SaveSettingsAsync(settings);
-            });
-
-        RecentItemsChanged?.Invoke(this, new RecentItemsChangedEventArgs
-        {
-            ItemType = RecentItemType.LogFile
-        });
+        ClearRecentItems(RecentItemType.LogFile);
     }
 
     public void ClearRecentGamePaths()
     {
-        if (_settingsService != null)
-            Task.Run(async () =>
-            {
-                var settings = await _settingsService.LoadSettingsAsync();
-                settings.RecentGamePaths.Clear();
-                await _settingsService.SaveSettingsAsync(settings);
-            });
-
-        RecentItemsChanged?.Invoke(this, new RecentItemsChangedEventArgs
-        {
-            ItemType = RecentItemType.GamePath
-        });
+        ClearRecentItems(RecentItemType.GamePath);
     }
 
     public void ClearRecentScanDirectories()
     {
-        if (_settingsService != null)
-            Task.Run(async () =>
-            {
-                var settings = await _settingsService.LoadSettingsAsync();
-                settings.RecentScanDirectories.Clear();
-                await _settingsService.SaveSettingsAsync(settings);
-            });
-
-        RecentItemsChanged?.Invoke(this, new RecentItemsChangedEventArgs
-        {
-            ItemType = RecentItemType.ScanDirectory
-        });
+        ClearRecentItems(RecentItemType.ScanDirectory);
     }
 
     public void ClearAllRecentItems()
@@ -231,6 +153,66 @@ public class RecentItemsService : IRecentItemsService
                 return false;
             }
         }).ConfigureAwait(false);
+    }
+
+    private void AddRecentItem(string path, RecentItemType type)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return;
+
+        _accessTimes[path] = DateTime.Now;
+        if (_settingsService != null)
+            Task.Run(async () =>
+            {
+                var settings = await _settingsService.LoadSettingsAsync();
+                switch (type)
+                {
+                    case RecentItemType.LogFile:
+                        settings.AddRecentLogFile(path);
+                        break;
+                    case RecentItemType.GamePath:
+                        settings.AddRecentGamePath(path);
+                        break;
+                    case RecentItemType.ScanDirectory:
+                        settings.AddRecentScanDirectory(path);
+                        break;
+                }
+
+                await _settingsService.SaveSettingsAsync(settings);
+            });
+
+        RecentItemsChanged?.Invoke(this, new RecentItemsChangedEventArgs
+        {
+            ItemType = type,
+            AddedPath = path
+        });
+    }
+
+    private void ClearRecentItems(RecentItemType type)
+    {
+        if (_settingsService != null)
+            Task.Run(async () =>
+            {
+                var settings = await _settingsService.LoadSettingsAsync();
+                switch (type)
+                {
+                    case RecentItemType.LogFile:
+                        settings.RecentLogFiles.Clear();
+                        break;
+                    case RecentItemType.GamePath:
+                        settings.RecentGamePaths.Clear();
+                        break;
+                    case RecentItemType.ScanDirectory:
+                        settings.RecentScanDirectories.Clear();
+                        break;
+                }
+
+                await _settingsService.SaveSettingsAsync(settings);
+            });
+
+        RecentItemsChanged?.Invoke(this, new RecentItemsChangedEventArgs
+        {
+            ItemType = type
+        });
     }
 
     private IReadOnlyList<RecentItem> ConvertToRecentItems(List<string> paths, RecentItemType type)

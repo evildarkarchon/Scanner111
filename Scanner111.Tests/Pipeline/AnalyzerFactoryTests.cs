@@ -22,6 +22,7 @@ namespace Scanner111.Tests.Pipeline;
 ///     - Consistency of returned analyzer instances.<br />
 ///     - Proper behavior of factory methods in different game types.
 /// </example>
+[Collection("Pipeline Tests")]
 public class AnalyzerFactoryTests
 {
     private readonly AnalyzerFactory _factory;

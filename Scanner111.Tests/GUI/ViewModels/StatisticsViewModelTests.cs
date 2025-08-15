@@ -5,6 +5,7 @@ using Scanner111.GUI.ViewModels;
 
 namespace Scanner111.Tests.GUI.ViewModels;
 
+[Collection("GUI Tests")]
 public class StatisticsViewModelTests
 {
     private readonly Mock<IStatisticsService> _mockStatsService;

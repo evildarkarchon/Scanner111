@@ -25,6 +25,7 @@ namespace Scanner111.Tests.Infrastructure;
 ///     under different conditions, ensuring robustness and reliability of the parser.
 ///     Temporary files created during testing are cleaned up after each test.
 /// </note>
+[Collection("Parser Tests")]
 public class CrashLogParserTests : IDisposable
 {
     private readonly string _testDirectory;
