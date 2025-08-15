@@ -33,6 +33,7 @@ public class MainWindowViewModel : ViewModelBase
     private readonly IRecentItemsService? _recentItemsService;
     private readonly ISettingsService _settingsService;
     private readonly IStatisticsService? _statisticsService;
+    private readonly IPastebinService? _pastebinService;
     private readonly IThemeService? _themeService;
     private readonly IUnsolvedLogsMover? _unsolvedLogsMover;
     private readonly IUpdateService _updateService;
@@ -56,6 +57,8 @@ public class MainWindowViewModel : ViewModelBase
     private ScanResultViewModel? _selectedResult;
     private string _selectedScanDirectory = "";
     private string _statusText = "Ready";
+    private string _pastebinUrlOrId = "";
+    private bool _isFetchingFromPastebin;
 
     public MainWindowViewModel(
         ISettingsService settingsService,
@@ -67,7 +70,8 @@ public class MainWindowViewModel : ViewModelBase
         IRecentItemsService? recentItemsService = null,
         IAudioNotificationService? audioNotificationService = null,
         IStatisticsService? statisticsService = null,
-        IThemeService? themeService = null)
+        IThemeService? themeService = null,
+        IPastebinService? pastebinService = null)
     {
         _settingsService = Guard.NotNull(settingsService, nameof(settingsService));
         _messageHandlerService = Guard.NotNull(messageHandlerService, nameof(messageHandlerService));
@@ -79,6 +83,7 @@ public class MainWindowViewModel : ViewModelBase
         _audioNotificationService = audioNotificationService;
         _statisticsService = statisticsService;
         _themeService = themeService;
+        _pastebinService = pastebinService;
         _currentSettings = new UserSettings();
 
         // Set this view model in the message handler service
@@ -88,6 +93,9 @@ public class MainWindowViewModel : ViewModelBase
         SelectLogFileCommand = ReactiveCommand.CreateFromTask(SelectLogFile);
         SelectGamePathCommand = ReactiveCommand.CreateFromTask(SelectGamePath);
         SelectScanDirectoryCommand = ReactiveCommand.CreateFromTask(SelectScanDirectory);
+        FetchFromPastebinCommand = ReactiveCommand.CreateFromTask(FetchFromPastebin,
+            this.WhenAnyValue(x => x.PastebinUrlOrId, x => x.IsFetchingFromPastebin,
+                (url, fetching) => !string.IsNullOrWhiteSpace(url) && !fetching));
         ScanCommand = ReactiveCommand.CreateFromTask(ExecuteScan);
         CancelScanCommand = ReactiveCommand.Create(CancelScan);
         ClearResultsCommand = ReactiveCommand.Create(ClearResults);
@@ -265,6 +273,30 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
+    public string PastebinUrlOrId
+    {
+        get => _pastebinUrlOrId;
+        set
+        {
+            if (Dispatcher.UIThread.CheckAccess())
+                this.RaiseAndSetIfChanged(ref _pastebinUrlOrId, value);
+            else
+                Dispatcher.UIThread.InvokeAsync(() => this.RaiseAndSetIfChanged(ref _pastebinUrlOrId, value));
+        }
+    }
+
+    public bool IsFetchingFromPastebin
+    {
+        get => _isFetchingFromPastebin;
+        set
+        {
+            if (Dispatcher.UIThread.CheckAccess())
+                this.RaiseAndSetIfChanged(ref _isFetchingFromPastebin, value);
+            else
+                Dispatcher.UIThread.InvokeAsync(() => this.RaiseAndSetIfChanged(ref _isFetchingFromPastebin, value));
+        }
+    }
+
     /// <summary>
     ///     Gets or sets the currently selected scan result in the user interface.
     ///     The <c>SelectedResult</c> property represents the item that the user has chosen
@@ -351,6 +383,7 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> SelectLogFileCommand { get; }
     public ReactiveCommand<Unit, Unit> SelectGamePathCommand { get; }
     public ReactiveCommand<Unit, Unit> SelectScanDirectoryCommand { get; }
+    public ReactiveCommand<Unit, Unit> FetchFromPastebinCommand { get; }
     public ReactiveCommand<Unit, Unit> ScanCommand { get; }
     public ReactiveCommand<Unit, Unit> CancelScanCommand { get; }
     public ReactiveCommand<Unit, Unit> ClearResultsCommand { get; }
@@ -537,6 +570,60 @@ public class MainWindowViewModel : ViewModelBase
         catch (Exception ex)
         {
             AddLogMessage($"Error selecting scan directory: {ex.Message}");
+        }
+    }
+
+    private async Task FetchFromPastebin()
+    {
+        if (_pastebinService == null)
+        {
+            AddLogMessage("Pastebin service is not available");
+            StatusText = "Pastebin service unavailable";
+            return;
+        }
+
+        try
+        {
+            IsFetchingFromPastebin = true;
+            StatusText = "Fetching from Pastebin...";
+            AddLogMessage($"Fetching from Pastebin: {PastebinUrlOrId}");
+
+            var fetchedPath = await _pastebinService.FetchAndSaveAsync(PastebinUrlOrId);
+            
+            if (!string.IsNullOrEmpty(fetchedPath))
+            {
+                SelectedLogPath = fetchedPath;
+                StatusText = $"Fetched: {Path.GetFileName(fetchedPath)}";
+                AddLogMessage($"Successfully fetched log from Pastebin: {fetchedPath}");
+                
+                // Add to recent files
+                _recentItemsService?.AddRecentLogFile(fetchedPath);
+                UpdateRecentFiles();
+                
+                // Clear the input
+                PastebinUrlOrId = "";
+                
+                // Save the path to settings
+                _ = SaveCurrentPathsToSettings();
+                
+                // Play success sound if available
+                if (_audioNotificationService != null)
+                    await _audioNotificationService.PlayScanCompleteAsync();
+            }
+            else
+            {
+                StatusText = "Failed to fetch from Pastebin";
+                AddLogMessage($"Failed to fetch from Pastebin: {PastebinUrlOrId}");
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText = "Error fetching from Pastebin";
+            AddLogMessage($"Error fetching from Pastebin: {ex.Message}");
+        }
+        finally
+        {
+            IsFetchingFromPastebin = false;
         }
     }
 

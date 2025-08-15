@@ -147,6 +147,33 @@
                                 Background="#FF444444" Foreground="White" />
                     </Grid>
 
+                    <!-- Pastebin Fetch Section -->
+                    <Separator Background="#FF666666" Height="1" Margin="0,5,0,5" />
+                    <TextBlock Text="Or fetch from Pastebin:" 
+                               Foreground="#FFE0E0E0" FontSize="11" Margin="0,0,0,3" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" Text="{Binding PastebinUrlOrId}"
+                                 Watermark="Enter Pastebin URL or ID (e.g., AbCd1234)..."
+                                 IsEnabled="{Binding !IsFetchingFromPastebin}"
+                                 Margin="0,0,5,0" />
+                        <Button Grid.Column="1" Content="Fetch"
+                                Command="{Binding FetchFromPastebinCommand}"
+                                IsEnabled="{Binding !IsFetchingFromPastebin}"
+                                Background="#FF0e639c" Foreground="White">
+                            <Button.IsVisible>
+                                <Binding Path="!IsFetchingFromPastebin" />
+                            </Button.IsVisible>
+                        </Button>
+                        <ProgressBar Grid.Column="1" 
+                                     IsIndeterminate="True"
+                                     Width="70" Height="23"
+                                     IsVisible="{Binding IsFetchingFromPastebin}" />
+                    </Grid>
+
                     <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
                         <Button Content="Settings" Command="{Binding OpenSettingsCommand}"
                                 Background="#FF666666" Foreground="White" Padding="15,5" />

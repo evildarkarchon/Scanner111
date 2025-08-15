@@ -115,6 +115,9 @@ public class App : Application
         // Register Papyrus Monitoring services
         services.AddSingleton<IPapyrusMonitorService, PapyrusMonitorService>();
 
+        // Register Pastebin service
+        services.AddSingleton<IPastebinService, PastebinService>();
+
         // Register GUI services
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<GuiMessageHandlerService>();
