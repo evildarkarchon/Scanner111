@@ -59,7 +59,7 @@
                         <DataTemplate>
                             <MenuItem Header="{Binding DisplayName}"
                                       ToolTip.Tip="{Binding Path}"
-                                      Command="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.OpenRecentFileCommand}"
+                                      Command="{Binding $parent[Window].DataContext.OpenRecentFileCommand}"
                                       CommandParameter="{Binding Path}" />
                         </DataTemplate>
                     </MenuItem.ItemTemplate>

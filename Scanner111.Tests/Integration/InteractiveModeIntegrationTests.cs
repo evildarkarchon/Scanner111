@@ -186,9 +186,9 @@ public class InteractiveModeIntegrationTests : IDisposable
     }
 
     // Mock command implementations for testing
-    private class MockScanCommand : ICommand<ScanOptions>
+    private class MockScanCommand : ICommand<Scanner111.CLI.Models.ScanOptions>
     {
-        public Task<int> ExecuteAsync(ScanOptions options)
+        public Task<int> ExecuteAsync(Scanner111.CLI.Models.ScanOptions options)
         {
             MessageHandler.MsgInfo("Mock scan executed");
             return Task.FromResult(0);

@@ -565,7 +565,7 @@ public class TestScanPipeline : IScanPipeline
 
     public async IAsyncEnumerable<ScanResult> ProcessBatchAsync(
         IEnumerable<string> logPaths,
-        ScanOptions? options = null,
+        Core.Pipeline.ScanOptions? options = null,
         IProgress<BatchProgress>? progress = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {

@@ -108,9 +108,9 @@ public class StatisticsViewModel : ViewModelBase
 
 public class ScanStatisticsViewModel
 {
-    private readonly ScanStatistics _statistics;
+    private readonly Core.Services.ScanStatistics _statistics;
 
-    public ScanStatisticsViewModel(ScanStatistics statistics)
+    public ScanStatisticsViewModel(Core.Services.ScanStatistics statistics)
     {
         _statistics = statistics;
     }
