@@ -1,11 +1,9 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using Scanner111.CLI.Models;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
 using Scanner111.Core.Services;
-using Spectre.Console;
 
 namespace Scanner111.CLI.Commands;
 

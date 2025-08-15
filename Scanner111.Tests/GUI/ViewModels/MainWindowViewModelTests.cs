@@ -1,5 +1,4 @@
 using System.Reactive.Linq;
-using FluentAssertions;
 using Scanner111.Core.Models;
 using Scanner111.GUI.Models;
 using Scanner111.GUI.ViewModels;

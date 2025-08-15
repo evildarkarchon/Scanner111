@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analyzers;
 
 namespace Scanner111.Core.Infrastructure;

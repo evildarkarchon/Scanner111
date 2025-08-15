@@ -1,6 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
-using FluentAssertions;
 using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Tests.Infrastructure;

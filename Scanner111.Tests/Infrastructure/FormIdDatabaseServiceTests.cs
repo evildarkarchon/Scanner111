@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Data.SQLite;
 using System.Reflection;
-using FluentAssertions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Tests.TestHelpers;
 

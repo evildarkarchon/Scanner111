@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Scanner111.Core.Models.Yaml;
 using Scanner111.Tests.TestHelpers;
 using YamlDotNet.Serialization;

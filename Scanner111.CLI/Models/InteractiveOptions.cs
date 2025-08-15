@@ -1,5 +1,3 @@
-using CommandLine;
-
 namespace Scanner111.CLI.Models;
 
 [Verb("interactive", HelpText = "Launch interactive Terminal UI mode")]

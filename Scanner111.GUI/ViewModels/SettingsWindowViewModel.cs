@@ -1,8 +1,3 @@
-using System;
-using System.Collections.ObjectModel;
-using System.Reactive;
-using System.Threading.Tasks;
-using ReactiveUI;
 using Scanner111.GUI.Models;
 using Scanner111.GUI.Services;
 

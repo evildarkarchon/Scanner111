@@ -1,4 +1,3 @@
-using System.Text;
 using Scanner111.Core.Analyzers;
 
 namespace Scanner111.Core.Models;

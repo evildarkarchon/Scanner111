@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using Scanner111.Core.Infrastructure;
-using Spectre.Console;
 
 namespace Scanner111.CLI.Services;
 

@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Tests.TestHelpers;
 

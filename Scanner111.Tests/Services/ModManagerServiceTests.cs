@@ -1,5 +1,3 @@
-using FluentAssertions;
-using Moq;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.ModManagers;

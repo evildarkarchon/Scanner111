@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Scanner111.Core.ModManagers.MO2;
 
 namespace Scanner111.Tests.ModManagers.MO2;

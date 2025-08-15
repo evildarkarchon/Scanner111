@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Scanner111.Core.Models;
 using Scanner111.Core.Services;
 

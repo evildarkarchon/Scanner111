@@ -1,5 +1,3 @@
-using CommandLine;
-
 namespace Scanner111.CLI.Models;
 
 [Verb("watch", HelpText = "Monitor directory for new crash logs and auto-analyze them")]

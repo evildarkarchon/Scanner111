@@ -1,5 +1,4 @@
 using System.Text.Json;
-using FluentAssertions;
 using Scanner111.CLI.Models;
 
 namespace Scanner111.Tests.CLI.Models;

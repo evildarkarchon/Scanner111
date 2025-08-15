@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using Microsoft.Extensions.Logging;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
@@ -247,7 +246,7 @@ internal class TestScanPipeline : IScanPipeline
 
     public async IAsyncEnumerable<ScanResult> ProcessBatchAsync(
         IEnumerable<string> logPaths,
-        Core.Pipeline.ScanOptions? options = null,
+        ScanOptions? options = null,
         IProgress<BatchProgress>? progress = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {

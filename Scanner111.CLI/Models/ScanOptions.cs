@@ -1,5 +1,3 @@
-using CommandLine;
-
 namespace Scanner111.CLI.Models;
 
 [Verb("scan", true, HelpText = "Scan crash log files for issues")]

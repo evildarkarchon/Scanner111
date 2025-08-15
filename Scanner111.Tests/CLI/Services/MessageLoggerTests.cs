@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 

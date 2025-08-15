@@ -1,7 +1,4 @@
 using System.IO.Compression;
-using System.Text;
-using FluentAssertions;
-using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;

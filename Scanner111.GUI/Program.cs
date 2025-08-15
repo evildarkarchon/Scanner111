@@ -1,6 +1,4 @@
-﻿using System;
-using Avalonia;
-using Avalonia.ReactiveUI;
+﻿using Avalonia.ReactiveUI;
 
 namespace Scanner111.GUI;
 

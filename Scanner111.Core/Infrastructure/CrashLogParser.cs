@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Scanner111.Core.Models;
 
 namespace Scanner111.Core.Infrastructure;

@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
-using Microsoft.Extensions.Logging;
 using Scanner111.Core.Models;
 
 namespace Scanner111.Core.Infrastructure;

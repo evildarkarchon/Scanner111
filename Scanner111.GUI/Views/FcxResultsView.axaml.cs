@@ -1,5 +1,3 @@
-using Avalonia.Controls;
-
 namespace Scanner111.GUI.Views;
 
 /// <summary>

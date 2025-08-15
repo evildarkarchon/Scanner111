@@ -1,6 +1,4 @@
 using System.Collections.Concurrent;
-using System.Text;
-using Microsoft.Extensions.Logging;
 using Scanner111.Core.Models;
 
 namespace Scanner111.Core.Infrastructure;

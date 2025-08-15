@@ -1,5 +1,3 @@
-using CommandLine;
-
 namespace Scanner111.CLI.Models;
 
 [Verb("stats", HelpText = "View scan statistics and history")]

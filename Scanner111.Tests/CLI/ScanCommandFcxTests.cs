@@ -1,5 +1,4 @@
 using CommandLine;
-using FluentAssertions;
 using Scanner111.CLI.Models;
 using Scanner111.Core.Models;
 

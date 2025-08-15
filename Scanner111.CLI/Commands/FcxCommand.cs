@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Scanner111.CLI.Models;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;

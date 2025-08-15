@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using FluentAssertions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 

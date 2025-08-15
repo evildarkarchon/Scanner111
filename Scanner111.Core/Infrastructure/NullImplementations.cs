@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analyzers;
 
 namespace Scanner111.Core.Infrastructure;

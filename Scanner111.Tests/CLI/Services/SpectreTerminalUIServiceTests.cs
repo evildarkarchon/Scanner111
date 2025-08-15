@@ -1,6 +1,3 @@
-using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
-using Moq;
 using Scanner111.CLI.Services;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;

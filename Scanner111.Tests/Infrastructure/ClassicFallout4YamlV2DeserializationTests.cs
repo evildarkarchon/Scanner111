@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Scanner111.Core.Models.Yaml;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;

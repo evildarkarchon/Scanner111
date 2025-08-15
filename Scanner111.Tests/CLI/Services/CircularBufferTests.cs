@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using FluentAssertions;
 using Scanner111.CLI.Services;
 
 namespace Scanner111.Tests.CLI.Services;

@@ -1,8 +1,6 @@
 using System.Net;
 using System.Reflection;
 using System.Text.Json;
-using System.Text.RegularExpressions;
-using Microsoft.Extensions.Logging;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 

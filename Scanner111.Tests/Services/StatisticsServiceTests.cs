@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Scanner111.Core.Services;
 
 namespace Scanner111.Tests.Services;

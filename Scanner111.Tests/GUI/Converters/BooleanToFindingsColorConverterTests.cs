@@ -1,5 +1,4 @@
 using System.Globalization;
-using FluentAssertions;
 using Scanner111.GUI.Converters;
 
 namespace Scanner111.Tests.GUI.Converters;

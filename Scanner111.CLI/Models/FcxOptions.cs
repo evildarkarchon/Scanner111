@@ -1,5 +1,3 @@
-using CommandLine;
-
 namespace Scanner111.CLI.Models;
 
 [Verb("fcx", HelpText = "Run FCX file integrity checks")]

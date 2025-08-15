@@ -1,6 +1,5 @@
 using System.Data.SQLite;
 using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using Scanner111.Core.Models;
 

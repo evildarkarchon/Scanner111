@@ -1,11 +1,7 @@
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
-using System.Text;
 using System.Text.Json;
-using FluentAssertions;
-using Microsoft.Extensions.Logging;
-using Moq;
 using Moq.Protected;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;

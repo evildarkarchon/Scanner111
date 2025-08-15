@@ -1,7 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
-using FluentAssertions;
-using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;

@@ -1,5 +1,4 @@
 using System.Threading.Channels;
-using FluentAssertions;
 using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Tests.CLI.TestHelpers;

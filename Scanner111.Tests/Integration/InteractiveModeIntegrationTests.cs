@@ -1,5 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
-using Moq;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
@@ -186,9 +184,9 @@ public class InteractiveModeIntegrationTests : IDisposable
     }
 
     // Mock command implementations for testing
-    private class MockScanCommand : ICommand<Scanner111.CLI.Models.ScanOptions>
+    private class MockScanCommand : ICommand<ScanOptions>
     {
-        public Task<int> ExecuteAsync(Scanner111.CLI.Models.ScanOptions options)
+        public Task<int> ExecuteAsync(ScanOptions options)
         {
             MessageHandler.MsgInfo("Mock scan executed");
             return Task.FromResult(0);

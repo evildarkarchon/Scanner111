@@ -1,4 +1,3 @@
-using System;
 using Scanner111.Core.Infrastructure;
 using Scanner111.GUI.ViewModels;
 

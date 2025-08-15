@@ -1,5 +1,3 @@
-using FluentAssertions;
-using Moq;
 using Scanner111.GUI.Models;
 using Scanner111.GUI.Services;
 

@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Data.SQLite;
-using Microsoft.Extensions.Logging;
 
 namespace Scanner111.Core.Infrastructure;
 

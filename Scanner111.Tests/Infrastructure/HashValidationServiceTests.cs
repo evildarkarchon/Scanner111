@@ -1,6 +1,3 @@
-using System.Text;
-using FluentAssertions;
-using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Tests.Infrastructure;

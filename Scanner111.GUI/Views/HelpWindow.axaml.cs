@@ -1,6 +1,3 @@
-using Avalonia.Controls;
-using Avalonia.Interactivity;
-
 namespace Scanner111.GUI.Views;
 
 public partial class HelpWindow : Window

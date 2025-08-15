@@ -1,5 +1,3 @@
-using FluentAssertions;
-using Moq;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
 using Scanner111.Core.Analyzers;

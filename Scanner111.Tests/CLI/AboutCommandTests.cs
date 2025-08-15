@@ -1,5 +1,4 @@
 using System.Reflection;
-using FluentAssertions;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
 using Scanner111.Core.Infrastructure;

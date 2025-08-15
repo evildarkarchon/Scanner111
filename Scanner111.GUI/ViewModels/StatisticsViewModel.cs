@@ -1,10 +1,3 @@
-using System;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
-using System.Reactive;
-using System.Threading.Tasks;
-using ReactiveUI;
 using Scanner111.Core.Services;
 
 namespace Scanner111.GUI.ViewModels;
@@ -108,9 +101,9 @@ public class StatisticsViewModel : ViewModelBase
 
 public class ScanStatisticsViewModel
 {
-    private readonly Core.Services.ScanStatistics _statistics;
+    private readonly ScanStatistics _statistics;
 
-    public ScanStatisticsViewModel(Core.Services.ScanStatistics statistics)
+    public ScanStatisticsViewModel(ScanStatistics statistics)
     {
         _statistics = statistics;
     }

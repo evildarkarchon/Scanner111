@@ -1,5 +1,4 @@
 using System.Globalization;
-using FluentAssertions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.GUI.Converters;
