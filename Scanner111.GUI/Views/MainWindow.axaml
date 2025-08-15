@@ -74,6 +74,7 @@
             </MenuItem>
             <MenuItem Header="_View">
                 <MenuItem Header="_Statistics" Command="{Binding ShowStatisticsCommand}" InputGesture="Ctrl+T" />
+                <MenuItem Header="_Papyrus Monitor" Command="{Binding ShowPapyrusMonitorCommand}" InputGesture="Ctrl+P" />
                 <Separator />
                 <MenuItem Header="_Theme">
                     <MenuItem Header="_Dark" Command="{Binding SetThemeCommand}" CommandParameter="Dark" />

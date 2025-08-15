@@ -45,6 +45,13 @@ dotnet run --project Scanner111.CLI -- fcx
 dotnet run --project Scanner111.CLI -- stats
 dotnet run --project Scanner111.CLI -- stats --period week --detailed
 
+# Run CLI papyrus command (monitor Papyrus logs)
+dotnet run --project Scanner111.CLI -- papyrus
+dotnet run --project Scanner111.CLI -- papyrus -p "C:/path/to/Papyrus.0.log"
+dotnet run --project Scanner111.CLI -- papyrus -g Fallout4 --dashboard
+dotnet run --project Scanner111.CLI -- papyrus --once -e export.csv
+dotnet run --project Scanner111.CLI -- papyrus --auto-export --export-path stats.json
+
 # Run interactive TUI mode (launches if no args provided)
 dotnet run --project Scanner111.CLI
 
@@ -184,6 +191,7 @@ UI-agnostic communication through `IMessageHandler`:
 - `about`: Show version and about information
 - `fcx`: Run FCX file integrity checks
 - `stats`: View scan statistics and history
+- `papyrus`: Monitor and analyze Papyrus log files
 - `interactive`: Launch interactive Terminal UI mode (also launches with no args)
 
 ### Scan Command Options
@@ -220,6 +228,20 @@ UI-agnostic communication through `IMessageHandler`:
 - `-e, --export-path`: Export statistics to CSV file
 - `-c, --clear`: Clear all statistics
 - `-d, --detailed`: Show detailed statistics with charts
+
+### Papyrus Command Options
+- `-p, --path`: Path to the Papyrus.0.log file
+- `-g, --game`: Game type (Fallout4 or Skyrim) for auto-detection
+- `-i, --interval`: Monitoring interval in milliseconds (default: 1000)
+- `-d, --dashboard`: Show live dashboard with statistics
+- `-e, --export`: Export path for statistics
+- `-f, --format`: Export format (csv or json, default: csv)
+- `-o, --once`: Analyze once without continuous monitoring
+- `--error-threshold`: Error count threshold for alerts (default: 100)
+- `--warning-threshold`: Warning count threshold for alerts (default: 500)
+- `--auto-export`: Automatically export statistics periodically
+- `--export-interval`: Auto-export interval in milliseconds (default: 300000)
+- `-v, --verbose`: Enable verbose output
 
 ## Async I/O Best Practices
 

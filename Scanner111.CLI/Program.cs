@@ -38,7 +38,7 @@ var parser = new Parser(with => with.HelpWriter = Console.Error);
 var result =
     parser
         .ParseArguments<ScanOptions, DemoOptions, ConfigOptions, AboutOptions, FcxOptions, InteractiveOptions,
-            WatchOptions, StatsOptions>(args);
+            WatchOptions, StatsOptions, PapyrusOptions>(args);
 
 return await result.MapResult(
     async (ScanOptions opts) => await serviceProvider.GetRequiredService<ScanCommand>().ExecuteAsync(opts),
@@ -50,6 +50,7 @@ return await result.MapResult(
         await serviceProvider.GetRequiredService<InteractiveCommand>().ExecuteAsync(opts),
     async (WatchOptions opts) => await serviceProvider.GetRequiredService<WatchCommand>().ExecuteAsync(opts),
     async (StatsOptions opts) => await serviceProvider.GetRequiredService<StatsCommand>().ExecuteAsync(opts),
+    async (PapyrusOptions opts) => await serviceProvider.GetRequiredService<PapyrusCommand>().ExecuteAsync(opts),
     async errs => await Task.FromResult(1));
 
 static void ConfigureServices(IServiceCollection services, bool useLegacyProgress = false)
@@ -102,6 +103,9 @@ static void ConfigureServices(IServiceCollection services, bool useLegacyProgres
     services.AddSingleton<IModManagerDetector, ModManagerDetector>();
     services.AddSingleton<IModManagerService, ModManagerService>();
 
+    // Register Papyrus Monitoring service
+    services.AddSingleton<IPapyrusMonitorService, PapyrusMonitorService>();
+
     // Register commands
     services.AddTransient<ScanCommand>();
     services.AddTransient<DemoCommand>();
@@ -111,6 +115,7 @@ static void ConfigureServices(IServiceCollection services, bool useLegacyProgres
     services.AddTransient<InteractiveCommand>();
     services.AddTransient<WatchCommand>();
     services.AddTransient<StatsCommand>();
+    services.AddTransient<PapyrusCommand>();
 
     // Register ICommand interfaces for injection
     services.AddTransient<ICommand<ScanOptions>, ScanCommand>();
@@ -121,6 +126,7 @@ static void ConfigureServices(IServiceCollection services, bool useLegacyProgres
     services.AddTransient<ICommand<InteractiveOptions>, InteractiveCommand>();
     services.AddTransient<ICommand<WatchOptions>, WatchCommand>();
     services.AddTransient<ICommand<StatsOptions>, StatsCommand>();
+    services.AddTransient<ICommand<PapyrusOptions>, PapyrusCommand>();
 }
 
 static async Task PerformStartupUpdateCheckAsync(IServiceProvider serviceProvider)

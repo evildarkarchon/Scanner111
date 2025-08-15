@@ -16,7 +16,7 @@ public class GuiMessageHandlerService : IMessageHandler
     /// </summary>
     /// <param name="message">The message to display.</param>
     /// <param name="target">The target for the message (currently not used in GUI).</param>
-    public void ShowInfo(string message, MessageTarget target = MessageTarget.All)
+    public virtual void ShowInfo(string message, MessageTarget target = MessageTarget.All)
     {
         if (_viewModel != null)
             _viewModel.StatusText = message;
@@ -27,7 +27,7 @@ public class GuiMessageHandlerService : IMessageHandler
     /// </summary>
     /// <param name="message">The warning message to display.</param>
     /// <param name="target">The target for the message (currently not used in GUI).</param>
-    public void ShowWarning(string message, MessageTarget target = MessageTarget.All)
+    public virtual void ShowWarning(string message, MessageTarget target = MessageTarget.All)
     {
         if (_viewModel != null)
             _viewModel.StatusText = $"Warning: {message}";
@@ -38,7 +38,7 @@ public class GuiMessageHandlerService : IMessageHandler
     /// </summary>
     /// <param name="message">The error message to display.</param>
     /// <param name="target">The target for the message (currently not used in GUI).</param>
-    public void ShowError(string message, MessageTarget target = MessageTarget.All)
+    public virtual void ShowError(string message, MessageTarget target = MessageTarget.All)
     {
         if (_viewModel != null)
             _viewModel.StatusText = $"Error: {message}";
@@ -49,7 +49,7 @@ public class GuiMessageHandlerService : IMessageHandler
     /// </summary>
     /// <param name="message">The success message to display.</param>
     /// <param name="target">The target for the message (currently not used in GUI).</param>
-    public void ShowSuccess(string message, MessageTarget target = MessageTarget.All)
+    public virtual void ShowSuccess(string message, MessageTarget target = MessageTarget.All)
     {
         if (_viewModel != null)
             _viewModel.StatusText = message;
@@ -60,7 +60,7 @@ public class GuiMessageHandlerService : IMessageHandler
     /// </summary>
     /// <param name="message">The debug message to display.</param>
     /// <param name="target">The target for the message (currently not used in GUI).</param>
-    public void ShowDebug(string message, MessageTarget target = MessageTarget.All)
+    public virtual void ShowDebug(string message, MessageTarget target = MessageTarget.All)
     {
         // For GUI, we might want to ignore debug messages or log them separately
         // For now, just update status if in debug mode
@@ -73,7 +73,7 @@ public class GuiMessageHandlerService : IMessageHandler
     /// </summary>
     /// <param name="message">The critical error message to display.</param>
     /// <param name="target">The target for the message (currently not used in GUI).</param>
-    public void ShowCritical(string message, MessageTarget target = MessageTarget.All)
+    public virtual void ShowCritical(string message, MessageTarget target = MessageTarget.All)
     {
         if (_viewModel != null)
             _viewModel.StatusText = $"CRITICAL: {message}";
@@ -86,7 +86,7 @@ public class GuiMessageHandlerService : IMessageHandler
     /// <param name="details">Optional details for the message.</param>
     /// <param name="messageType">The type of message.</param>
     /// <param name="target">The target for the message (currently not used in GUI).</param>
-    public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info,
+    public virtual void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info,
         MessageTarget target = MessageTarget.All)
     {
         if (_viewModel == null) return;

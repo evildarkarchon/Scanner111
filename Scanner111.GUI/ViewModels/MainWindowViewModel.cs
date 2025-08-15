@@ -26,6 +26,7 @@ namespace Scanner111.GUI.ViewModels;
 /// </remarks>
 public class MainWindowViewModel : ViewModelBase
 {
+    private readonly IAudioNotificationService? _audioNotificationService;
     private readonly ICacheManager _cacheManager;
     private readonly GuiMessageHandlerService _messageHandlerService;
     private readonly IModManagerService? _modManagerService;
@@ -35,7 +36,6 @@ public class MainWindowViewModel : ViewModelBase
     private readonly IThemeService? _themeService;
     private readonly IUnsolvedLogsMover? _unsolvedLogsMover;
     private readonly IUpdateService _updateService;
-    private IAudioNotificationService? _audioNotificationService;
     private UserSettings _currentSettings;
     private ObservableCollection<ModInfo> _detectedMods = new();
     private FcxResultViewModel? _fcxResult;
@@ -111,6 +111,7 @@ public class MainWindowViewModel : ViewModelBase
 
         // View Commands
         ShowStatisticsCommand = ReactiveCommand.CreateFromTask(ShowStatistics);
+        ShowPapyrusMonitorCommand = ReactiveCommand.CreateFromTask(ShowPapyrusMonitor);
         ShowHelpCommand = ReactiveCommand.CreateFromTask(ShowHelp);
         ShowKeyboardShortcutsCommand = ReactiveCommand.CreateFromTask(ShowKeyboardShortcuts);
         ShowAboutCommand = ReactiveCommand.CreateFromTask(ShowAbout);
@@ -367,6 +368,7 @@ public class MainWindowViewModel : ViewModelBase
 
     // View Commands  
     public ReactiveCommand<Unit, Unit> ShowStatisticsCommand { get; }
+    public ReactiveCommand<Unit, Unit> ShowPapyrusMonitorCommand { get; }
     public ReactiveCommand<Unit, Unit> ShowHelpCommand { get; }
     public ReactiveCommand<Unit, Unit> ShowKeyboardShortcutsCommand { get; }
     public ReactiveCommand<Unit, Unit> ShowAboutCommand { get; }
@@ -1674,6 +1676,30 @@ public class MainWindowViewModel : ViewModelBase
                 DataContext = new StatisticsViewModel(_statisticsService)
             };
             await statsWindow.ShowDialog(TopLevel);
+        }
+    }
+
+    private async Task ShowPapyrusMonitor()
+    {
+        if (TopLevel != null)
+        {
+            // For now, create services manually since we don't have access to DI container here
+            // In a future refactor, we could pass IServiceProvider to MainWindowViewModel
+            var yamlSettings = new YamlSettingsService(_cacheManager, NullLogger<YamlSettingsService>.Instance);
+            var papyrusService = new PapyrusMonitorService(
+                new GuiApplicationSettingsAdapter(_settingsService),
+                yamlSettings);
+            var viewModel = new PapyrusMonitorViewModel(
+                papyrusService,
+                new GuiApplicationSettingsAdapter(_settingsService),
+                _messageHandlerService,
+                _audioNotificationService);
+
+            var papyrusWindow = new PapyrusMonitorWindow
+            {
+                DataContext = viewModel
+            };
+            await papyrusWindow.ShowDialog(TopLevel);
         }
     }
 

@@ -86,6 +86,9 @@ public class App : Application
         services.AddSingleton<ICacheManager, CacheManager>();
         services.AddSingleton<IHashValidationService, HashValidationService>();
         services.AddSingleton<IUnsolvedLogsMover, UnsolvedLogsMover>();
+        services.AddSingleton<IAudioNotificationService, AudioNotificationService>();
+        services.AddSingleton<IStatisticsService, StatisticsService>();
+        services.AddSingleton<IRecentItemsService, RecentItemsService>();
 
         // Register Pipeline services
         services.AddTransient<IScanPipeline, ScanPipeline>();
@@ -109,6 +112,9 @@ public class App : Application
         services.AddSingleton<IModManagerDetector, ModManagerDetector>();
         services.AddSingleton<IModManagerService, ModManagerService>();
 
+        // Register Papyrus Monitoring services
+        services.AddSingleton<IPapyrusMonitorService, PapyrusMonitorService>();
+
         // Register GUI services
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<GuiMessageHandlerService>();
@@ -117,9 +123,12 @@ public class App : Application
         // Register ViewModels
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<SettingsWindowViewModel>();
+        services.AddTransient<PapyrusMonitorViewModel>();
 
         // Register Views
         services.AddTransient<MainWindow>();
         services.AddTransient<SettingsWindow>();
+        services.AddTransient<PapyrusMonitorWindow>();
+        services.AddTransient<PapyrusMonitorView>();
     }
 }

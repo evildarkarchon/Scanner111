@@ -90,6 +90,31 @@ public class ApplicationSettings
 
     [JsonPropertyName("updateSource")] public string UpdateSource { get; set; } = "Both"; // "Both", "GitHub", "Nexus"
 
+    // === Papyrus Monitoring Settings ===
+
+    [JsonPropertyName("enablePapyrusMonitoring")]
+    public bool EnablePapyrusMonitoring { get; set; } = true;
+
+    [JsonPropertyName("papyrusLogPath")] public string PapyrusLogPath { get; set; } = "";
+
+    [JsonPropertyName("papyrusMonitorInterval")]
+    public int PapyrusMonitorInterval { get; set; } = 1000; // milliseconds
+
+    [JsonPropertyName("papyrusErrorThreshold")]
+    public int PapyrusErrorThreshold { get; set; } = 100;
+
+    [JsonPropertyName("papyrusWarningThreshold")]
+    public int PapyrusWarningThreshold { get; set; } = 500;
+
+    [JsonPropertyName("papyrusAutoExport")]
+    public bool PapyrusAutoExport { get; set; }
+
+    [JsonPropertyName("papyrusExportPath")]
+    public string PapyrusExportPath { get; set; } = "";
+
+    [JsonPropertyName("papyrusHistoryLimit")]
+    public int PapyrusHistoryLimit { get; set; } = 1000;
+
     // === Mod Manager Settings ===
 
     [JsonPropertyName("autoDetectModManagers")]

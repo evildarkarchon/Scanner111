@@ -10,13 +10,13 @@ public class CrashLogBuilder
 {
     private readonly List<string> _callStack = new();
     private readonly Dictionary<string, object> _crashgenSettings = new();
+    private readonly string _documentsPath = string.Empty;
+    private readonly string _executableHash = string.Empty;
     private readonly List<string> _originalLines = new();
     private readonly Dictionary<string, string> _plugins = new();
     private readonly HashSet<string> _xseModules = new();
     private string _crashGenVersion = "4.26.0";
     private DateTime? _crashTime = DateTime.UtcNow;
-    private readonly string _documentsPath = string.Empty;
-    private readonly string _executableHash = string.Empty;
     private string _filePath = "test.log";
     private string _gamePath = string.Empty;
     private string _gamePlatform = "Steam";
