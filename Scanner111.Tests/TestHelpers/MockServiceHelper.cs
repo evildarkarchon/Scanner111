@@ -152,7 +152,7 @@ public static class MockServiceHelper
         {
             Success = true,
             BackupPath = "C:\\Backups\\backup.zip",
-            Message = "Backup created successfully"
+            ErrorMessage = string.Empty
         };
 
         mock.Setup(x => x.CreateBackupAsync(
