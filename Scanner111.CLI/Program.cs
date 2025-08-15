@@ -38,7 +38,7 @@ var parser = new Parser(with => with.HelpWriter = Console.Error);
 var result =
     parser
         .ParseArguments<ScanOptions, DemoOptions, ConfigOptions, AboutOptions, FcxOptions, InteractiveOptions,
-            WatchOptions, StatsOptions, PapyrusOptions>(args);
+            WatchOptions, StatsOptions, PapyrusOptions, PastebinOptions>(args);
 
 return await result.MapResult(
     async (ScanOptions opts) => await serviceProvider.GetRequiredService<ScanCommand>().ExecuteAsync(opts),
@@ -51,6 +51,7 @@ return await result.MapResult(
     async (WatchOptions opts) => await serviceProvider.GetRequiredService<WatchCommand>().ExecuteAsync(opts),
     async (StatsOptions opts) => await serviceProvider.GetRequiredService<StatsCommand>().ExecuteAsync(opts),
     async (PapyrusOptions opts) => await serviceProvider.GetRequiredService<PapyrusCommand>().ExecuteAsync(opts),
+    async (PastebinOptions opts) => await serviceProvider.GetRequiredService<PastebinCommand>().ExecuteAsync(opts),
     async errs => await Task.FromResult(1));
 
 static void ConfigureServices(IServiceCollection services, bool useLegacyProgress = false)
@@ -106,6 +107,9 @@ static void ConfigureServices(IServiceCollection services, bool useLegacyProgres
     // Register Papyrus Monitoring service
     services.AddSingleton<IPapyrusMonitorService, PapyrusMonitorService>();
 
+    // Register Pastebin service
+    services.AddSingleton<IPastebinService, PastebinService>();
+
     // Register commands
     services.AddTransient<ScanCommand>();
     services.AddTransient<DemoCommand>();
@@ -116,6 +120,7 @@ static void ConfigureServices(IServiceCollection services, bool useLegacyProgres
     services.AddTransient<WatchCommand>();
     services.AddTransient<StatsCommand>();
     services.AddTransient<PapyrusCommand>();
+    services.AddTransient<PastebinCommand>();
 
     // Register ICommand interfaces for injection
     services.AddTransient<ICommand<ScanOptions>, ScanCommand>();
@@ -127,6 +132,7 @@ static void ConfigureServices(IServiceCollection services, bool useLegacyProgres
     services.AddTransient<ICommand<WatchOptions>, WatchCommand>();
     services.AddTransient<ICommand<StatsOptions>, StatsCommand>();
     services.AddTransient<ICommand<PapyrusOptions>, PapyrusCommand>();
+    services.AddTransient<ICommand<PastebinOptions>, PastebinCommand>();
 }
 
 static async Task PerformStartupUpdateCheckAsync(IServiceProvider serviceProvider)
