@@ -34,14 +34,11 @@ public class ApplicationSettings
     [JsonPropertyName("crashLogsDirectory")]
     public string CrashLogsDirectory { get; set; } = "";
 
-    [JsonPropertyName("backupDirectory")]
-    public string BackupDirectory { get; set; } = "";
+    [JsonPropertyName("backupDirectory")] public string BackupDirectory { get; set; } = "";
 
-    [JsonPropertyName("modsFolder")]
-    public string ModsFolder { get; set; } = "";
+    [JsonPropertyName("modsFolder")] public string ModsFolder { get; set; } = "";
 
-    [JsonPropertyName("iniFolder")]
-    public string IniFolder { get; set; } = "";
+    [JsonPropertyName("iniFolder")] public string IniFolder { get; set; } = "";
 
     // === Output Settings ===
 
@@ -75,6 +72,14 @@ public class ApplicationSettings
     [JsonPropertyName("audioNotifications")]
     public bool AudioNotifications { get; set; }
 
+    [JsonPropertyName("enableAudioNotifications")]
+    public bool EnableAudioNotifications { get; set; }
+
+    [JsonPropertyName("audioVolume")] public float AudioVolume { get; set; } = 0.5f;
+
+    [JsonPropertyName("customNotificationSounds")]
+    public Dictionary<string, string>? CustomNotificationSounds { get; set; }
+
     [JsonPropertyName("enableProgressNotifications")]
     public bool EnableProgressNotifications { get; set; } = true;
 
@@ -83,8 +88,7 @@ public class ApplicationSettings
     [JsonPropertyName("enableUpdateCheck")]
     public bool EnableUpdateCheck { get; set; } = true;
 
-    [JsonPropertyName("updateSource")]
-    public string UpdateSource { get; set; } = "Both"; // "Both", "GitHub", "Nexus"
+    [JsonPropertyName("updateSource")] public string UpdateSource { get; set; } = "Both"; // "Both", "GitHub", "Nexus"
 
     // === Mod Manager Settings ===
 
@@ -94,14 +98,12 @@ public class ApplicationSettings
     [JsonPropertyName("defaultModManager")]
     public string? DefaultModManager { get; set; }
 
-    [JsonPropertyName("mo2InstallPath")]
-    public string? MO2InstallPath { get; set; }
+    [JsonPropertyName("mo2InstallPath")] public string? MO2InstallPath { get; set; }
 
     [JsonPropertyName("mo2DefaultProfile")]
     public string? MO2DefaultProfile { get; set; }
 
-    [JsonPropertyName("vortexDataPath")]
-    public string? VortexDataPath { get; set; }
+    [JsonPropertyName("vortexDataPath")] public string? VortexDataPath { get; set; }
 
     [JsonPropertyName("modManagerSettings")]
     public ModManagerSettings? ModManagerSettings { get; set; }
@@ -202,17 +204,14 @@ public class ModManagerSettings
     [JsonPropertyName("autoDetectModManagers")]
     public bool AutoDetectModManagers { get; set; } = true;
 
-    [JsonPropertyName("defaultManager")]
-    public string? DefaultManager { get; set; }
+    [JsonPropertyName("defaultManager")] public string? DefaultManager { get; set; }
 
-    [JsonPropertyName("mo2InstallPath")]
-    public string? MO2InstallPath { get; set; }
+    [JsonPropertyName("mo2InstallPath")] public string? MO2InstallPath { get; set; }
 
     [JsonPropertyName("mo2DefaultProfile")]
     public string? MO2DefaultProfile { get; set; }
 
-    [JsonPropertyName("vortexDataPath")]
-    public string? VortexDataPath { get; set; }
+    [JsonPropertyName("vortexDataPath")] public string? VortexDataPath { get; set; }
 
     [JsonPropertyName("skipModManagerIntegration")]
     public bool SkipModManagerIntegration { get; set; }

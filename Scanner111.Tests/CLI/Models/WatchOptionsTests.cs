@@ -1,11 +1,10 @@
 using FluentAssertions;
 using Scanner111.CLI.Models;
-using Xunit;
 
 namespace Scanner111.Tests.CLI.Models;
 
 /// <summary>
-/// Unit tests for the WatchOptions model class
+///     Unit tests for the WatchOptions model class
 /// </summary>
 public class WatchOptionsTests
 {
@@ -250,7 +249,7 @@ public class WatchOptionsTests
             AutoMove = true,
             ScanExisting = true
         };
-        
+
         fallout4Options.Game.Should().Be("Fallout4");
         fallout4Options.AutoMove.Should().BeTrue();
         fallout4Options.ScanExisting.Should().BeTrue();
@@ -263,7 +262,7 @@ public class WatchOptionsTests
             ShowNotifications = false,
             ShowDashboard = false
         };
-        
+
         silentOptions.Path.Should().Be("/custom/logs");
         silentOptions.ShowNotifications.Should().BeFalse();
         silentOptions.ShowDashboard.Should().BeFalse();
@@ -275,7 +274,7 @@ public class WatchOptionsTests
             FcxMode = true,
             Verbose = true
         };
-        
+
         fcxOptions.Recursive.Should().BeTrue();
         fcxOptions.FcxMode.Should().BeTrue();
         fcxOptions.Verbose.Should().BeTrue();

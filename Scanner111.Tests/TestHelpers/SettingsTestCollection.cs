@@ -1,10 +1,8 @@
-using Xunit;
-
 namespace Scanner111.Tests.TestHelpers;
 
 /// <summary>
-/// Test collection to ensure settings-related tests run sequentially to avoid
-/// environment variable conflicts.
+///     Test collection to ensure settings-related tests run sequentially to avoid
+///     environment variable conflicts.
 /// </summary>
 [CollectionDefinition("Settings Tests")]
 public class SettingsTestCollection : ICollectionFixture<object>

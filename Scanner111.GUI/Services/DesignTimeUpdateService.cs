@@ -7,7 +7,7 @@ using Scanner111.Core.Services;
 namespace Scanner111.GUI.Services;
 
 /// <summary>
-/// Design-time implementation of IUpdateService that provides mock functionality
+///     Design-time implementation of IUpdateService that provides mock functionality
 /// </summary>
 public class DesignTimeUpdateService : IUpdateService
 {

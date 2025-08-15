@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
@@ -8,13 +7,13 @@ using Scanner111.Tests.TestHelpers;
 namespace Scanner111.Tests.Analyzers;
 
 /// <summary>
-/// Contains unit tests for the <c>SettingsScanner</c> class, which analyzes crash logs for
-/// specific settings and configurations.
+///     Contains unit tests for the <c>SettingsScanner</c> class, which analyzes crash logs for
+///     specific settings and configurations.
 /// </summary>
 /// <remarks>
-/// Each test in this class is designed to verify the correctness of different aspects of the
-/// <c>SettingsScanner</c> functionality, ensuring accurate analysis and reporting of settings
-/// found in crash logs.
+///     Each test in this class is designed to verify the correctness of different aspects of the
+///     <c>SettingsScanner</c> functionality, ensuring accurate analysis and reporting of settings
+///     found in crash logs.
 /// </remarks>
 public class SettingsScannerTests
 {
@@ -31,9 +30,9 @@ public class SettingsScannerTests
     /// Verifies that the method returns an instance of `GenericAnalysisResult`
     /// containing the expected analyzer name, report lines, and specific data entries.
     /// <returns>
-    /// A task representing the asynchronous test operation. The test will pass if
-    /// the returned result is of type `GenericAnalysisResult` and contains the expected
-    /// attributes and data.
+    ///     A task representing the asynchronous test operation. The test will pass if
+    ///     the returned result is of type `GenericAnalysisResult` and contains the expected
+    ///     attributes and data.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithValidSettings_ReturnsGenericAnalysisResult()
@@ -67,9 +66,9 @@ public class SettingsScannerTests
     /// that contains no relevant settings data. Verifies that the method returns an instance
     /// of `GenericAnalysisResult` with the correct analyzer name and empty data structures.
     /// <returns>
-    /// A task representing the asynchronous test operation. The test will pass if
-    /// the returned result is of type `GenericAnalysisResult` with the proper analyzer
-    /// name and initialized but empty data containers.
+    ///     A task representing the asynchronous test operation. The test will pass if
+    ///     the returned result is of type `GenericAnalysisResult` with the proper analyzer
+    ///     name and initialized but empty data containers.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithNoSettings_ReturnsEmptyResult()
@@ -106,9 +105,9 @@ public class SettingsScannerTests
     /// Verifies that all expected validation methods are executed, the report contains
     /// the appropriate configuration confirmation text, and the report structure is maintained.
     /// <returns>
-    /// A task representing the asynchronous test operation. The test will pass if the
-    /// generated report includes the expected validation results and retains the correct
-    /// structure of report lines and text.
+    ///     A task representing the asynchronous test operation. The test will pass if the
+    ///     generated report includes the expected validation results and retains the correct
+    ///     structure of report lines and text.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_GeneratesCorrectReportStructure()
@@ -143,9 +142,9 @@ public class SettingsScannerTests
     /// Verifies that the method correctly detects and processes achievements parameters
     /// and includes relevant details in the generated report.
     /// <returns>
-    /// A task representing the asynchronous operation. The test will pass if the method
-    /// produces a `GenericAnalysisResult` with an appropriate analyzer name, and the report text
-    /// contains achievements-specific validation details.
+    ///     A task representing the asynchronous operation. The test will pass if the method
+    ///     produces a `GenericAnalysisResult` with an appropriate analyzer name, and the report text
+    ///     contains achievements-specific validation details.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithAchievementsSettings_ValidatesCorrectly()
@@ -180,9 +179,9 @@ public class SettingsScannerTests
     /// containing memory management settings. Verifies that the method validates the configuration
     /// correctly and returns a result indicating that the settings are appropriately configured.
     /// <returns>
-    /// A task representing the asynchronous test operation. The test will pass if the returned result
-    /// is of type `GenericAnalysisResult` and the report text contains the expected validation message
-    /// confirming correct memory management settings.
+    ///     A task representing the asynchronous test operation. The test will pass if the returned result
+    ///     is of type `GenericAnalysisResult` and the report text contains the expected validation message
+    ///     confirming correct memory management settings.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithMemoryManagementSettings_ValidatesCorrectly()
@@ -212,8 +211,8 @@ public class SettingsScannerTests
     /// Tests the `AnalyzeAsync` method of the `SettingsScanner` class with a `CrashLog` containing settings related to the ArchiveLimit parameter.
     /// Validates that the method correctly processes the crash log and includes ArchiveLimit-specific details in the generated report.
     /// <returns>
-    /// A task representing the asynchronous test operation. The test will pass if the returned
-    /// `GenericAnalysisResult` contains the expected ArchiveLimit parameter validation details in the report text.
+    ///     A task representing the asynchronous test operation. The test will pass if the returned
+    ///     `GenericAnalysisResult` contains the expected ArchiveLimit parameter validation details in the report text.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithArchiveLimitSettings_ValidatesCorrectly()
@@ -244,9 +243,9 @@ public class SettingsScannerTests
     /// containing F4EE-specific settings. Verifies that the method correctly validates
     /// the F4EE configurations and includes corresponding details in the analysis report.
     /// <returns>
-    /// A task representing the asynchronous test operation. The test will pass if
-    /// the `GenericAnalysisResult` contains validation output confirming the presence
-    /// or correct configuration of F4EE settings.
+    ///     A task representing the asynchronous test operation. The test will pass if
+    ///     the `GenericAnalysisResult` contains validation output confirming the presence
+    ///     or correct configuration of F4EE settings.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithF4EESettings_ValidatesCorrectly()
@@ -279,9 +278,9 @@ public class SettingsScannerTests
     /// Verifies that the resulting `GenericAnalysisResult` instances have
     /// matching `AnalyzerName`, `ReportLines` count, and `HasFindings` attributes.
     /// <returns>
-    /// A task representing the asynchronous test operation. The test will pass if
-    /// the method returns consistent `GenericAnalysisResult` instances across
-    /// multiple invocations with identical input.
+    ///     A task representing the asynchronous test operation. The test will pass if
+    ///     the method returns consistent `GenericAnalysisResult` instances across
+    ///     multiple invocations with identical input.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_ReturnsConsistentResults()
@@ -316,9 +315,9 @@ public class SettingsScannerTests
     /// Verifies that the method correctly identifies and includes the expected name
     /// ("Buffout 4") in the generated report text.
     /// <returns>
-    /// A task that represents the asynchronous test operation. The test will pass
-    /// if the resulting report text contains the expected name ("Buffout 4") and
-    /// confirms correct name usage within the analysis process.
+    ///     A task that represents the asynchronous test operation. The test will pass
+    ///     if the resulting report text contains the expected name ("Buffout 4") and
+    ///     confirms correct name usage within the analysis process.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithCrashgenName_UsesCorrectName()

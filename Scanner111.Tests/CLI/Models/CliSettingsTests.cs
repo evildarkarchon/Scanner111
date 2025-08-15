@@ -1,8 +1,6 @@
-using System.Linq;
 using System.Text.Json;
 using FluentAssertions;
 using Scanner111.CLI.Models;
-using Xunit;
 
 namespace Scanner111.Tests.CLI.Models;
 
@@ -13,7 +11,7 @@ public class CliSettingsTests
     {
         // Arrange & Act
         var settings = new CliSettings();
-        
+
         // Assert
         settings.FcxMode.Should().BeFalse("because FCX mode is disabled by default");
         settings.ShowFormIdValues.Should().BeFalse("because FormID values are hidden by default");
@@ -43,11 +41,11 @@ public class CliSettingsTests
     {
         // Arrange
         var settings = new CliSettings();
-        
+
         // Act
         settings.AddRecentPath("path1");
         settings.AddRecentPath("path2");
-        
+
         // Assert
         settings.RecentScanPaths.Should().HaveCount(2, "because two paths were added");
         settings.RecentScanPaths[0].Should().Be("path2", "because most recent path should be first");
@@ -59,12 +57,12 @@ public class CliSettingsTests
     {
         // Arrange
         var settings = new CliSettings();
-        
+
         // Act
         settings.AddRecentPath("path1");
         settings.AddRecentPath("path2");
         settings.AddRecentPath("path1"); // Add path1 again
-        
+
         // Assert
         settings.RecentScanPaths.Should().HaveCount(2, "because duplicates should be removed");
         settings.RecentScanPaths[0].Should().Be("path1", "because re-added path should move to front");
@@ -76,13 +74,13 @@ public class CliSettingsTests
     {
         // Arrange
         var settings = new CliSettings { MaxRecentPaths = 3 };
-        
+
         // Act
         settings.AddRecentPath("path1");
         settings.AddRecentPath("path2");
         settings.AddRecentPath("path3");
         settings.AddRecentPath("path4");
-        
+
         // Assert
         settings.RecentScanPaths.Should().HaveCount(3, "because max limit is 3");
         settings.RecentScanPaths[0].Should().Be("path4", "because it's the most recent");
@@ -96,12 +94,12 @@ public class CliSettingsTests
     {
         // Arrange
         var settings = new CliSettings();
-        
+
         // Act
         settings.AddRecentPath(null);
         settings.AddRecentPath("");
         settings.AddRecentPath("   ");
-        
+
         // Assert
         settings.RecentScanPaths.Should().BeEmpty("because empty/null paths should be ignored");
     }
@@ -134,11 +132,11 @@ public class CliSettingsTests
         };
         settings.AddRecentPath("path1");
         settings.AddRecentPath("path2");
-        
+
         // Act
         var json = JsonSerializer.Serialize(settings);
         var deserialized = JsonSerializer.Deserialize<CliSettings>(json);
-        
+
         // Assert
         deserialized.Should().NotBeNull();
         deserialized!.FcxMode.Should().Be(settings.FcxMode);
@@ -174,10 +172,10 @@ public class CliSettingsTests
             FcxMode = true,
             ShowFormIdValues = true
         };
-        
+
         // Act
         var json = JsonSerializer.Serialize(settings);
-        
+
         // Assert
         json.Should().Contain("\"fcxMode\":true");
         json.Should().Contain("\"showFormIdValues\":true");
@@ -190,62 +188,62 @@ public class CliSettingsTests
     {
         // Arrange
         var settings = new CliSettings();
-        
+
         // Act & Assert
         settings.FcxMode = true;
         settings.FcxMode.Should().BeTrue();
-        
+
         settings.ShowFormIdValues = true;
         settings.ShowFormIdValues.Should().BeTrue();
-        
+
         settings.SimplifyLogs = true;
         settings.SimplifyLogs.Should().BeTrue();
-        
+
         settings.MoveUnsolvedLogs = true;
         settings.MoveUnsolvedLogs.Should().BeTrue();
-        
+
         settings.AudioNotifications = true;
         settings.AudioNotifications.Should().BeTrue();
-        
+
         settings.VrMode = true;
         settings.VrMode.Should().BeTrue();
-        
+
         settings.DefaultScanDirectory = "test";
         settings.DefaultScanDirectory.Should().Be("test");
-        
+
         settings.DefaultGamePath = "gamepath";
         settings.DefaultGamePath.Should().Be("gamepath");
-        
+
         settings.DefaultOutputFormat = "json";
         settings.DefaultOutputFormat.Should().Be("json");
-        
+
         settings.DisableColors = true;
         settings.DisableColors.Should().BeTrue();
-        
+
         settings.DisableProgress = true;
         settings.DisableProgress.Should().BeTrue();
-        
+
         settings.VerboseLogging = true;
         settings.VerboseLogging.Should().BeTrue();
-        
+
         settings.MaxConcurrentScans = 8;
         settings.MaxConcurrentScans.Should().Be(8);
-        
+
         settings.CacheEnabled = false;
         settings.CacheEnabled.Should().BeFalse();
-        
+
         settings.MaxRecentPaths = 5;
         settings.MaxRecentPaths.Should().Be(5);
-        
+
         settings.CrashLogsDirectory = "crashes";
         settings.CrashLogsDirectory.Should().Be("crashes");
-        
+
         settings.GamePath = "game";
         settings.GamePath.Should().Be("game");
-        
+
         settings.ModsFolder = "mods";
         settings.ModsFolder.Should().Be("mods");
-        
+
         settings.IniFolder = "ini";
         settings.IniFolder.Should().Be("ini");
     }
@@ -256,10 +254,10 @@ public class CliSettingsTests
         // Arrange
         var settings = new CliSettings();
         var longPath = string.Join("\\", Enumerable.Repeat("verylongfoldername", 20));
-        
+
         // Act
         settings.AddRecentPath(longPath);
-        
+
         // Assert
         settings.RecentScanPaths.Should().ContainSingle();
         settings.RecentScanPaths[0].Should().Be(longPath);
@@ -270,13 +268,10 @@ public class CliSettingsTests
     {
         // Arrange
         var settings = new CliSettings { MaxRecentPaths = 5 };
-        
+
         // Act - Add more than max
-        for (int i = 1; i <= 10; i++)
-        {
-            settings.AddRecentPath($"path{i}");
-        }
-        
+        for (var i = 1; i <= 10; i++) settings.AddRecentPath($"path{i}");
+
         // Assert - Should have only the last 5, in reverse order
         settings.RecentScanPaths.Should().HaveCount(5);
         settings.RecentScanPaths[0].Should().Be("path10");

@@ -3,9 +3,9 @@ using System.Text.Json;
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-/// Provides utility methods to manage application settings,
-/// including loading, saving, and directory management for
-/// settings files.
+///     Provides utility methods to manage application settings,
+///     including loading, saving, and directory management for
+///     settings files.
 /// </summary>
 public static class SettingsHelper
 {
@@ -19,10 +19,10 @@ public static class SettingsHelper
     };
 
     /// <summary>
-    /// Gets the Scanner111 settings directory in the AppData folder.
+    ///     Gets the Scanner111 settings directory in the AppData folder.
     /// </summary>
     /// <returns>
-    /// The path to the Scanner111 settings directory.
+    ///     The path to the Scanner111 settings directory.
     /// </returns>
     public static string GetSettingsDirectory()
     {
@@ -32,7 +32,7 @@ public static class SettingsHelper
     }
 
     /// <summary>
-    /// Ensures that the settings directory for the application exists.
+    ///     Ensures that the settings directory for the application exists.
     /// </summary>
     public static void EnsureSettingsDirectoryExists()
     {
@@ -41,14 +41,15 @@ public static class SettingsHelper
     }
 
     /// <summary>
-    /// Asynchronously loads settings from a JSON file or creates default settings if the file does not exist or fails to load.
+    ///     Asynchronously loads settings from a JSON file or creates default settings if the file does not exist or fails to
+    ///     load.
     /// </summary>
     /// <typeparam name="T">The type of the settings object to load.</typeparam>
     /// <param name="filePath">The path to the settings file.</param>
     /// <param name="defaultFactory">A factory function to create default settings if the file cannot be loaded.</param>
     /// <returns>
-    /// A task representing the asynchronous operation. The result contains the loaded settings,
-    /// or the default settings if the file does not exist or fails to load.
+    ///     A task representing the asynchronous operation. The result contains the loaded settings,
+    ///     or the default settings if the file does not exist or fails to load.
     /// </returns>
     public static async Task<T> LoadSettingsAsync<T>(string filePath, Func<T> defaultFactory)
         where T : class
@@ -75,38 +76,27 @@ public static class SettingsHelper
     }
 
     /// <summary>
-    /// Saves the specified settings to a JSON file asynchronously.
+    ///     Saves the specified settings to a JSON file asynchronously.
     /// </summary>
     /// <typeparam name="T">The type of the settings object.</typeparam>
     /// <param name="filePath">The file path where the settings will be saved.</param>
     /// <param name="settings">The settings object to be saved.</param>
     /// <returns>
-    /// A task that represents the asynchronous save operation.
+    ///     A task that represents the asynchronous save operation.
     /// </returns>
     public static async Task SaveSettingsAsync<T>(string filePath, T settings)
         where T : class
     {
-        try
-        {
-            // Ensure the directory exists for the specific file path
-            var directory = Path.GetDirectoryName(filePath);
-            if (!string.IsNullOrEmpty(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
+        // Ensure the directory exists for the specific file path
+        var directory = Path.GetDirectoryName(filePath);
+        if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
 
-            var json = JsonSerializer.Serialize(settings, JsonOptions);
-            await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
-        }
-        catch
-        {
-            // Re-throw to let calling code handle the error
-            throw;
-        }
+        var json = JsonSerializer.Serialize(settings, JsonOptions);
+        await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Converts a value to the specified target type for use in application settings.
+    ///     Converts a value to the specified target type for use in application settings.
     /// </summary>
     /// <param name="value">The value to be converted.</param>
     /// <param name="targetType">The type to which the value should be converted.</param>
@@ -118,18 +108,18 @@ public static class SettingsHelper
             null => null!,
             // Handle string inputs
             string stringValue when targetType == typeof(bool) => stringValue.ToLowerInvariant() switch
-        {
-          "true" or "yes" or "1" or "on" => true,
-          "false" or "no" or "0" or "off" => false,
-          _ => throw new ArgumentException($"Invalid boolean value: {stringValue}")
-        },
-        string stringValue when targetType == typeof(int) => int.Parse(stringValue),
-        _ => Convert.ChangeType(value, targetType)
-      };
+            {
+                "true" or "yes" or "1" or "on" => true,
+                "false" or "no" or "0" or "off" => false,
+                _ => throw new ArgumentException($"Invalid boolean value: {stringValue}")
+            },
+            string stringValue when targetType == typeof(int) => int.Parse(stringValue),
+            _ => Convert.ChangeType(value, targetType)
+        };
     }
 
     /// <summary>
-    /// Converts an input string to PascalCase format.
+    ///     Converts an input string to PascalCase format.
     /// </summary>
     /// <param name="input">The input string to be converted.</param>
     /// <returns>The input string converted to PascalCase format.</returns>

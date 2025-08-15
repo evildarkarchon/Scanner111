@@ -1,15 +1,15 @@
-using Spectre.Console.Testing;
 using Spectre.Console;
+using Spectre.Console.Testing;
 
 namespace Scanner111.Tests.CLI.TestHelpers;
 
 /// <summary>
-/// Helper class for testing Spectre.Console components
+///     Helper class for testing Spectre.Console components
 /// </summary>
 public static class SpectreTestHelper
 {
     /// <summary>
-    /// Creates a test console with specified capabilities
+    ///     Creates a test console with specified capabilities
     /// </summary>
     public static TestConsole CreateTestConsole(
         int width = 80,
@@ -24,16 +24,13 @@ public static class SpectreTestHelper
         console.Profile.Capabilities.Unicode = true;
         console.Profile.Capabilities.ColorSystem = ColorSystem.TrueColor;
 
-        if (interactive)
-        {
-            console.Interactive();
-        }
+        if (interactive) console.Interactive();
 
         return console;
     }
 
     /// <summary>
-    /// Removes ANSI escape codes from output for easier assertion
+    ///     Removes ANSI escape codes from output for easier assertion
     /// </summary>
     public static string CleanOutput(string output)
     {
@@ -52,7 +49,7 @@ public static class SpectreTestHelper
     }
 
     /// <summary>
-    /// Extracts text content from a TestConsole output
+    ///     Extracts text content from a TestConsole output
     /// </summary>
     public static List<string> ExtractLines(TestConsole console)
     {

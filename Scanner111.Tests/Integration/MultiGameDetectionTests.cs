@@ -1,19 +1,19 @@
+using System.Runtime.InteropServices;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
-using System.Runtime.InteropServices;
 
 namespace Scanner111.Tests.Integration;
 
 /// <summary>
-/// Integration tests for multi-game detection functionality
+///     Integration tests for multi-game detection functionality
 /// </summary>
 public class MultiGameDetectionTests : IDisposable
 {
-    private readonly List<string> _tempDirectories;
     private readonly ILogger<object> _logger;
+    private readonly List<string> _tempDirectories;
 
     public MultiGameDetectionTests()
     {
@@ -25,12 +25,9 @@ public class MultiGameDetectionTests : IDisposable
     {
         // Clean up temporary directories
         foreach (var dir in _tempDirectories)
-        {
             if (Directory.Exists(dir))
-            {
                 Directory.Delete(dir, true);
-            }
-        }
+
         GC.SuppressFinalize(this);
     }
 
@@ -108,26 +105,20 @@ public class MultiGameDetectionTests : IDisposable
         var games = new List<(string name, string[] files)>
         {
             ("Fallout4", new[] { "Fallout4.exe", "Data/Fallout4.esm" }),
-            ("Fallout4VR", new[] { "Fallout4VR.exe", "Data/Fallout4VR.esm" }),
+            ("Fallout4VR", new[] { "Fallout4VR.exe", "Data/Fallout4VR.esm" })
             // Future games can be added here
             // ("Skyrim", new[] { "SkyrimSE.exe", "Data/Skyrim.esm" })
         };
 
         var mockInstallations = new Dictionary<string, string>();
-        foreach (var (name, files) in games)
-        {
-            mockInstallations[name] = CreateMockGameInstallation(name, files);
-        }
+        foreach (var (name, files) in games) mockInstallations[name] = CreateMockGameInstallation(name, files);
 
         // Act
         var detectedGames = new List<GameConfiguration>();
         foreach (var (gameName, gamePath) in mockInstallations)
         {
             var config = DetectGameConfigurationFromPath(gamePath, gameName);
-            if (config != null)
-            {
-                detectedGames.Add(config);
-            }
+            if (config != null) detectedGames.Add(config);
         }
 
         // Assert
@@ -163,7 +154,7 @@ public class MultiGameDetectionTests : IDisposable
         // Arrange
         var mockGamePath = CreateMockGameInstallation("Fallout4", new[] { "Fallout4.exe" });
         var exePath = Path.Combine(mockGamePath, "Fallout4.exe");
-        
+
         // Write specific content to generate known hash
         // In a real scenario, we'd have a database of known hashes
         File.WriteAllText(exePath, "Fallout4 v1.10.163.0");
@@ -252,7 +243,7 @@ Unhandled exception at 0x7FF6A1234567
         // Arrange
         var mo2Path = CreateTempDirectory();
         var gamePath = CreateMockGameInstallation("Fallout4", new[] { "Fallout4.exe" });
-        
+
         // Create MO2 structure
         var mo2IniPath = Path.Combine(mo2Path, "ModOrganizer.ini");
         File.WriteAllText(mo2IniPath, $@"[General]
@@ -275,19 +266,16 @@ gameName=Fallout 4
         var vortexPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Vortex");
-        
+
         // This test would require mocking Vortex configuration
         // For now, we'll just verify the detection method exists
-        
+
         // Act
         var config = DetectGameConfigurationFromVortex("Fallout4");
 
         // Assert
         // Config might be null if Vortex isn't installed
-        if (config != null)
-        {
-            config.GameName.Should().Be("Fallout4");
-        }
+        if (config != null) config.GameName.Should().Be("Fallout4");
     }
 
     [Theory]
@@ -304,10 +292,7 @@ gameName=Fallout 4
         foreach (var (name, path) in gamePaths)
         {
             var config = DetectGameConfigurationFromPath(path, name);
-            if (config != null)
-            {
-                configs.Add(config);
-            }
+            if (config != null) configs.Add(config);
         }
 
         // Assert
@@ -327,10 +312,7 @@ gameName=Fallout 4
         {
             var fullPath = Path.Combine(gameDir, file);
             var directory = Path.GetDirectoryName(fullPath);
-            if (!string.IsNullOrEmpty(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
+            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
             File.WriteAllText(fullPath, $"Mock content for {file}");
         }
 
@@ -388,10 +370,7 @@ gameName=Fallout 4
             _ => null
         };
 
-        if (xsePath != null && File.Exists(xsePath))
-        {
-            config.XsePath = xsePath;
-        }
+        if (xsePath != null && File.Exists(xsePath)) config.XsePath = xsePath;
 
         return config;
     }
@@ -408,7 +387,7 @@ gameName=Fallout 4
             return "Xbox";
         if (gamePath.Contains("Bethesda.net", StringComparison.OrdinalIgnoreCase))
             return "Bethesda.net";
-        
+
         return "Unknown";
     }
 
@@ -454,12 +433,12 @@ gameName=Fallout 4
             return null;
 
         var content = File.ReadAllText(crashLogPath);
-        
+
         if (content.Contains("Fallout 4 v") || content.Contains("Fallout4.exe"))
             return "Fallout4";
         if (content.Contains("Fallout 4 VR") || content.Contains("Fallout4VR.exe"))
             return "Fallout4VR";
-        
+
         return null;
     }
 

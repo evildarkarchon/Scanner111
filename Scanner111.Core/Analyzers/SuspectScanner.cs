@@ -6,15 +6,15 @@ using Scanner111.Core.Models.Yaml;
 namespace Scanner111.Core.Analyzers;
 
 /// <summary>
-/// Represents an analyzer that identifies known crash patterns and suspects from crash logs.
+///     Represents an analyzer that identifies known crash patterns and suspects from crash logs.
 /// </summary>
 /// <remarks>
-/// Implements the IAnalyzer interface. Utilizes YAML settings for configuration and supports asynchronous analysis.
+///     Implements the IAnalyzer interface. Utilizes YAML settings for configuration and supports asynchronous analysis.
 /// </remarks>
 public class SuspectScanner : IAnalyzer
 {
-    private readonly IYamlSettingsProvider _yamlSettings;
     private readonly ILogger<SuspectScanner> _logger;
+    private readonly IYamlSettingsProvider _yamlSettings;
 
     /// <summary>
     ///     Initialize the suspect scanner
@@ -43,7 +43,7 @@ public class SuspectScanner : IAnalyzer
     public bool CanRunInParallel => true;
 
     /// <summary>
-    /// Analyze a crash log for suspect patterns
+    ///     Analyze a crash log for suspect patterns
     /// </summary>
     /// <param name="crashLog">Crash log to analyze</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -69,7 +69,7 @@ public class SuspectScanner : IAnalyzer
         // Scan call stack for suspects
         var callStackIntact = string.Join("\n", crashLog.CallStack);
         _logger.LogDebug(
-            "Call stack has {CallStackCount} lines, joined length: {CallStackLength}", 
+            "Call stack has {CallStackCount} lines, joined length: {CallStackLength}",
             crashLog.CallStack.Count, callStackIntact.Length);
         var stackFound = SuspectScanStack(crashLog.MainError, callStackIntact, reportLines, maxWarnLength);
         if (stackFound) stackMatches.Add(callStackIntact);
@@ -86,20 +86,20 @@ public class SuspectScanner : IAnalyzer
     }
 
     /// <summary>
-    /// Scans the crash log for errors listed in a predefined suspect error list.
-    /// Direct port of Python suspect_scan_mainerror method.
+    ///     Scans the crash log for errors listed in a predefined suspect error list.
+    ///     Direct port of Python suspect_scan_mainerror method.
     /// </summary>
     /// <param name="autoscanReport">
-    /// A list to store formatted strings of identified suspect errors and their associated details.
+    ///     A list to store formatted strings of identified suspect errors and their associated details.
     /// </param>
     /// <param name="crashlogMainError">
-    /// The main error output from a crash log to scan for suspect errors.
+    ///     The main error output from a crash log to scan for suspect errors.
     /// </param>
     /// <param name="maxWarnLength">
-    /// The maximum length for formatting the error name in the autoscan report.
+    ///     The maximum length for formatting the error name in the autoscan report.
     /// </param>
     /// <returns>
-    /// A boolean indicating whether any suspect errors were found in the crash log.
+    ///     A boolean indicating whether any suspect errors were found in the crash log.
     /// </returns>
     private bool SuspectScanMainError(List<string> autoscanReport, string crashlogMainError, int maxWarnLength)
     {
@@ -148,14 +148,14 @@ public class SuspectScanner : IAnalyzer
     }
 
     /// <summary>
-    /// Analyzes the call stack of a crash log to identify potential suspects based on predefined patterns.
+    ///     Analyzes the call stack of a crash log to identify potential suspects based on predefined patterns.
     /// </summary>
     /// <param name="crashlogMainError">The main error string extracted from the crash log.</param>
     /// <param name="segmentCallstackIntact">The complete concatenated call stack extracted from the crash log.</param>
     /// <param name="autoscanReport">A list to store the auto-scan report lines generated during the analysis.</param>
     /// <param name="maxWarnLength">The maximum length of warning messages to include in the report.</param>
     /// <returns>
-    /// A boolean value indicating whether any suspect patterns were found in the call stack.
+    ///     A boolean value indicating whether any suspect patterns were found in the call stack.
     /// </returns>
     private bool SuspectScanStack(string crashlogMainError, string segmentCallstackIntact, List<string> autoscanReport,
         int maxWarnLength)
@@ -171,13 +171,14 @@ public class SuspectScanner : IAnalyzer
 
         _logger.LogDebug("Found {StackPatternCount} stack patterns to check", suspectsStackList.Count);
         _logger.LogDebug(
-            "Call stack preview: '{CallStackPreview}'", 
+            "Call stack preview: '{CallStackPreview}'",
             segmentCallstackIntact.Substring(0, Math.Min(200, segmentCallstackIntact.Length)));
         foreach (var (errorKey, signalList) in suspectsStackList)
         {
             // Parse error information from the key format: "6 | BA2 Limit Crash"
             var keyStr = errorKey;
-            _logger.LogDebug("Processing stack pattern: '{PatternKey}' with {SignalCount} signals", keyStr, signalList.Count);
+            _logger.LogDebug("Processing stack pattern: '{PatternKey}' with {SignalCount} signals", keyStr,
+                signalList.Count);
             var parts = keyStr.Split(" | ", 2);
             if (parts.Length < 2)
             {
@@ -224,14 +225,17 @@ public class SuspectScanner : IAnalyzer
 
 
     /// <summary>
-    /// Processes a signal to analyze matching conditions in crash logs and updates the match status accordingly.
+    ///     Processes a signal to analyze matching conditions in crash logs and updates the match status accordingly.
     /// </summary>
-    /// <param name="signal">The signal string to be processed, which may include a modifier and a target string separated by '|'.</param>
+    /// <param name="signal">
+    ///     The signal string to be processed, which may include a modifier and a target string separated by
+    ///     '|'.
+    /// </param>
     /// <param name="crashlogMainError">The main error section of the crash log to be checked against the signal.</param>
     /// <param name="segmentCallstackIntact">The callstack segment of the crash log to be examined for signal matches.</param>
     /// <param name="matchStatus">A dictionary for tracking various match conditions and their statuses.</param>
     /// <returns>
-    /// A boolean value indicating whether a "NOT" condition is met in the signal, triggering a skip in further processing.
+    ///     A boolean value indicating whether a "NOT" condition is met in the signal, triggering a skip in further processing.
     /// </returns>
     private bool ProcessSignal(string signal, string crashlogMainError, string segmentCallstackIntact,
         Dictionary<string, bool> matchStatus)
@@ -296,7 +300,7 @@ public class SuspectScanner : IAnalyzer
     }
 
     /// <summary>
-    /// Counts the occurrences of a specific substring within a given text.
+    ///     Counts the occurrences of a specific substring within a given text.
     /// </summary>
     /// <param name="text">The text in which to search for the substring.</param>
     /// <param name="pattern">The substring to count within the text.</param>
@@ -319,11 +323,11 @@ public class SuspectScanner : IAnalyzer
 
 
     /// <summary>
-    /// Determines if a suspect matches based on the provided match status.
+    ///     Determines if a suspect matches based on the provided match status.
     /// </summary>
     /// <param name="matchStatus">A dictionary containing the match status of various conditions.</param>
     /// <returns>
-    /// Returns <c>true</c> if the suspect match criteria are satisfied; otherwise, returns <c>false</c>.
+    ///     Returns <c>true</c> if the suspect match criteria are satisfied; otherwise, returns <c>false</c>.
     /// </returns>
     private static bool IsSuspectMatch(Dictionary<string, bool> matchStatus)
     {
@@ -333,7 +337,7 @@ public class SuspectScanner : IAnalyzer
 
 
     /// <summary>
-    /// Adds a suspect to the report based on the provided error details.
+    ///     Adds a suspect to the report based on the provided error details.
     /// </summary>
     /// <param name="errorName">The name of the error or suspect identified.</param>
     /// <param name="errorSeverity">The severity level of the identified error.</param>
@@ -349,7 +353,7 @@ public class SuspectScanner : IAnalyzer
 
 
     /// <summary>
-    /// Checks if the main error of the crash log indicates involvement of a DLL file and updates the report accordingly.
+    ///     Checks if the main error of the crash log indicates involvement of a DLL file and updates the report accordingly.
     /// </summary>
     /// <param name="crashlogMainError">The main error message from the crash log.</param>
     /// <param name="autoscanReport">A list for appending the report lines generated during the check.</param>
@@ -358,7 +362,7 @@ public class SuspectScanner : IAnalyzer
         var crashlogMainErrorLower = crashlogMainError.ToLower();
         if (crashlogMainErrorLower.Contains(".dll") && !crashlogMainErrorLower.Contains("tbbmalloc"))
             autoscanReport.AddRange([
-              "* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! * \n",
+                "* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! * \n",
                 "If that dll file belongs to a mod, that mod is a prime suspect for the crash. \n-----\n"
             ]);
     }

@@ -1,4 +1,5 @@
 from functools import reduce
+from io import StringIO
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -6,9 +7,9 @@ import ruamel.yaml
 
 from ClassicLib import GlobalRegistry, MessageTarget, msg_error
 from ClassicLib.Constants import SETTINGS_IGNORE_NONE, YAML
+from ClassicLib.FileIOCore import read_file_sync, write_file_sync
 from ClassicLib.Logger import logger
 from ClassicLib.Meta import SingletonMeta
-from ClassicLib.Util import open_file_with_encoding
 
 type YAMLLiteral = str | int | bool
 type YAMLSequence = list[str]
@@ -104,11 +105,31 @@ class YamlSettingsCache(metaclass=SingletonMeta):
         is_static = any(yaml_path == self.get_path_for_store(store) for store in self.STATIC_YAML_STORES)
 
         def cache_file(yaml_path_obj: Path) -> None:
-            with open_file_with_encoding(yaml_path_obj) as yaml_file:
-                yaml: ruamel.yaml.YAML = ruamel.yaml.YAML()
-                yaml.indent(offset=2)
-                yaml.width = 300
-                self.cache[yaml_path_obj] = yaml.load(yaml_file)
+            content = read_file_sync(yaml_path_obj)
+            yaml: ruamel.yaml.YAML = ruamel.yaml.YAML()
+            yaml.indent(offset=2)
+            yaml.width = 300
+            try:
+                loaded_data = yaml.load(StringIO(content))
+                # Validate settings file structure if it's the settings file
+                if yaml_path_obj.name == "CLASSIC Settings.yaml" and not self._validate_settings_structure(loaded_data):
+                    logger.warning(f"Invalid settings file structure detected in {yaml_path_obj}, regenerating...")
+                    self._regenerate_settings_file(yaml_path_obj)
+                    # Reload after regeneration
+                    content = read_file_sync(yaml_path_obj)
+                    loaded_data = yaml.load(StringIO(content))
+                self.cache[yaml_path_obj] = loaded_data
+            except (ruamel.yaml.YAMLError, OSError) as e:
+                logger.error(f"Failed to load YAML file {yaml_path_obj}: {e}")
+                # If it's the settings file and failed to load, regenerate it
+                if yaml_path_obj.name == "CLASSIC Settings.yaml":
+                    logger.warning(f"Corrupted settings file detected, regenerating {yaml_path_obj}...")
+                    self._regenerate_settings_file(yaml_path_obj)
+                    # Reload after regeneration
+                    content = read_file_sync(yaml_path_obj)
+                    self.cache[yaml_path_obj] = yaml.load(StringIO(content))
+                else:
+                    self.cache[yaml_path_obj] = {}
 
         if is_static:
             # For static files, just load once
@@ -127,6 +148,71 @@ class YamlSettingsCache(metaclass=SingletonMeta):
                 cache_file(yaml_path)
 
         return self.cache.get(yaml_path, {})
+
+    def _validate_settings_structure(self, data: YAMLMapping) -> bool:
+        """
+        Validates that the settings file has the expected structure.
+
+        Args:
+            data: The loaded YAML data to validate
+
+        Returns:
+            bool: True if the structure is valid, False otherwise
+        """
+
+        # Check if CLASSIC_Settings key exists and is a dict
+        if isinstance(data, dict) and "CLASSIC_Settings" not in data:
+            return False
+
+        return isinstance(data["CLASSIC_Settings"], dict)
+
+    def _regenerate_settings_file(self, yaml_path: Path) -> None:
+        """
+        Regenerates the settings file from the default template.
+        Creates a backup of the corrupted file if it exists.
+
+        Args:
+            yaml_path: Path to the settings file to regenerate
+        """
+        # Create backup of corrupted file if it exists and has content
+        if yaml_path.exists():
+            try:
+                content = read_file_sync(yaml_path)
+                if content.strip():  # Only backup if not empty
+                    backup_path = yaml_path.with_suffix(".corrupted.bak")
+                    counter = 1
+                    while backup_path.exists():
+                        backup_path = yaml_path.with_suffix(f".corrupted.{counter}.bak")
+                        counter += 1
+                    write_file_sync(backup_path, content)
+                    logger.info(f"Backed up corrupted settings to {backup_path}")
+            except (OSError, PermissionError) as e:
+                logger.warning(f"Could not backup corrupted settings file: {e}")
+
+        # Get default settings from CLASSIC Main.yaml
+        try:
+            main_path = self.get_path_for_store(YAML.Main)
+            main_data = {}
+            if main_path.exists():
+                content = read_file_sync(main_path)
+                yaml = ruamel.yaml.YAML()
+                main_data = yaml.load(StringIO(content))
+
+            default_settings = main_data.get("CLASSIC_Info", {}).get("default_settings", "")
+            if default_settings:
+                write_file_sync(yaml_path, default_settings)
+                logger.info(f"Successfully regenerated settings file at {yaml_path}")
+            else:
+                logger.error("Could not find default settings template in CLASSIC Main.yaml")
+                # Create minimal valid structure
+                minimal_settings = "CLASSIC_Settings:\n  Managed Game: Fallout 4\n"
+                write_file_sync(yaml_path, minimal_settings)
+                logger.info("Created minimal settings file")
+        except (ruamel.yaml.YAMLError, OSError, PermissionError, KeyError) as e:
+            logger.error(f"Failed to regenerate settings file: {e}")
+            # Last resort: create minimal structure
+            minimal_settings = "CLASSIC_Settings:\n  Managed Game: Fallout 4\n"
+            write_file_sync(yaml_path, minimal_settings)
 
     def get_setting[T](self, _type: type[T], yaml_store: YAML, key_path: str, new_value: T | None = None) -> T | None:
         """
@@ -187,11 +273,12 @@ class YamlSettingsCache(metaclass=SingletonMeta):
             setting_container[keys[-1]] = new_value  # type: ignore[assignment]
 
             # Write changes back to the YAML file
-            with yaml_path.open("w", encoding="utf-8") as yaml_file:
-                yaml: ruamel.yaml.YAML = ruamel.yaml.YAML()
-                yaml.indent(offset=2)
-                yaml.width = 300
-                yaml.dump(data, yaml_file)
+            yaml: ruamel.yaml.YAML = ruamel.yaml.YAML()
+            yaml.indent(offset=2)
+            yaml.width = 300
+            output = StringIO()
+            yaml.dump(data, output)
+            write_file_sync(yaml_path, output.getvalue())
 
             # Update the cache
             self.cache[yaml_path] = data
@@ -275,6 +362,6 @@ def classic_settings[T](_type: type[T], setting: str) -> T | None:
         if not isinstance(default_settings, str):
             raise ValueError("Invalid Default Settings in 'CLASSIC Main.yaml'")
 
-        settings_path.write_text(default_settings, encoding="utf-8")
+        write_file_sync(settings_path, default_settings)
 
     return yaml_settings(_type, YAML.Settings, f"CLASSIC_Settings.{setting}")

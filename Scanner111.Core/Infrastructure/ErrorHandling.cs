@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-/// Specifies a contract for defining error handling policies tailored to different types of failures.
+///     Specifies a contract for defining error handling policies tailored to different types of failures.
 /// </summary>
 public interface IErrorHandlingPolicy
 {
@@ -15,8 +15,8 @@ public interface IErrorHandlingPolicy
 }
 
 /// <summary>
-/// Represents the result of an error handling operation, encapsulating the action to take,
-/// the delay before retrying (if applicable), and additional metadata like logging preferences and messages.
+///     Represents the result of an error handling operation, encapsulating the action to take,
+///     the delay before retrying (if applicable), and additional metadata like logging preferences and messages.
 /// </summary>
 public record ErrorHandlingResult
 {
@@ -28,7 +28,7 @@ public record ErrorHandlingResult
 }
 
 /// <summary>
-/// Defines the possible actions to take when handling errors during execution.
+///     Defines the possible actions to take when handling errors during execution.
 /// </summary>
 public enum ErrorAction
 {
@@ -54,9 +54,9 @@ public enum ErrorAction
 }
 
 /// <summary>
-/// Represents the default implementation of the error handling policy,
-/// providing mechanisms to handle and log exceptions, determine retry behavior,
-/// and define actions based on specific error contexts.
+///     Represents the default implementation of the error handling policy,
+///     providing mechanisms to handle and log exceptions, determine retry behavior,
+///     and define actions based on specific error contexts.
 /// </summary>
 public class DefaultErrorHandlingPolicy : IErrorHandlingPolicy
 {
@@ -75,21 +75,21 @@ public class DefaultErrorHandlingPolicy : IErrorHandlingPolicy
     }
 
     /// <summary>
-    /// Handles an exception and determines the appropriate recovery action based on the error type, context,
-    /// and attempt number.
+    ///     Handles an exception and determines the appropriate recovery action based on the error type, context,
+    ///     and attempt number.
     /// </summary>
     /// <param name="exception">
-    /// The exception that needs to be processed.
+    ///     The exception that needs to be processed.
     /// </param>
     /// <param name="context">
-    /// The context in which the error occurred, providing additional information about the failure.
+    ///     The context in which the error occurred, providing additional information about the failure.
     /// </param>
     /// <param name="attemptNumber">
-    /// The current attempt number of the operation, used for calculating retry decisions.
+    ///     The current attempt number of the operation, used for calculating retry decisions.
     /// </param>
     /// <returns>
-    /// An <see cref="ErrorHandlingResult"/> containing the decision on how to handle the error, which may include
-    /// an action, a message, a log level, and optional retry information.
+    ///     An <see cref="ErrorHandlingResult" /> containing the decision on how to handle the error, which may include
+    ///     an action, a message, a log level, and optional retry information.
     /// </returns>
     public ErrorHandlingResult HandleError(Exception exception, string context, int attemptNumber)
     {
@@ -169,14 +169,14 @@ public class DefaultErrorHandlingPolicy : IErrorHandlingPolicy
     }
 
     /// <summary>
-    /// Determines whether an operation should be retried
-    /// based on the provided exception and the current attempt number.
+    ///     Determines whether an operation should be retried
+    ///     based on the provided exception and the current attempt number.
     /// </summary>
     /// <param name="exception">The exception that occurred during the operation.</param>
     /// <param name="attemptNumber">The current attempt number of the operation.</param>
     /// <returns>
-    /// A boolean value indicating whether the operation should be retried.
-    /// Returns true if the operation is eligible for a retry, otherwise false.
+    ///     A boolean value indicating whether the operation should be retried.
+    ///     Returns true if the operation is eligible for a retry, otherwise false.
     /// </returns>
     public bool ShouldRetry(Exception exception, int attemptNumber)
     {
@@ -197,10 +197,10 @@ public class DefaultErrorHandlingPolicy : IErrorHandlingPolicy
     }
 
     /// <summary>
-    /// Calculates the delay time before the next retry attempt using an exponential backoff strategy with jitter.
+    ///     Calculates the delay time before the next retry attempt using an exponential backoff strategy with jitter.
     /// </summary>
     /// <param name="attemptNumber">The current retry attempt number, starting from 1.</param>
-    /// <returns>The calculated delay as a <see cref="TimeSpan"/> before the next retry attempt.</returns>
+    /// <returns>The calculated delay as a <see cref="TimeSpan" /> before the next retry attempt.</returns>
     private TimeSpan CalculateRetryDelay(int attemptNumber)
     {
         // Exponential backoff with jitter
@@ -211,7 +211,7 @@ public class DefaultErrorHandlingPolicy : IErrorHandlingPolicy
 }
 
 /// <summary>
-/// Provides a mechanism for executing operations with built-in error handling and retry capabilities.
+///     Provides a mechanism for executing operations with built-in error handling and retry capabilities.
 /// </summary>
 public class ResilientExecutor
 {
@@ -225,21 +225,21 @@ public class ResilientExecutor
     }
 
     /// <summary>
-    /// Executes an asynchronous operation with error handling and retry logic.
+    ///     Executes an asynchronous operation with error handling and retry logic.
     /// </summary>
     /// <param name="operation">
-    /// The operation to be executed, represented as a function that takes a <see cref="CancellationToken"/>
-    /// and returns a task.
+    ///     The operation to be executed, represented as a function that takes a <see cref="CancellationToken" />
+    ///     and returns a task.
     /// </param>
     /// <param name="context">
-    /// A contextual string describing the operation for logging and diagnostic purposes.
+    ///     A contextual string describing the operation for logging and diagnostic purposes.
     /// </param>
     /// <param name="cancellationToken">
-    /// A <see cref="CancellationToken"/> used to signal the operation should be cancelled. Optional parameter.
+    ///     A <see cref="CancellationToken" /> used to signal the operation should be cancelled. Optional parameter.
     /// </param>
     /// <returns>
-    /// A <see cref="Task"/> representing the asynchronous operation. If the operation produces a result,
-    /// the result is returned upon successful completion; otherwise, the method returns null.
+    ///     A <see cref="Task" /> representing the asynchronous operation. If the operation produces a result,
+    ///     the result is returned upon successful completion; otherwise, the method returns null.
     /// </returns>
     public async Task<T?> ExecuteAsync<T>(
         Func<CancellationToken, Task<T>> operation,
@@ -292,7 +292,7 @@ public class ResilientExecutor
     }
 
     /// <summary>
-    /// Executes an asynchronous operation with error handling and retry logic.
+    ///     Executes an asynchronous operation with error handling and retry logic.
     /// </summary>
     /// <param name="operation">The asynchronous operation to execute.</param>
     /// <param name="context">A contextual description of the operation being executed, used for logging purposes.</param>
@@ -312,8 +312,8 @@ public class ResilientExecutor
 }
 
 /// <summary>
-/// Represents a circuit breaker designed to prevent cascading failures by limiting the execution of operations
-/// when a pre-defined failure threshold is exceeded or during a configured timeout period.
+///     Represents a circuit breaker designed to prevent cascading failures by limiting the execution of operations
+///     when a pre-defined failure threshold is exceeded or during a configured timeout period.
 /// </summary>
 public class CircuitBreaker
 {
@@ -334,13 +334,16 @@ public class CircuitBreaker
     }
 
     /// <summary>
-    /// Executes the provided asynchronous operation while enforcing circuit breaker policies to manage failures
-    /// and prevent cascading errors when the circuit is open.
+    ///     Executes the provided asynchronous operation while enforcing circuit breaker policies to manage failures
+    ///     and prevent cascading errors when the circuit is open.
     /// </summary>
     /// <typeparam name="T">The type of the result returned by the asynchronous operation.</typeparam>
     /// <param name="operation">A function that represents the asynchronous operation to be executed.</param>
-    /// <returns>The result of the operation if successfully executed, of type <typeparamref name="T"/>.</returns>
-    /// <exception cref="CircuitBreakerOpenException">Thrown if the circuit breaker is open and the operation cannot be executed.</exception>
+    /// <returns>The result of the operation if successfully executed, of type <typeparamref name="T" />.</returns>
+    /// <exception cref="CircuitBreakerOpenException">
+    ///     Thrown if the circuit breaker is open and the operation cannot be
+    ///     executed.
+    /// </exception>
     /// <exception cref="Exception">Throws any exception that occurs during the execution of the operation.</exception>
     public async Task<T> ExecuteAsync<T>(Func<Task<T>> operation)
     {
@@ -360,12 +363,12 @@ public class CircuitBreaker
     }
 
     /// <summary>
-    /// Determines if the current operation is allowed to execute based on the circuit breaker's state
-    /// and the elapsed time since the last failure when in the Open state.
+    ///     Determines if the current operation is allowed to execute based on the circuit breaker's state
+    ///     and the elapsed time since the last failure when in the Open state.
     /// </summary>
     /// <returns>
-    /// A boolean value indicating whether the execution is permitted:
-    /// true if the execution is allowed, false otherwise.
+    ///     A boolean value indicating whether the execution is permitted:
+    ///     true if the execution is allowed, false otherwise.
     /// </returns>
     private bool CanExecute()
     {
@@ -390,8 +393,8 @@ public class CircuitBreaker
     }
 
     /// <summary>
-    /// Resets the failure count and changes the circuit breaker state to Closed to indicate that operations
-    /// can proceed normally. Logs a message if the circuit breaker state changes.
+    ///     Resets the failure count and changes the circuit breaker state to Closed to indicate that operations
+    ///     can proceed normally. Logs a message if the circuit breaker state changes.
     /// </summary>
     private void OnSuccess()
     {
@@ -404,9 +407,9 @@ public class CircuitBreaker
     }
 
     /// <summary>
-    /// Handles failure by updating the internal state of the circuit breaker, including
-    /// incrementing the failure count, recording the time of the last failure, and transitioning
-    /// to the open state if the failure threshold has been reached.
+    ///     Handles failure by updating the internal state of the circuit breaker, including
+    ///     incrementing the failure count, recording the time of the last failure, and transitioning
+    ///     to the open state if the failure threshold has been reached.
     /// </summary>
     private void OnFailure()
     {

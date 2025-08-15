@@ -4,11 +4,13 @@ This module serves as a central storage location for objects that need to be acc
 from multiple modules throughout the application.
 """
 
+import threading
 from pathlib import Path
 from typing import Any
 
 # Central storage for all globally accessible objects
 _registry: dict[str, Any] = {}
+_registry_lock = threading.RLock()
 
 
 # Define keys for consistent access
@@ -34,7 +36,8 @@ def register(key: str, obj: Any) -> None:
         key: Unique identifier for the object
         obj: The object to register
     """
-    _registry[key] = obj
+    with _registry_lock:
+        _registry[key] = obj
 
 
 def get(key: str) -> Any:
@@ -47,7 +50,8 @@ def get(key: str) -> Any:
     Returns:
         The registered object or None if not found
     """
-    return _registry.get(key)
+    with _registry_lock:
+        return _registry.get(key)
 
 
 def is_registered(key: str) -> bool:
@@ -60,7 +64,8 @@ def is_registered(key: str) -> bool:
     Returns:
         True if the key exists in the registry, False otherwise
     """
-    return key in _registry
+    with _registry_lock:
+        return key in _registry
 
 
 # Convenience functions for commonly used registry items

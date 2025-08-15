@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Diagnostics;
 using FluentAssertions;
 using Scanner111.CLI.Services;
-using Xunit;
 
 namespace Scanner111.Tests.CLI.Services;
 
@@ -92,10 +87,7 @@ public class CircularBufferTests
         var buffer = new CircularBuffer<int>(3);
 
         // Act - Add twice the capacity
-        for (int i = 1; i <= 6; i++)
-        {
-            buffer.Add(i);
-        }
+        for (var i = 1; i <= 6; i++) buffer.Add(i);
 
         // Assert - Should have last 3 items
         var items = buffer.GetItems().ToList();
@@ -138,15 +130,12 @@ public class CircularBufferTests
         var tasks = new List<Task>();
 
         // Act - Add items from multiple threads
-        for (int thread = 0; thread < 10; thread++)
+        for (var thread = 0; thread < 10; thread++)
         {
-            int threadId = thread;
+            var threadId = thread;
             tasks.Add(Task.Run(() =>
             {
-                for (int i = 0; i < 10; i++)
-                {
-                    buffer.Add(threadId * 10 + i);
-                }
+                for (var i = 0; i < 10; i++) buffer.Add(threadId * 10 + i);
             }));
         }
 
@@ -155,7 +144,8 @@ public class CircularBufferTests
         // Assert - Should have exactly 100 items (or less if capacity)
         var items = buffer.GetItems().ToList();
         items.Should().HaveCount(100, "because buffer capacity matches items added");
-        items.Should().AllSatisfy(item => item.Should().BeInRange(0, 99, "because all items should be within the expected range"));
+        items.Should().AllSatisfy(item =>
+            item.Should().BeInRange(0, 99, "because all items should be within the expected range"));
     }
 
     [Fact]
@@ -171,7 +161,7 @@ public class CircularBufferTests
         {
             try
             {
-                int counter = 0;
+                var counter = 0;
                 while (!cts.Token.IsCancellationRequested)
                 {
                     buffer.Add($"Item {counter++}");
@@ -221,10 +211,7 @@ public class CircularBufferTests
         var addTask = Task.Run(() =>
         {
             barrier.SignalAndWait();
-            for (int i = 0; i < 1000; i++)
-            {
-                buffer.Add(i);
-            }
+            for (var i = 0; i < 1000; i++) buffer.Add(i);
         });
 
         var getTask = Task.Run(() =>
@@ -238,14 +225,10 @@ public class CircularBufferTests
         var snapshot = getTask.Result;
 
         // Assert - Snapshot should be consistent (all items in sequence)
-        for (int i = 1; i < snapshot.Count; i++)
-        {
+        for (var i = 1; i < snapshot.Count; i++)
             if (snapshot[i] != 0) // Skip default values
-            {
-                snapshot[i].Should().BeGreaterThanOrEqualTo(snapshot[i - 1], 
+                snapshot[i].Should().BeGreaterThanOrEqualTo(snapshot[i - 1],
                     $"because items should maintain order: {snapshot[i - 1]} followed by {snapshot[i]}");
-            }
-        }
     }
 
     #endregion
@@ -276,10 +259,7 @@ public class CircularBufferTests
         var buffer = new CircularBuffer<int>(10000);
 
         // Act
-        for (int i = 0; i < 5000; i++)
-        {
-            buffer.Add(i);
-        }
+        for (var i = 0; i < 5000; i++) buffer.Add(i);
 
         // Assert
         var items = buffer.GetItems().ToList();
@@ -311,10 +291,7 @@ public class CircularBufferTests
     {
         // Arrange
         var buffer = new CircularBuffer<int>(5);
-        for (int i = 1; i <= 3; i++)
-        {
-            buffer.Add(i);
-        }
+        for (var i = 1; i <= 3; i++) buffer.Add(i);
 
         // Act
         var items1 = buffer.GetItems().ToList();
@@ -335,19 +312,16 @@ public class CircularBufferTests
     {
         // Arrange
         var buffer = new CircularBuffer<int>(1000);
-        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var sw = Stopwatch.StartNew();
 
         // Act
-        for (int i = 0; i < 100000; i++)
-        {
-            buffer.Add(i);
-        }
+        for (var i = 0; i < 100000; i++) buffer.Add(i);
         sw.Stop();
 
         // Assert - Should complete quickly (under 1 second)
-        sw.ElapsedMilliseconds.Should().BeLessThan(1000, 
+        sw.ElapsedMilliseconds.Should().BeLessThan(1000,
             $"because adding 100k items should be efficient (took {sw.ElapsedMilliseconds}ms)");
-        
+
         var items = buffer.GetItems().ToList();
         items.Should().HaveCount(1000, "because buffer capacity is 1000");
     }
@@ -357,18 +331,15 @@ public class CircularBufferTests
     {
         // Arrange
         var buffer = new CircularBuffer<string>(10000);
-        for (int i = 0; i < 10000; i++)
-        {
-            buffer.Add($"Item {i}");
-        }
+        for (var i = 0; i < 10000; i++) buffer.Add($"Item {i}");
 
         // Act
-        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var sw = Stopwatch.StartNew();
         var items = buffer.GetItems().ToList();
         sw.Stop();
 
         // Assert
-        sw.ElapsedMilliseconds.Should().BeLessThan(100, 
+        sw.ElapsedMilliseconds.Should().BeLessThan(100,
             $"because getting 10k items should be efficient (took {sw.ElapsedMilliseconds}ms)");
         items.Should().HaveCount(10000, "because buffer is at full capacity");
     }

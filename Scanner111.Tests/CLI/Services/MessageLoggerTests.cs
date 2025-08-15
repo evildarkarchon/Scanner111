@@ -1,17 +1,33 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
-using Xunit;
 
 namespace Scanner111.Tests.CLI.Services;
 
 public class MessageLoggerTests
 {
+    #region Icon and Color Tests
+
+    [Theory]
+    [InlineData(MessageType.Info, "ℹ")]
+    [InlineData(MessageType.Warning, "⚠")]
+    [InlineData(MessageType.Error, "✗")]
+    [InlineData(MessageType.Success, "✓")]
+    [InlineData(MessageType.Debug, "🐛")]
+    [InlineData(MessageType.Critical, "‼")]
+    public void GetMessageStyle_ReturnsCorrectIcon(MessageType type, string expectedIcon)
+    {
+        // This test verifies the icon mapping is correct
+        // Since GetMessageStyle is private, we test it indirectly through the panel output
+        var logger = new MessageLogger(10);
+        logger.AddMessage(type, "Test message");
+
+        var panel = logger.GetLogsPanel();
+        panel.Should().NotBeNull("value should not be null");
+    }
+
+    #endregion
+
     #region Basic Functionality Tests
 
     [Fact]
@@ -69,13 +85,10 @@ public class MessageLoggerTests
     public void GetLogsPanel_ShowsLast20Messages()
     {
         // Arrange
-        var logger = new MessageLogger(100);
+        var logger = new MessageLogger();
 
         // Act - Add 30 messages
-        for (int i = 1; i <= 30; i++)
-        {
-            logger.AddMessage(MessageType.Info, $"Message {i}");
-        }
+        for (var i = 1; i <= 30; i++) logger.AddMessage(MessageType.Info, $"Message {i}");
 
         // Assert
         var panel = logger.GetLogsPanel();
@@ -94,10 +107,7 @@ public class MessageLoggerTests
         var logger = new MessageLogger(5);
 
         // Act - Add more messages than capacity
-        for (int i = 1; i <= 10; i++)
-        {
-            logger.AddMessage(MessageType.Info, $"Message {i}");
-        }
+        for (var i = 1; i <= 10; i++) logger.AddMessage(MessageType.Info, $"Message {i}");
 
         // Assert - Should only keep last 5 messages
         var panel = logger.GetLogsPanel();
@@ -111,10 +121,7 @@ public class MessageLoggerTests
         var logger = new MessageLogger(); // Should use default capacity of 100
 
         // Add 150 messages
-        for (int i = 1; i <= 150; i++)
-        {
-            logger.AddMessage(MessageType.Info, $"Message {i}");
-        }
+        for (var i = 1; i <= 150; i++) logger.AddMessage(MessageType.Info, $"Message {i}");
 
         // Assert - Should only keep last 100 messages
         var panel = logger.GetLogsPanel();
@@ -129,19 +136,16 @@ public class MessageLoggerTests
     public async Task ConcurrentAddMessage_ThreadSafe()
     {
         // Arrange
-        var logger = new MessageLogger(100);
+        var logger = new MessageLogger();
         var tasks = new List<Task>();
 
         // Act - Add messages from multiple threads
-        for (int thread = 0; thread < 10; thread++)
+        for (var thread = 0; thread < 10; thread++)
         {
-            int threadId = thread;
+            var threadId = thread;
             tasks.Add(Task.Run(() =>
             {
-                for (int i = 0; i < 10; i++)
-                {
-                    logger.AddMessage(MessageType.Info, $"Thread {threadId} - Message {i}");
-                }
+                for (var i = 0; i < 10; i++) logger.AddMessage(MessageType.Info, $"Thread {threadId} - Message {i}");
             }));
         }
 
@@ -165,7 +169,7 @@ public class MessageLoggerTests
         {
             try
             {
-                int counter = 0;
+                var counter = 0;
                 while (!cts.Token.IsCancellationRequested)
                 {
                     logger.AddMessage(MessageType.Info, $"Message {counter++}");
@@ -226,7 +230,7 @@ public class MessageLoggerTests
         // Assert
         var panel = logger.GetLogsPanel();
         panel.Should().NotBeNull("value should not be null");
-        
+
         // Panel should have proper formatting with icons and colors
         var panelString = panel.ToString();
         panelString.Should().NotBeNull("value should not be null");
@@ -258,28 +262,6 @@ public class MessageLoggerTests
         logger.AddMessage(MessageType.Info, longMessage);
 
         // Assert
-        var panel = logger.GetLogsPanel();
-        panel.Should().NotBeNull("value should not be null");
-    }
-
-    #endregion
-
-    #region Icon and Color Tests
-
-    [Theory]
-    [InlineData(MessageType.Info, "ℹ")]
-    [InlineData(MessageType.Warning, "⚠")]
-    [InlineData(MessageType.Error, "✗")]
-    [InlineData(MessageType.Success, "✓")]
-    [InlineData(MessageType.Debug, "🐛")]
-    [InlineData(MessageType.Critical, "‼")]
-    public void GetMessageStyle_ReturnsCorrectIcon(MessageType type, string expectedIcon)
-    {
-        // This test verifies the icon mapping is correct
-        // Since GetMessageStyle is private, we test it indirectly through the panel output
-        var logger = new MessageLogger(10);
-        logger.AddMessage(type, "Test message");
-        
         var panel = logger.GetLogsPanel();
         panel.Should().NotBeNull("value should not be null");
     }

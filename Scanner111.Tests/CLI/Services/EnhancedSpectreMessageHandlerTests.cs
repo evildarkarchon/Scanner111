@@ -1,22 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Spectre.Console;
-using Spectre.Console.Testing;
+using FluentAssertions;
 using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Tests.CLI.TestHelpers;
-using Xunit;
-using FluentAssertions;
+using Spectre.Console;
+using Spectre.Console.Testing;
 
 namespace Scanner111.Tests.CLI.Services;
 
 public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
 {
     private readonly TestConsole _console;
-    private EnhancedSpectreMessageHandler _handler;
+    private EnhancedSpectreMessageHandler _handler = null!;
 
     public EnhancedSpectreMessageHandlerTests()
     {
@@ -24,18 +18,16 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
         AnsiConsole.Console = _console;
     }
 
-    public Task InitializeAsync()
+    public async Task InitializeAsync()
     {
         _handler = new EnhancedSpectreMessageHandler();
-        return Task.CompletedTask;
+        // Give the handler time to initialize its render loop
+        await Task.Delay(200);
     }
 
     public async Task DisposeAsync()
     {
-        if (_handler != null)
-        {
-            await _handler.DisposeAsync();
-        }
+        if (_handler != null) await _handler.DisposeAsync();
     }
 
     #region Message Display Tests
@@ -261,7 +253,7 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
         var contexts = new List<IProgressContext>();
 
         // Act
-        for (int i = 0; i < 5; i++)
+        for (var i = 0; i < 5; i++)
         {
             var context = _handler.CreateProgressContext($"Progress {i}", 100);
             contexts.Add(context);
@@ -271,17 +263,12 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
 
         // Update all contexts
         foreach (var (context, index) in contexts.Select((c, i) => (c, i)))
-        {
             context.Update(50, $"Progress {index} at 50%");
-        }
 
         await Task.Delay(150);
 
         // Complete all contexts
-        foreach (var context in contexts)
-        {
-            context.Complete();
-        }
+        foreach (var context in contexts) context.Complete();
 
         // Assert - no exceptions thrown
         contexts.Count.Should().Be(5, "value should match expected");
@@ -300,9 +287,9 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
         await Task.Delay(100);
 
         // Act - Send multiple messages concurrently
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
-            int index = i;
+            var index = i;
             tasks.Add(Task.Run(() =>
             {
                 _handler.ShowInfo($"Concurrent info {index}");
@@ -323,19 +310,17 @@ public class EnhancedSpectreMessageHandlerTests : IAsyncLifetime
     {
         // Arrange
         var contexts = new List<IProgressContext>();
-        for (int i = 0; i < 5; i++)
-        {
-            contexts.Add(_handler.CreateProgressContext($"Concurrent Progress {i}", 100));
-        }
+        for (var i = 0; i < 5; i++) contexts.Add(_handler.CreateProgressContext($"Concurrent Progress {i}", 100));
 
         // Act - Update all contexts concurrently
         var tasks = contexts.Select((context, index) => Task.Run(async () =>
         {
-            for (int j = 0; j <= 100; j += 10)
+            for (var j = 0; j <= 100; j += 10)
             {
                 context.Update(j, $"Progress {index}: {j}%");
                 await Task.Delay(10);
             }
+
             context.Complete();
         })).ToList();
 

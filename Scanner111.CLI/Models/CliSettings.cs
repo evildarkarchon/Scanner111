@@ -48,14 +48,11 @@ public class CliSettings
     [JsonPropertyName("crashLogsDirectory")]
     public string CrashLogsDirectory { get; set; } = "";
 
-    [JsonPropertyName("gamePath")]
-    public string GamePath { get; set; } = "";
+    [JsonPropertyName("gamePath")] public string GamePath { get; set; } = "";
 
-    [JsonPropertyName("modsFolder")]
-    public string ModsFolder { get; set; } = "";
+    [JsonPropertyName("modsFolder")] public string ModsFolder { get; set; } = "";
 
-    [JsonPropertyName("iniFolder")]
-    public string IniFolder { get; set; } = "";
+    [JsonPropertyName("iniFolder")] public string IniFolder { get; set; } = "";
 
     /// <summary>
     ///     Add a path to recent scan paths, maintaining the max limit

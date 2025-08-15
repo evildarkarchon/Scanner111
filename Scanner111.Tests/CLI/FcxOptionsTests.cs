@@ -1,36 +1,32 @@
 using CommandLine;
 using FluentAssertions;
 using Scanner111.CLI.Models;
-using Xunit;
 
 namespace Scanner111.Tests.CLI;
 
 public class FcxOptionsTests
 {
     private readonly Parser _parser;
-    
+
     public FcxOptionsTests()
     {
         _parser = new Parser(with => with.HelpWriter = null);
     }
-    
+
     [Fact]
     public void Parse_FcxVerb_CreatesCorrectOptions()
     {
         // Arrange
         var args = new[] { "fcx", "--game", "Fallout4" };
-        
+
         // Act
         var result = _parser.ParseArguments<FcxOptions>(args);
-        
+
         // Assert
         result.Tag.Should().Be(ParserResultType.Parsed, "because FCX command should parse successfully");
-        result.WithParsed<FcxOptions>(opts =>
-        {
-            opts.Game.Should().Be("Fallout4", "because game was specified");
-        });
+        result.WithParsed<FcxOptions>(opts => { opts.Game.Should().Be("Fallout4", "because game was specified"); });
     }
-    
+
     [Fact]
     public void Parse_FcxWithAllOptions_ParsesCorrectly()
     {
@@ -52,10 +48,10 @@ public class FcxOptionsTests
             "--disable-progress",
             "-o", "results.txt"
         };
-        
+
         // Act
         var result = _parser.ParseArguments<FcxOptions>(args);
-        
+
         // Assert
         result.Tag.Should().Be(ParserResultType.Parsed, "because all options should parse successfully");
         result.WithParsed<FcxOptions>(opts =>
@@ -75,16 +71,16 @@ public class FcxOptionsTests
             opts.OutputFile.Should().Be("results.txt", "because output file was specified");
         });
     }
-    
+
     [Fact]
     public void Parse_FcxWithRestore_ParsesRestorePath()
     {
         // Arrange
         var args = new[] { "fcx", "--restore", @"C:\Backups\backup.zip" };
-        
+
         // Act
         var result = _parser.ParseArguments<FcxOptions>(args);
-        
+
         // Assert
         result.Tag.Should().Be(ParserResultType.Parsed, "because restore option should parse successfully");
         result.WithParsed<FcxOptions>(opts =>
@@ -92,7 +88,7 @@ public class FcxOptionsTests
             opts.RestorePath.Should().Be(@"C:\Backups\backup.zip", "because restore path was specified");
         });
     }
-    
+
     [Fact]
     public void Parse_FcxWithShortOptions_ParsesCorrectly()
     {
@@ -104,10 +100,10 @@ public class FcxOptionsTests
             "-v",
             "-o", "output.txt"
         };
-        
+
         // Act
         var result = _parser.ParseArguments<FcxOptions>(args);
-        
+
         // Assert
         result.Tag.Should().Be(ParserResultType.Parsed, "because short options should parse successfully");
         result.WithParsed<FcxOptions>(opts =>
@@ -117,16 +113,16 @@ public class FcxOptionsTests
             opts.OutputFile.Should().Be("output.txt", "because output file was specified with -o");
         });
     }
-    
+
     [Fact]
     public void Parse_FcxWithoutOptions_UsesDefaults()
     {
         // Arrange
         var args = new[] { "fcx" };
-        
+
         // Act
         var result = _parser.ParseArguments<FcxOptions>(args);
-        
+
         // Assert
         result.Tag.Should().Be(ParserResultType.Parsed, "because FCX without options should use defaults");
         result.WithParsed<FcxOptions>(opts =>
@@ -147,17 +143,17 @@ public class FcxOptionsTests
             opts.OutputFile.Should().BeNull("because no output file was specified");
         });
     }
-    
-    [Fact] 
+
+    [Fact]
     public void Parse_WithoutVerb_UsesDefaultScanVerb()
     {
         // Arrange
         var args = new[] { "-l", "some-file.log" };
-        
+
         // Act
         // Since "scan" is the default verb, we can use scan options without specifying the verb
         var result = _parser.ParseArguments<ScanOptions, DemoOptions, ConfigOptions, AboutOptions, FcxOptions>(args);
-        
+
         // Assert
         result.Tag.Should().Be(ParserResultType.Parsed, "because scan is the default verb");
         result.WithParsed<ScanOptions>(opts =>

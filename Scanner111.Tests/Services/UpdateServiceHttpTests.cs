@@ -1,9 +1,7 @@
 using System.Net;
-using System.Net.Http;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -11,21 +9,20 @@ using Moq.Protected;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Services;
-using Xunit;
 
 namespace Scanner111.Tests.Services;
 
 /// <summary>
-/// HTTP-specific tests for the <see cref="UpdateService"/> class,
-/// focusing on testing HTTP interactions and network scenarios.
+///     HTTP-specific tests for the <see cref="UpdateService" /> class,
+///     focusing on testing HTTP interactions and network scenarios.
 /// </summary>
 public class UpdateServiceHttpTests : IDisposable
 {
-    private readonly Mock<ILogger<UpdateService>> _loggerMock;
-    private readonly Mock<IApplicationSettingsService> _settingsServiceMock;
-    private readonly Mock<IMessageHandler> _messageHandlerMock;
-    private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
     private readonly HttpClient _httpClient;
+    private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
+    private readonly Mock<ILogger<UpdateService>> _loggerMock;
+    private readonly Mock<IMessageHandler> _messageHandlerMock;
+    private readonly Mock<IApplicationSettingsService> _settingsServiceMock;
 
     public UpdateServiceHttpTests()
     {
@@ -33,12 +30,12 @@ public class UpdateServiceHttpTests : IDisposable
         _settingsServiceMock = new Mock<IApplicationSettingsService>();
         _messageHandlerMock = new Mock<IMessageHandler>();
         _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
-        
+
         _httpClient = new HttpClient(_httpMessageHandlerMock.Object)
         {
             BaseAddress = new Uri("https://api.github.com")
         };
-        
+
         // Set up default settings
         _settingsServiceMock
             .Setup(x => x.LoadSettingsAsync())
@@ -132,8 +129,7 @@ public class UpdateServiceHttpTests : IDisposable
         SetupHttpResponse(
             "https://api.github.com/repos/evildarkarchon/Scanner111/releases/latest",
             JsonSerializer.Serialize(new { message = "Not Found" }),
-            HttpStatusCode.NotFound,
-            "application/json");
+            HttpStatusCode.NotFound);
 
         // Act & Assert
         var service = CreateService();
@@ -147,13 +143,12 @@ public class UpdateServiceHttpTests : IDisposable
         // Arrange
         SetupHttpResponse(
             "https://api.github.com/repos/evildarkarchon/Scanner111/releases/latest",
-            JsonSerializer.Serialize(new 
-            { 
+            JsonSerializer.Serialize(new
+            {
                 message = "API rate limit exceeded",
                 documentation_url = "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting"
             }),
-            HttpStatusCode.Forbidden,
-            "application/json");
+            HttpStatusCode.Forbidden);
 
         // Act & Assert
         var service = CreateService();
@@ -168,8 +163,7 @@ public class UpdateServiceHttpTests : IDisposable
         SetupHttpResponse(
             "https://api.github.com/repos/evildarkarchon/Scanner111/releases/latest",
             "{ invalid json ]",
-            HttpStatusCode.OK,
-            "application/json");
+            HttpStatusCode.OK);
 
         // Act & Assert
         var service = CreateService();
@@ -184,8 +178,7 @@ public class UpdateServiceHttpTests : IDisposable
         SetupHttpResponse(
             "https://api.github.com/repos/evildarkarchon/Scanner111/releases/latest",
             "",
-            HttpStatusCode.OK,
-            "application/json");
+            HttpStatusCode.OK);
 
         // Act & Assert
         var service = CreateService();
@@ -200,7 +193,7 @@ public class UpdateServiceHttpTests : IDisposable
         var releaseJson = JsonSerializer.Serialize(new
         {
             tag_name = "v1.2.3",
-            prerelease = false,
+            prerelease = false
             // name property is missing
         });
 
@@ -227,8 +220,7 @@ public class UpdateServiceHttpTests : IDisposable
         SetupHttpResponse(
             "https://api.github.com/repos/evildarkarchon/Scanner111/releases/latest",
             JsonSerializer.Serialize(new { error = "Server Error" }),
-            statusCode,
-            "application/json");
+            statusCode);
 
         // Act & Assert
         var service = CreateService();
@@ -467,7 +459,7 @@ public class UpdateServiceHttpTests : IDisposable
                 "SendAsync",
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>())
-            .ThrowsAsync(new System.Net.Sockets.SocketException());
+            .ThrowsAsync(new SocketException());
 
         // Act & Assert
         var service = CreateService();
@@ -484,7 +476,7 @@ public class UpdateServiceHttpTests : IDisposable
     {
         // Arrange
         HttpRequestMessage? capturedRequest = null;
-        
+
         _httpMessageHandlerMock
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
@@ -557,7 +549,7 @@ public class UpdateServiceHttpTests : IDisposable
     {
         // Arrange
         var cts = new CancellationTokenSource();
-        
+
         _httpMessageHandlerMock
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
@@ -586,7 +578,8 @@ public class UpdateServiceHttpTests : IDisposable
         return new UpdateService(_loggerMock.Object, _settingsServiceMock.Object, _messageHandlerMock.Object);
     }
 
-    private void SetupHttpResponse(string url, string content, HttpStatusCode statusCode, string contentType = "application/json")
+    private void SetupHttpResponse(string url, string content, HttpStatusCode statusCode,
+        string contentType = "application/json")
     {
         _httpMessageHandlerMock
             .Protected()

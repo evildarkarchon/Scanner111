@@ -74,7 +74,8 @@
                         <CheckBox Content="Enable progress notifications"
                                   IsChecked="{Binding EnableProgressNotifications}" />
                         <CheckBox Content="Auto-save scan results" IsChecked="{Binding AutoSaveResults}" />
-                        <CheckBox Content="Move unsolved logs to separate folder" IsChecked="{Binding MoveUnsolvedLogs}" />
+                        <CheckBox Content="Move unsolved logs to separate folder"
+                                  IsChecked="{Binding MoveUnsolvedLogs}" />
                         <CheckBox Content="Enable debug logging" IsChecked="{Binding EnableDebugLogging}" />
                         <CheckBox Content="Remember window size and position" IsChecked="{Binding RememberWindowSize}" />
                     </StackPanel>
@@ -83,7 +84,8 @@
                 <!-- FCX Settings Section -->
                 <Border Background="#3c3c3c" CornerRadius="5" Padding="15">
                     <StackPanel Spacing="15">
-                        <TextBlock Text="FCX (File Integrity Check) Settings" FontSize="16" FontWeight="Bold" Foreground="#0e639c" />
+                        <TextBlock Text="FCX (File Integrity Check) Settings" FontSize="16" FontWeight="Bold"
+                                   Foreground="#0e639c" />
 
                         <CheckBox Content="Enable FCX Mode" IsChecked="{Binding FcxMode}" />
 
@@ -115,11 +117,11 @@
                 <Border Background="#3c3c3c" CornerRadius="5" Padding="15">
                     <StackPanel Spacing="15">
                         <TextBlock Text="Mod Manager Integration" FontSize="16" FontWeight="Bold" Foreground="#0e639c" />
-                        
-                        <CheckBox Content="Enable mod manager integration (uncheck to disable if experiencing issues)" 
+
+                        <CheckBox Content="Enable mod manager integration (uncheck to disable if experiencing issues)"
                                   IsChecked="{Binding AutoDetectModManagers}"
                                   ToolTip.Tip="When disabled, Scanner111 will not attempt to detect or use mod managers" />
-                        
+
                         <!-- Default Mod Manager -->
                         <StackPanel Spacing="5">
                             <TextBlock Text="Default Mod Manager:" />
@@ -130,7 +132,7 @@
                                 <ComboBoxItem Content="Vortex" />
                             </ComboBox>
                         </StackPanel>
-                        
+
                         <!-- MO2 Path -->
                         <StackPanel Spacing="5">
                             <TextBlock Text="Mod Organizer 2 Installation Path:" />
@@ -141,7 +143,7 @@
                                         Command="{Binding BrowseMO2PathCommand}" />
                             </Grid>
                         </StackPanel>
-                        
+
                         <!-- Vortex Path -->
                         <StackPanel Spacing="5">
                             <TextBlock Text="Vortex Data Path:" />
@@ -159,10 +161,10 @@
                 <Border Background="#3c3c3c" CornerRadius="5" Padding="15">
                     <StackPanel Spacing="15">
                         <TextBlock Text="Update Settings" FontSize="16" FontWeight="Bold" Foreground="#0e639c" />
-                        
-                        <CheckBox Content="Enable automatic update checking on startup" 
+
+                        <CheckBox Content="Enable automatic update checking on startup"
                                   IsChecked="{Binding EnableUpdateCheck}" />
-                        
+
                         <!-- Update Source -->
                         <StackPanel Spacing="5">
                             <TextBlock Text="Update Source:" />

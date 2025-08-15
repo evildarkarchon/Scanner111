@@ -10,10 +10,11 @@ public class FileScanService : IFileScanService
 
     public FileScanService(IMessageHandler messageHandler)
     {
-        _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
+        _messageHandler = Guard.NotNull(messageHandler, nameof(messageHandler));
     }
+
     /// <summary>
-    /// Collects files to scan based on the specified scan options and application settings.
+    ///     Collects files to scan based on the specified scan options and application settings.
     /// </summary>
     /// <param name="options">The options that define scanning criteria, such as specific log file or directory to scan.</param>
     /// <param name="settings">The application settings containing configuration details for the scanning operation.</param>
@@ -68,10 +69,13 @@ public class FileScanService : IFileScanService
     }
 
     /// <summary>
-    /// Copies XSE crash logs (such as F4SE and SKSE logs) from predefined directories to a designated scan data location.
+    ///     Copies XSE crash logs (such as F4SE and SKSE logs) from predefined directories to a designated scan data location.
     /// </summary>
     /// <param name="scanData">The object representing scan data where the logs will be added after copying.</param>
-    /// <param name="options">The options specifying scan criteria, including whether XSE logs should be skipped or the game path for searching logs.</param>
+    /// <param name="options">
+    ///     The options specifying scan criteria, including whether XSE logs should be skipped or the game
+    ///     path for searching logs.
+    /// </param>
     /// <param name="settings">The application settings containing configuration details, such as crash logs directory.</param>
     /// <returns>A task that represents the asynchronous operation of copying XSE logs.</returns>
     private Task CopyXseLogsAsync(FileScanData scanData, CliScanOptions options, ApplicationSettings settings)

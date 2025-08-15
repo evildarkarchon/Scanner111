@@ -13,18 +13,43 @@ public class TestMessageCapture : IMessageHandler
     public TestProgressContext? LastProgressContext { get; private set; }
     public List<(string message, string? details, MessageType type)> DetailedMessages { get; } = new();
 
-    public void ShowInfo(string message, MessageTarget target = MessageTarget.All) => InfoMessages.Add(message);
-    public void ShowWarning(string message, MessageTarget target = MessageTarget.All) => WarningMessages.Add(message);
-    public void ShowError(string message, MessageTarget target = MessageTarget.All) => ErrorMessages.Add(message);
-    public void ShowSuccess(string message, MessageTarget target = MessageTarget.All) => SuccessMessages.Add(message);
-    public void ShowDebug(string message, MessageTarget target = MessageTarget.All) => DebugMessages.Add(message);
-    public void ShowCritical(string message, MessageTarget target = MessageTarget.All) => CriticalMessages.Add(message);
+    public bool IsUserInteractive => false;
+
+    public void ShowInfo(string message, MessageTarget target = MessageTarget.All)
+    {
+        InfoMessages.Add(message);
+    }
+
+    public void ShowWarning(string message, MessageTarget target = MessageTarget.All)
+    {
+        WarningMessages.Add(message);
+    }
+
+    public void ShowError(string message, MessageTarget target = MessageTarget.All)
+    {
+        ErrorMessages.Add(message);
+    }
+
+    public void ShowSuccess(string message, MessageTarget target = MessageTarget.All)
+    {
+        SuccessMessages.Add(message);
+    }
+
+    public void ShowDebug(string message, MessageTarget target = MessageTarget.All)
+    {
+        DebugMessages.Add(message);
+    }
+
+    public void ShowCritical(string message, MessageTarget target = MessageTarget.All)
+    {
+        CriticalMessages.Add(message);
+    }
 
     public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info,
         MessageTarget target = MessageTarget.All)
     {
         DetailedMessages.Add((message, details, messageType));
-        
+
         switch (messageType)
         {
             case MessageType.Info:
@@ -60,7 +85,7 @@ public class TestMessageCapture : IMessageHandler
         return LastProgressContext;
     }
 
-    public void Clear() 
+    public void Clear()
     {
         InfoMessages.Clear();
         WarningMessages.Clear();
@@ -70,6 +95,4 @@ public class TestMessageCapture : IMessageHandler
         CriticalMessages.Clear();
         DetailedMessages.Clear();
     }
-
-    public bool IsUserInteractive => false;
 }

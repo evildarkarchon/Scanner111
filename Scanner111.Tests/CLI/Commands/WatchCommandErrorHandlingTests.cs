@@ -1,9 +1,4 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
@@ -11,21 +6,19 @@ using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
-using Scanner111.Core.Services;
-using Xunit;
 
 namespace Scanner111.Tests.CLI.Commands;
 
 /// <summary>
-/// Tests error handling scenarios for WatchCommand
+///     Tests error handling scenarios for WatchCommand
 /// </summary>
 public class WatchCommandErrorHandlingTests : IDisposable
 {
+    private readonly WatchCommand _command;
+    private readonly Mock<IReportWriter> _mockReportWriter;
+    private readonly Mock<IScanPipeline> _mockScanPipeline;
     private readonly Mock<IServiceProvider> _mockServiceProvider;
     private readonly Mock<IApplicationSettingsService> _mockSettingsService;
-    private readonly Mock<IScanPipeline> _mockScanPipeline;
-    private readonly Mock<IReportWriter> _mockReportWriter;
-    private readonly WatchCommand _command;
     private readonly string _testDirectory;
 
     public WatchCommandErrorHandlingTests()
@@ -45,6 +38,164 @@ public class WatchCommandErrorHandlingTests : IDisposable
         _testDirectory = Path.Combine(Path.GetTempPath(), $"WatchErrorTests_{Guid.NewGuid()}");
         Directory.CreateDirectory(_testDirectory);
     }
+
+    public void Dispose()
+    {
+        // Dispose command to clean up FileSystemWatcher
+        _command?.Dispose();
+
+        // Clean up test directory
+        try
+        {
+            if (Directory.Exists(_testDirectory))
+            {
+                // Remove read-only attributes from all files
+                var files = Directory.GetFiles(_testDirectory, "*", SearchOption.AllDirectories);
+                foreach (var file in files)
+                    try
+                    {
+                        File.SetAttributes(file, FileAttributes.Normal);
+                    }
+                    catch
+                    {
+                    }
+
+                Directory.Delete(_testDirectory, true);
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    #region Auto-Move Error Handling Tests
+
+    [Fact(Timeout = 5000)]
+    public async Task AutoMove_WithIOException_ContinuesExecution()
+    {
+        // Arrange - Create a read-only directory to simulate move failure
+        var testFile = Path.Combine(_testDirectory, "locked.log");
+        File.WriteAllText(testFile, "test content");
+
+        var scanResult = new ScanResult
+        {
+            LogPath = testFile,
+            AnalysisResults = new List<AnalysisResult>() // No issues for auto-move
+        };
+
+        _mockScanPipeline.Setup(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(scanResult);
+        _mockReportWriter.Setup(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        // Create a file with same name in the destination to cause move conflict
+        var solvedDir = Path.Combine(_testDirectory, "Solved");
+        Directory.CreateDirectory(solvedDir);
+        var conflictFile = Path.Combine(solvedDir, "locked.log");
+        File.WriteAllText(conflictFile, "existing content");
+        File.SetAttributes(conflictFile, FileAttributes.ReadOnly);
+
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
+            ShowDashboard = false,
+            AutoMove = true,
+            ScanExisting = true,
+            ShowNotifications = false
+        };
+
+        // Act
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        var result = await _command.ExecuteAsync(options, cts.Token);
+
+        // Assert
+        result.Should().Be(0); // Should continue despite move failure
+        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(testFile, It.IsAny<CancellationToken>()), Times.Once);
+
+        // Cleanup
+        try
+        {
+            File.SetAttributes(conflictFile, FileAttributes.Normal);
+            File.Delete(conflictFile);
+            File.Delete(testFile);
+            Directory.Delete(solvedDir);
+        }
+        catch
+        {
+        }
+    }
+
+    #endregion
+
+    #region Dashboard Error Handling Tests
+
+    [Fact(Timeout = 5000)]
+    public async Task RunWithDashboard_WithSpectreLiveDisplayException_FallsBackGracefully()
+    {
+        // Note: This test verifies that the dashboard mode doesn't crash on Live display errors
+        // The actual Spectre.Console Live display may throw exceptions in certain environments
+
+        // Arrange
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
+            ShowDashboard = true
+        };
+
+        // Act
+        var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        var result = await _command.ExecuteAsync(options, cts.Token);
+
+        // Assert
+        result.Should().Be(0); // Should handle any display errors gracefully
+    }
+
+    #endregion
+
+    #region Game Path Resolution Error Tests
+
+    [Fact(Timeout = 5000)]
+    public async Task DetermineWatchPath_WithInvalidGameType_UsesCurrentDirectory()
+    {
+        // Arrange
+        var options = new WatchOptions
+        {
+            Game = "InvalidGame",
+            ShowDashboard = false
+        };
+
+        // Act - This should fall back to current directory
+        var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        var result = await _command.ExecuteAsync(options, cts.Token);
+
+        // Assert
+        result.Should().Be(0); // Should succeed with current directory fallback
+    }
+
+    #endregion
+
+    #region File Pattern Error Tests
+
+    [Fact(Timeout = 5000)]
+    public async Task FileWatcher_WithInvalidPattern_HandlesGracefully()
+    {
+        // Arrange
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
+            Pattern = "[InvalidPattern", // Invalid regex pattern
+            ShowDashboard = false
+        };
+
+        // Act
+        var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+        var result = await _command.ExecuteAsync(options, cts.Token);
+
+        // Assert
+        result.Should().Be(0); // FileSystemWatcher should handle invalid patterns gracefully
+    }
+
+    #endregion
 
     #region Path Validation Error Tests
 
@@ -101,7 +252,7 @@ public class WatchCommandErrorHandlingTests : IDisposable
 
         // Assert
         result.Should().Be(1);
-        
+
         // Cleanup
         File.Delete(filePath);
     }
@@ -120,9 +271,9 @@ public class WatchCommandErrorHandlingTests : IDisposable
         _mockScanPipeline.Setup(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Pipeline error"));
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
             ScanExisting = true,
             ShowNotifications = false
@@ -134,10 +285,10 @@ public class WatchCommandErrorHandlingTests : IDisposable
 
         // Assert
         result.Should().Be(0); // Should not return error, just continue
-        
+
         // Verify pipeline was called despite error
         _mockScanPipeline.Verify(p => p.ProcessSingleAsync(testFile, It.IsAny<CancellationToken>()), Times.Once);
-        
+
         // Cleanup
         File.Delete(testFile);
     }
@@ -152,7 +303,7 @@ public class WatchCommandErrorHandlingTests : IDisposable
         var scanResult = new ScanResult
         {
             LogPath = testFile,
-            AnalysisResults = new System.Collections.Generic.List<AnalysisResult>()
+            AnalysisResults = new List<AnalysisResult>()
         };
 
         _mockScanPipeline.Setup(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -160,9 +311,9 @@ public class WatchCommandErrorHandlingTests : IDisposable
         _mockReportWriter.Setup(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new IOException("Write error"));
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
             ScanExisting = true,
             ShowNotifications = false
@@ -174,11 +325,12 @@ public class WatchCommandErrorHandlingTests : IDisposable
 
         // Assert
         result.Should().Be(0); // Should not return error, just continue
-        
+
         // Verify both were called despite error
         _mockScanPipeline.Verify(p => p.ProcessSingleAsync(testFile, It.IsAny<CancellationToken>()), Times.Once);
-        _mockReportWriter.Verify(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()), Times.Once);
-        
+        _mockReportWriter.Verify(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+
         // Cleanup
         File.Delete(testFile);
     }
@@ -198,9 +350,9 @@ public class WatchCommandErrorHandlingTests : IDisposable
         _mockScanPipeline.Setup(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new FileNotFoundException("File not found"));
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
             ScanExisting = true,
             ShowNotifications = false
@@ -228,9 +380,9 @@ public class WatchCommandErrorHandlingTests : IDisposable
         _mockScanPipeline.Setup(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new UnauthorizedAccessException("Access denied"));
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
             ScanExisting = true,
             ShowNotifications = false
@@ -250,72 +402,15 @@ public class WatchCommandErrorHandlingTests : IDisposable
 
     #endregion
 
-    #region Auto-Move Error Handling Tests
-
-    [Fact(Timeout = 5000)]
-    public async Task AutoMove_WithIOException_ContinuesExecution()
-    {
-        // Arrange - Create a read-only directory to simulate move failure
-        var testFile = Path.Combine(_testDirectory, "locked.log");
-        File.WriteAllText(testFile, "test content");
-
-        var scanResult = new ScanResult
-        {
-            LogPath = testFile,
-            AnalysisResults = new System.Collections.Generic.List<AnalysisResult>() // No issues for auto-move
-        };
-
-        _mockScanPipeline.Setup(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(scanResult);
-        _mockReportWriter.Setup(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        // Create a file with same name in the destination to cause move conflict
-        var solvedDir = Path.Combine(_testDirectory, "Solved");
-        Directory.CreateDirectory(solvedDir);
-        var conflictFile = Path.Combine(solvedDir, "locked.log");
-        File.WriteAllText(conflictFile, "existing content");
-        File.SetAttributes(conflictFile, FileAttributes.ReadOnly);
-
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
-            ShowDashboard = false,
-            AutoMove = true,
-            ScanExisting = true,
-            ShowNotifications = false
-        };
-
-        // Act
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-        var result = await _command.ExecuteAsync(options, cts.Token);
-
-        // Assert
-        result.Should().Be(0); // Should continue despite move failure
-        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(testFile, It.IsAny<CancellationToken>()), Times.Once);
-
-        // Cleanup
-        try
-        {
-            File.SetAttributes(conflictFile, FileAttributes.Normal);
-            File.Delete(conflictFile);
-            File.Delete(testFile);
-            Directory.Delete(solvedDir);
-        }
-        catch { }
-    }
-
-    #endregion
-
     #region Cancellation Handling Tests
 
     [Fact(Timeout = 5000)]
     public async Task ExecuteAsync_WithImmediateCancellation_ExitsGracefully()
     {
         // Arrange
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false
         };
 
@@ -344,13 +439,13 @@ public class WatchCommandErrorHandlingTests : IDisposable
                 return new ScanResult
                 {
                     LogPath = path,
-                    AnalysisResults = new System.Collections.Generic.List<AnalysisResult>()
+                    AnalysisResults = new List<AnalysisResult>()
                 };
             });
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
             ScanExisting = true
         };
@@ -361,107 +456,10 @@ public class WatchCommandErrorHandlingTests : IDisposable
 
         // Assert
         result.Should().Be(0); // Should exit gracefully despite cancellation
-        
+
         // Cleanup
         File.Delete(testFile);
     }
 
     #endregion
-
-    #region Dashboard Error Handling Tests
-
-    [Fact(Timeout = 5000)]
-    public async Task RunWithDashboard_WithSpectreLiveDisplayException_FallsBackGracefully()
-    {
-        // Note: This test verifies that the dashboard mode doesn't crash on Live display errors
-        // The actual Spectre.Console Live display may throw exceptions in certain environments
-
-        // Arrange
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
-            ShowDashboard = true
-        };
-
-        // Act
-        var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-        var result = await _command.ExecuteAsync(options, cts.Token);
-
-        // Assert
-        result.Should().Be(0); // Should handle any display errors gracefully
-    }
-
-    #endregion
-
-    #region Game Path Resolution Error Tests
-
-    [Fact(Timeout = 5000)]
-    public async Task DetermineWatchPath_WithInvalidGameType_UsesCurrentDirectory()
-    {
-        // Arrange
-        var options = new WatchOptions 
-        { 
-            Game = "InvalidGame", 
-            ShowDashboard = false 
-        };
-
-        // Act - This should fall back to current directory
-        var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-        var result = await _command.ExecuteAsync(options, cts.Token);
-
-        // Assert
-        result.Should().Be(0); // Should succeed with current directory fallback
-    }
-
-    #endregion
-
-    #region File Pattern Error Tests
-
-    [Fact(Timeout = 5000)]
-    public async Task FileWatcher_WithInvalidPattern_HandlesGracefully()
-    {
-        // Arrange
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
-            Pattern = "[InvalidPattern", // Invalid regex pattern
-            ShowDashboard = false
-        };
-
-        // Act
-        var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
-        var result = await _command.ExecuteAsync(options, cts.Token);
-
-        // Assert
-        result.Should().Be(0); // FileSystemWatcher should handle invalid patterns gracefully
-    }
-
-    #endregion
-
-    public void Dispose()
-    {
-        // Dispose command to clean up FileSystemWatcher
-        _command?.Dispose();
-        
-        // Clean up test directory
-        try
-        {
-            if (Directory.Exists(_testDirectory))
-            {
-                // Remove read-only attributes from all files
-                var files = Directory.GetFiles(_testDirectory, "*", SearchOption.AllDirectories);
-                foreach (var file in files)
-                {
-                    try
-                    {
-                        File.SetAttributes(file, FileAttributes.Normal);
-                    }
-                    catch { }
-                }
-                
-                Directory.Delete(_testDirectory, true);
-            }
-        }
-        catch { }
-    }
 }

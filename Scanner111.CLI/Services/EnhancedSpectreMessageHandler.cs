@@ -1,29 +1,28 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
+using Scanner111.Core.Infrastructure;
 using Spectre.Console;
 using Spectre.Console.Rendering;
-using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.CLI.Services;
 
 /// <summary>
-/// Enhanced message handler with multi-progress support and split-screen layout
+///     Enhanced message handler with multi-progress support and split-screen layout
 /// </summary>
 public class EnhancedSpectreMessageHandler : IMessageHandler, IAsyncDisposable
 {
-    private readonly ProgressManager _progressManager;
-    private readonly MessageLogger _messageLogger;
     private readonly Layout _mainLayout;
-    private readonly CancellationTokenSource _shutdownCts;
+    private readonly MessageLogger _messageLogger;
+    private readonly ProgressManager _progressManager;
     private readonly Task _renderTask;
-    private bool _isRunning;
+    private readonly CancellationTokenSource _shutdownCts;
 
     public EnhancedSpectreMessageHandler()
     {
         _shutdownCts = new CancellationTokenSource();
         _progressManager = new ProgressManager();
         _messageLogger = new MessageLogger();
-        
+
         // Create split-screen layout
         _mainLayout = new Layout()
             .SplitRows(
@@ -38,7 +37,7 @@ public class EnhancedSpectreMessageHandler : IMessageHandler, IAsyncDisposable
         // Initialize header
         _mainLayout["header"].Update(
             new Panel(new Text("Scanner111 - Enhanced Progress Display")
-                .Centered())
+                    .Centered())
                 .BorderColor(Color.Cyan1)
                 .Border(BoxBorder.Rounded));
 
@@ -46,68 +45,21 @@ public class EnhancedSpectreMessageHandler : IMessageHandler, IAsyncDisposable
         _renderTask = Task.Run(RenderLoopAsync);
     }
 
-    private async Task RenderLoopAsync()
+    public async ValueTask DisposeAsync()
     {
+        _shutdownCts.Cancel();
+
         try
         {
-            _isRunning = true;
-            
-            // Start progress manager in background
-            _ = Task.Run(() => _progressManager.StartAsync(_shutdownCts.Token));
-            
-            // Use Live display for the layout
-            await AnsiConsole.Live(_mainLayout)
-                .AutoClear(false)
-                .StartAsync(async ctx =>
-                {
-                    // Update loop
-                    while (!_shutdownCts.Token.IsCancellationRequested)
-                    {
-                        UpdateDisplay(ctx);
-                        await Task.Delay(50, _shutdownCts.Token).ConfigureAwait(false);
-                    }
-                }).ConfigureAwait(false);
+            await _renderTask.ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            // Expected during shutdown
+            // Expected
         }
-        finally
-        {
-            _isRunning = false;
-        }
-    }
 
-    private void UpdateDisplay(LiveDisplayContext ctx)
-    {
-        // Update progress panel
-        _mainLayout["progress"].Update(_progressManager.GetProgressPanel());
-        
-        // Update logs panel
-        _mainLayout["logs"].Update(_messageLogger.GetLogsPanel());
-        
-        // Update status bar
-        _mainLayout["status"].Update(GetStatusBar());
-        
-        ctx.Refresh();
-    }
-
-    private Panel GetStatusBar()
-    {
-        var grid = new Grid()
-            .AddColumn()
-            .AddColumn()
-            .AddColumn();
-
-        grid.AddRow(
-            new Text($"Time: {DateTime.Now:HH:mm:ss}"),
-            new Text($"Active Tasks: {_progressManager.ActiveTaskCount}").Centered(),
-            new Text($"Memory: {GC.GetTotalMemory(false) / 1_048_576:N0} MB").RightJustified()
-        );
-
-        return new Panel(grid)
-            .Border(BoxBorder.None)
-            .BorderColor(Color.Grey);
+        await _progressManager.DisposeAsync();
+        _shutdownCts.Dispose();
     }
 
     public void ShowInfo(string message, MessageTarget target = MessageTarget.All)
@@ -150,7 +102,7 @@ public class EnhancedSpectreMessageHandler : IMessageHandler, IAsyncDisposable
         MessageTarget target = MessageTarget.All)
     {
         if (target == MessageTarget.GuiOnly) return;
-        
+
         var fullMessage = details != null ? $"{message}\n{details}" : message;
         _messageLogger.AddMessage(messageType, fullMessage);
     }
@@ -165,37 +117,76 @@ public class EnhancedSpectreMessageHandler : IMessageHandler, IAsyncDisposable
         return _progressManager.CreateContext(title, totalItems);
     }
 
-    public async ValueTask DisposeAsync()
+    private async Task RenderLoopAsync()
     {
-        _shutdownCts.Cancel();
-        
         try
         {
-            await _renderTask.ConfigureAwait(false);
+            // Start progress manager in background
+            _ = Task.Run(() => _progressManager.StartAsync(_shutdownCts.Token));
+
+            // Use Live display for the layout
+            await AnsiConsole.Live(_mainLayout)
+                .AutoClear(false)
+                .StartAsync(async ctx =>
+                {
+                    // Update loop
+                    while (!_shutdownCts.Token.IsCancellationRequested)
+                    {
+                        UpdateDisplay(ctx);
+                        await Task.Delay(50, _shutdownCts.Token).ConfigureAwait(false);
+                    }
+                }).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            // Expected
+            // Expected during shutdown
         }
-        
-        await _progressManager.DisposeAsync();
-        _shutdownCts.Dispose();
+    }
+
+    private void UpdateDisplay(LiveDisplayContext ctx)
+    {
+        // Update progress panel
+        _mainLayout["progress"].Update(_progressManager.GetProgressPanel());
+
+        // Update logs panel
+        _mainLayout["logs"].Update(_messageLogger.GetLogsPanel());
+
+        // Update status bar
+        _mainLayout["status"].Update(GetStatusBar());
+
+        ctx.Refresh();
+    }
+
+    private Panel GetStatusBar()
+    {
+        var grid = new Grid()
+            .AddColumn()
+            .AddColumn()
+            .AddColumn();
+
+        grid.AddRow(
+            new Text($"Time: {DateTime.Now:HH:mm:ss}"),
+            new Text($"Active Tasks: {_progressManager.ActiveTaskCount}").Centered(),
+            new Text($"Memory: {GC.GetTotalMemory(false) / 1_048_576:N0} MB").RightJustified()
+        );
+
+        return new Panel(grid)
+            .Border(BoxBorder.None)
+            .BorderColor(Color.Grey);
     }
 }
 
 /// <summary>
-/// Manages multiple concurrent progress contexts
+///     Manages multiple concurrent progress contexts
 /// </summary>
 internal class ProgressManager : IAsyncDisposable
 {
+    private readonly ConcurrentDictionary<string, ProgressTask> _activeTasks;
     private readonly Channel<ProgressCommand> _commandChannel;
     private readonly ConcurrentDictionary<string, ProgressContextAdapter> _contexts;
-    private readonly ConcurrentDictionary<string, ProgressTask> _activeTasks;
-    private ProgressContext? _spectreContext;
-    private Task? _processTask;
     private CancellationTokenSource? _cts;
-
-    public int ActiveTaskCount => _activeTasks.Count;
+    private Task? _processTask;
+    private ProgressContext? _spectreContext;
 
     public ProgressManager()
     {
@@ -204,26 +195,39 @@ internal class ProgressManager : IAsyncDisposable
             SingleReader = true,
             SingleWriter = false
         });
-        
+
         _contexts = new ConcurrentDictionary<string, ProgressContextAdapter>();
         _activeTasks = new ConcurrentDictionary<string, ProgressTask>();
+    }
+
+    public int ActiveTaskCount => _activeTasks.Count;
+
+    public async ValueTask DisposeAsync()
+    {
+        _commandChannel.Writer.TryComplete();
+
+        if (_processTask != null)
+            try
+            {
+                await _processTask.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected
+            }
+
+        _cts?.Dispose();
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        
+
         _processTask = AnsiConsole.Progress()
             .AutoClear(false)
             .HideCompleted(false)
-            .Columns(new ProgressColumn[]
-            {
-                new TaskDescriptionColumn { Alignment = Justify.Left },
-                new ProgressBarColumn { Width = 40 },
-                new PercentageColumn(),
-                new RemainingTimeColumn(),
-                new SpinnerColumn()
-            })
+            .Columns(new TaskDescriptionColumn { Alignment = Justify.Left }, new ProgressBarColumn { Width = 40 },
+                new PercentageColumn(), new RemainingTimeColumn(), new SpinnerColumn())
             .StartAsync(async ctx =>
             {
                 _spectreContext = ctx;
@@ -234,7 +238,6 @@ internal class ProgressManager : IAsyncDisposable
     private async Task ProcessCommandsAsync(CancellationToken cancellationToken)
     {
         await foreach (var command in _commandChannel.Reader.ReadAllAsync(cancellationToken))
-        {
             try
             {
                 switch (command)
@@ -251,6 +254,7 @@ internal class ProgressManager : IAsyncDisposable
                             existingTask.Value = update.Current;
                             existingTask.Description = update.Message ?? existingTask.Description;
                         }
+
                         break;
 
                     case CompleteProgressCommand complete:
@@ -259,6 +263,7 @@ internal class ProgressManager : IAsyncDisposable
                             completedTask.Value = completedTask.MaxValue;
                             completedTask.StopTask();
                         }
+
                         _contexts.TryRemove(complete.Id, out _);
                         break;
                 }
@@ -268,7 +273,6 @@ internal class ProgressManager : IAsyncDisposable
                 // Log error but continue processing
                 AnsiConsole.WriteException(ex);
             }
-        }
     }
 
     public IProgressContext CreateContext(string title, int totalItems)
@@ -276,29 +280,30 @@ internal class ProgressManager : IAsyncDisposable
         var id = Guid.NewGuid().ToString();
         var context = new ProgressContextAdapter(id, title, totalItems, _commandChannel.Writer);
         _contexts[id] = context;
-        
+
         // Send create command
         var createCommand = new CreateProgressCommand(id, title, totalItems);
         _commandChannel.Writer.TryWrite(createCommand);
-        
+
         // Use async wait with timeout to avoid blocking threads
         try
         {
-            createCommand.TaskCreated.Task.WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false).GetAwaiter().GetResult();
+            createCommand.TaskCreated.Task.WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false).GetAwaiter()
+                .GetResult();
         }
         catch (TimeoutException)
         {
             // Handle timeout gracefully - progress context will still work, just might not show immediately
             // This prevents resource leaks from blocking waits
         }
-        
+
         return context;
     }
 
     public Panel GetProgressPanel()
     {
         IRenderable content;
-        
+
         if (_activeTasks.IsEmpty)
         {
             content = new Text("No active tasks", new Style(Color.Grey)).Centered();
@@ -313,18 +318,18 @@ internal class ProgressManager : IAsyncDisposable
 
             foreach (var (id, task) in _activeTasks)
             {
-                var percentage = task.MaxValue > 0 ? (task.Value / task.MaxValue) * 100 : 0;
+                var percentage = task.MaxValue > 0 ? task.Value / task.MaxValue * 100 : 0;
                 var filled = (int)(percentage / 10);
                 var empty = 10 - filled;
                 var progressBar = new string('█', filled) + new string('░', empty);
                 var progressText = $"{progressBar} {percentage:0}%";
-                
+
                 table.AddRow(
                     new Text(task.Description.Replace("[", "[[").Replace("]", "]]")),
                     new Text(progressText)
                 );
             }
-            
+
             content = table;
         }
 
@@ -333,34 +338,15 @@ internal class ProgressManager : IAsyncDisposable
             .BorderColor(Color.Blue)
             .Border(BoxBorder.Rounded);
     }
-
-    public async ValueTask DisposeAsync()
-    {
-        _commandChannel.Writer.TryComplete();
-        
-        if (_processTask != null)
-        {
-            try
-            {
-                await _processTask.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected
-            }
-        }
-        
-        _cts?.Dispose();
-    }
 }
 
 /// <summary>
-/// Manages log messages with circular buffer
+///     Manages log messages with circular buffer
 /// </summary>
 internal class MessageLogger
 {
-    private readonly CircularBuffer<LogMessage> _messages;
     private readonly object _lock = new();
+    private readonly CircularBuffer<LogMessage> _messages;
 
     public MessageLogger(int capacity = 100)
     {
@@ -398,13 +384,11 @@ internal class MessageLogger
         }
 
         if (table.Rows.Count == 0)
-        {
             table.AddRow(
                 new Text(""),
                 new Text(""),
                 new Text("No messages", new Style(Color.Grey))
             );
-        }
 
         return new Panel(table)
             .Header("Logs", Justify.Center)
@@ -412,29 +396,32 @@ internal class MessageLogger
             .Border(BoxBorder.Rounded);
     }
 
-    private static (string icon, Color color) GetMessageStyle(MessageType type) => type switch
+    private static (string icon, Color color) GetMessageStyle(MessageType type)
     {
-        MessageType.Info => ("ℹ", Color.Blue),
-        MessageType.Warning => ("⚠", Color.Yellow),
-        MessageType.Error => ("✗", Color.Red),
-        MessageType.Success => ("✓", Color.Green),
-        MessageType.Debug => ("🐛", Color.Grey),
-        MessageType.Critical => ("‼", Color.Red1),
-        _ => ("•", Color.White)
-    };
+        return type switch
+        {
+            MessageType.Info => ("ℹ", Color.Blue),
+            MessageType.Warning => ("⚠", Color.Yellow),
+            MessageType.Error => ("✗", Color.Red),
+            MessageType.Success => ("✓", Color.Green),
+            MessageType.Debug => ("🐛", Color.Grey),
+            MessageType.Critical => ("‼", Color.Red1),
+            _ => ("•", Color.White)
+        };
+    }
 
     private record LogMessage(DateTime Timestamp, MessageType Type, string Message);
 }
 
 /// <summary>
-/// Circular buffer implementation for efficient memory usage
+///     Circular buffer implementation for efficient memory usage
 /// </summary>
 internal class CircularBuffer<T>
 {
     private readonly T[] _buffer;
     private readonly object _lock = new();
-    private int _writeIndex;
     private int _count;
+    private int _writeIndex;
 
     public CircularBuffer(int capacity)
     {
@@ -460,8 +447,8 @@ internal class CircularBuffer<T>
                 yield break;
 
             var startIndex = _count < _buffer.Length ? 0 : _writeIndex;
-            
-            for (int i = 0; i < _count; i++)
+
+            for (var i = 0; i < _count; i++)
             {
                 var index = (startIndex + i) % _buffer.Length;
                 if (_buffer[index] != null)
@@ -472,16 +459,16 @@ internal class CircularBuffer<T>
 }
 
 /// <summary>
-/// Adapter for individual progress contexts
+///     Adapter for individual progress contexts
 /// </summary>
 internal class ProgressContextAdapter : IProgressContext
 {
+    private readonly ChannelWriter<ProgressCommand> _commandWriter;
     private readonly string _id;
     private readonly string _title;
     private readonly int _totalItems;
-    private readonly ChannelWriter<ProgressCommand> _commandWriter;
-    private volatile bool _disposed;
     private volatile bool _completed;
+    private volatile bool _disposed;
 
     public ProgressContextAdapter(string id, string title, int totalItems, ChannelWriter<ProgressCommand> commandWriter)
     {
@@ -494,14 +481,14 @@ internal class ProgressContextAdapter : IProgressContext
     public void Update(int current, string message)
     {
         if (_disposed || _completed) return;
-        
+
         _commandWriter.TryWrite(new UpdateProgressCommand(_id, current, message));
     }
 
     public void Complete()
     {
         if (_disposed || _completed) return;
-        
+
         _completed = true;
         _commandWriter.TryWrite(new CompleteProgressCommand(_id));
     }
@@ -516,16 +503,13 @@ internal class ProgressContextAdapter : IProgressContext
         if (!_disposed)
         {
             _disposed = true;
-            if (!_completed)
-            {
-                Complete();
-            }
+            if (!_completed) Complete();
         }
     }
 }
 
 /// <summary>
-/// Command types for progress updates
+///     Command types for progress updates
 /// </summary>
 internal abstract record ProgressCommand(string Id);
 

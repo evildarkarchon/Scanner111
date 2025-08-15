@@ -6,8 +6,8 @@ using Scanner111.Core.Models;
 namespace Scanner111.Core.Pipeline;
 
 /// <summary>
-/// Implements a performance monitoring decorator for an existing scan pipeline.
-/// Tracks and logs performance metrics for single and batch scan processing operations.
+///     Implements a performance monitoring decorator for an existing scan pipeline.
+///     Tracks and logs performance metrics for single and batch scan processing operations.
 /// </summary>
 public class PerformanceMonitoringPipeline : IScanPipeline
 {
@@ -22,16 +22,17 @@ public class PerformanceMonitoringPipeline : IScanPipeline
     }
 
     /// <summary>
-    /// Processes a single log file asynchronously, while tracking performance metrics.
+    ///     Processes a single log file asynchronously, while tracking performance metrics.
     /// </summary>
     /// <param name="logPath">
-    /// The path to the log file that needs to be processed.
+    ///     The path to the log file that needs to be processed.
     /// </param>
     /// <param name="cancellationToken">
-    /// An optional token to cancel the operation.
+    ///     An optional token to cancel the operation.
     /// </param>
     /// <returns>
-    /// A task that represents the asynchronous operation, containing the result of the scan as a <see cref="ScanResult"/> object.
+    ///     A task that represents the asynchronous operation, containing the result of the scan as a <see cref="ScanResult" />
+    ///     object.
     /// </returns>
     public async Task<ScanResult> ProcessSingleAsync(string logPath, CancellationToken cancellationToken = default)
     {
@@ -63,22 +64,23 @@ public class PerformanceMonitoringPipeline : IScanPipeline
     }
 
     /// <summary>
-    /// Processes a batch of log files asynchronously, while monitoring performance metrics for the entire batch and individual files.
+    ///     Processes a batch of log files asynchronously, while monitoring performance metrics for the entire batch and
+    ///     individual files.
     /// </summary>
     /// <param name="logPaths">
-    /// The collection of paths to the log files that need to be processed.
+    ///     The collection of paths to the log files that need to be processed.
     /// </param>
     /// <param name="options">
-    /// Optional settings for controlling the scan process.
+    ///     Optional settings for controlling the scan process.
     /// </param>
     /// <param name="progress">
-    /// Optional progress reporter for batch processing updates.
+    ///     Optional progress reporter for batch processing updates.
     /// </param>
     /// <param name="cancellationToken">
-    /// An optional token to cancel the batch processing operation.
+    ///     An optional token to cancel the batch processing operation.
     /// </param>
     /// <returns>
-    /// An asynchronous stream of <see cref="ScanResult"/> containing the result of processing each log file.
+    ///     An asynchronous stream of <see cref="ScanResult" /> containing the result of processing each log file.
     /// </returns>
     public async IAsyncEnumerable<ScanResult> ProcessBatchAsync(
         IEnumerable<string> logPaths,
@@ -120,10 +122,10 @@ public class PerformanceMonitoringPipeline : IScanPipeline
     }
 
     /// <summary>
-    /// Asynchronously disposes of resources used by the performance monitoring pipeline and its inner pipeline.
+    ///     Asynchronously disposes of resources used by the performance monitoring pipeline and its inner pipeline.
     /// </summary>
     /// <returns>
-    /// A task that represents the asynchronous dispose operation.
+    ///     A task that represents the asynchronous dispose operation.
     /// </returns>
     public async ValueTask DisposeAsync()
     {
@@ -132,13 +134,13 @@ public class PerformanceMonitoringPipeline : IScanPipeline
     }
 
     /// <summary>
-    /// Records performance metrics for a specified log file.
+    ///     Records performance metrics for a specified log file.
     /// </summary>
     /// <param name="logPath">
-    /// The path to the log file for which performance metrics are being recorded.
+    ///     The path to the log file for which performance metrics are being recorded.
     /// </param>
     /// <param name="metrics">
-    /// The performance metrics associated with the processing of the log file.
+    ///     The performance metrics associated with the processing of the log file.
     /// </param>
     private void RecordMetrics(string logPath, PerformanceMetrics metrics)
     {
@@ -152,13 +154,13 @@ public class PerformanceMonitoringPipeline : IScanPipeline
     }
 
     /// <summary>
-    /// Logs performance metrics for a batch processing operation, including per-file metrics and overall batch summary.
+    ///     Logs performance metrics for a batch processing operation, including per-file metrics and overall batch summary.
     /// </summary>
     /// <param name="batchMetrics">
-    /// Metrics summarizing the performance of the batch operation, including timing and success rates.
+    ///     Metrics summarizing the performance of the batch operation, including timing and success rates.
     /// </param>
     /// <param name="fileMetrics">
-    /// A dictionary containing performance metrics for individual files processed in the batch.
+    ///     A dictionary containing performance metrics for individual files processed in the batch.
     /// </param>
     private void LogBatchMetrics(BatchPerformanceMetrics batchMetrics,
         Dictionary<string, PerformanceMetrics> fileMetrics)
@@ -185,10 +187,11 @@ public class PerformanceMonitoringPipeline : IScanPipeline
     }
 
     /// <summary>
-    /// Retrieves the performance metrics collected during scanning operations.
+    ///     Retrieves the performance metrics collected during scanning operations.
     /// </summary>
     /// <returns>
-    /// An immutable dictionary where the keys represent file identifiers, and the values are the corresponding <see cref="PerformanceMetrics"/> objects containing performance data.
+    ///     An immutable dictionary where the keys represent file identifiers, and the values are the corresponding
+    ///     <see cref="PerformanceMetrics" /> objects containing performance data.
     /// </returns>
     public IReadOnlyDictionary<string, PerformanceMetrics> GetMetrics()
     {
@@ -197,8 +200,8 @@ public class PerformanceMonitoringPipeline : IScanPipeline
 }
 
 /// <summary>
-/// Represents detailed performance metrics for processing a single file within the scan pipeline.
-/// Captures key timing details, success state, error information, and performance breakdowns by analysis stage.
+///     Represents detailed performance metrics for processing a single file within the scan pipeline.
+///     Captures key timing details, success state, error information, and performance breakdowns by analysis stage.
 /// </summary>
 public class PerformanceMetrics
 {
@@ -211,9 +214,9 @@ public class PerformanceMetrics
 }
 
 /// <summary>
-/// Represents performance metrics collected during a batch processing operation.
-/// Tracks the start and end times, duration, count of processed files, successes, failures,
-/// and average processing time per file.
+///     Represents performance metrics collected during a batch processing operation.
+///     Tracks the start and end times, duration, count of processed files, successes, failures,
+///     and average processing time per file.
 /// </summary>
 public class BatchPerformanceMetrics
 {

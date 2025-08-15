@@ -1,12 +1,12 @@
 using System.Runtime.InteropServices;
 using FluentAssertions;
 using Scanner111.Core.Infrastructure;
-using Xunit;
+using Scanner111.Core.Models;
 
 namespace Scanner111.Tests.Infrastructure;
 
 /// <summary>
-/// Unit tests for the <see cref="GamePathDetection"/> class
+///     Unit tests for the <see cref="GamePathDetection" /> class
 /// </summary>
 public class GamePathDetectionTests : IDisposable
 {
@@ -21,12 +21,9 @@ public class GamePathDetectionTests : IDisposable
     {
         // Clean up temporary directories
         foreach (var dir in _tempDirectories)
-        {
             if (Directory.Exists(dir))
-            {
                 Directory.Delete(dir, true);
-            }
-        }
+
         GC.SuppressFinalize(this);
     }
 
@@ -135,10 +132,7 @@ public class GamePathDetectionTests : IDisposable
 
         // Create log directory
         var logDirectory = Path.GetDirectoryName(f4seLogPath);
-        if (!string.IsNullOrEmpty(logDirectory))
-        {
-            Directory.CreateDirectory(logDirectory);
-        }
+        if (!string.IsNullOrEmpty(logDirectory)) Directory.CreateDirectory(logDirectory);
 
         // Create mock F4SE log with plugin directory line
         var logContent = new[]
@@ -192,7 +186,7 @@ public class GamePathDetectionTests : IDisposable
         // We're testing the method logic rather than actual detection
 
         // Act
-        var config = GamePathDetection.DetectGameConfiguration("Fallout4");
+        var config = GamePathDetection.DetectGameConfiguration();
 
         // Assert
         // Config might be null if no game is installed, which is fine for unit tests
@@ -342,7 +336,7 @@ public class GamePathDetectionTests : IDisposable
 
         // Mock the detection by creating a test scenario
         // Since we can't control the actual detection, we test the configuration structure
-        var config = new Scanner111.Core.Models.GameConfiguration
+        var config = new GameConfiguration
         {
             GameName = "Fallout4",
             RootPath = gamePath,
@@ -353,10 +347,7 @@ public class GamePathDetectionTests : IDisposable
 
         // Check if F4SE exists
         var f4sePath = Path.Combine(gamePath, "f4se_loader.exe");
-        if (File.Exists(f4sePath))
-        {
-            config.XsePath = f4sePath;
-        }
+        if (File.Exists(f4sePath)) config.XsePath = f4sePath;
 
         // Assert
         config.XsePath.Should().NotBeNull();
@@ -369,13 +360,10 @@ public class GamePathDetectionTests : IDisposable
         // Arrange
         var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         var f4seLogPath = Path.Combine(documentsPath, "My Games", "Fallout4", "F4SE", "f4se.log");
-        
+
         // Create log directory
         var logDirectory = Path.GetDirectoryName(f4seLogPath);
-        if (!string.IsNullOrEmpty(logDirectory))
-        {
-            Directory.CreateDirectory(logDirectory);
-        }
+        if (!string.IsNullOrEmpty(logDirectory)) Directory.CreateDirectory(logDirectory);
 
         // Create malformed log file
         var malformedContent = new[]
@@ -411,20 +399,17 @@ public class GamePathDetectionTests : IDisposable
         // Arrange
         var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         var f4seLogPath = Path.Combine(documentsPath, "My Games", "Fallout4", "F4SE", "f4se.log");
-        
+
         // Create log directory
         var logDirectory = Path.GetDirectoryName(f4seLogPath);
-        if (!string.IsNullOrEmpty(logDirectory))
-        {
-            Directory.CreateDirectory(logDirectory);
-        }
+        if (!string.IsNullOrEmpty(logDirectory)) Directory.CreateDirectory(logDirectory);
 
         // Create a file and lock it
         FileStream? lockedFile = null;
         try
         {
             lockedFile = new FileStream(f4seLogPath, FileMode.Create, FileAccess.Write, FileShare.None);
-            
+
             // Act - should handle exception gracefully
             var result = GamePathDetection.TryGetGamePathFromXseLog();
 
@@ -450,16 +435,13 @@ public class GamePathDetectionTests : IDisposable
         // Arrange
         var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         var f4seLogPath = Path.Combine(documentsPath, "My Games", "Fallout4", "F4SE", "f4se.log");
-        
+
         var logDirectory = Path.GetDirectoryName(f4seLogPath);
-        if (!string.IsNullOrEmpty(logDirectory))
-        {
-            Directory.CreateDirectory(logDirectory);
-        }
+        if (!string.IsNullOrEmpty(logDirectory)) Directory.CreateDirectory(logDirectory);
 
         // Create the expected game directory structure for validation
         var tempGamePath = CreateTempGameDirectory(true);
-        
+
         // Create log with plugin path
         var logContent = new[]
         {
@@ -568,10 +550,7 @@ public class GamePathDetectionTests : IDisposable
         // Assert
         // The method might still find a Fallout 4 installation even when searching for a non-existent game
         // So we either expect null or a config with the requested game name
-        if (result != null)
-        {
-            result.GameName.Should().Be("NonExistentGame12345");
-        }
+        if (result != null) result.GameName.Should().Be("NonExistentGame12345");
         // If null, that's also valid
     }
 
@@ -636,10 +615,7 @@ public class GamePathDetectionTests : IDisposable
     {
         var tempDir = CreateTempDirectory();
 
-        if (includeExecutable)
-        {
-            File.WriteAllText(Path.Combine(tempDir, "Fallout4.exe"), "dummy executable");
-        }
+        if (includeExecutable) File.WriteAllText(Path.Combine(tempDir, "Fallout4.exe"), "dummy executable");
 
         // Create some typical game directories
         Directory.CreateDirectory(Path.Combine(tempDir, "Data"));

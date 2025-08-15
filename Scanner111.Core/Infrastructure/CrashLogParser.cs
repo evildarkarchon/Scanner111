@@ -4,21 +4,22 @@ using Scanner111.Core.Models;
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-/// Utility class for parsing Bethesda game crash logs, specifically in Buffout 4/Crash Logger format.
+///     Utility class for parsing Bethesda game crash logs, specifically in Buffout 4/Crash Logger format.
 /// </summary>
 public static partial class CrashLogParser
 {
     /// <summary>
-    /// Parses a crash log from the specified file path.
+    ///     Parses a crash log from the specified file path.
     /// </summary>
     /// <param name="filePath">
-    /// The path to the crash log file to parse.
+    ///     The path to the crash log file to parse.
     /// </param>
     /// <param name="cancellationToken">
-    /// A token to monitor for cancellation requests.
+    ///     A token to monitor for cancellation requests.
     /// </param>
     /// <returns>
-    /// A <see cref="CrashLog"/> instance containing the parsed crash log data, or null if the file is not a valid crash log.
+    ///     A <see cref="CrashLog" /> instance containing the parsed crash log data, or null if the file is not a valid crash
+    ///     log.
     /// </returns>
     public static async Task<CrashLog?> ParseAsync(string filePath, CancellationToken cancellationToken = default)
     {
@@ -76,13 +77,14 @@ public static partial class CrashLogParser
     }
 
     /// <summary>
-    /// Parses the header section of the crash log to extract the game version, crash generator version, and main error details.
+    ///     Parses the header section of the crash log to extract the game version, crash generator version, and main error
+    ///     details.
     /// </summary>
     /// <param name="lines">
-    /// The lines of the crash log being parsed.
+    ///     The lines of the crash log being parsed.
     /// </param>
     /// <param name="crashLog">
-    /// The <see cref="CrashLog"/> instance to populate with extracted header information.
+    ///     The <see cref="CrashLog" /> instance to populate with extracted header information.
     /// </param>
     private static void ParseHeader(string[] lines, CrashLog crashLog)
     {
@@ -105,14 +107,14 @@ public static partial class CrashLogParser
     }
 
     /// <summary>
-    /// Extracts segments from the provided crash log data based on predefined boundaries.
+    ///     Extracts segments from the provided crash log data based on predefined boundaries.
     /// </summary>
     /// <param name="crashData">
-    /// An array of strings containing the lines of the crash log file.
+    ///     An array of strings containing the lines of the crash log file.
     /// </param>
     /// <returns>
-    /// A list of segments, where each segment is represented as a list of strings.
-    /// Returns an empty list if no segments were found or the log data is invalid.
+    ///     A list of segments, where each segment is represented as a list of strings.
+    ///     Returns an empty list if no segments were found or the log data is invalid.
     /// </returns>
     private static List<List<string>> ExtractSegments(string[] crashData)
     {
@@ -220,13 +222,13 @@ public static partial class CrashLogParser
     }
 
     /// <summary>
-    /// Parses the plugins section of the crash log and extracts plugin data.
+    ///     Parses the plugins section of the crash log and extracts plugin data.
     /// </summary>
     /// <param name="pluginLines">
-    /// The lines of text representing the plugins section from the crash log.
+    ///     The lines of text representing the plugins section from the crash log.
     /// </param>
     /// <param name="crashLog">
-    /// The <see cref="CrashLog"/> instance where the parsed plugin data will be stored.
+    ///     The <see cref="CrashLog" /> instance where the parsed plugin data will be stored.
     /// </param>
     private static void ParsePluginsSection(List<string> pluginLines, CrashLog crashLog)
     {
@@ -246,13 +248,14 @@ public static partial class CrashLogParser
     }
 
     /// <summary>
-    /// Parses the crashgen settings from the specified list of lines and populates the related data in the provided crash log instance.
+    ///     Parses the crashgen settings from the specified list of lines and populates the related data in the provided crash
+    ///     log instance.
     /// </summary>
     /// <param name="settingsLines">
-    /// A list of strings representing the crashgen settings section from the crash log.
+    ///     A list of strings representing the crashgen settings section from the crash log.
     /// </param>
     /// <param name="crashLog">
-    /// The <see cref="CrashLog"/> instance to populate with the parsed crashgen settings data.
+    ///     The <see cref="CrashLog" /> instance to populate with the parsed crashgen settings data.
     /// </param>
     private static void ParseCrashgenSettings(List<string> settingsLines, CrashLog crashLog)
     {
@@ -284,13 +287,14 @@ public static partial class CrashLogParser
     }
 
     /// <summary>
-    /// Parses the XSE (eXtended Script Extender) modules section from the provided lines and updates the crash log with the extracted modules.
+    ///     Parses the XSE (eXtended Script Extender) modules section from the provided lines and updates the crash log with
+    ///     the extracted modules.
     /// </summary>
     /// <param name="xseLines">
-    /// The lines of text corresponding to the XSE plugins section in the crash log.
+    ///     The lines of text corresponding to the XSE plugins section in the crash log.
     /// </param>
     /// <param name="crashLog">
-    /// The crash log instance to update with the parsed XSE modules data.
+    ///     The crash log instance to update with the parsed XSE modules data.
     /// </param>
     private static void ParseXseModules(List<string> xseLines, CrashLog crashLog)
     {

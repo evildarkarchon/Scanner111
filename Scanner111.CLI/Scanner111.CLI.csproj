@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
-        <ProjectReference Include="..\Scanner111.Core\Scanner111.Core.csproj" />
+        <ProjectReference Include="..\Scanner111.Core\Scanner111.Core.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="CommandLineParser" Version="2.9.1" />
-        <PackageReference Include="Spectre.Console" Version="0.50.0" />
-        <PackageReference Include="Spectre.Console.Cli" Version="0.50.0" />
+        <PackageReference Include="CommandLineParser" Version="2.9.1"/>
+        <PackageReference Include="Spectre.Console" Version="0.50.0"/>
+        <PackageReference Include="Spectre.Console.Cli" Version="0.50.0"/>
     </ItemGroup>
 
     <PropertyGroup>

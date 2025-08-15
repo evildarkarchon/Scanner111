@@ -1,10 +1,7 @@
-using System;
-using System.Threading;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
-using Xunit;
 
 namespace Scanner111.Tests.Infrastructure;
 
@@ -16,17 +13,18 @@ public class NullImplementationsTests
         // Arrange
         var cache = new NullCacheManager();
         var factoryCallCount = 0;
+
         string Factory()
         {
             factoryCallCount++;
             return "test value";
         }
-        
+
         // Act
         var result1 = cache.GetOrSetYamlSetting("test.yaml", "test.key", Factory);
         var result2 = cache.GetOrSetYamlSetting("test.yaml", "test.key", Factory);
         var result3 = cache.GetOrSetYamlSetting("test.yaml", "test.key", Factory, TimeSpan.FromMinutes(5));
-        
+
         // Assert
         result1.Should().Be("test value");
         result2.Should().Be("test value");
@@ -44,7 +42,7 @@ public class NullImplementationsTests
             AnalyzerName = "TestAnalyzer",
             HasFindings = true
         };
-        
+
         // Act & Assert - Should not throw
         cache.CacheAnalysisResult("test.log", "TestAnalyzer", result);
     }
@@ -59,13 +57,13 @@ public class NullImplementationsTests
             AnalyzerName = "TestAnalyzer",
             HasFindings = true
         };
-        
+
         // Cache a result
         cache.CacheAnalysisResult("test.log", "TestAnalyzer", result);
-        
+
         // Act
         var cachedResult = cache.GetCachedAnalysisResult("test.log", "TestAnalyzer");
-        
+
         // Assert
         cachedResult.Should().BeNull();
     }
@@ -75,12 +73,12 @@ public class NullImplementationsTests
     {
         // Arrange
         var cache = new NullCacheManager();
-        
+
         // Act
         var isValid1 = cache.IsFileCacheValid("existing.log");
         var isValid2 = cache.IsFileCacheValid("nonexistent.log");
         var isValid3 = cache.IsFileCacheValid("");
-        
+
         // Assert
         isValid1.Should().BeFalse();
         isValid2.Should().BeFalse();
@@ -92,7 +90,7 @@ public class NullImplementationsTests
     {
         // Arrange
         var cache = new NullCacheManager();
-        
+
         // Act & Assert - Should not throw
         cache.ClearCache();
     }
@@ -102,10 +100,10 @@ public class NullImplementationsTests
     {
         // Arrange
         var cache = new NullCacheManager();
-        
+
         // Act
         var stats = cache.GetStatistics();
-        
+
         // Assert
         stats.TotalHits.Should().Be(0);
         stats.TotalMisses.Should().Be(0);
@@ -120,10 +118,10 @@ public class NullImplementationsTests
         // Arrange
         var policy = new NoRetryErrorPolicy();
         var exception = new OperationCanceledException();
-        
+
         // Act
         var result = policy.HandleError(exception, "test context", 1);
-        
+
         // Assert
         result.Action.Should().Be(ErrorAction.Fail);
         result.Message.Should().Be("Operation was cancelled");
@@ -136,10 +134,10 @@ public class NullImplementationsTests
         // Arrange
         var policy = new NoRetryErrorPolicy();
         var exception = new InvalidOperationException("Test error");
-        
+
         // Act
         var result = policy.HandleError(exception, "test context", 1);
-        
+
         // Assert
         result.Action.Should().Be(ErrorAction.Skip);
         result.Message.Should().Be("Error in test context: Test error");
@@ -155,10 +153,10 @@ public class NullImplementationsTests
         // Arrange
         var policy = new NoRetryErrorPolicy();
         var exception = (Exception)Activator.CreateInstance(exceptionType, "Test error");
-        
+
         // Act
         var result = policy.HandleError(exception, "test context", 1);
-        
+
         // Assert
         result.Action.Should().Be(ErrorAction.Skip);
         result.Message.Should().Contain("Test error");
@@ -175,10 +173,10 @@ public class NullImplementationsTests
         // Arrange
         var policy = new NoRetryErrorPolicy();
         var exception = new Exception("Test");
-        
+
         // Act
         var result = policy.HandleError(exception, "context", attemptNumber);
-        
+
         // Assert
         result.Action.Should().Be(ErrorAction.Skip);
     }
@@ -188,7 +186,7 @@ public class NullImplementationsTests
     {
         // Arrange
         var policy = new NoRetryErrorPolicy();
-        
+
         // Act & Assert
         policy.ShouldRetry(new Exception(), 1).Should().BeFalse();
         policy.ShouldRetry(new IOException(), 2).Should().BeFalse();
@@ -201,7 +199,7 @@ public class NullImplementationsTests
     {
         // Arrange
         var progress = new NullProgress<int>();
-        
+
         // Act & Assert - Should not throw
         progress.Report(0);
         progress.Report(50);
@@ -214,14 +212,14 @@ public class NullImplementationsTests
         // Arrange & Act & Assert - Should not throw
         var intProgress = new NullProgress<int>();
         intProgress.Report(42);
-        
+
         var stringProgress = new NullProgress<string>();
         stringProgress.Report("test");
         stringProgress.Report(null);
-        
+
         var progressInfoProgress = new NullProgress<ProgressInfo>();
         progressInfoProgress.Report(new ProgressInfo { Current = 10, Total = 100, Message = "Test" });
-        
+
         var customProgress = new NullProgress<(int count, string message)>();
         customProgress.Report((5, "Processing"));
     }
@@ -231,7 +229,7 @@ public class NullImplementationsTests
     {
         // Arrange
         IProgress<string> progress = new NullProgress<string>();
-        
+
         // Act & Assert - Should work as IProgress interface
         progress.Report("test message");
     }
@@ -244,28 +242,29 @@ public class NullImplementationsTests
         var policy = new NoRetryErrorPolicy();
         var progress = new NullProgress<int>();
         var exception = new Exception("Test");
-        
+
         // Act - Concurrent access
-        var tasks = new System.Threading.Tasks.Task[10];
-        for (int i = 0; i < tasks.Length; i++)
+        var tasks = new Task[10];
+        for (var i = 0; i < tasks.Length; i++)
         {
             var index = i;
-            tasks[i] = System.Threading.Tasks.Task.Run(() =>
+            tasks[i] = Task.Run(() =>
             {
                 cache.GetOrSetYamlSetting("test", "key", () => index);
-                cache.CacheAnalysisResult($"file{index}", "analyzer", new GenericAnalysisResult { AnalyzerName = "analyzer" });
+                cache.CacheAnalysisResult($"file{index}", "analyzer",
+                    new GenericAnalysisResult { AnalyzerName = "analyzer" });
                 cache.GetCachedAnalysisResult($"file{index}", "analyzer");
                 cache.IsFileCacheValid($"file{index}");
                 cache.GetStatistics();
-                
+
                 policy.HandleError(exception, $"context{index}", index);
                 policy.ShouldRetry(exception, index);
-                
+
                 progress.Report(index);
             });
         }
-        
+
         // Assert - Should complete without exceptions
-        System.Threading.Tasks.Task.WaitAll(tasks);
+        Task.WaitAll(tasks);
     }
 }

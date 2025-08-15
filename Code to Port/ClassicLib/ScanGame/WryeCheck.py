@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup, PageElement
 
 from ClassicLib import GlobalRegistry
 from ClassicLib.Constants import YAML
-from ClassicLib.Util import open_file_with_encoding
+from ClassicLib.FileIOCore import read_file_sync
 from ClassicLib.YamlSettingsCache import yaml_settings
 
 
@@ -94,8 +94,8 @@ def parse_wrye_report(report_path: Path, wrye_warnings: dict[str, str]) -> list[
     message_parts: list[str] = []
 
     # Read and parse HTML file
-    with open_file_with_encoding(report_path) as wb_file:
-        soup: BeautifulSoup = BeautifulSoup(wb_file.read(), "html.parser")
+    html_content = read_file_sync(report_path)
+    soup: BeautifulSoup = BeautifulSoup(html_content, "html.parser")
 
     # Process each section (h3 element)
     for section in soup.find_all("h3"):

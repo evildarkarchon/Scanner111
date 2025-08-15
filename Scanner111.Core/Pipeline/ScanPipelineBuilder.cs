@@ -7,7 +7,7 @@ using Scanner111.Core.Infrastructure;
 namespace Scanner111.Core.Pipeline;
 
 /// <summary>
-/// Builder for constructing and configuring instances of scan pipelines.
+///     Builder for constructing and configuring instances of scan pipelines.
 /// </summary>
 public class ScanPipelineBuilder
 {
@@ -15,8 +15,8 @@ public class ScanPipelineBuilder
     private readonly IServiceCollection _services;
     private bool _enableCaching = true;
     private bool _enableEnhancedErrorHandling = true;
-    private bool _enablePerformanceMonitoring;
     private bool _enableFcx;
+    private bool _enablePerformanceMonitoring;
 
     public ScanPipelineBuilder()
     {
@@ -25,10 +25,10 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Adds an analyzer of the specified type to the pipeline.
+    ///     Adds an analyzer of the specified type to the pipeline.
     /// </summary>
-    /// <typeparam name="T">The type of the analyzer to add. Must implement <see cref="IAnalyzer"/>.</typeparam>
-    /// <returns>The current instance of <see cref="ScanPipelineBuilder"/> for method chaining.</returns>
+    /// <typeparam name="T">The type of the analyzer to add. Must implement <see cref="IAnalyzer" />.</typeparam>
+    /// <returns>The current instance of <see cref="ScanPipelineBuilder" /> for method chaining.</returns>
     public ScanPipelineBuilder AddAnalyzer<T>() where T : class, IAnalyzer
     {
         _analyzerTypes.Add(typeof(T));
@@ -37,9 +37,9 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Adds all default analyzers to the pipeline.
+    ///     Adds all default analyzers to the pipeline.
     /// </summary>
-    /// <returns>The current instance of <see cref="ScanPipelineBuilder"/> for method chaining.</returns>
+    /// <returns>The current instance of <see cref="ScanPipelineBuilder" /> for method chaining.</returns>
     public ScanPipelineBuilder AddDefaultAnalyzers()
     {
         AddAnalyzer<BuffoutVersionAnalyzerV2>();
@@ -53,10 +53,13 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Configures the specified message handler for the pipeline.
+    ///     Configures the specified message handler for the pipeline.
     /// </summary>
-    /// <param name="messageHandler">The message handler to be used in the pipeline. Must implement <see cref="IMessageHandler"/>.</param>
-    /// <returns>An instance of <see cref="ScanPipelineBuilder"/> to allow method chaining.</returns>
+    /// <param name="messageHandler">
+    ///     The message handler to be used in the pipeline. Must implement
+    ///     <see cref="IMessageHandler" />.
+    /// </param>
+    /// <returns>An instance of <see cref="ScanPipelineBuilder" /> to allow method chaining.</returns>
     public ScanPipelineBuilder WithMessageHandler(IMessageHandler messageHandler)
     {
         _services.AddSingleton(messageHandler);
@@ -64,10 +67,10 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Enables or disables performance monitoring for the pipeline.
+    ///     Enables or disables performance monitoring for the pipeline.
     /// </summary>
     /// <param name="enable">Indicates whether performance monitoring should be enabled. Defaults to <c>true</c>.</param>
-    /// <returns>The current instance of <see cref="ScanPipelineBuilder"/> for method chaining.</returns>
+    /// <returns>The current instance of <see cref="ScanPipelineBuilder" /> for method chaining.</returns>
     public ScanPipelineBuilder WithPerformanceMonitoring(bool enable = true)
     {
         _enablePerformanceMonitoring = enable;
@@ -75,10 +78,10 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Enables or disables caching for analysis results and settings within the pipeline.
+    ///     Enables or disables caching for analysis results and settings within the pipeline.
     /// </summary>
     /// <param name="enable">A boolean value indicating whether caching should be enabled. Defaults to true.</param>
-    /// <returns>The current instance of <see cref="ScanPipelineBuilder"/> for method chaining.</returns>
+    /// <returns>The current instance of <see cref="ScanPipelineBuilder" /> for method chaining.</returns>
     public ScanPipelineBuilder WithCaching(bool enable = true)
     {
         _enableCaching = enable;
@@ -86,10 +89,10 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Enables or disables enhanced error handling and resilience for the pipeline.
+    ///     Enables or disables enhanced error handling and resilience for the pipeline.
     /// </summary>
     /// <param name="enable">A boolean indicating whether to enable enhanced error handling. Defaults to <c>true</c>.</param>
-    /// <returns>The current instance of <see cref="ScanPipelineBuilder"/> to allow method chaining.</returns>
+    /// <returns>The current instance of <see cref="ScanPipelineBuilder" /> to allow method chaining.</returns>
     public ScanPipelineBuilder WithEnhancedErrorHandling(bool enable = true)
     {
         _enableEnhancedErrorHandling = enable;
@@ -97,11 +100,11 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Enables or disables FCX (File Integrity Check) mode for the pipeline.
-    /// When enabled, the pipeline will perform file integrity checks before analyzing crash logs.
+    ///     Enables or disables FCX (File Integrity Check) mode for the pipeline.
+    ///     When enabled, the pipeline will perform file integrity checks before analyzing crash logs.
     /// </summary>
     /// <param name="enable">A boolean indicating whether to enable FCX mode. Defaults to <c>true</c>.</param>
-    /// <returns>The current instance of <see cref="ScanPipelineBuilder"/> to allow method chaining.</returns>
+    /// <returns>The current instance of <see cref="ScanPipelineBuilder" /> to allow method chaining.</returns>
     public ScanPipelineBuilder WithFcxMode(bool enable = true)
     {
         _enableFcx = enable;
@@ -110,10 +113,10 @@ public class ScanPipelineBuilder
 
 
     /// <summary>
-    /// Configures logging for the scan pipeline.
+    ///     Configures logging for the scan pipeline.
     /// </summary>
-    /// <param name="configure">An action to configure the logging behavior using an <see cref="ILoggingBuilder"/>.</param>
-    /// <returns>The current instance of <see cref="ScanPipelineBuilder"/> to enable method chaining.</returns>
+    /// <param name="configure">An action to configure the logging behavior using an <see cref="ILoggingBuilder" />.</param>
+    /// <returns>The current instance of <see cref="ScanPipelineBuilder" /> to enable method chaining.</returns>
     public ScanPipelineBuilder WithLogging(Action<ILoggingBuilder> configure)
     {
         _services.AddLogging(configure);
@@ -121,9 +124,9 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Builds and returns the configured scan pipeline.
+    ///     Builds and returns the configured scan pipeline.
     /// </summary>
-    /// <returns>An instance of <see cref="IScanPipeline"/> representing the fully constructed scan pipeline.</returns>
+    /// <returns>An instance of <see cref="IScanPipeline" /> representing the fully constructed scan pipeline.</returns>
     public IScanPipeline Build()
     {
         // Build service provider
@@ -168,7 +171,7 @@ public class ScanPipelineBuilder
             var settingsService = serviceProvider.GetRequiredService<IApplicationSettingsService>();
             var yamlSettings = serviceProvider.GetRequiredService<IYamlSettingsProvider>();
             var messageHandler = serviceProvider.GetRequiredService<IMessageHandler>();
-            
+
             pipeline = new FcxEnabledPipeline(
                 pipeline,
                 settingsService,
@@ -190,8 +193,8 @@ public class ScanPipelineBuilder
     }
 
     /// <summary>
-    /// Configures the default set of services required for the scan pipeline to operate.
-    /// This includes adding logging, caching, error handling, and core infrastructure services.
+    ///     Configures the default set of services required for the scan pipeline to operate.
+    ///     This includes adding logging, caching, error handling, and core infrastructure services.
     /// </summary>
     private void ConfigureDefaultServices()
     {
@@ -238,8 +241,8 @@ public class ScanPipelineBuilder
 }
 
 /// <summary>
-/// Provides a null implementation of the <see cref="IMessageHandler"/> interface,
-/// primarily used when no message handling UI or mechanism is required.
+///     Provides a null implementation of the <see cref="IMessageHandler" /> interface,
+///     primarily used when no message handling UI or mechanism is required.
 /// </summary>
 internal class NullMessageHandler : IMessageHandler
 {

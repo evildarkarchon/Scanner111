@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, cast
 
 from ClassicLib import GlobalRegistry, msg_error, msg_info
 from ClassicLib.Constants import FO4_VERSIONS, NG_VERSION, NULL_VERSION, OG_VERSION, YAML
+from ClassicLib.Interface.PathDialogMixin import show_game_path_dialog_static
 from ClassicLib.Logger import logger
 from ClassicLib.Util import get_game_version, open_file_with_encoding
 from ClassicLib.YamlSettingsCache import yaml_settings
@@ -125,7 +126,6 @@ def game_path_find() -> None:
 
     if GlobalRegistry.is_gui_mode():
         # Show dialog until valid path is selected or user cancels
-        from CLASSIC_Interface import show_game_path_dialog_static
 
         # This will return a valid path or exit the application if cancelled
         game_path = show_game_path_dialog_static()

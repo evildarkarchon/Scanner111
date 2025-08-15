@@ -26,6 +26,8 @@ except ImportError:
 
 def crashlogs_reformat_with_async(crashlog_list: list[Path], remove_list: tuple[str]) -> None:
     """
+    DEPRECATED: Use crashlogs_reformat_async directly or through FileIOCore.
+
     Drop-in replacement for crashlogs_reformat that uses async I/O.
 
     This function can be used as a direct replacement for the synchronous
@@ -35,6 +37,9 @@ def crashlogs_reformat_with_async(crashlog_list: list[Path], remove_list: tuple[
         crashlog_list: List of crash log file paths to reformat
         remove_list: Tuple of strings to remove from logs if simplification is enabled
     """
+    import warnings
+
+    warnings.warn("crashlogs_reformat_with_async is deprecated. Use crashlogs_reformat_async directly.", DeprecationWarning, stacklevel=2)
     logger.debug("- - - INITIATED ASYNC CRASH LOG FILE REFORMAT")
 
     # Run the async function using asyncio.run
@@ -70,9 +75,17 @@ async def load_crash_logs_async_optimized(crashlog_list: list[Path]) -> dict[str
 
         async def load_single_log(file_path: Path) -> tuple[str, list[str]]:
             try:
-                async with aiofiles.open(file_path, encoding="utf-8", errors="ignore") as f:
-                    content = await f.read()
+                # Try to use async encoding detection if available
+                try:
+                    from ClassicLib.AsyncUtil import read_file_with_encoding_async
+
+                    content = await read_file_with_encoding_async(file_path)
                     return file_path.name, content.splitlines()
+                except ImportError:
+                    # Fallback to UTF-8
+                    async with aiofiles.open(file_path, encoding="utf-8", errors="ignore") as f:
+                        content = await f.read()
+                        return file_path.name, content.splitlines()
             except Exception as e:  # noqa: BLE001
                 logger.error(f"Error reading {file_path}: {e}")
                 return file_path.name, []
@@ -87,7 +100,10 @@ async def load_crash_logs_async_optimized(crashlog_list: list[Path]) -> dict[str
                 cache_dict[name] = lines
 
     # Convert to bytes format to match ThreadSafeLogCache expectations
-    bytes_cache: dict[str, bytes] = {name: "\n".join(lines).encode("utf-8") for name, lines in cache_dict.items()}
+    # Strip any trailing newlines from lines before joining to avoid double newlines
+    bytes_cache: dict[str, bytes] = {
+        name: "\n".join(line.rstrip("\n\r") for line in lines).encode("utf-8") for name, lines in cache_dict.items()
+    }
 
     logger.debug(f"Completed async load of {len(bytes_cache)} crash logs")
     return bytes_cache
@@ -95,6 +111,8 @@ async def load_crash_logs_async_optimized(crashlog_list: list[Path]) -> dict[str
 
 def integrate_async_file_loading(crashlog_list: list[Path]) -> dict[str, bytes]:
     """
+    DEPRECATED: Use FileIOCore.read_multiple_files() instead.
+
     Drop-in replacement for synchronous crash log loading.
 
     This can replace the file loading in ThreadSafeLogCache.__init__
@@ -106,6 +124,11 @@ def integrate_async_file_loading(crashlog_list: list[Path]) -> dict[str, bytes]:
     Returns:
         Dictionary suitable for ThreadSafeLogCache.cache
     """
+    import warnings
+
+    warnings.warn(
+        "integrate_async_file_loading is deprecated. Use FileIOCore.read_multiple_files() instead.", DeprecationWarning, stacklevel=2
+    )
     return asyncio.run(load_crash_logs_async_optimized(crashlog_list))
 
 
@@ -153,12 +176,17 @@ async def write_report_async(crashlog_file: Path, autoscan_report: list[str]) ->
 
 def write_report_with_async(crashlog_file: Path, autoscan_report: list[str]) -> None:
     """
+    DEPRECATED: Use write_report_async directly or FileIOCore.write_crash_report().
+
     Drop-in replacement for synchronous report writing using async I/O.
 
     Args:
         crashlog_file: Path to the crash log file
         autoscan_report: Generated report lines
     """
+    import warnings
+
+    warnings.warn("write_report_with_async is deprecated. Use write_report_async directly or FileIOCore.", DeprecationWarning, stacklevel=2)
     asyncio.run(write_report_async(crashlog_file, autoscan_report))
 
 
@@ -166,14 +194,24 @@ async def write_reports_batch(reports: list[tuple[Path, list[str], bool]]) -> No
     """
     Write multiple reports concurrently for maximum performance.
 
+    NOTE: Consider using FileIOCore.write_multiple_files() for new code.
+
     Args:
         reports: List of (crashlog_file, autoscan_report, trigger_scan_failed) tuples
     """
-    tasks: list[Coroutine[Any, Any, None]] = [
-        write_report_async(crashlog_file, autoscan_report) for crashlog_file, autoscan_report, _ in reports
-    ]
+    # Use FileIOCore for better performance
+    from ClassicLib.FileIOCore import FileIOCore
+
+    io_core = FileIOCore()
+
+    tasks: list[Coroutine[Any, Any, None]] = []
+    for crashlog_file, autoscan_report, _ in reports:
+        report_path = crashlog_file.with_name(f"{crashlog_file.stem}-AUTOSCAN.md")
+        content = "".join(autoscan_report)
+        tasks.append(io_core.write_file(report_path, content))
+
     await asyncio.gather(*tasks, return_exceptions=True)
-    logger.debug(f"Wrote {len(reports)} reports using async batch I/O")
+    logger.debug(f"Wrote {len(reports)} reports using FileIOCore batch I/O")
 
 
 def run_performance_test(crashlog_list: list[Path], remove_list: tuple[str]) -> None:

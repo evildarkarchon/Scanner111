@@ -12,9 +12,9 @@ public class YamlSettingsService : IYamlSettingsProvider
 {
     private readonly ICacheManager _cacheManager;
     private readonly IDeserializer _deserializer;
-    private readonly ISerializer _serializer;
-    private readonly ILogger<YamlSettingsService> _logger;
     private readonly SemaphoreSlim _fileSemaphore = new(1, 1);
+    private readonly ILogger<YamlSettingsService> _logger;
+    private readonly ISerializer _serializer;
 
     public YamlSettingsService(ICacheManager cacheManager, ILogger<YamlSettingsService> logger)
     {
@@ -24,7 +24,7 @@ public class YamlSettingsService : IYamlSettingsProvider
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
             .IgnoreUnmatchedProperties()
             .Build();
-        
+
         _serializer = new SerializerBuilder()
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
             .Build();

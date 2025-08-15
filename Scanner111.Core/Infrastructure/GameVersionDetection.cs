@@ -1,10 +1,9 @@
 using System.Security.Cryptography;
-using Scanner111.Core.Models;
 
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-/// Provides functionality to detect and validate game versions
+///     Provides functionality to detect and validate game versions
 /// </summary>
 public class GameVersionDetection
 {
@@ -47,24 +46,22 @@ public class GameVersionDetection
             }
         }
     };
-    
+
     /// <summary>
-    /// Detects the game version by calculating the executable's hash
+    ///     Detects the game version by calculating the executable's hash
     /// </summary>
-    public static async Task<GameVersionInfo?> DetectGameVersionAsync(string executablePath, CancellationToken cancellationToken = default)
+    public static async Task<GameVersionInfo?> DetectGameVersionAsync(string executablePath,
+        CancellationToken cancellationToken = default)
     {
         if (!File.Exists(executablePath))
             return null;
-            
+
         try
         {
             var hash = await CalculateFileHashAsync(executablePath, cancellationToken).ConfigureAwait(false);
-            
-            if (KnownFallout4Versions.TryGetValue(hash, out var versionInfo))
-            {
-                return versionInfo;
-            }
-            
+
+            if (KnownFallout4Versions.TryGetValue(hash, out var versionInfo)) return versionInfo;
+
             // Unknown version
             return new GameVersionInfo
             {
@@ -87,17 +84,18 @@ public class GameVersionDetection
             return null;
         }
     }
-    
+
     /// <summary>
-    /// Calculates SHA256 hash of a file
+    ///     Calculates SHA256 hash of a file
     /// </summary>
-    public static async Task<string> CalculateFileHashAsync(string filePath, CancellationToken cancellationToken = default)
+    public static async Task<string> CalculateFileHashAsync(string filePath,
+        CancellationToken cancellationToken = default)
     {
         try
         {
             using var sha256 = SHA256.Create();
             using var stream = File.OpenRead(filePath);
-            
+
             var hashBytes = await sha256.ComputeHashAsync(stream, cancellationToken).ConfigureAwait(false);
             return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
         }
@@ -107,22 +105,22 @@ public class GameVersionDetection
             throw new TaskCanceledException();
         }
     }
-    
+
     /// <summary>
-    /// Validates if a specific version is compatible with a given F4SE version
+    ///     Validates if a specific version is compatible with a given F4SE version
     /// </summary>
     public static bool IsF4seCompatible(string gameVersion, string f4seVersion)
     {
         var versionInfo = KnownFallout4Versions.Values.FirstOrDefault(v => v.Version == gameVersion);
         if (versionInfo == null)
             return false;
-            
+
         // Simple version comparison - in reality would need more complex logic
         return string.CompareOrdinal(f4seVersion, versionInfo.RequiredF4seVersion) >= 0;
     }
-    
+
     /// <summary>
-    /// Gets version-specific compatibility notes
+    ///     Gets version-specific compatibility notes
     /// </summary>
     public static string[] GetVersionCompatibilityNotes(string gameVersion)
     {
@@ -132,52 +130,52 @@ public class GameVersionDetection
 }
 
 /// <summary>
-/// Represents information about a specific game version
+///     Represents information about a specific game version
 /// </summary>
 public class GameVersionInfo
 {
     /// <summary>
-    /// Version number (e.g., "1.10.163.0")
+    ///     Version number (e.g., "1.10.163.0")
     /// </summary>
     public string Version { get; set; } = string.Empty;
-    
+
     /// <summary>
-    /// Friendly name for the version
+    ///     Friendly name for the version
     /// </summary>
     public string Name { get; set; } = string.Empty;
-    
+
     /// <summary>
-    /// Release date of this version
+    ///     Release date of this version
     /// </summary>
     public DateTime? ReleaseDate { get; set; }
-    
+
     /// <summary>
-    /// Description of this version
+    ///     Description of this version
     /// </summary>
     public string Description { get; set; } = string.Empty;
-    
+
     /// <summary>
-    /// SHA256 hash of the executable
+    ///     SHA256 hash of the executable
     /// </summary>
     public string ExecutableHash { get; set; } = string.Empty;
-    
+
     /// <summary>
-    /// Required F4SE/SKSE version for this game version
+    ///     Required F4SE/SKSE version for this game version
     /// </summary>
     public string RequiredF4seVersion { get; set; } = string.Empty;
-    
+
     /// <summary>
-    /// Compatibility notes and warnings
+    ///     Compatibility notes and warnings
     /// </summary>
     public string[] Notes { get; set; } = Array.Empty<string>();
-    
+
     /// <summary>
-    /// Whether this is a known good version
+    ///     Whether this is a known good version
     /// </summary>
     public bool IsKnownVersion => Version != "Unknown";
-    
+
     /// <summary>
-    /// Whether this version is recommended for modding
+    ///     Whether this version is recommended for modding
     /// </summary>
     public bool IsModdingRecommended => Version == "1.10.163.0";
 }

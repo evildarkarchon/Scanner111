@@ -4,8 +4,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-/// Represents an enhanced cancellation token source that provides additional functionality,
-/// including support for timeout handling, progress tracking, and integrated logging.
+///     Represents an enhanced cancellation token source that provides additional functionality,
+///     including support for timeout handling, progress tracking, and integrated logging.
 /// </summary>
 public class EnhancedCancellationTokenSource : IDisposable
 {
@@ -15,8 +15,8 @@ public class EnhancedCancellationTokenSource : IDisposable
     private volatile bool _disposed;
 
     /// <summary>
-    /// Represents an enhanced cancellation token source that provides additional functionality
-    /// such as automatic timeout handling, logging, and progress tracking.
+    ///     Represents an enhanced cancellation token source that provides additional functionality
+    ///     such as automatic timeout handling, logging, and progress tracking.
     /// </summary>
     public EnhancedCancellationTokenSource(
         TimeSpan? timeout = null,
@@ -34,14 +34,14 @@ public class EnhancedCancellationTokenSource : IDisposable
     public bool IsCancellationRequested => _cts.Token.IsCancellationRequested;
 
     /// <summary>
-    /// Releases all resources used by the current instance of the EnhancedCancellationTokenSource class.
+    ///     Releases all resources used by the current instance of the EnhancedCancellationTokenSource class.
     /// </summary>
     /// <remarks>
-    /// This method ensures that the associated CancellationTokenSource and any timer resources are properly disposed,
-    /// and suppresses finalization of the object to optimize garbage collection.
+    ///     This method ensures that the associated CancellationTokenSource and any timer resources are properly disposed,
+    ///     and suppresses finalization of the object to optimize garbage collection.
     /// </remarks>
     /// <exception cref="ObjectDisposedException">
-    /// Thrown if the method is called on an already disposed object.
+    ///     Thrown if the method is called on an already disposed object.
     /// </exception>
     public void Dispose()
     {
@@ -54,12 +54,12 @@ public class EnhancedCancellationTokenSource : IDisposable
     }
 
     /// <summary>
-    /// Requests cancellation on the associated cancellation token.
+    ///     Requests cancellation on the associated cancellation token.
     /// </summary>
     /// <remarks>
-    /// If the EnhancedCancellationTokenSource instance has already been disposed or if cancellation
-    /// has already been requested, this method does nothing. Otherwise, it marks the token for
-    /// cancellation, logs the cancellation action, and triggers any registered callbacks.
+    ///     If the EnhancedCancellationTokenSource instance has already been disposed or if cancellation
+    ///     has already been requested, this method does nothing. Otherwise, it marks the token for
+    ///     cancellation, logs the cancellation action, and triggers any registered callbacks.
     /// </remarks>
     public void Cancel()
     {
@@ -69,18 +69,18 @@ public class EnhancedCancellationTokenSource : IDisposable
     }
 
     /// <summary>
-    /// Schedules a cancellation request to occur after the specified delay.
+    ///     Schedules a cancellation request to occur after the specified delay.
     /// </summary>
     /// <param name="delay">
-    /// The time span to wait before canceling the token.
-    /// If the specified value is TimeSpan.Zero, the cancellation is requested immediately.
+    ///     The time span to wait before canceling the token.
+    ///     If the specified value is TimeSpan.Zero, the cancellation is requested immediately.
     /// </param>
     /// <remarks>
-    /// This method allows you to set a delay for cancellation, ensuring that the operation
-    /// is canceled if not completed within the given timeframe.
+    ///     This method allows you to set a delay for cancellation, ensuring that the operation
+    ///     is canceled if not completed within the given timeframe.
     /// </remarks>
     /// <exception cref="ObjectDisposedException">
-    /// Thrown if the method is called on an already disposed object.
+    ///     Thrown if the method is called on an already disposed object.
     /// </exception>
     public void CancelAfter(TimeSpan delay)
     {
@@ -90,10 +90,10 @@ public class EnhancedCancellationTokenSource : IDisposable
     }
 
     /// <summary>
-    /// Handles the timeout event and triggers cancellation of the token.
+    ///     Handles the timeout event and triggers cancellation of the token.
     /// </summary>
     /// <param name="state">
-    /// An optional state object passed by the timer that initiated the timeout event.
+    ///     An optional state object passed by the timer that initiated the timeout event.
     /// </param>
     private void OnTimeout(object? state)
     {
@@ -104,16 +104,16 @@ public class EnhancedCancellationTokenSource : IDisposable
 }
 
 /// <summary>
-/// Provides helper methods and utilities for working with cancellation tokens to facilitate cooperative
-/// cancellation, including linked tokens, timeout tokens, and checkpointing for long-running operations.
+///     Provides helper methods and utilities for working with cancellation tokens to facilitate cooperative
+///     cancellation, including linked tokens, timeout tokens, and checkpointing for long-running operations.
 /// </summary>
 public static class CancellationHelper
 {
     /// <summary>
-    /// Throws an <see cref="OperationCanceledException"/> if the cancellation token has been canceled,
-    /// optionally including a context-specific operation name in the exception message.
+    ///     Throws an <see cref="OperationCanceledException" /> if the cancellation token has been canceled,
+    ///     optionally including a context-specific operation name in the exception message.
     /// </summary>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> to monitor for cancellation requests.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken" /> to monitor for cancellation requests.</param>
     /// <param name="operation">An optional string specifying the name of the operation for context in the exception message.</param>
     public static void ThrowIfCancellationRequested(this CancellationToken cancellationToken, string? operation = null)
     {
@@ -123,8 +123,8 @@ public static class CancellationHelper
     }
 
     /// <summary>
-    /// Executes a checkpoint that checks for cancellation, optionally reports progress,
-    /// and yields control to allow concurrency in long-running operations.
+    ///     Executes a checkpoint that checks for cancellation, optionally reports progress,
+    ///     and yields control to allow concurrency in long-running operations.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token to monitor for cancellation requests.</param>
     /// <param name="operation">An optional description of the operation being performed.</param>
@@ -144,37 +144,41 @@ public static class CancellationHelper
     }
 
     /// <summary>
-    /// Combines multiple <see cref="CancellationToken"/> instances into a single
-    /// linked cancellation token source, allowing cancellation to be triggered
-    /// by any of the provided tokens.
+    ///     Combines multiple <see cref="CancellationToken" /> instances into a single
+    ///     linked cancellation token source, allowing cancellation to be triggered
+    ///     by any of the provided tokens.
     /// </summary>
-    /// <param name="tokens">An array of <see cref="CancellationToken"/> instances
-    /// to link together.</param>
-    /// <returns>A new <see cref="CancellationTokenSource"/> that is linked to
-    /// the provided tokens.</returns>
+    /// <param name="tokens">
+    ///     An array of <see cref="CancellationToken" /> instances
+    ///     to link together.
+    /// </param>
+    /// <returns>
+    ///     A new <see cref="CancellationTokenSource" /> that is linked to
+    ///     the provided tokens.
+    /// </returns>
     public static CancellationTokenSource CreateLinkedTokenSource(params CancellationToken[] tokens)
     {
         return CancellationTokenSource.CreateLinkedTokenSource(tokens);
     }
 
     /// <summary>
-    /// Creates a cancellation token source that will automatically cancel after the specified timeout interval.
+    ///     Creates a cancellation token source that will automatically cancel after the specified timeout interval.
     /// </summary>
     /// <param name="timeout">The duration after which the cancellation token source will be canceled.</param>
-    /// <returns>A <see cref="CancellationTokenSource"/> that triggers cancellation after the specified timeout.</returns>
+    /// <returns>A <see cref="CancellationTokenSource" /> that triggers cancellation after the specified timeout.</returns>
     public static CancellationTokenSource CreateTimeoutToken(TimeSpan timeout)
     {
         return new CancellationTokenSource(timeout);
     }
 
     /// <summary>
-    /// Combines a user-provided <see cref="CancellationToken"/> with a timeout, resulting in
-    /// a linked cancellation token source that will be canceled when either the user token
-    /// or the timeout expires.
+    ///     Combines a user-provided <see cref="CancellationToken" /> with a timeout, resulting in
+    ///     a linked cancellation token source that will be canceled when either the user token
+    ///     or the timeout expires.
     /// </summary>
-    /// <param name="userToken">The user-provided <see cref="CancellationToken"/> to combine.</param>
-    /// <param name="timeout">The <see cref="TimeSpan"/> representing the duration for the timeout.</param>
-    /// <returns>A new <see cref="CancellationTokenSource"/> linked to the user token and the timeout.</returns>
+    /// <param name="userToken">The user-provided <see cref="CancellationToken" /> to combine.</param>
+    /// <param name="timeout">The <see cref="TimeSpan" /> representing the duration for the timeout.</param>
+    /// <returns>A new <see cref="CancellationTokenSource" /> linked to the user token and the timeout.</returns>
     public static CancellationTokenSource CreateCombinedToken(CancellationToken userToken, TimeSpan timeout)
     {
         var timeoutSource = new CancellationTokenSource(timeout);
@@ -183,10 +187,10 @@ public static class CancellationHelper
 }
 
 /// <summary>
-/// Provides a mechanism for reporting progress with built-in support for cancellation.
-/// This class wraps an existing progress handler and monitors a cancellation token
-/// to stop reporting when a cancellation is requested. Optionally supports logging
-/// for progress reporting failures or cancellations.
+///     Provides a mechanism for reporting progress with built-in support for cancellation.
+///     This class wraps an existing progress handler and monitors a cancellation token
+///     to stop reporting when a cancellation is requested. Optionally supports logging
+///     for progress reporting failures or cancellations.
 /// </summary>
 /// <typeparam name="T">The type of progress data being reported.</typeparam>
 public class CancellableProgress<T> : IProgress<T>, IDisposable
@@ -207,8 +211,8 @@ public class CancellableProgress<T> : IProgress<T>, IDisposable
     }
 
     /// <summary>
-    /// Releases all resources used by the CancellableProgress object and marks it as disposed.
-    /// After calling Dispose, the object can no longer be used to track or report progress.
+    ///     Releases all resources used by the CancellableProgress object and marks it as disposed.
+    ///     After calling Dispose, the object can no longer be used to track or report progress.
     /// </summary>
     public void Dispose()
     {
@@ -217,11 +221,11 @@ public class CancellableProgress<T> : IProgress<T>, IDisposable
     }
 
     /// <summary>
-    /// Reports a progress value to the associated progress handler while respecting cancellation requests
-    /// and handling exceptions during reporting.
+    ///     Reports a progress value to the associated progress handler while respecting cancellation requests
+    ///     and handling exceptions during reporting.
     /// </summary>
     /// <param name="value">
-    /// The value to report to the progress handler.
+    ///     The value to report to the progress handler.
     /// </param>
     public void Report(T value)
     {
@@ -245,8 +249,8 @@ public class CancellableProgress<T> : IProgress<T>, IDisposable
 }
 
 /// <summary>
-/// Represents a cancellation-aware semaphore wrapper that allows controlled access to a shared resource,
-/// while supporting both cancellation and timeout handling for acquiring permits.
+///     Represents a cancellation-aware semaphore wrapper that allows controlled access to a shared resource,
+///     while supporting both cancellation and timeout handling for acquiring permits.
 /// </summary>
 public class CancellableSemaphore : IDisposable
 {
@@ -261,9 +265,9 @@ public class CancellableSemaphore : IDisposable
     }
 
     /// <summary>
-    /// Releases all resources used by the <see cref="CancellableSemaphore"/>.
-    /// Ensures proper disposal of the underlying semaphore and suppresses finalization
-    /// to prevent unnecessary resource overhead.
+    ///     Releases all resources used by the <see cref="CancellableSemaphore" />.
+    ///     Ensures proper disposal of the underlying semaphore and suppresses finalization
+    ///     to prevent unnecessary resource overhead.
     /// </summary>
     public void Dispose()
     {
@@ -275,14 +279,15 @@ public class CancellableSemaphore : IDisposable
     }
 
     /// <summary>
-    /// Asynchronously waits to acquire the semaphore, supporting cancellation.
-    /// If cancellation is requested before acquiring the semaphore, an <see cref="OperationCanceledException"/> is thrown.
+    ///     Asynchronously waits to acquire the semaphore, supporting cancellation.
+    ///     If cancellation is requested before acquiring the semaphore, an <see cref="OperationCanceledException" /> is
+    ///     thrown.
     /// </summary>
     /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> to observe for cancellation requests while waiting to acquire the semaphore.
+    ///     The <see cref="CancellationToken" /> to observe for cancellation requests while waiting to acquire the semaphore.
     /// </param>
     /// <returns>
-    /// A disposable resource that releases the semaphore when disposed.
+    ///     A disposable resource that releases the semaphore when disposed.
     /// </returns>
     public async Task<IDisposable> WaitAsync(CancellationToken cancellationToken = default)
     {
@@ -295,12 +300,16 @@ public class CancellableSemaphore : IDisposable
     }
 
     /// <summary>
-    /// Attempts to acquire the semaphore asynchronously within a specified timeout, with support for cancellation.
-    /// Returns a disposable object representing the semaphore release handle if acquired successfully, or null if the acquisition times out.
+    ///     Attempts to acquire the semaphore asynchronously within a specified timeout, with support for cancellation.
+    ///     Returns a disposable object representing the semaphore release handle if acquired successfully, or null if the
+    ///     acquisition times out.
     /// </summary>
     /// <param name="timeout">The maximum amount of time to wait for the semaphore to be acquired.</param>
     /// <param name="cancellationToken">A token to observe for cancellation requests.</param>
-    /// <returns>An <see cref="IDisposable"/> object that releases the semaphore upon disposal, or null if the operation times out.</returns>
+    /// <returns>
+    ///     An <see cref="IDisposable" /> object that releases the semaphore upon disposal, or null if the operation times
+    ///     out.
+    /// </returns>
     public async Task<IDisposable?> WaitAsync(TimeSpan timeout, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -317,9 +326,9 @@ public class CancellableSemaphore : IDisposable
     }
 
     /// <summary>
-    /// Represents a disposable helper class for releasing a semaphore and logging the release operation.
-    /// Ensures that the semaphore is properly released when the instance is disposed,
-    /// preventing resource leaks or deadlocks.
+    ///     Represents a disposable helper class for releasing a semaphore and logging the release operation.
+    ///     Ensures that the semaphore is properly released when the instance is disposed,
+    ///     preventing resource leaks or deadlocks.
     /// </summary>
     private class SemaphoreReleaser : IDisposable
     {
@@ -334,9 +343,9 @@ public class CancellableSemaphore : IDisposable
         }
 
         /// <summary>
-        /// Releases all resources used by the <see cref="SemaphoreReleaser"/>.
-        /// Ensures that the associated semaphore is released, prevents resource leaks or deadlocks,
-        /// and suppresses finalization to minimize resource overhead.
+        ///     Releases all resources used by the <see cref="SemaphoreReleaser" />.
+        ///     Ensures that the associated semaphore is released, prevents resource leaks or deadlocks,
+        ///     and suppresses finalization to minimize resource overhead.
         /// </summary>
         public void Dispose()
         {

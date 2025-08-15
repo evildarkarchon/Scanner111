@@ -5,7 +5,8 @@ using Scanner111.Core.Models;
 namespace Scanner111.CLI.Services;
 
 /// <summary>
-/// Implements the functionality for managing and persisting CLI-related settings, ensuring compatibility with both legacy configurations and updated application-wide settings.
+///     Implements the functionality for managing and persisting CLI-related settings, ensuring compatibility with both
+///     legacy configurations and updated application-wide settings.
 /// </summary>
 public class CliSettingsService : ICliSettingsService
 {
@@ -13,7 +14,7 @@ public class CliSettingsService : ICliSettingsService
 
     public CliSettingsService(IApplicationSettingsService applicationSettingsService)
     {
-        _applicationSettingsService = applicationSettingsService ?? throw new ArgumentNullException(nameof(applicationSettingsService));
+        _applicationSettingsService = Guard.NotNull(applicationSettingsService, nameof(applicationSettingsService));
     }
 
     // New unified settings methods

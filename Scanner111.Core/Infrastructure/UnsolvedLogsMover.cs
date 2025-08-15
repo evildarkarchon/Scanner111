@@ -17,7 +17,8 @@ public class UnsolvedLogsMover : IUnsolvedLogsMover
         _applicationSettings = applicationSettings;
     }
 
-    public async Task<bool> MoveUnsolvedLogAsync(string crashLogPath, ApplicationSettings? settings = null, CancellationToken cancellationToken = default)
+    public async Task<bool> MoveUnsolvedLogAsync(string crashLogPath, ApplicationSettings? settings = null,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -38,7 +39,7 @@ public class UnsolvedLogsMover : IUnsolvedLogsMover
             // Get backup directory - use BackupDirectory if set, otherwise use default
             var backupPath = !string.IsNullOrEmpty(settings.BackupDirectory)
                 ? Path.Combine(settings.BackupDirectory, "Unsolved Logs")
-                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), 
+                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                     "Scanner 111", "Unsolved Logs");
 
             // Create backup directory if it doesn't exist

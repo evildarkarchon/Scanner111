@@ -1,9 +1,9 @@
-using Spectre.Console;
-using Scanner111.Core.Models;
-using Scanner111.Core.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
-using Microsoft.Extensions.DependencyInjection;
+using Scanner111.Core.Infrastructure;
+using Scanner111.Core.Models;
+using Spectre.Console;
 
 namespace Scanner111.CLI.Services;
 
@@ -26,7 +26,8 @@ public class SpectreTerminalUIService : ITerminalUIService
         if (!AnsiConsole.Profile.Capabilities.Interactive)
         {
             AnsiConsole.MarkupLine("[red]Error:[/] Interactive mode requires an interactive terminal.");
-            AnsiConsole.MarkupLine("[yellow]Tip:[/] Run this application directly in a terminal window, not through IDE output.");
+            AnsiConsole.MarkupLine(
+                "[yellow]Tip:[/] Run this application directly in a terminal window, not through IDE output.");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("Available commands:");
             AnsiConsole.MarkupLine("  [blue]scan[/]         - Scan crash logs");
@@ -36,7 +37,7 @@ public class SpectreTerminalUIService : ITerminalUIService
             AnsiConsole.MarkupLine("  [blue]interactive[/]  - Launch interactive mode (requires terminal)");
             return 1;
         }
-        
+
         while (true)
         {
             ShowInteractiveMenu();
@@ -45,17 +46,10 @@ public class SpectreTerminalUIService : ITerminalUIService
                     .Title("[bold yellow]Select an option:[/]")
                     .PageSize(10)
                     .HighlightStyle(new Style(Color.Cyan1, decoration: Decoration.Bold))
-                    .AddChoices(new[]
-                    {
-                        "[1] Quick Scan (Current Directory)",
-                        "[2] Scan Specific File/Directory",
-                        "[3] FCX Mode - File Integrity Check",
-                        "[4] Configuration Settings",
-                        "[5] View Recent Scan Results",
-                        "[6] Watch Mode - Monitor for New Logs",
-                        "[7] About Scanner111",
-                        "[Q] Quit"
-                    }));
+                    .AddChoices("[1] Quick Scan (Current Directory)", "[2] Scan Specific File/Directory",
+                        "[3] FCX Mode - File Integrity Check", "[4] Configuration Settings",
+                        "[5] View Recent Scan Results", "[6] Watch Mode - Monitor for New Logs", "[7] About Scanner111",
+                        "[Q] Quit"));
 
             switch (choice)
             {
@@ -94,7 +88,7 @@ public class SpectreTerminalUIService : ITerminalUIService
     public void ShowInteractiveMenu()
     {
         AnsiConsole.Clear();
-        
+
         // Create the main header panel
         var headerContent = new Rows(
             new FigletText("Scanner111")
@@ -103,7 +97,7 @@ public class SpectreTerminalUIService : ITerminalUIService
             new Text("Crash Log Analyzer for Bethesda Games")
                 .Centered()
         );
-        
+
         var headerPanel = new Panel(headerContent)
             .Header("[bold cyan]═══ Terminal UI Mode ═══[/]", Justify.Center)
             .BorderColor(Color.Cyan1)
@@ -112,17 +106,17 @@ public class SpectreTerminalUIService : ITerminalUIService
 
         AnsiConsole.Write(headerPanel);
         AnsiConsole.WriteLine();
-        
+
         // Display system information
         var infoTable = new Table()
             .Border(TableBorder.None)
             .AddColumn("Property", c => c.NoWrap())
             .AddColumn("Value")
             .HideHeaders();
-            
+
         infoTable.AddRow("[dim]Current Directory:[/]", $"[blue]{Directory.GetCurrentDirectory()}[/]");
         infoTable.AddRow("[dim]Time:[/]", $"[green]{DateTime.Now:HH:mm:ss}[/]");
-        
+
         AnsiConsole.Write(infoTable);
         AnsiConsole.WriteLine();
     }
@@ -156,22 +150,19 @@ public class SpectreTerminalUIService : ITerminalUIService
 
         // Errors
         if (results.ErrorMessages.Any())
-        {
             table.AddRow(
                 "[red]Errors[/]",
                 $"[red]{results.ErrorMessages.Count}[/]",
                 string.Join(", ", results.ErrorMessages.Take(2)));
-        }
 
         // Analysis Results
         var findingsCount = results.AnalysisResults.Count(r => r.HasFindings);
         if (findingsCount > 0)
-        {
             table.AddRow(
                 "[yellow]Findings[/]",
                 $"[yellow]{findingsCount}[/]",
-                string.Join(", ", results.AnalysisResults.Where(r => r.HasFindings).Take(3).Select(r => r.AnalyzerName)));
-        }
+                string.Join(", ",
+                    results.AnalysisResults.Where(r => r.HasFindings).Take(3).Select(r => r.AnalyzerName)));
 
         // Statistics
         table.AddRow(
@@ -190,30 +181,27 @@ public class SpectreTerminalUIService : ITerminalUIService
     public async Task<T> PromptAsync<T>(string prompt, T? defaultValue = default) where T : notnull
     {
         var textPrompt = new TextPrompt<T>(prompt);
-        if (defaultValue != null)
-        {
-            textPrompt.DefaultValue(defaultValue);
-        }
+        if (defaultValue != null) textPrompt.DefaultValue(defaultValue);
         return await Task.FromResult(AnsiConsole.Prompt(textPrompt));
     }
 
     private async Task RunQuickScan()
     {
         AnsiConsole.MarkupLine("[yellow]Starting quick scan of current directory...[/]");
-        
-        var scanCommand = _serviceProvider.GetRequiredService<ICommand<Models.ScanOptions>>();
-        var options = new Models.ScanOptions
+
+        var scanCommand = _serviceProvider.GetRequiredService<ICommand<ScanOptions>>();
+        var options = new ScanOptions
         {
             ScanDir = Directory.GetCurrentDirectory()
         };
-        
+
         await scanCommand.ExecuteAsync(options).ConfigureAwait(false);
     }
 
     private async Task RunCustomScan()
     {
         var path = AnsiConsole.Ask<string>("Enter path to scan:");
-        
+
         if (!File.Exists(path) && !Directory.Exists(path))
         {
             AnsiConsole.MarkupLine("[red]Path does not exist![/]");
@@ -224,17 +212,10 @@ public class SpectreTerminalUIService : ITerminalUIService
             new MultiSelectionPrompt<string>()
                 .Title("Select scan options:")
                 .NotRequired()
-                .AddChoices(new[]
-                {
-                    "Simplify Logs",
-                    "Move Unsolved Logs",
-                    "FCX Mode",
-                    "Verbose Output",
-                    "Show FormID Values"
-                }));
+                .AddChoices("Simplify Logs", "Move Unsolved Logs", "FCX Mode", "Verbose Output", "Show FormID Values"));
 
-        var scanCommand = _serviceProvider.GetRequiredService<ICommand<Models.ScanOptions>>();
-        var scanOptions = new Models.ScanOptions
+        var scanCommand = _serviceProvider.GetRequiredService<ICommand<ScanOptions>>();
+        var scanOptions = new ScanOptions
         {
             LogFile = File.Exists(path) ? path : null,
             ScanDir = Directory.Exists(path) ? path : null,
@@ -251,10 +232,10 @@ public class SpectreTerminalUIService : ITerminalUIService
     private async Task RunFcxMode()
     {
         AnsiConsole.MarkupLine("[yellow]Starting FCX (File Integrity Check) mode...[/]");
-        
+
         var fcxCommand = _serviceProvider.GetRequiredService<ICommand<FcxOptions>>();
         var options = new FcxOptions();
-        
+
         await fcxCommand.ExecuteAsync(options).ConfigureAwait(false);
     }
 
@@ -275,25 +256,25 @@ public class SpectreTerminalUIService : ITerminalUIService
         var aboutCommand = _serviceProvider.GetRequiredService<ICommand<AboutOptions>>();
         await aboutCommand.ExecuteAsync(new AboutOptions()).ConfigureAwait(false);
     }
-    
+
     private async Task RunWatchMode()
     {
         AnsiConsole.MarkupLine("[yellow]Watch Mode - Monitoring for new crash logs[/]");
         AnsiConsole.WriteLine();
-        
+
         // Ask for configuration
         var watchPath = AnsiConsole.Ask<string>("Enter directory to watch:", Directory.GetCurrentDirectory());
-        
+
         if (!Directory.Exists(watchPath))
         {
             AnsiConsole.MarkupLine("[red]Directory does not exist![/]");
             return;
         }
-        
+
         var scanExisting = AnsiConsole.Confirm("Scan existing logs on startup?", false);
-        var showDashboard = AnsiConsole.Confirm("Show live dashboard?", true);
+        var showDashboard = AnsiConsole.Confirm("Show live dashboard?");
         var autoMove = AnsiConsole.Confirm("Auto-move solved logs?", false);
-        
+
         // Use the new WatchCommand
         var watchCommand = _serviceProvider.GetRequiredService<ICommand<WatchOptions>>();
         var options = new WatchOptions
@@ -306,7 +287,7 @@ public class SpectreTerminalUIService : ITerminalUIService
             Recursive = false,
             Pattern = "*.log"
         };
-        
+
         await watchCommand.ExecuteAsync(options).ConfigureAwait(false);
     }
 }

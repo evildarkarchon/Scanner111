@@ -5,8 +5,8 @@ using Microsoft.Extensions.Logging;
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-/// Interface for the FormID database service, providing methods for querying
-/// database entries and checking database existence status.
+///     Interface for the FormID database service, providing methods for querying
+///     database entries and checking database existence status.
 /// </summary>
 public interface IFormIdDatabaseService
 {
@@ -25,8 +25,8 @@ public interface IFormIdDatabaseService
 }
 
 /// <summary>
-/// Provides an implementation of the FormID database service. This class supports
-/// querying FormID values from a database with built-in caching for improved performance.
+///     Provides an implementation of the FormID database service. This class supports
+///     querying FormID values from a database with built-in caching for improved performance.
 /// </summary>
 public class FormIdDatabaseService : IFormIdDatabaseService
 {
@@ -36,8 +36,8 @@ public class FormIdDatabaseService : IFormIdDatabaseService
     private readonly ConcurrentDictionary<(string formId, string plugin), string> _queryCache = new();
 
     /// <summary>
-    /// Provides an implementation of the FormID database service. This class supports
-    /// querying FormID values from a database with built-in caching for improved performance.
+    ///     Provides an implementation of the FormID database service. This class supports
+    ///     querying FormID values from a database with built-in caching for improved performance.
     /// </summary>
     public FormIdDatabaseService(string gameName = "Fallout4", ILogger<FormIdDatabaseService>? logger = null)
     {
@@ -48,7 +48,7 @@ public class FormIdDatabaseService : IFormIdDatabaseService
         var dataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "databases");
         _databasePaths =
         [
-          Path.Combine(dataPath, $"{_gameName} FormIDs Main.db"),
+            Path.Combine(dataPath, $"{_gameName} FormIDs Main.db"),
             Path.Combine(dataPath, $"{_gameName} FormIDs Local.db")
         ];
     }
@@ -59,7 +59,7 @@ public class FormIdDatabaseService : IFormIdDatabaseService
     public bool DatabaseExists => _databasePaths?.Any(File.Exists) ?? false;
 
     /// <summary>
-    /// Look up a FormID value in the database
+    ///     Look up a FormID value in the database
     /// </summary>
     /// <param name="formId">The FormID to look up (without plugin prefix)</param>
     /// <param name="plugin">The plugin name</param>

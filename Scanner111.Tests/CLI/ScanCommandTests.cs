@@ -4,20 +4,18 @@ using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
-using Scanner111.Core.Pipeline;
 using Scanner111.Tests.TestHelpers;
-using Xunit;
 using CliScanOptions = Scanner111.CLI.Models.ScanOptions;
 
 namespace Scanner111.Tests.CLI;
 
 public class ScanCommandTests : IDisposable
 {
+    private readonly ScanCommand _command;
     private readonly TestMessageCapture _messageCapture;
-    private readonly MockCliSettingsService _mockSettingsService;
     private readonly MockFileScanService _mockFileScanService;
     private readonly MockScanResultProcessor _mockResultProcessor;
-    private readonly ScanCommand _command;
+    private readonly MockCliSettingsService _mockSettingsService;
 
     public ScanCommandTests()
     {
@@ -27,6 +25,11 @@ public class ScanCommandTests : IDisposable
         _mockFileScanService = new MockFileScanService();
         _mockResultProcessor = new MockScanResultProcessor();
         _command = new ScanCommand(_mockSettingsService, _mockFileScanService, _mockResultProcessor, _messageCapture);
+    }
+
+    public void Dispose()
+    {
+        MessageHandler.Initialize(new TestMessageHandler());
     }
 
     [Fact]
@@ -83,8 +86,8 @@ public class ScanCommandTests : IDisposable
     public async Task ExecuteAsync_WithSummaryFormat_PrintsSummary()
     {
         // Arrange
-        var options = new CliScanOptions 
-        { 
+        var options = new CliScanOptions
+        {
             LogFile = "test.log",
             OutputFormat = "summary"
         };
@@ -104,8 +107,8 @@ public class ScanCommandTests : IDisposable
     public async Task ExecuteAsync_WithVerbose_EnablesDebugLogging()
     {
         // Arrange
-        var options = new CliScanOptions 
-        { 
+        var options = new CliScanOptions
+        {
             LogFile = "test.log",
             Verbose = true
         };
@@ -124,8 +127,8 @@ public class ScanCommandTests : IDisposable
     public async Task ExecuteAsync_WithFcxMode_EnablesFcxInPipeline()
     {
         // Arrange
-        var options = new CliScanOptions 
-        { 
+        var options = new CliScanOptions
+        {
             LogFile = "test.log",
             FcxMode = true
         };
@@ -144,8 +147,8 @@ public class ScanCommandTests : IDisposable
     public async Task ExecuteAsync_AppliesCommandLineOverrides()
     {
         // Arrange
-        var options = new CliScanOptions 
-        { 
+        var options = new CliScanOptions
+        {
             LogFile = "test.log",
             FcxMode = true,
             ShowFidValues = true,
@@ -218,8 +221,8 @@ public class ScanCommandTests : IDisposable
     public async Task ExecuteAsync_WithDisabledColors_InitializesCorrectly()
     {
         // Arrange
-        var options = new CliScanOptions 
-        { 
+        var options = new CliScanOptions
+        {
             LogFile = "test.log",
             DisableColors = true
         };
@@ -234,22 +237,12 @@ public class ScanCommandTests : IDisposable
         // Message handler should be initialized without colors
     }
 
-    public void Dispose()
-    {
-        MessageHandler.Initialize(new TestMessageHandler());
-    }
-
     private class MockCliSettingsService : ICliSettingsService
     {
         private ApplicationSettings _testSettings = new();
-        
+
         public bool SaveSettingsCalled { get; private set; }
         public ApplicationSettings? LastSavedSettings { get; private set; }
-
-        public void SetTestSettings(ApplicationSettings settings)
-        {
-            _testSettings = settings;
-        }
 
         public Task<ApplicationSettings> LoadSettingsAsync()
         {
@@ -282,6 +275,11 @@ public class ScanCommandTests : IDisposable
         {
             return Task.CompletedTask;
         }
+
+        public void SetTestSettings(ApplicationSettings settings)
+        {
+            _testSettings = settings;
+        }
     }
 
     private class MockFileScanService : IFileScanService
@@ -289,23 +287,20 @@ public class ScanCommandTests : IDisposable
         private List<string> _files = new();
         public bool ShouldThrowException { get; set; }
 
-        public void SetFiles(List<string> files)
-        {
-            _files = files;
-        }
-
         public Task<FileScanData> CollectFilesToScanAsync(CliScanOptions options, ApplicationSettings settings)
         {
-            if (ShouldThrowException)
-            {
-                throw new InvalidOperationException("Test exception");
-            }
+            if (ShouldThrowException) throw new InvalidOperationException("Test exception");
 
             return Task.FromResult(new FileScanData
             {
                 FilesToScan = _files,
                 XseCopiedFiles = new HashSet<string>()
             });
+        }
+
+        public void SetFiles(List<string> files)
+        {
+            _files = files;
         }
     }
 

@@ -16,11 +16,11 @@ public interface IBackupService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Backup result with details</returns>
     Task<BackupResult> CreateBackupAsync(
-        string gamePath, 
+        string gamePath,
         IEnumerable<string> filesToBackup,
         IProgress<BackupProgress>? progress = null,
         CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     ///     Create a full backup of critical game files
     /// </summary>
@@ -32,7 +32,7 @@ public interface IBackupService
         string gamePath,
         IProgress<BackupProgress>? progress = null,
         CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     ///     Restore files from a backup
     /// </summary>
@@ -48,14 +48,14 @@ public interface IBackupService
         IEnumerable<string>? filesToRestore = null,
         IProgress<BackupProgress>? progress = null,
         CancellationToken cancellationToken = default);
-    
+
     /// <summary>
     ///     List available backups
     /// </summary>
     /// <param name="backupDirectory">Directory containing backups</param>
     /// <returns>List of backup information</returns>
     Task<IEnumerable<BackupInfo>> ListBackupsAsync(string? backupDirectory = null);
-    
+
     /// <summary>
     ///     Delete a backup
     /// </summary>
@@ -73,27 +73,27 @@ public class BackupInfo
     ///     Full path to the backup
     /// </summary>
     public string BackupPath { get; set; } = string.Empty;
-    
+
     /// <summary>
     ///     Name of the backup
     /// </summary>
     public string Name { get; set; } = string.Empty;
-    
+
     /// <summary>
     ///     When the backup was created
     /// </summary>
     public DateTime CreatedDate { get; set; }
-    
+
     /// <summary>
     ///     Size of the backup in bytes
     /// </summary>
     public long Size { get; set; }
-    
+
     /// <summary>
     ///     Number of files in the backup
     /// </summary>
     public int FileCount { get; set; }
-    
+
     /// <summary>
     ///     Game version the backup was created from
     /// </summary>

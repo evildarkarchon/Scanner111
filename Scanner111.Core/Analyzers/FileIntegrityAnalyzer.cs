@@ -10,10 +10,10 @@ namespace Scanner111.Core.Analyzers;
 public class FileIntegrityAnalyzer : IAnalyzer
 {
     private readonly IHashValidationService _hashValidationService;
-    private readonly IApplicationSettingsService _settingsService;
-    private readonly IYamlSettingsProvider _yamlSettings;
     private readonly IMessageHandler _messageHandler;
     private readonly IModManagerService? _modManagerService;
+    private readonly IApplicationSettingsService _settingsService;
+    private readonly IYamlSettingsProvider _yamlSettings;
 
     public FileIntegrityAnalyzer(
         IHashValidationService hashValidationService,
@@ -37,7 +37,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
     /// <summary>
     ///     Priority of the analyzer (lower values run first)
     /// </summary>
-    public int Priority => 10;  // Run after basic analyzers
+    public int Priority => 10; // Run after basic analyzers
 
     /// <summary>
     ///     Whether this analyzer can be run in parallel with others
@@ -52,7 +52,6 @@ public class FileIntegrityAnalyzer : IAnalyzer
         // Only run if FCX mode is enabled
         var settings = await _settingsService.LoadSettingsAsync().ConfigureAwait(false);
         if (!settings.FcxMode)
-        {
             return new FcxScanResult
             {
                 AnalyzerName = Name,
@@ -60,7 +59,6 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 HasFindings = false,
                 ReportLines = new List<string> { "FCX mode is disabled.\n" }
             };
-        }
 
         var result = new FcxScanResult
         {
@@ -102,20 +100,15 @@ public class FileIntegrityAnalyzer : IAnalyzer
             await CheckCoreMods(gameConfig, result, reportLines, cancellationToken).ConfigureAwait(false);
 
             // Check mod manager staging folder if available and enabled
-            if (_modManagerService != null && settings.AutoDetectModManagers && 
+            if (_modManagerService != null && settings.AutoDetectModManagers &&
                 settings.ModManagerSettings?.SkipModManagerIntegration != true)
-            {
                 await CheckModManagerFiles(gameConfig, result, reportLines, cancellationToken).ConfigureAwait(false);
-            }
 
             // Determine overall status
             DetermineOverallStatus(result);
 
             // Add recommendations if issues found
-            if (result.GameStatus != GameIntegrityStatus.Good)
-            {
-                AddRecommendations(result, reportLines);
-            }
+            if (result.GameStatus != GameIntegrityStatus.Good) AddRecommendations(result, reportLines);
 
             reportLines.Add("\n");
 
@@ -155,7 +148,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
         // Use the crash log's game paths to build configuration
         var config = new GameConfiguration
         {
-            GameName = "Fallout 4",  // Currently only supporting Fallout 4
+            GameName = "Fallout 4", // Currently only supporting Fallout 4
             RootPath = crashLog.GamePath ?? string.Empty
         };
 
@@ -163,10 +156,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
         {
             // Try to detect from settings or default paths
             var detectedPath = GamePathDetection.TryDetectGamePath();
-            if (!string.IsNullOrEmpty(detectedPath))
-            {
-                config.RootPath = detectedPath;
-            }
+            if (!string.IsNullOrEmpty(detectedPath)) config.RootPath = detectedPath;
         }
 
         if (!string.IsNullOrEmpty(config.RootPath) && Directory.Exists(config.RootPath))
@@ -232,22 +222,20 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 {
                     gameConfig.Version = matchedVersion.Key;
                     exeCheck.IsValid = true;
-                    reportLines.Add($"   ✅ Fallout4.exe found - Version: {matchedVersion.Key} ({gameConfig.Platform})\n");
+                    reportLines.Add(
+                        $"   ✅ Fallout4.exe found - Version: {matchedVersion.Key} ({gameConfig.Platform})\n");
 
                     // Add version-specific warnings
                     if (matchedVersion.Key.Contains("1.10.163"))
-                    {
                         result.VersionWarnings.Add("Pre-Next Gen Update version detected. Most mods compatible.");
-                    }
                     else if (matchedVersion.Key.Contains("1.10.984"))
-                    {
                         result.VersionWarnings.Add("Next Gen Update version detected. Some mods may need updates.");
-                    }
                 }
                 else
                 {
-                    exeCheck.IsValid = true;  // File exists but version unknown
-                    reportLines.Add($"   ⚠️  Fallout4.exe found but version unknown (Hash: {hash.Substring(0, 8)}...)\n");
+                    exeCheck.IsValid = true; // File exists but version unknown
+                    reportLines.Add(
+                        $"   ⚠️  Fallout4.exe found but version unknown (Hash: {hash.Substring(0, 8)}...)\n");
                     result.VersionWarnings.Add("Unknown game version detected. Mod compatibility uncertain.");
                 }
 
@@ -294,7 +282,8 @@ public class FileIntegrityAnalyzer : IAnalyzer
             try
             {
                 // Use async file info retrieval to justify async method
-                var fileInfo = await Task.Run(() => new FileInfo(gameConfig.XsePath), cancellationToken).ConfigureAwait(false);
+                var fileInfo = await Task.Run(() => new FileInfo(gameConfig.XsePath), cancellationToken)
+                    .ConfigureAwait(false);
                 f4seCheck.FileSize = fileInfo.Length;
                 f4seCheck.LastModified = fileInfo.LastWriteTime;
                 f4seCheck.IsValid = true;
@@ -304,8 +293,10 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 var f4seDllPathNewGen = Path.Combine(gameConfig.RootPath, "f4se_1_10_984.dll");
 
                 // Use async file existence checks
-                var hasPreNgDll = await Task.Run(() => File.Exists(f4seDllPath), cancellationToken).ConfigureAwait(false);
-                var hasNextGenDll = await Task.Run(() => File.Exists(f4seDllPathNewGen), cancellationToken).ConfigureAwait(false);
+                var hasPreNgDll =
+                    await Task.Run(() => File.Exists(f4seDllPath), cancellationToken).ConfigureAwait(false);
+                var hasNextGenDll = await Task.Run(() => File.Exists(f4seDllPathNewGen), cancellationToken)
+                    .ConfigureAwait(false);
 
                 if (hasPreNgDll)
                 {
@@ -380,16 +371,15 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 reportLines.Add($"   ⚠️  {description} not found: {relativePath}\n");
 
                 if (relativePath.Contains("Buffout4"))
-                {
                     result.RecommendedFixes.Add("Install Buffout 4 for better crash logging");
-                }
             }
             else
             {
                 try
                 {
                     // Use async file info retrieval
-                    var fileInfo = await Task.Run(() => new FileInfo(fullPath), cancellationToken).ConfigureAwait(false);
+                    var fileInfo = await Task.Run(() => new FileInfo(fullPath), cancellationToken)
+                        .ConfigureAwait(false);
                     modCheck.FileSize = fileInfo.Length;
                     modCheck.LastModified = fileInfo.LastWriteTime;
                     modCheck.IsValid = true;
@@ -413,17 +403,11 @@ public class FileIntegrityAnalyzer : IAnalyzer
         var warnings = result.FileChecks.Count(fc => !fc.IsValid && fc.FileType != "Executable");
 
         if (criticalIssues > 0)
-        {
             result.GameStatus = GameIntegrityStatus.Critical;
-        }
         else if (warnings > 0 || result.VersionWarnings.Count > 0)
-        {
             result.GameStatus = GameIntegrityStatus.Warning;
-        }
         else
-        {
             result.GameStatus = GameIntegrityStatus.Good;
-        }
     }
 
     private void AddRecommendations(FcxScanResult result, List<string> reportLines)
@@ -431,19 +415,13 @@ public class FileIntegrityAnalyzer : IAnalyzer
         if (result.RecommendedFixes.Count > 0)
         {
             reportLines.Add("\n💡 Recommendations:\n");
-            foreach (var fix in result.RecommendedFixes)
-            {
-                reportLines.Add($"   • {fix}\n");
-            }
+            foreach (var fix in result.RecommendedFixes) reportLines.Add($"   • {fix}\n");
         }
 
         if (result.VersionWarnings.Count > 0)
         {
             reportLines.Add("\n⚠️  Version Notes:\n");
-            foreach (var warning in result.VersionWarnings)
-            {
-                reportLines.Add($"   • {warning}\n");
-            }
+            foreach (var warning in result.VersionWarnings) reportLines.Add($"   • {warning}\n");
         }
     }
 
@@ -465,10 +443,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
 
             // Get staging folder
             var stagingFolder = await _modManagerService.GetModStagingFolderAsync();
-            if (!string.IsNullOrEmpty(stagingFolder))
-            {
-                reportLines.Add($"   📂 Staging folder: {stagingFolder}\n");
-            }
+            if (!string.IsNullOrEmpty(stagingFolder)) reportLines.Add($"   📂 Staging folder: {stagingFolder}\n");
 
             // Get mod list
             var mods = await _modManagerService.GetAllModsAsync();
@@ -484,19 +459,13 @@ public class FileIntegrityAnalyzer : IAnalyzer
                 // Check for known problematic mods
                 if (mod.Name.Contains("Unofficial", StringComparison.OrdinalIgnoreCase) &&
                     mod.Name.Contains("Patch", StringComparison.OrdinalIgnoreCase))
-                {
                     problematicMods.Add($"{mod.Name} - May cause issues with certain mods");
-                }
-                
+
                 // Check for outdated F4SE plugins
                 if (mod.Files.Any(f => f.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) &&
-                                      f.Contains("f4se", StringComparison.OrdinalIgnoreCase)))
-                {
+                                       f.Contains("f4se", StringComparison.OrdinalIgnoreCase)))
                     if (!mod.Version?.Contains("NG") ?? true)
-                    {
                         problematicMods.Add($"{mod.Name} - F4SE plugin may need update for game version");
-                    }
-                }
             }
 
             if (problematicMods.Count > 0)
@@ -514,12 +483,12 @@ public class FileIntegrityAnalyzer : IAnalyzer
             if (loadOrder.Count > 0)
             {
                 reportLines.Add($"   📋 Load order contains {loadOrder.Count} plugins\n");
-                
+
                 // Check for missing masters
                 var espFiles = loadOrder.Keys.Where(k => k.EndsWith(".esp", StringComparison.OrdinalIgnoreCase) ||
                                                          k.EndsWith(".esm", StringComparison.OrdinalIgnoreCase) ||
                                                          k.EndsWith(".esl", StringComparison.OrdinalIgnoreCase));
-                
+
                 if (espFiles.Count() > 254)
                 {
                     reportLines.Add("   ❌ Plugin limit exceeded! Max 254 ESP/ESM files\n");
@@ -539,7 +508,8 @@ public class FileIntegrityAnalyzer : IAnalyzer
         // For now, return known hashes for Fallout 4 versions
         return new Dictionary<string, string>
         {
-            ["1.10.163.0"] = "7B0E5D0B7C5B4E8F9C2A3D4E5F6A7B8C9D0E1F2A3B4C5D6C7B8A9F0E1D2C3B4A5F6E7D8C9B0A1"  // Next Gen Update
+            ["1.10.163.0"] =
+                "7B0E5D0B7C5B4E8F9C2A3D4E5F6A7B8C9D0E1F2A3B4C5D6C7B8A9F0E1D2C3B4A5F6E7D8C9B0A1" // Next Gen Update
             // Note: These are placeholder hashes - real hashes need to be collected from community
         };
     }

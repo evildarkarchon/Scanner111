@@ -42,14 +42,18 @@ public class ReportWritingIntegrationTests : IDisposable
 
     /// Tests if the ScanPipeline, when integrated with a ReportWriter,
     /// successfully generates a report file based on the provided crash log.
-    /// The method validates the following functionality:<br/>
-    /// - Proper initialization and usage of the ScanPipeline with default analyzers and configuration.<br/>
-    /// - Successful invocation of the pipeline to process a single log file.<br/>
-    /// - The ability of the ReportWriter to write the processed scan results to a report file.<br/>
+    /// The method validates the following functionality:
+    /// <br />
+    /// - Proper initialization and usage of the ScanPipeline with default analyzers and configuration.
+    /// <br />
+    /// - Successful invocation of the pipeline to process a single log file.
+    /// <br />
+    /// - The ability of the ReportWriter to write the processed scan results to a report file.
+    /// <br />
     /// - Ensures the actual report content matches the expected processed scan result text.
     /// <returns>
-    /// Asserts the success of the pipeline processing and report writing.
-    /// Confirms the generated report file exists and its content matches the expected output.
+    ///     Asserts the success of the pipeline processing and report writing.
+    ///     Confirms the generated report file exists and its content matches the expected output.
     /// </returns>
     [Fact]
     public async Task ScanPipeline_WithReportWriter_GeneratesReportFile()
@@ -88,15 +92,19 @@ public class ReportWritingIntegrationTests : IDisposable
 
     /// Validates whether the ScanPipeline, when configured for batch processing,
     /// successfully processes multiple crash log files and generates corresponding
-    /// report files. The method ensures the following functionality:<br/>
-    /// - Initialization of the ScanPipeline with default analyzers and configurations.<br/>
-    /// - Correct processing of multiple log files in a batch asynchronously.<br/>
-    /// - ReportWriter integration to generate and save a report for each processed log file.<br/>
+    /// report files. The method ensures the following functionality:
+    /// <br />
+    /// - Initialization of the ScanPipeline with default analyzers and configurations.
+    /// <br />
+    /// - Correct processing of multiple log files in a batch asynchronously.
+    /// <br />
+    /// - ReportWriter integration to generate and save a report for each processed log file.
+    /// <br />
     /// - Verification of the existence and readability of the generated report files.
     /// <returns>
-    /// Confirms that the number of processed log files corresponds to the expected count
-    /// and verifies the generation of associated report files. Each report file's existence
-    /// and readability are validated to ensure successful output generation.
+    ///     Confirms that the number of processed log files corresponds to the expected count
+    ///     and verifies the generation of associated report files. Each report file's existence
+    ///     and readability are validated to ensure successful output generation.
     /// </returns>
     [Fact]
     public async Task ScanPipeline_WithBatchProcessing_GeneratesMultipleReports()
@@ -148,14 +156,18 @@ public class ReportWritingIntegrationTests : IDisposable
     /// Validates the functionality of the GUI's auto-save feature to create a report file
     /// after processing a crash log. This test ensures correct integration of the
     /// auto-save mechanism with the report generation system.
-    /// The method performs the following checks:<br/>
-    /// - Successfully generates a ScanResult object with test crash log data and a sample report.<br/>
-    /// - Verifies the ReportWriter's ability to process and save the generated scan results.<br/>
-    /// - Confirms the saved report file matches the expected content, including specific lines from the report.<br/>
+    /// The method performs the following checks:
+    /// <br />
+    /// - Successfully generates a ScanResult object with test crash log data and a sample report.
+    /// <br />
+    /// - Verifies the ReportWriter's ability to process and save the generated scan results.
+    /// <br />
+    /// - Confirms the saved report file matches the expected content, including specific lines from the report.
+    /// <br />
     /// - Ensures the AutoSaveResults setting is respected during the operation.
     /// <returns>
-    /// Asserts that the auto-save operation successfully creates a report file
-    /// with accurate content based on the processed crash log.
+    ///     Asserts that the auto-save operation successfully creates a report file
+    ///     with accurate content based on the processed crash log.
     /// </returns>
     [Fact]
     public async Task GUI_AutoSaveResult_WritesReportFile()
@@ -196,16 +208,18 @@ public class ReportWritingIntegrationTests : IDisposable
     }
 
     /// Verifies the behavior of CLI auto-save functionality with different application settings.
-    /// The method validates the following scenarios:<br/>
+    /// The method validates the following scenarios:
+    /// <br />
     /// - When the AutoSaveResults flag is enabled in the settings, the scan result's report
     /// is successfully written to the output file, and the file's existence and content
-    /// are validated.<br/>
+    /// are validated.
+    /// <br />
     /// - When the AutoSaveResults flag is disabled in the settings, the scan result's report
     /// is not written to the output file, ensuring no file is created.
     /// <returns>
-    /// Confirms that the CLI auto-save functionality behaves as expected based on the
-    /// application settings. Validates file creation and content when the auto-save flag
-    /// is enabled and ensures no file creation occurs when it is disabled.
+    ///     Confirms that the CLI auto-save functionality behaves as expected based on the
+    ///     application settings. Validates file creation and content when the auto-save flag
+    ///     is enabled and ensures no file creation occurs when it is disabled.
     /// </returns>
     [Fact]
     public async Task CLI_AutoSaveWithSettings_RespectsAutoSaveFlag()
@@ -264,16 +278,22 @@ public class ReportWritingIntegrationTests : IDisposable
     }
 
     /// Validates that the ReportWriter correctly generates a valid report file
-    /// when processing a real sample log file. The test ensures the following key aspects:<br/>
-    /// - Verifies the ScanPipeline initializes with default analyzers, proper logging, and message handling.<br/>
-    /// - Confirms the pipeline successfully processes a real log file and generates a scan result.<br/>
-    /// - Ensures that the ReportWriter creates a report file with content matching the scan result.<br/>
-    /// - Validates that the generated report does not include unwanted content like OPC-related text.<br/>
-    /// - Checks the structure and integrity of the report against the expected output.<br/>
+    /// when processing a real sample log file. The test ensures the following key aspects:
+    /// <br />
+    /// - Verifies the ScanPipeline initializes with default analyzers, proper logging, and message handling.
+    /// <br />
+    /// - Confirms the pipeline successfully processes a real log file and generates a scan result.
+    /// <br />
+    /// - Ensures that the ReportWriter creates a report file with content matching the scan result.
+    /// <br />
+    /// - Validates that the generated report does not include unwanted content like OPC-related text.
+    /// <br />
+    /// - Checks the structure and integrity of the report against the expected output.
+    /// <br />
     /// - Confirms the proper setup and usage of temporary directories and file handling for tests.
     /// <returns>
-    /// Asserts that the report is successfully written, exists as a valid file, and contains
-    /// content consistent with the processed scan result while excluding specified text patterns.
+    ///     Asserts that the report is successfully written, exists as a valid file, and contains
+    ///     content consistent with the processed scan result while excluding specified text patterns.
     /// </returns>
     [Fact]
     public async Task ReportWriter_WithRealSampleLog_GeneratesValidReport()
@@ -333,14 +353,18 @@ public class ReportWritingIntegrationTests : IDisposable
     /// Verifies the integration of ScanResultViewModel and ReportWriter components.
     /// This method ensures that the ViewModel correctly reflects the properties of the provided ScanResult
     /// and that the ReportWriter can successfully write the scan result's report to a file.
-    /// The integration test includes the following validations:<br/>
-    /// - The ScanResultViewModel accurately maps and displays properties of the associated ScanResult.<br/>
-    /// - The ReportWriter correctly generates and writes a report file using the provided scan result.<br/>
-    /// - The generated report file's content matches the expected data.<br/>
+    /// The integration test includes the following validations:
+    /// <br />
+    /// - The ScanResultViewModel accurately maps and displays properties of the associated ScanResult.
+    /// <br />
+    /// - The ReportWriter correctly generates and writes a report file using the provided scan result.
+    /// <br />
+    /// - The generated report file's content matches the expected data.
+    /// <br />
     /// - Ensures that the view model properties, such as description and category, correctly align with the scan result details.
     /// <returns>
-    /// Confirms successful integration via assertions, ensuring proper functionality of the ViewModel and
-    /// the ability of the ReportWriter to save the report file with expected content.
+    ///     Confirms successful integration via assertions, ensuring proper functionality of the ViewModel and
+    ///     the ability of the ReportWriter to save the report file with expected content.
     /// </returns>
     [Fact]
     public async Task ScanResultViewModel_WithReportWriter_IntegratesCorrectly()
@@ -383,11 +407,11 @@ public class ReportWritingIntegrationTests : IDisposable
     /// Creates a sample crash log file with predefined content for testing purposes.
     /// The log includes details such as application version, plugins list, and call stack.
     /// <param name="filePath">
-    /// The full file path where the sample crash log will be created.
+    ///     The full file path where the sample crash log will be created.
     /// </param>
     /// <returns>
-    /// A task that represents the asynchronous operation of writing the sample crash log content
-    /// to the specified file.
+    ///     A task that represents the asynchronous operation of writing the sample crash log content
+    ///     to the specified file.
     /// </returns>
     private async Task CreateSampleCrashLog(string filePath)
     {
@@ -425,11 +449,11 @@ public class ReportWritingIntegrationTests : IDisposable
     {
         /// Displays an informational message using the specified message target.
         /// <param name="message">
-        /// The informational message to be displayed or logged.
+        ///     The informational message to be displayed or logged.
         /// </param>
         /// <param name="target">
-        /// The intended target for the message. Default is MessageTarget.All, which means
-        /// the message is sent to all configured output targets (e.g., GUI, CLI, log).
+        ///     The intended target for the message. Default is MessageTarget.All, which means
+        ///     the message is sent to all configured output targets (e.g., GUI, CLI, log).
         /// </param>
         public void ShowInfo(string message, MessageTarget target = MessageTarget.All)
         {
@@ -438,10 +462,10 @@ public class ReportWritingIntegrationTests : IDisposable
         /// Displays a warning message to the specified target(s). This method is used to communicate
         /// warnings that may require user attention or convey important but non-critical issues.
         /// <param name="message">
-        /// The warning message to be displayed.
+        ///     The warning message to be displayed.
         /// </param>
         /// <param name="target">
-        /// Specifies the recipient(s) of the warning message. Defaults to all targets if not specified.
+        ///     Specifies the recipient(s) of the warning message. Defaults to all targets if not specified.
         /// </param>
         public void ShowWarning(string message, MessageTarget target = MessageTarget.All)
         {
@@ -460,11 +484,11 @@ public class ReportWritingIntegrationTests : IDisposable
         /// This method is used to communicate success notifications within the system,
         /// allowing differentiation between various message targets.
         /// <param name="message">
-        /// The content of the success message to be displayed.
+        ///     The content of the success message to be displayed.
         /// </param>
         /// <param name="target">
-        /// Specifies the target(s) where the success message should be sent.
-        /// This can include options such as GUI, CLI, log, or all targets. Defaults to All.
+        ///     Specifies the target(s) where the success message should be sent.
+        ///     This can include options such as GUI, CLI, log, or all targets. Defaults to All.
         /// </param>
         public void ShowSuccess(string message, MessageTarget target = MessageTarget.All)
         {
@@ -474,11 +498,11 @@ public class ReportWritingIntegrationTests : IDisposable
         /// This method is typically used to output internal state information or detailed
         /// execution flow details for diagnostic purposes during the development or debugging phase.
         /// <param name="message">
-        /// The content of the debug message to be displayed.
+        ///     The content of the debug message to be displayed.
         /// </param>
         /// <param name="target">
-        /// Specifies the target destination for the message, such as all recipients or specific categories
-        /// (e.g., GUI, CLI, or logs). The default value is MessageTarget.All.
+        ///     Specifies the target destination for the message, such as all recipients or specific categories
+        ///     (e.g., GUI, CLI, or logs). The default value is MessageTarget.All.
         /// </param>
         public void ShowDebug(string message, MessageTarget target = MessageTarget.All)
         {
@@ -499,7 +523,10 @@ public class ReportWritingIntegrationTests : IDisposable
         /// message delivery to the specified target(s).
         /// <param name="message">The primary message text to be displayed or logged.</param>
         /// <param name="details">Optional additional details to accompany the message, providing further context.</param>
-        /// <param name="messageType">The type of the message indicating its purpose or level of severity, such as Info, Warning, or Error.</param>
+        /// <param name="messageType">
+        ///     The type of the message indicating its purpose or level of severity, such as Info, Warning,
+        ///     or Error.
+        /// </param>
         /// <param name="target">The target audience or medium for the message, such as All, GuiOnly, CliOnly, or LogOnly.</param>
         public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info,
             MessageTarget target = MessageTarget.All)
@@ -510,14 +537,14 @@ public class ReportWritingIntegrationTests : IDisposable
         /// The progress handler allows reporting of progress updates in the form of
         /// current status and completion metrics.
         /// <param name="title">
-        /// The title or description of the process for which progress is being tracked.
+        ///     The title or description of the process for which progress is being tracked.
         /// </param>
         /// <param name="totalItems">
-        /// The total number of steps or items to complete in the process.
+        ///     The total number of steps or items to complete in the process.
         /// </param>
         /// <returns>
-        /// An instance of <see cref="IProgress{ProgressInfo}"/> that enables sending
-        /// progress updates, including the completion percentage and current state information.
+        ///     An instance of <see cref="IProgress{ProgressInfo}" /> that enables sending
+        ///     progress updates, including the completion percentage and current state information.
         /// </returns>
         public IProgress<ProgressInfo> ShowProgress(string title, int totalItems)
         {
@@ -527,13 +554,13 @@ public class ReportWritingIntegrationTests : IDisposable
         /// Creates a progress context instance with a specified title and total number of items to track progress.
         /// This method is used to initialize and configure a new progress context for tracking the execution of tasks or operations.
         /// <param name="title">
-        /// The title or description to display for the progress context.
+        ///     The title or description to display for the progress context.
         /// </param>
         /// <param name="totalItems">
-        /// The total number of items to process, used to determine the progress percentages.
+        ///     The total number of items to process, used to determine the progress percentages.
         /// </param>
         /// <returns>
-        /// An implementation of IProgressContext that can be used to track and report progress.
+        ///     An implementation of IProgressContext that can be used to track and report progress.
         /// </returns>
         public IProgressContext CreateProgressContext(string title, int totalItems)
         {
@@ -552,11 +579,11 @@ public class ReportWritingIntegrationTests : IDisposable
         /// Updates the current progress with the provided details during a processing task.
         /// Used to simulate progress updates in integration tests or implementations.
         /// <param name="current">
-        /// The current progress value or task index being updated.
+        ///     The current progress value or task index being updated.
         /// </param>
         /// <param name="message">
-        /// A message or description associated with the current progress update.
-        /// Typically used to indicate the ongoing operation or its status.
+        ///     A message or description associated with the current progress update.
+        ///     Typically used to indicate the ongoing operation or its status.
         /// </param>
         public void Update(int current, string message)
         {
@@ -564,11 +591,15 @@ public class ReportWritingIntegrationTests : IDisposable
 
         /// Tests the complete execution of the scanning pipeline when integrated with
         /// report-writing functionality to ensure that all components interact cohesively.
-        /// Verifies the following:<br/>
-        /// - The pipeline successfully processes multiple input sources or data units.<br/>
-        /// - The generated reports accurately reflect the processed data.<br/>
+        /// Verifies the following:
+        /// <br />
+        /// - The pipeline successfully processes multiple input sources or data units.
+        /// <br />
+        /// - The generated reports accurately reflect the processed data.
+        /// <br />
         /// - Handling of edge cases or invalid inputs, ensuring that reports are not created
-        /// for failed or skipped pipeline tasks.<br/>
+        /// for failed or skipped pipeline tasks.
+        /// <br />
         /// - Resource cleanup and exception handling in the integration process.
         public void Complete()
         {
@@ -578,8 +609,10 @@ public class ReportWritingIntegrationTests : IDisposable
         /// This method allows the simulation of progress reporting functionality without invoking
         /// actual system-level operations. It can be used to verify how progress updates are handled
         /// within test scenarios and ensures the correct processing of the ProgressInfo values.
-        /// <param name="value">The current progress information, containing details such as the current step,
-        /// total steps, and descriptive progress message.</param>
+        /// <param name="value">
+        ///     The current progress information, containing details such as the current step,
+        ///     total steps, and descriptive progress message.
+        /// </param>
         public void Report(ProgressInfo value)
         {
         }

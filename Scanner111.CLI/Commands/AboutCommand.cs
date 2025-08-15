@@ -10,11 +10,11 @@ public class AboutCommand : ICommand<AboutOptions>
 
     public AboutCommand(IMessageHandler messageHandler)
     {
-        _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
+        _messageHandler = Guard.NotNull(messageHandler, nameof(messageHandler));
     }
 
     /// <summary>
-    /// Executes the "about" command, displaying version and about information for the application.
+    ///     Executes the "about" command, displaying version and about information for the application.
     /// </summary>
     /// <param name="options">The options provided for the about command.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the exit code of the command.</returns>

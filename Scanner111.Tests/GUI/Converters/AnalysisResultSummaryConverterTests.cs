@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using FluentAssertions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.GUI.Converters;
-using Xunit;
 
 namespace Scanner111.Tests.GUI.Converters;
 
@@ -54,7 +51,8 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        convertedResult.Should().Be(expectedMessage, "because analyzer without findings should return appropriate message");
+        convertedResult.Should()
+            .Be(expectedMessage, "because analyzer without findings should return appropriate message");
     }
 
     [Fact]
@@ -66,14 +64,15 @@ public class AnalysisResultSummaryConverterTests
             AnalyzerName = "FormIdAnalyzer",
             HasFindings = true,
             FormIds = new List<string> { "00001234", "00005678", "00009ABC" },
-            ResolvedFormIds = new List<FormId> { new FormId { Id = "00001234", Description = "Item1" } }
+            ResolvedFormIds = new List<FormId> { new() { Id = "00001234", Description = "Item1" } }
         };
 
         // Act
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        convertedResult.Should().Be("Found 3 FormIDs - 2 unresolved (potential issues)", "because unresolved FormIDs should be reported");
+        convertedResult.Should().Be("Found 3 FormIDs - 2 unresolved (potential issues)",
+            "because unresolved FormIDs should be reported");
     }
 
     [Fact]
@@ -85,10 +84,10 @@ public class AnalysisResultSummaryConverterTests
             AnalyzerName = "FormIdAnalyzer",
             HasFindings = true,
             FormIds = new List<string> { "00001234", "00005678" },
-            ResolvedFormIds = new List<FormId> 
-            { 
-                new FormId { Id = "00001234", Description = "Item1" },
-                new FormId { Id = "00005678", Description = "Item2" }
+            ResolvedFormIds = new List<FormId>
+            {
+                new() { Id = "00001234", Description = "Item1" },
+                new() { Id = "00005678", Description = "Item2" }
             }
         };
 
@@ -126,20 +125,21 @@ public class AnalysisResultSummaryConverterTests
         {
             AnalyzerName = "PluginAnalyzer",
             HasFindings = true,
-            Plugins = new List<Plugin> 
-            { 
-                new Plugin { FileName = "Plugin1.esp" }, 
-                new Plugin { FileName = "Plugin2.esp" }, 
-                new Plugin { FileName = "Plugin3.esp" } 
+            Plugins = new List<Plugin>
+            {
+                new() { FileName = "Plugin1.esp" },
+                new() { FileName = "Plugin2.esp" },
+                new() { FileName = "Plugin3.esp" }
             },
-            SuspectedPlugins = new List<Plugin> { new Plugin { FileName = "Plugin2.esp" } }
+            SuspectedPlugins = new List<Plugin> { new() { FileName = "Plugin2.esp" } }
         };
 
         // Act
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        convertedResult.Should().Be("Found 3 plugins - 1 potentially problematic", "because suspected plugins should be reported");
+        convertedResult.Should().Be("Found 3 plugins - 1 potentially problematic",
+            "because suspected plugins should be reported");
     }
 
     [Fact]
@@ -150,10 +150,10 @@ public class AnalysisResultSummaryConverterTests
         {
             AnalyzerName = "PluginAnalyzer",
             HasFindings = true,
-            Plugins = new List<Plugin> 
-            { 
-                new Plugin { FileName = "Plugin1.esp" }, 
-                new Plugin { FileName = "Plugin2.esp" } 
+            Plugins = new List<Plugin>
+            {
+                new() { FileName = "Plugin1.esp" },
+                new() { FileName = "Plugin2.esp" }
             },
             SuspectedPlugins = new List<Plugin>()
         };
@@ -192,13 +192,13 @@ public class AnalysisResultSummaryConverterTests
         {
             AnalyzerName = "SuspectScanner",
             HasFindings = true,
-            ErrorMatches = new List<string> 
-            { 
+            ErrorMatches = new List<string>
+            {
                 "Error 1: Info 1",
                 "Error 2: Info 2"
             },
-            StackMatches = new List<string> 
-            { 
+            StackMatches = new List<string>
+            {
                 "Stack 1: Info 1"
             }
         };
@@ -207,7 +207,8 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        convertedResult.Should().Be("Detected 2 error pattern(s) and 1 stack pattern(s)", "because both error and stack patterns were found");
+        convertedResult.Should().Be("Detected 2 error pattern(s) and 1 stack pattern(s)",
+            "because both error and stack patterns were found");
     }
 
     [Fact]
@@ -218,8 +219,8 @@ public class AnalysisResultSummaryConverterTests
         {
             AnalyzerName = "SuspectScanner",
             HasFindings = true,
-            ErrorMatches = new List<string> 
-            { 
+            ErrorMatches = new List<string>
+            {
                 "Error 1: Info 1"
             },
             StackMatches = new List<string>()
@@ -241,8 +242,8 @@ public class AnalysisResultSummaryConverterTests
             AnalyzerName = "SuspectScanner",
             HasFindings = true,
             ErrorMatches = new List<string>(),
-            StackMatches = new List<string> 
-            { 
+            StackMatches = new List<string>
+            {
                 "Stack 1: Info 1",
                 "Stack 2: Info 2"
             }
@@ -307,7 +308,8 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        convertedResult.Should().Be("Analysis completed - see full report for details", "because empty report lines should show generic message");
+        convertedResult.Should().Be("Analysis completed - see full report for details",
+            "because empty report lines should show generic message");
     }
 
     [Fact]
@@ -325,14 +327,16 @@ public class AnalysisResultSummaryConverterTests
         var convertedResult = _converter.Convert(result, typeof(string), null, CultureInfo.InvariantCulture);
 
         // Assert
-        convertedResult.Should().Be("Analysis completed with 2 finding(s)", "because empty first line should show count only");
+        convertedResult.Should().Be("Analysis completed with 2 finding(s)",
+            "because empty first line should show count only");
     }
 
     [Fact]
     public void ConvertBack_ThrowsNotImplementedException()
     {
         // Assert
-        var action = () => _converter.ConvertBack("Some text", typeof(AnalysisResult), null, CultureInfo.InvariantCulture);
+        var action = () =>
+            _converter.ConvertBack("Some text", typeof(AnalysisResult), null, CultureInfo.InvariantCulture);
         action.Should().Throw<NotImplementedException>("because ConvertBack is not implemented");
     }
 

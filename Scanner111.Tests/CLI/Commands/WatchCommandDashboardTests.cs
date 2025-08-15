@@ -1,10 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
@@ -12,25 +6,22 @@ using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
-using Scanner111.Core.Services;
-using Spectre.Console;
 using Spectre.Console.Testing;
-using Xunit;
 
 namespace Scanner111.Tests.CLI.Commands;
 
 /// <summary>
-/// Tests for the Dashboard and Statistics functionality of WatchCommand
+///     Tests for the Dashboard and Statistics functionality of WatchCommand
 /// </summary>
 public class WatchCommandDashboardTests : IDisposable
 {
+    private readonly WatchCommand _command;
+    private readonly Mock<IReportWriter> _mockReportWriter;
+    private readonly Mock<IScanPipeline> _mockScanPipeline;
     private readonly Mock<IServiceProvider> _mockServiceProvider;
     private readonly Mock<IApplicationSettingsService> _mockSettingsService;
-    private readonly Mock<IScanPipeline> _mockScanPipeline;
-    private readonly Mock<IReportWriter> _mockReportWriter;
-    private readonly WatchCommand _command;
-    private readonly string _testDirectory;
     private readonly TestConsole _testConsole;
+    private readonly string _testDirectory;
 
     public WatchCommandDashboardTests()
     {
@@ -53,15 +44,42 @@ public class WatchCommandDashboardTests : IDisposable
         _testConsole = new TestConsole();
     }
 
+    public void Dispose()
+    {
+        // Dispose command to clean up FileSystemWatcher
+        _command?.Dispose();
+
+        // Clean up test directory
+        try
+        {
+            if (Directory.Exists(_testDirectory)) Directory.Delete(_testDirectory, true);
+        }
+        catch
+        {
+        }
+    }
+
+    /// <summary>
+    ///     Internal ScanStatistics class for testing
+    ///     Mirrors the private class in WatchCommand
+    /// </summary>
+    private class ScanStatistics
+    {
+        public int IssueCount { get; set; }
+        public int CriticalCount { get; set; }
+        public int WarningCount { get; set; }
+        public int InfoCount { get; set; }
+    }
+
     #region Dashboard Layout Tests
 
     [Fact(Timeout = 5000)]
     public async Task Dashboard_CreatesCorrectLayout()
     {
         // Arrange
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = true
         };
 
@@ -78,9 +96,9 @@ public class WatchCommandDashboardTests : IDisposable
     public async Task Dashboard_DisplaysMonitoringPath()
     {
         // Arrange
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = true,
             Pattern = "*.crash"
         };
@@ -103,7 +121,7 @@ public class WatchCommandDashboardTests : IDisposable
     {
         // Arrange
         var testFiles = new List<string>();
-        for (int i = 0; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
             var file = Path.Combine(_testDirectory, $"file{i}.log");
             File.WriteAllText(file, $"Content {i}");
@@ -121,9 +139,9 @@ public class WatchCommandDashboardTests : IDisposable
         _mockReportWriter.Setup(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
             ScanExisting = true
         };
@@ -133,7 +151,7 @@ public class WatchCommandDashboardTests : IDisposable
         await _command.ExecuteAsync(options, cts.Token);
 
         // Assert
-        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), 
+        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Exactly(3));
     }
 
@@ -149,9 +167,18 @@ public class WatchCommandDashboardTests : IDisposable
             LogPath = testFile,
             AnalysisResults = new List<AnalysisResult>
             {
-                new GenericAnalysisResult { AnalyzerName = "CriticalAnalyzer", HasFindings = true, ReportLines = new List<string> { "Critical issue" } },
-                new GenericAnalysisResult { AnalyzerName = "WarningAnalyzer", HasFindings = true, ReportLines = new List<string> { "Warning 1", "Warning 2" } },
-                new GenericAnalysisResult { AnalyzerName = "InfoAnalyzer", HasFindings = false, ReportLines = new List<string>() }
+                new GenericAnalysisResult
+                {
+                    AnalyzerName = "CriticalAnalyzer", HasFindings = true,
+                    ReportLines = new List<string> { "Critical issue" }
+                },
+                new GenericAnalysisResult
+                {
+                    AnalyzerName = "WarningAnalyzer", HasFindings = true,
+                    ReportLines = new List<string> { "Warning 1", "Warning 2" }
+                },
+                new GenericAnalysisResult
+                    { AnalyzerName = "InfoAnalyzer", HasFindings = false, ReportLines = new List<string>() }
             }
         };
 
@@ -160,9 +187,9 @@ public class WatchCommandDashboardTests : IDisposable
         _mockReportWriter.Setup(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
             ScanExisting = true
         };
@@ -181,7 +208,7 @@ public class WatchCommandDashboardTests : IDisposable
     {
         // Arrange
         var testFiles = new List<string>();
-        for (int i = 0; i < 15; i++) // More than 10 to test limit
+        for (var i = 0; i < 15; i++) // More than 10 to test limit
         {
             var file = Path.Combine(_testDirectory, $"log{i:D2}.log");
             File.WriteAllText(file, $"Content {i}");
@@ -199,9 +226,9 @@ public class WatchCommandDashboardTests : IDisposable
         _mockReportWriter.Setup(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
             ScanExisting = true
         };
@@ -211,7 +238,7 @@ public class WatchCommandDashboardTests : IDisposable
         await _command.ExecuteAsync(options, cts.Token);
 
         // Assert
-        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), 
+        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Exactly(15));
         // Dashboard should only show the 10 most recent files
     }
@@ -224,9 +251,9 @@ public class WatchCommandDashboardTests : IDisposable
     public async Task Dashboard_UpdatesPeriodically()
     {
         // Arrange
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = true
         };
 
@@ -272,8 +299,12 @@ public class WatchCommandDashboardTests : IDisposable
             LogPath = testFile,
             AnalysisResults = new List<AnalysisResult>
             {
-                new GenericAnalysisResult { AnalyzerName = "Analyzer1", HasFindings = false, ReportLines = new List<string>() }, // No findings
-                new GenericAnalysisResult { AnalyzerName = "Analyzer2", HasFindings = false, ReportLines = new List<string>() }  // No findings
+                new GenericAnalysisResult
+                {
+                    AnalyzerName = "Analyzer1", HasFindings = false, ReportLines = new List<string>()
+                }, // No findings
+                new GenericAnalysisResult
+                    { AnalyzerName = "Analyzer2", HasFindings = false, ReportLines = new List<string>() } // No findings
             }
         };
 
@@ -282,9 +313,9 @@ public class WatchCommandDashboardTests : IDisposable
         _mockReportWriter.Setup(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
             ScanExisting = true
         };
@@ -310,8 +341,13 @@ public class WatchCommandDashboardTests : IDisposable
             LogPath = testFile,
             AnalysisResults = new List<AnalysisResult>
             {
-                new GenericAnalysisResult { AnalyzerName = "Analyzer1", HasFindings = true, ReportLines = new List<string> { "Issue 1", "Issue 2" } },
-                new GenericAnalysisResult { AnalyzerName = "Analyzer2", HasFindings = true, ReportLines = new List<string> { "Issue 3" } }
+                new GenericAnalysisResult
+                {
+                    AnalyzerName = "Analyzer1", HasFindings = true,
+                    ReportLines = new List<string> { "Issue 1", "Issue 2" }
+                },
+                new GenericAnalysisResult
+                    { AnalyzerName = "Analyzer2", HasFindings = true, ReportLines = new List<string> { "Issue 3" } }
             }
         };
 
@@ -320,9 +356,9 @@ public class WatchCommandDashboardTests : IDisposable
         _mockReportWriter.Setup(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
             ScanExisting = true
         };
@@ -344,9 +380,9 @@ public class WatchCommandDashboardTests : IDisposable
     public async Task Dashboard_DisabledWithOption_DoesNotClearScreen()
     {
         // Arrange
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false
         };
 
@@ -363,9 +399,9 @@ public class WatchCommandDashboardTests : IDisposable
     public async Task Dashboard_EnabledWithOption_ClearsScreen()
     {
         // Arrange
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = true
         };
 
@@ -415,32 +451,4 @@ public class WatchCommandDashboardTests : IDisposable
     }
 
     #endregion
-
-    public void Dispose()
-    {
-        // Dispose command to clean up FileSystemWatcher
-        _command?.Dispose();
-        
-        // Clean up test directory
-        try
-        {
-            if (Directory.Exists(_testDirectory))
-            {
-                Directory.Delete(_testDirectory, true);
-            }
-        }
-        catch { }
-    }
-
-    /// <summary>
-    /// Internal ScanStatistics class for testing
-    /// Mirrors the private class in WatchCommand
-    /// </summary>
-    private class ScanStatistics
-    {
-        public int IssueCount { get; set; }
-        public int CriticalCount { get; set; }
-        public int WarningCount { get; set; }
-        public int InfoCount { get; set; }
-    }
 }

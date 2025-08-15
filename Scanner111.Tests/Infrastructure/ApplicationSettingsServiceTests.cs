@@ -1,44 +1,42 @@
+using System.Text.Json;
 using FluentAssertions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
-using System.Text.Json;
-using Xunit;
 
 namespace Scanner111.Tests.Infrastructure;
 
 /// <summary>
-/// Unit tests for the ApplicationSettingsService class
+///     Unit tests for the ApplicationSettingsService class
 /// </summary>
 [Collection("Settings Tests")]
 public class ApplicationSettingsServiceTests : IDisposable
 {
     private readonly ApplicationSettingsService _service;
-    private readonly string _testSettingsPath;
     private readonly string _testSettingsDir;
+    private readonly string _testSettingsPath;
 
     public ApplicationSettingsServiceTests()
     {
         _service = new ApplicationSettingsService();
-        
+
         // Create a temporary directory for test settings
         _testSettingsDir = Path.Combine(Path.GetTempPath(), $"Scanner111Tests_{Guid.NewGuid()}");
         Directory.CreateDirectory(_testSettingsDir);
         _testSettingsPath = Path.Combine(_testSettingsDir, "settings.json");
-        
+
         // Override the settings directory for testing
         Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", _testSettingsDir);
-        
+
         // Small delay to avoid race conditions during parallel test execution
-        System.Threading.Thread.Sleep(Random.Shared.Next(50, 150));
+        Thread.Sleep(Random.Shared.Next(50, 150));
     }
 
     public void Dispose()
     {
         // Clean up test directory
         Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", null);
-        
+
         if (Directory.Exists(_testSettingsDir))
-        {
             try
             {
                 Directory.Delete(_testSettingsDir, true);
@@ -47,7 +45,6 @@ public class ApplicationSettingsServiceTests : IDisposable
             {
                 // Best effort - ignore cleanup failures
             }
-        }
     }
 
     [Fact]
@@ -97,7 +94,7 @@ public class ApplicationSettingsServiceTests : IDisposable
 
         // Act
         await _service.SaveSettingsAsync(settings);
-        
+
         // Read the file directly to verify
         var json = await File.ReadAllTextAsync(_testSettingsPath);
         var loadedSettings = JsonSerializer.Deserialize<ApplicationSettings>(json);
@@ -154,7 +151,8 @@ public class ApplicationSettingsServiceTests : IDisposable
         var finalSettings = await _service.LoadSettingsAsync();
         finalSettings.Should().NotBeNull();
         // The final state should be from one of the two writes
-        (finalSettings.FcxMode == true || finalSettings.FcxMode == false).Should().BeTrue("the final state should be from one of the two writes");
+        (finalSettings.FcxMode || !finalSettings.FcxMode).Should()
+            .BeTrue("the final state should be from one of the two writes");
     }
 
     [Fact]
@@ -166,7 +164,7 @@ public class ApplicationSettingsServiceTests : IDisposable
 
         // Act
         await _service.SaveSettingAsync("FcxMode", true);
-        
+
         // Assert
         var updatedSettings = await _service.LoadSettingsAsync();
         updatedSettings.FcxMode.Should().BeTrue();
@@ -178,7 +176,7 @@ public class ApplicationSettingsServiceTests : IDisposable
     public async Task SaveSettingAsync_WithInvalidKey_ThrowsException()
     {
         // Act & Assert
-        Func<Task> act = async () => await _service.SaveSettingAsync("NonExistentProperty", "value");
+        var act = async () => await _service.SaveSettingAsync("NonExistentProperty", "value");
         await act.Should().ThrowAsync<ArgumentException>();
     }
 
@@ -186,7 +184,7 @@ public class ApplicationSettingsServiceTests : IDisposable
     public async Task SaveSettingAsync_WithInvalidValueType_ThrowsException()
     {
         // Act & Assert
-        Func<Task> act = async () => await _service.SaveSettingAsync("MaxConcurrentScans", "not a number");
+        var act = async () => await _service.SaveSettingAsync("MaxConcurrentScans", "not a number");
         await act.Should().ThrowAsync<ArgumentException>();
     }
 
@@ -195,7 +193,7 @@ public class ApplicationSettingsServiceTests : IDisposable
     {
         // Act
         await _service.SaveSettingAsync("fcxmode", true); // lowercase
-        
+
         // Assert
         var settings = await _service.LoadSettingsAsync();
         settings.FcxMode.Should().BeTrue();

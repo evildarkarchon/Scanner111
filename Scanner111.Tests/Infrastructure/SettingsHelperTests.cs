@@ -1,23 +1,19 @@
-using System;
-using System.IO;
 using System.Text.Json;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Scanner111.Core.Infrastructure;
-using Xunit;
 
 namespace Scanner111.Tests.Infrastructure;
 
 public class SettingsHelperTests : IDisposable
 {
-    private readonly string _testDirectory;
     private readonly string _originalAppData;
+    private readonly string _testDirectory;
 
     public SettingsHelperTests()
     {
         _testDirectory = Path.Combine(Path.GetTempPath(), "SettingsHelperTests_" + Guid.NewGuid());
         Directory.CreateDirectory(_testDirectory);
-        
+
         // Store original APPDATA and set test directory
         _originalAppData = Environment.GetEnvironmentVariable("APPDATA") ?? "";
         Environment.SetEnvironmentVariable("APPDATA", _testDirectory);
@@ -27,11 +23,8 @@ public class SettingsHelperTests : IDisposable
     {
         // Restore original APPDATA
         Environment.SetEnvironmentVariable("APPDATA", _originalAppData);
-        
-        if (Directory.Exists(_testDirectory))
-        {
-            Directory.Delete(_testDirectory, true);
-        }
+
+        if (Directory.Exists(_testDirectory)) Directory.Delete(_testDirectory, true);
     }
 
     [Fact]
@@ -39,7 +32,7 @@ public class SettingsHelperTests : IDisposable
     {
         // Act
         var directory = SettingsHelper.GetSettingsDirectory();
-        
+
         // Assert
         directory.Should().EndWith(Path.Combine("Scanner111"));
     }
@@ -49,10 +42,10 @@ public class SettingsHelperTests : IDisposable
     {
         // Arrange
         var settingsDir = SettingsHelper.GetSettingsDirectory();
-        
+
         // Act
         SettingsHelper.EnsureSettingsDirectoryExists();
-        
+
         // Assert
         Directory.Exists(settingsDir).Should().BeTrue();
     }
@@ -72,16 +65,16 @@ public class SettingsHelperTests : IDisposable
         // Arrange
         var filePath = Path.Combine(_testDirectory, "settings.json");
         var defaultSettings = new TestSettings { Value = "Default", Number = 42 };
-        
+
         // Act
         var loaded = await SettingsHelper.LoadSettingsAsync(filePath, () => defaultSettings);
-        
+
         // Assert
         loaded.Should().NotBeNull();
         loaded.Value.Should().Be("Default");
         loaded.Number.Should().Be(42);
         File.Exists(filePath).Should().BeTrue();
-        
+
         // Verify the file was saved with correct format
         var savedJson = await File.ReadAllTextAsync(filePath);
         var savedSettings = JsonSerializer.Deserialize<TestSettings>(savedJson, SettingsHelper.JsonOptions);
@@ -95,17 +88,17 @@ public class SettingsHelperTests : IDisposable
         // Arrange
         var filePath = Path.Combine(_testDirectory, "settings.json");
         var settings = new TestSettings { Value = "Saved", Number = 123 };
-        
+
         // Create the settings directory
         Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-        
+
         // Save initial settings
         var json = JsonSerializer.Serialize(settings, SettingsHelper.JsonOptions);
         await File.WriteAllTextAsync(filePath, json);
-        
+
         // Act
         var loaded = await SettingsHelper.LoadSettingsAsync(filePath, () => new TestSettings());
-        
+
         // Assert
         loaded.Should().NotBeNull();
         loaded.Value.Should().Be("Saved");
@@ -119,12 +112,12 @@ public class SettingsHelperTests : IDisposable
         var filePath = Path.Combine(_testDirectory, "settings.json");
         Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
         await File.WriteAllTextAsync(filePath, "{ invalid json content ]");
-        
+
         var defaultSettings = new TestSettings { Value = "Default", Number = 99 };
-        
+
         // Act
         var loaded = await SettingsHelper.LoadSettingsAsync(filePath, () => defaultSettings);
-        
+
         // Assert
         loaded.Should().NotBeNull();
         loaded.Value.Should().Be("Default");
@@ -138,12 +131,12 @@ public class SettingsHelperTests : IDisposable
         var filePath = Path.Combine(_testDirectory, "settings.json");
         Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
         await File.WriteAllTextAsync(filePath, "null");
-        
+
         var defaultSettings = new TestSettings { Value = "Default", Number = 77 };
-        
+
         // Act
         var loaded = await SettingsHelper.LoadSettingsAsync(filePath, () => defaultSettings);
-        
+
         // Assert
         loaded.Should().NotBeNull();
         loaded.Value.Should().Be("Default");
@@ -156,18 +149,18 @@ public class SettingsHelperTests : IDisposable
         // Arrange
         var filePath = Path.Combine(SettingsHelper.GetSettingsDirectory(), "settings.json");
         var settings = new TestSettings { Value = "Test", Number = 456 };
-        
+
         // Act
         await SettingsHelper.SaveSettingsAsync(filePath, settings);
-        
+
         // Assert
         File.Exists(filePath).Should().BeTrue();
-        
+
         var savedJson = await File.ReadAllTextAsync(filePath);
         savedJson.Should().Contain("\"value\":"); // camelCase property naming
         savedJson.Should().Contain("\"number\":");
         savedJson.Should().Contain("\n"); // WriteIndented = true
-        
+
         // Verify it can be loaded back
         var loaded = JsonSerializer.Deserialize<TestSettings>(savedJson, SettingsHelper.JsonOptions);
         loaded?.Value.Should().Be(settings.Value);
@@ -181,17 +174,17 @@ public class SettingsHelperTests : IDisposable
         // Temporarily change APPDATA to a new location
         var newAppData = Path.Combine(_testDirectory, "NewAppData");
         Environment.SetEnvironmentVariable("APPDATA", newAppData);
-        
+
         var settingsPath = Path.Combine(SettingsHelper.GetSettingsDirectory(), "settings.json");
         var settings = new TestSettings { Value = "Test", Number = 789 };
-        
+
         // Act
         await SettingsHelper.SaveSettingsAsync(settingsPath, settings);
-        
+
         // Assert
         File.Exists(settingsPath).Should().BeTrue();
         Directory.Exists(SettingsHelper.GetSettingsDirectory()).Should().BeTrue();
-        
+
         // Restore original APPDATA
         Environment.SetEnvironmentVariable("APPDATA", _originalAppData);
     }
@@ -202,13 +195,13 @@ public class SettingsHelperTests : IDisposable
         // Arrange
         var filePath = Path.Combine(_testDirectory, "Scanner111", "settings.json");
         Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-        
+
         // Create a read-only file
         await File.WriteAllTextAsync(filePath, "existing content");
         File.SetAttributes(filePath, FileAttributes.ReadOnly);
-        
+
         var settings = new TestSettings { Value = "Test", Number = 123 };
-        
+
         try
         {
             // Act & Assert
@@ -243,7 +236,7 @@ public class SettingsHelperTests : IDisposable
     {
         // Act
         var result = SettingsHelper.ConvertValue(input, targetType);
-        
+
         // Assert
         result.Should().Be(expected);
     }
@@ -265,7 +258,7 @@ public class SettingsHelperTests : IDisposable
     {
         // Act
         var result = SettingsHelper.ConvertValue(input, targetType);
-        
+
         // Assert
         result.Should().Be(expected);
     }
@@ -283,7 +276,7 @@ public class SettingsHelperTests : IDisposable
     {
         // Act
         var result = SettingsHelper.ConvertValue(null!, typeof(string));
-        
+
         // Assert
         result.Should().BeNull();
     }
@@ -296,7 +289,7 @@ public class SettingsHelperTests : IDisposable
     {
         // Act
         var result = SettingsHelper.ConvertValue(input, targetType);
-        
+
         // Assert
         result.Should().Be(expected);
     }
@@ -318,7 +311,7 @@ public class SettingsHelperTests : IDisposable
     {
         // Act
         var result = SettingsHelper.ToPascalCase(input);
-        
+
         // Assert
         result.Should().Be(expected);
     }
@@ -328,7 +321,7 @@ public class SettingsHelperTests : IDisposable
     {
         // Act
         var options = SettingsHelper.JsonOptions;
-        
+
         // Assert
         options.Should().NotBeNull();
         options.WriteIndented.Should().BeTrue();

@@ -1,11 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
@@ -13,22 +6,19 @@ using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
-using Scanner111.Core.Services;
-using Scanner111.Tests.TestHelpers;
-using Xunit;
 
 namespace Scanner111.Tests.CLI.Commands;
 
 public class WatchCommandTests : IDisposable
 {
-    private readonly Mock<IServiceProvider> _mockServiceProvider;
-    private readonly Mock<IApplicationSettingsService> _mockSettingsService;
-    private readonly Mock<IScanPipeline> _mockScanPipeline;
-    private readonly Mock<IReportWriter> _mockReportWriter;
     private readonly WatchCommand _command;
-    private readonly string _testDirectory;
     private readonly List<string> _createdDirectories = new();
     private readonly List<string> _createdFiles = new();
+    private readonly Mock<IReportWriter> _mockReportWriter;
+    private readonly Mock<IScanPipeline> _mockScanPipeline;
+    private readonly Mock<IServiceProvider> _mockServiceProvider;
+    private readonly Mock<IApplicationSettingsService> _mockSettingsService;
+    private readonly string _testDirectory;
 
     public WatchCommandTests()
     {
@@ -49,6 +39,32 @@ public class WatchCommandTests : IDisposable
         _createdDirectories.Add(_testDirectory);
     }
 
+    public void Dispose()
+    {
+        // Dispose command to clean up FileSystemWatcher
+        _command?.Dispose();
+
+        // Clean up created files
+        foreach (var file in _createdFiles.Where(File.Exists))
+            try
+            {
+                File.Delete(file);
+            }
+            catch
+            {
+            }
+
+        // Clean up created directories
+        foreach (var dir in _createdDirectories.Where(Directory.Exists).OrderByDescending(d => d.Length))
+            try
+            {
+                Directory.Delete(dir, true);
+            }
+            catch
+            {
+            }
+    }
+
     #region Constructor Tests
 
     [Fact]
@@ -63,6 +79,155 @@ public class WatchCommandTests : IDisposable
 
         // Assert
         command.Should().NotBeNull();
+    }
+
+    #endregion
+
+    #region Statistics Tests
+
+    [Fact(Timeout = 5000)]
+    public async Task UpdateStatistics_TracksIssueCountsCorrectly()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testDirectory, "test.log");
+        File.WriteAllText(testFile, "Test crash log content");
+        _createdFiles.Add(testFile);
+
+        var scanResult = new ScanResult
+        {
+            LogPath = testFile,
+            AnalysisResults = new List<AnalysisResult>
+            {
+                new GenericAnalysisResult
+                    { AnalyzerName = "Analyzer1", HasFindings = true, ReportLines = new List<string> { "Issue 1" } },
+                new GenericAnalysisResult
+                {
+                    AnalyzerName = "Analyzer2", HasFindings = true,
+                    ReportLines = new List<string> { "Issue 2", "Issue 3" }
+                },
+                new GenericAnalysisResult
+                    { AnalyzerName = "Analyzer3", HasFindings = false, ReportLines = new List<string>() }
+            }
+        };
+
+        _mockScanPipeline.Setup(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(scanResult);
+        _mockReportWriter.Setup(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
+            ShowDashboard = false,
+            ScanExisting = true
+        };
+
+        // Act
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        var result = await _command.ExecuteAsync(options, cts.Token);
+
+        // Assert
+        result.Should().Be(0);
+        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(testFile, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    #endregion
+
+    #region Cancellation Tests
+
+    [Fact(Timeout = 5000)]
+    public async Task ExecuteAsync_WithCancellation_StopsGracefully()
+    {
+        // Arrange
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
+            ShowDashboard = false
+        };
+
+        var cts = new CancellationTokenSource();
+
+        // Act
+        var task = _command.ExecuteAsync(options, cts.Token);
+        await Task.Delay(100);
+        cts.Cancel();
+        var result = await task;
+
+        // Assert
+        result.Should().Be(0);
+    }
+
+    #endregion
+
+    #region Error Handling Tests
+
+    [Fact(Timeout = 5000)]
+    public async Task ProcessNewFile_WithException_HandlesGracefully()
+    {
+        // Arrange
+        var testFile = Path.Combine(_testDirectory, "test.log");
+        File.WriteAllText(testFile, "Test crash log content");
+        _createdFiles.Add(testFile);
+
+        _mockScanPipeline.Setup(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Test exception"));
+
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
+            ShowDashboard = false,
+            ScanExisting = true
+        };
+
+        // Act
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        var result = await _command.ExecuteAsync(options, cts.Token);
+
+        // Assert
+        result.Should().Be(0); // Should continue despite error
+        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(testFile, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    #endregion
+
+    #region Pattern Matching Tests
+
+    [Fact(Timeout = 5000)]
+    public async Task FileWatcher_WithCustomPattern_OnlyMatchesSpecifiedFiles()
+    {
+        // Arrange
+        var logFile = Path.Combine(_testDirectory, "test.log");
+        var txtFile = Path.Combine(_testDirectory, "test.txt");
+        File.WriteAllText(logFile, "Log content");
+        File.WriteAllText(txtFile, "Text content");
+        _createdFiles.Add(logFile);
+        _createdFiles.Add(txtFile);
+
+        var scanResult = new ScanResult
+        {
+            LogPath = "",
+            AnalysisResults = new List<AnalysisResult>()
+        };
+
+        _mockScanPipeline.Setup(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(scanResult);
+
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
+            ShowDashboard = false,
+            Pattern = "*.txt",
+            ScanExisting = true
+        };
+
+        // Act
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        var result = await _command.ExecuteAsync(options, cts.Token);
+
+        // Assert
+        result.Should().Be(0);
+        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(txtFile, It.IsAny<CancellationToken>()), Times.Once);
+        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(logFile, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion
@@ -101,7 +266,7 @@ public class WatchCommandTests : IDisposable
         // Arrange
         var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         var expectedPath = Path.Combine(documentsPath, "My Games", "Fallout4", "F4SE");
-        
+
         // Create the expected directory to avoid path validation error
         Directory.CreateDirectory(expectedPath);
         _createdDirectories.Add(expectedPath);
@@ -121,7 +286,7 @@ public class WatchCommandTests : IDisposable
         // Arrange
         var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         var expectedPath = Path.Combine(documentsPath, "My Games", "Skyrim Special Edition", "SKSE");
-        
+
         // Create the expected directory to avoid path validation error
         Directory.CreateDirectory(expectedPath);
         _createdDirectories.Add(expectedPath);
@@ -179,11 +344,11 @@ public class WatchCommandTests : IDisposable
         _mockReportWriter.Setup(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
-            ShowNotifications = true 
+            ShowNotifications = true
         };
 
         // Act
@@ -191,7 +356,7 @@ public class WatchCommandTests : IDisposable
 
         // Assert
         result.Should().Be(0);
-        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(testFile, It.IsAny<CancellationToken>()), Times.Never, 
+        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(testFile, It.IsAny<CancellationToken>()), Times.Never,
             "File should not be processed automatically, only through FileSystemWatcher events");
     }
 
@@ -214,9 +379,9 @@ public class WatchCommandTests : IDisposable
         _mockReportWriter.Setup(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
             AutoMove = true,
             ScanExisting = true
@@ -240,7 +405,7 @@ public class WatchCommandTests : IDisposable
     {
         // Arrange
         var testFiles = new List<string>();
-        for (int i = 0; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
             var file = Path.Combine(_testDirectory, $"crash{i}.log");
             File.WriteAllText(file, $"Crash log {i}");
@@ -259,9 +424,9 @@ public class WatchCommandTests : IDisposable
         _mockReportWriter.Setup(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
             ScanExisting = true
         };
@@ -272,7 +437,7 @@ public class WatchCommandTests : IDisposable
 
         // Assert
         result.Should().Be(0);
-        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), 
+        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Exactly(3));
     }
 
@@ -302,9 +467,9 @@ public class WatchCommandTests : IDisposable
         _mockReportWriter.Setup(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
             ScanExisting = true,
             Recursive = true
@@ -316,7 +481,7 @@ public class WatchCommandTests : IDisposable
 
         // Assert
         result.Should().Be(0);
-        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), 
+        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Exactly(2));
     }
 
@@ -328,9 +493,9 @@ public class WatchCommandTests : IDisposable
     public async Task RunWithDashboard_InitializesCorrectly()
     {
         // Arrange
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = true
         };
 
@@ -346,9 +511,9 @@ public class WatchCommandTests : IDisposable
     public async Task RunSimpleWatch_WithoutDashboard_WorksCorrectly()
     {
         // Arrange
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false
         };
 
@@ -358,149 +523,6 @@ public class WatchCommandTests : IDisposable
 
         // Assert
         result.Should().Be(0);
-    }
-
-    #endregion
-
-    #region Statistics Tests
-
-    [Fact(Timeout = 5000)]
-    public async Task UpdateStatistics_TracksIssueCountsCorrectly()
-    {
-        // Arrange
-        var testFile = Path.Combine(_testDirectory, "test.log");
-        File.WriteAllText(testFile, "Test crash log content");
-        _createdFiles.Add(testFile);
-
-        var scanResult = new ScanResult
-        {
-            LogPath = testFile,
-            AnalysisResults = new List<AnalysisResult>
-            {
-                new GenericAnalysisResult { AnalyzerName = "Analyzer1", HasFindings = true, ReportLines = new List<string> { "Issue 1" } },
-                new GenericAnalysisResult { AnalyzerName = "Analyzer2", HasFindings = true, ReportLines = new List<string> { "Issue 2", "Issue 3" } },
-                new GenericAnalysisResult { AnalyzerName = "Analyzer3", HasFindings = false, ReportLines = new List<string>() }
-            }
-        };
-
-        _mockScanPipeline.Setup(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(scanResult);
-        _mockReportWriter.Setup(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
-
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
-            ShowDashboard = false,
-            ScanExisting = true
-        };
-
-        // Act
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-        var result = await _command.ExecuteAsync(options, cts.Token);
-
-        // Assert
-        result.Should().Be(0);
-        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(testFile, It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    #endregion
-
-    #region Cancellation Tests
-
-    [Fact(Timeout = 5000)]
-    public async Task ExecuteAsync_WithCancellation_StopsGracefully()
-    {
-        // Arrange
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
-            ShowDashboard = false
-        };
-
-        var cts = new CancellationTokenSource();
-
-        // Act
-        var task = _command.ExecuteAsync(options, cts.Token);
-        await Task.Delay(100);
-        cts.Cancel();
-        var result = await task;
-
-        // Assert
-        result.Should().Be(0);
-    }
-
-    #endregion
-
-    #region Error Handling Tests
-
-    [Fact(Timeout = 5000)]
-    public async Task ProcessNewFile_WithException_HandlesGracefully()
-    {
-        // Arrange
-        var testFile = Path.Combine(_testDirectory, "test.log");
-        File.WriteAllText(testFile, "Test crash log content");
-        _createdFiles.Add(testFile);
-
-        _mockScanPipeline.Setup(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Exception("Test exception"));
-
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
-            ShowDashboard = false,
-            ScanExisting = true
-        };
-
-        // Act
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-        var result = await _command.ExecuteAsync(options, cts.Token);
-
-        // Assert
-        result.Should().Be(0); // Should continue despite error
-        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(testFile, It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    #endregion
-
-    #region Pattern Matching Tests
-
-    [Fact(Timeout = 5000)]
-    public async Task FileWatcher_WithCustomPattern_OnlyMatchesSpecifiedFiles()
-    {
-        // Arrange
-        var logFile = Path.Combine(_testDirectory, "test.log");
-        var txtFile = Path.Combine(_testDirectory, "test.txt");
-        File.WriteAllText(logFile, "Log content");
-        File.WriteAllText(txtFile, "Text content");
-        _createdFiles.Add(logFile);
-        _createdFiles.Add(txtFile);
-
-        var scanResult = new ScanResult
-        {
-            LogPath = "",
-            AnalysisResults = new List<AnalysisResult>()
-        };
-
-        _mockScanPipeline.Setup(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(scanResult);
-
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
-            ShowDashboard = false,
-            Pattern = "*.txt",
-            ScanExisting = true
-        };
-
-        // Act
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-        var result = await _command.ExecuteAsync(options, cts.Token);
-
-        // Assert
-        result.Should().Be(0);
-        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(txtFile, It.IsAny<CancellationToken>()), Times.Once);
-        _mockScanPipeline.Verify(p => p.ProcessSingleAsync(logFile, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion
@@ -534,9 +556,9 @@ public class WatchCommandTests : IDisposable
         _mockReportWriter.Setup(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
             ShowNotifications = true,
             ScanExisting = true
@@ -548,7 +570,7 @@ public class WatchCommandTests : IDisposable
 
         // Assert
         result.Should().Be(0);
-        _mockReportWriter.Verify(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()), 
+        _mockReportWriter.Verify(r => r.WriteReportAsync(It.IsAny<ScanResult>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -569,9 +591,9 @@ public class WatchCommandTests : IDisposable
         _mockScanPipeline.Setup(p => p.ProcessSingleAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(scanResult);
 
-        var options = new WatchOptions 
-        { 
-            Path = _testDirectory, 
+        var options = new WatchOptions
+        {
+            Path = _testDirectory,
             ShowDashboard = false,
             ShowNotifications = false,
             ScanExisting = true
@@ -586,22 +608,4 @@ public class WatchCommandTests : IDisposable
     }
 
     #endregion
-
-    public void Dispose()
-    {
-        // Dispose command to clean up FileSystemWatcher
-        _command?.Dispose();
-        
-        // Clean up created files
-        foreach (var file in _createdFiles.Where(File.Exists))
-        {
-            try { File.Delete(file); } catch { }
-        }
-
-        // Clean up created directories
-        foreach (var dir in _createdDirectories.Where(Directory.Exists).OrderByDescending(d => d.Length))
-        {
-            try { Directory.Delete(dir, true); } catch { }
-        }
-    }
 }

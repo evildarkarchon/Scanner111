@@ -121,9 +121,7 @@ public class ScanResult
             // Fallback if analyzer didn't run
             report.Add($"Main Error: {CrashLog.MainError}\n");
             if (!string.IsNullOrEmpty(CrashLog.CrashGenVersion))
-            {
                 report.Add($"Detected Buffout 4 Version: {CrashLog.CrashGenVersion} \n");
-            }
             report.Add("\n");
         }
 
@@ -145,17 +143,17 @@ public class ScanResult
         var fcxAnalyzer = AnalysisResults.FirstOrDefault(r => r.AnalyzerName == "FCX Analyzer");
         var modConflictAnalyzer = AnalysisResults.FirstOrDefault(r => r.AnalyzerName == "Mod Conflict Analyzer");
         var versionAnalyzer = AnalysisResults.FirstOrDefault(r => r.AnalyzerName == "Version Analyzer");
-        
-        var hasFcxFindings = fcxAnalyzer?.HasFindings == true || 
-                            modConflictAnalyzer?.HasFindings == true || 
-                            versionAnalyzer?.HasFindings == true;
-        
+
+        var hasFcxFindings = fcxAnalyzer?.HasFindings == true ||
+                             modConflictAnalyzer?.HasFindings == true ||
+                             versionAnalyzer?.HasFindings == true;
+
         if (settingsResult is { HasFindings: true } || hasFcxFindings)
         {
             report.Add("====================================================\n");
             report.Add("CHECKING IF NECESSARY FILES/SETTINGS ARE CORRECT...\n");
             report.Add("====================================================\n");
-            
+
             // Add FCX report sections if FCX mode is enabled and has findings
             if (hasFcxFindings)
             {
@@ -173,24 +171,22 @@ public class ScanResult
                 report.Add(FcxReportExtensions.GenerateFcxSectionForSettings(false));
                 report.Add("\n");
             }
-            
+
             // Add settings scanner results if available
-            if (settingsResult?.HasFindings == true)
-            {
-                report.AddRange(settingsResult.ReportLines);
-            }
+            if (settingsResult?.HasFindings == true) report.AddRange(settingsResult.ReportLines);
         }
 
         // Check if plugin list is missing
         var isPluginListMissing = CrashLog?.Plugins.Count == 0;
-        
+
         // Additional sections
         report.Add("====================================================\n");
         report.Add("CHECKING FOR MODS THAT CAN CAUSE FREQUENT CRASHES...\n");
         report.Add("====================================================\n");
         if (isPluginListMissing)
         {
-            report.Add("* [!] NOTICE : THE CRASH LOG GENERATOR WAS NOT ABLE TO LOAD THE PLUGIN LIST FOR THIS CRASH LOG! *\n");
+            report.Add(
+                "* [!] NOTICE : THE CRASH LOG GENERATOR WAS NOT ABLE TO LOAD THE PLUGIN LIST FOR THIS CRASH LOG! *\n");
             report.Add("  Scanner 111 cannot perform the full scan. Provide or scan a different crash log\n");
             report.Add("  OR copy-paste your *loadorder.txt* into your main Scanner 111 folder.\n");
         }
@@ -200,7 +196,8 @@ public class ScanResult
         report.Add("====================================================\n");
         if (isPluginListMissing)
         {
-            report.Add("* [!] NOTICE : THE CRASH LOG GENERATOR WAS NOT ABLE TO LOAD THE PLUGIN LIST FOR THIS CRASH LOG! *\n");
+            report.Add(
+                "* [!] NOTICE : THE CRASH LOG GENERATOR WAS NOT ABLE TO LOAD THE PLUGIN LIST FOR THIS CRASH LOG! *\n");
             report.Add("  Scanner 111 cannot perform the full scan. Provide or scan a different crash log\n");
             report.Add("  OR copy-paste your *loadorder.txt* into your main Scanner 111 folder.\n");
         }
@@ -215,7 +212,8 @@ public class ScanResult
         report.Add("====================================================\n");
         if (isPluginListMissing)
         {
-            report.Add("* [!] NOTICE : THE CRASH LOG GENERATOR WAS NOT ABLE TO LOAD THE PLUGIN LIST FOR THIS CRASH LOG! *\n");
+            report.Add(
+                "* [!] NOTICE : THE CRASH LOG GENERATOR WAS NOT ABLE TO LOAD THE PLUGIN LIST FOR THIS CRASH LOG! *\n");
             report.Add("  Scanner 111 cannot perform the full scan. Provide or scan a different crash log\n");
             report.Add("  OR copy-paste your *loadorder.txt* into your main Scanner 111 folder.\n");
         }
@@ -227,7 +225,8 @@ public class ScanResult
         report.Add("====================================================\n");
         if (isPluginListMissing)
         {
-            report.Add("* [!] NOTICE : THE CRASH LOG GENERATOR WAS NOT ABLE TO LOAD THE PLUGIN LIST FOR THIS CRASH LOG! *\n");
+            report.Add(
+                "* [!] NOTICE : THE CRASH LOG GENERATOR WAS NOT ABLE TO LOAD THE PLUGIN LIST FOR THIS CRASH LOG! *\n");
             report.Add("  Scanner 111 cannot perform the full scan. Provide or scan a different crash log\n");
             report.Add("  OR copy-paste your *loadorder.txt* into your main Scanner 111 folder.\n");
         }
@@ -266,8 +265,13 @@ public class ScanResult
         report.Add("\n\n");
 
         // Include any other analyzer results not already handled
-        var handledAnalyzers = new[] { "Suspect Scanner", "Settings Scanner", "Plugin Analyzer", "FormId Analyzer", "Record Scanner", "FCX Analyzer", "Mod Conflict Analyzer", "Version Analyzer" };
-        var otherAnalyzers = AnalysisResults.Where(r => !handledAnalyzers.Contains(r.AnalyzerName) && r.HasFindings).ToList();
+        var handledAnalyzers = new[]
+        {
+            "Suspect Scanner", "Settings Scanner", "Plugin Analyzer", "FormId Analyzer", "Record Scanner",
+            "FCX Analyzer", "Mod Conflict Analyzer", "Version Analyzer"
+        };
+        var otherAnalyzers = AnalysisResults.Where(r => !handledAnalyzers.Contains(r.AnalyzerName) && r.HasFindings)
+            .ToList();
         if (otherAnalyzers.Any())
         {
             report.Add("# OTHER ANALYSIS RESULTS #\n");
@@ -276,6 +280,7 @@ public class ScanResult
                 report.Add($"[{analyzer.AnalyzerName}]\n");
                 report.AddRange(analyzer.ReportLines);
             }
+
             report.Add("\n");
         }
 

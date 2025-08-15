@@ -1,26 +1,30 @@
+using System;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using Scanner111.Core.Services;
-using Scanner111.GUI.ViewModels;
+using Scanner111.Core.Infrastructure;
 using Scanner111.GUI.Services;
+using Scanner111.GUI.ViewModels;
 
 namespace Scanner111.GUI.Views;
 
 /// <summary>
-/// Represents the main window of the application. This class serves as the primary user interface window
-/// and manages the layout, appearance, and initialization of the application.
+///     Represents the main window of the application. This class serves as the primary user interface window
+///     and manages the layout, appearance, and initialization of the application.
 /// </summary>
 /// <remarks>
-/// The <c>MainWindow</c> class is designed to be the entry point for the desktop application.
-/// It initializes the necessary components upon loading and serves as a container for user interface
-/// elements defined in the corresponding XAML file (<c>MainWindow.axaml</c>).
-/// The class is tightly integrated with the ViewModel layer, following the MVVM (Model-View-ViewModel)
-/// architectural pattern to separate the user interface from business logic.
+///     The <c>MainWindow</c> class is designed to be the entry point for the desktop application.
+///     It initializes the necessary components upon loading and serves as a container for user interface
+///     elements defined in the corresponding XAML file (<c>MainWindow.axaml</c>).
+///     The class is tightly integrated with the ViewModel layer, following the MVVM (Model-View-ViewModel)
+///     architectural pattern to separate the user interface from business logic.
 /// </remarks>
 /// <example>
-/// This class is initialized through dependency injection when the application starts.
+///     This class is initialized through dependency injection when the application starts.
 /// </example>
 public partial class MainWindow : Window
 {
@@ -33,14 +37,19 @@ public partial class MainWindow : Window
         var settingsService = new SettingsService();
         var messageHandler = new GuiMessageHandlerService();
         var updateService = new DesignTimeUpdateService();
-        var cacheManager = new Scanner111.Core.Infrastructure.NullCacheManager();
-        var unsolvedLogsMover = new Scanner111.Core.Infrastructure.NullUnsolvedLogsMover();
+        var cacheManager = new NullCacheManager();
+        var unsolvedLogsMover = new NullUnsolvedLogsMover();
 
-        _viewModel = new MainWindowViewModel(settingsService, messageHandler, updateService, cacheManager, unsolvedLogsMover);
+        _viewModel = new MainWindowViewModel(settingsService, messageHandler, updateService, cacheManager,
+            unsolvedLogsMover);
         InitializeComponent();
 
         // Wire up file picker events
         Loaded += MainWindow_Loaded;
+
+        // Wire up drag-drop events
+        AddHandler(DragDrop.DropEvent, OnDrop);
+        AddHandler(DragDrop.DragOverEvent, OnDragOver);
     }
 
     // Constructor for dependency injection
@@ -51,11 +60,15 @@ public partial class MainWindow : Window
 
         // Wire up file picker events
         Loaded += MainWindow_Loaded;
+
+        // Wire up drag-drop events
+        AddHandler(DragDrop.DropEvent, OnDrop);
+        AddHandler(DragDrop.DragOverEvent, OnDragOver);
     }
 
     /// <summary>
-    /// Handles the Loaded event of the MainWindow, initializing the ViewModel
-    /// and setting up necessary file picker delegates for the application.
+    ///     Handles the Loaded event of the MainWindow, initializing the ViewModel
+    ///     and setting up necessary file picker delegates for the application.
     /// </summary>
     /// <param name="sender">The source of the event, typically the MainWindow instance.</param>
     /// <param name="e">The event data associated with the Loaded event.</param>
@@ -71,13 +84,13 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Displays a file picker dialog to allow the user to select a file based on the specified title and filter.
+    ///     Displays a file picker dialog to allow the user to select a file based on the specified title and filter.
     /// </summary>
     /// <param name="title">The title of the file picker dialog.</param>
     /// <param name="filter">The filter to specify the accepted file types in the file picker.</param>
     /// <returns>
-    /// A task representing the asynchronous operation. The task result contains the selected file's local path
-    /// as a string. If no file is selected, an empty string is returned.
+    ///     A task representing the asynchronous operation. The task result contains the selected file's local path
+    ///     as a string. If no file is selected, an empty string is returned.
     /// </returns>
     private async Task<string> ShowFilePickerAsync(string title, string filter)
     {
@@ -105,10 +118,13 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Displays a folder picker dialog to the user, allowing the selection of a single folder.
+    ///     Displays a folder picker dialog to the user, allowing the selection of a single folder.
     /// </summary>
     /// <param name="title">The title to be displayed on the folder picker dialog.</param>
-    /// <returns>A task that resolves to the path of the selected folder as a string. If no folder is selected, an empty string is returned.</returns>
+    /// <returns>
+    ///     A task that resolves to the path of the selected folder as a string. If no folder is selected, an empty string
+    ///     is returned.
+    /// </returns>
     private async Task<string> ShowFolderPickerAsync(string title)
     {
         var topLevel = GetTopLevel(this);
@@ -121,5 +137,49 @@ public partial class MainWindow : Window
         });
 
         return folders.Count > 0 ? folders[0].Path.LocalPath : string.Empty;
+    }
+
+    private void OnDragOver(object? sender, DragEventArgs e)
+    {
+        // Only accept files
+        e.DragEffects = e.Data.Contains(DataFormats.Files)
+            ? DragDropEffects.Copy
+            : DragDropEffects.None;
+    }
+
+    private void OnDrop(object? sender, DragEventArgs e)
+    {
+        if (!e.Data.Contains(DataFormats.Files))
+            return;
+
+        var files = e.Data.GetFiles()?.ToList();
+        if (files == null || files.Count == 0)
+            return;
+
+        // Process the first dropped file
+        var firstFile = files[0];
+        if (firstFile is IStorageFile storageFile)
+        {
+            var path = storageFile.Path.LocalPath;
+
+            // Determine if it's a log file or directory
+            if (File.Exists(path))
+            {
+                // Check if it's a log file
+                var extension = Path.GetExtension(path).ToLowerInvariant();
+                if (extension == ".log" || extension == ".txt")
+                {
+                    _viewModel.SelectedLogPath = path;
+
+                    // Automatically start scan if configured
+                    if (!string.IsNullOrEmpty(_viewModel.SelectedLogPath)) _viewModel.ScanCommand.Execute().Subscribe();
+                }
+            }
+            else if (Directory.Exists(path))
+            {
+                // It's a directory - set as scan directory
+                _viewModel.SelectedScanDirectory = path;
+            }
+        }
     }
 }

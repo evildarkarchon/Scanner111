@@ -3,14 +3,13 @@ using Moq;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
-using Xunit;
 
 namespace Scanner111.Tests.CLI;
 
 public class InteractiveCommandTests
 {
-    private readonly Mock<ITerminalUIService> _mockUiService;
     private readonly InteractiveCommand _command;
+    private readonly Mock<ITerminalUIService> _mockUiService;
 
     public InteractiveCommandTests()
     {
@@ -87,10 +86,10 @@ public class InteractiveCommandTests
     public async Task ExecuteAsync_WithNoAnimations_PassesOption()
     {
         // Arrange
-        var options = new InteractiveOptions 
-        { 
+        var options = new InteractiveOptions
+        {
             Theme = "default",
-            NoAnimations = true 
+            NoAnimations = true
         };
         _mockUiService
             .Setup(x => x.RunInteractiveMode())

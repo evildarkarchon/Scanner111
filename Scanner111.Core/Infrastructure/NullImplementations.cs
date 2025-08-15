@@ -13,7 +13,8 @@ public class NullCacheManager : ICacheManager
         return factory();
     }
 
-    public async Task<T?> GetOrSetYamlSettingAsync<T>(string yamlFile, string keyPath, Func<Task<T?>> factory, TimeSpan? expiry = null)
+    public async Task<T?> GetOrSetYamlSettingAsync<T>(string yamlFile, string keyPath, Func<Task<T?>> factory,
+        TimeSpan? expiry = null)
     {
         return await factory().ConfigureAwait(false);
     }

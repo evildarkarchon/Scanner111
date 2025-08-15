@@ -5,7 +5,6 @@ namespace Scanner111.Core.Infrastructure;
 /// </summary>
 public interface IYamlSettingsProvider
 {
-
     /// <summary>
     ///     Load a complete YAML file as an object
     /// </summary>

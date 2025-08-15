@@ -1,8 +1,6 @@
-using System;
 using System.Globalization;
 using FluentAssertions;
 using Scanner111.GUI.Converters;
-using Xunit;
 
 namespace Scanner111.Tests.GUI.Converters;
 
@@ -11,7 +9,7 @@ public class BooleanToFindingsColorConverterTests
     private readonly BooleanToFindingsColorConverter _converter = new();
 
     [Theory]
-    [InlineData(true, "#FFFF9500")]  // Orange for issues
+    [InlineData(true, "#FFFF9500")] // Orange for issues
     [InlineData(false, "#FF4CAF50")] // Green for no issues
     public void Convert_ValidBoolean_ReturnsCorrectColor(bool hasFindings, string expectedColor)
     {

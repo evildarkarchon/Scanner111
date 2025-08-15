@@ -1,5 +1,6 @@
 using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
+using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.CLI.Commands;
 
@@ -9,11 +10,13 @@ public class InteractiveCommand : ICommand<InteractiveOptions>
 
     public InteractiveCommand(ITerminalUIService uiService)
     {
-        _uiService = uiService;
+        _uiService = Guard.NotNull(uiService, nameof(uiService));
     }
 
     public async Task<int> ExecuteAsync(InteractiveOptions options)
     {
+        Guard.NotNull(options, nameof(options));
+
         // Apply theme settings if needed
         if (options.Theme != "default")
         {

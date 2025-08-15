@@ -3,31 +3,28 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
-using Scanner111.CLI.Services;
-using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
-using Xunit;
 
 namespace Scanner111.Tests.CLI;
 
 public class FcxCommandTests : IDisposable
 {
-    private readonly ICliSettingsService _settingsService;
-    private readonly IHashValidationService _hashService;
-    private readonly IBackupService _backupService;
     private readonly IApplicationSettingsService _appSettingsService;
-    private readonly IYamlSettingsProvider _yamlSettings;
+    private readonly IBackupService _backupService;
+    private readonly FcxCommand _command;
+    private readonly IHashValidationService _hashService;
     private readonly ILogger<FcxCommand> _logger;
     private readonly TestMessageCapture _messageCapture;
-    private readonly FcxCommand _command;
-    
+    private readonly ICliSettingsService _settingsService;
+    private readonly IYamlSettingsProvider _yamlSettings;
+
     public FcxCommandTests()
     {
         _messageCapture = new TestMessageCapture();
         MessageHandler.Initialize(_messageCapture);
-        
+
         var settingsServiceMock = new Mock<ICliSettingsService>();
         _settingsService = settingsServiceMock.Object;
         var hashServiceMock = new Mock<IHashValidationService>();
@@ -40,7 +37,7 @@ public class FcxCommandTests : IDisposable
         _yamlSettings = yamlSettingsMock.Object;
         var loggerMock = new Mock<ILogger<FcxCommand>>();
         _logger = loggerMock.Object;
-        
+
         _command = new FcxCommand(
             _settingsService,
             _hashService,
@@ -55,7 +52,7 @@ public class FcxCommandTests : IDisposable
     {
         MessageHandler.Initialize(new TestMessageHandler());
     }
-    
+
     [Fact]
     public async Task ExecuteAsync_WithValidGamePath_RunsIntegrityChecks()
     {
@@ -66,22 +63,22 @@ public class FcxCommandTests : IDisposable
             DisableColors = true,
             DisableProgress = true
         };
-        
+
         var settings = new ApplicationSettings
         {
             GamePath = @"C:\Games\Fallout4"
         };
-        
+
         Mock.Get(_settingsService).Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
         Mock.Get(_appSettingsService).Setup(x => x.LoadSettingsAsync()).ReturnsAsync(new ApplicationSettings());
-        
+
         // Act
         var result = await _command.ExecuteAsync(options);
-        
+
         // Assert
         Mock.Get(_settingsService).Verify(x => x.LoadSettingsAsync(), Times.Once);
     }
-    
+
     [Fact]
     public async Task ExecuteAsync_WithRestorePath_CallsBackupService()
     {
@@ -93,24 +90,24 @@ public class FcxCommandTests : IDisposable
             DisableColors = true,
             DisableProgress = true
         };
-        
+
         var settings = new ApplicationSettings
         {
             GamePath = @"C:\Games\Fallout4"
         };
-        
+
         Mock.Get(_settingsService).Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
         Mock.Get(_backupService).Setup(x => x.RestoreBackupAsync(
-            It.IsAny<string>(),
-            It.IsAny<string>(),
-            It.IsAny<IEnumerable<string>?>(),
-            It.IsAny<IProgress<BackupProgress>?>(),
-            It.IsAny<CancellationToken>()))
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<string>?>(),
+                It.IsAny<IProgress<BackupProgress>?>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
-        
+
         // Act
         var result = await _command.ExecuteAsync(options);
-        
+
         // Assert
         result.Should().Be(0, "because restore operation should succeed");
         Mock.Get(_backupService).Verify(x => x.RestoreBackupAsync(
@@ -120,7 +117,7 @@ public class FcxCommandTests : IDisposable
             It.IsAny<IProgress<BackupProgress>?>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
-    
+
     [Fact]
     public async Task ExecuteAsync_WithBackupOption_CreatesBackup()
     {
@@ -133,37 +130,37 @@ public class FcxCommandTests : IDisposable
             DisableColors = true,
             DisableProgress = true
         };
-        
+
         var settings = new ApplicationSettings
         {
             GamePath = @"C:\Games\Fallout4"
         };
-        
+
         Mock.Get(_settingsService).Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
         Mock.Get(_appSettingsService).Setup(x => x.LoadSettingsAsync()).ReturnsAsync(new ApplicationSettings());
-        
+
         var backupResult = new BackupResult
         {
             Success = true,
             BackupPath = @"C:\Backups\backup-123.zip"
         };
-        
+
         Mock.Get(_backupService).Setup(x => x.CreateFullBackupAsync(
-            It.IsAny<string>(),
-            It.IsAny<IProgress<BackupProgress>?>(),
-            It.IsAny<CancellationToken>()))
+                It.IsAny<string>(),
+                It.IsAny<IProgress<BackupProgress>?>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(backupResult);
-        
+
         // Act
         var result = await _command.ExecuteAsync(options);
-        
+
         // Assert
         Mock.Get(_backupService).Verify(x => x.CreateFullBackupAsync(
             settings.GamePath,
             It.IsAny<IProgress<BackupProgress>?>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
-    
+
     [Fact]
     public async Task ExecuteAsync_WithCheckOnlyOption_DoesNotCreateBackup()
     {
@@ -176,25 +173,25 @@ public class FcxCommandTests : IDisposable
             DisableColors = true,
             DisableProgress = true
         };
-        
+
         var settings = new ApplicationSettings
         {
             GamePath = @"C:\Games\Fallout4"
         };
-        
+
         Mock.Get(_settingsService).Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
         Mock.Get(_appSettingsService).Setup(x => x.LoadSettingsAsync()).ReturnsAsync(new ApplicationSettings());
-        
+
         // Act
         var result = await _command.ExecuteAsync(options);
-        
+
         // Assert
         Mock.Get(_backupService).Verify(x => x.CreateFullBackupAsync(
             It.IsAny<string>(),
             It.IsAny<IProgress<BackupProgress>?>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
-    
+
     [Fact]
     public async Task ExecuteAsync_WithoutGamePath_AttemptsDetection()
     {
@@ -204,21 +201,21 @@ public class FcxCommandTests : IDisposable
             DisableColors = true,
             DisableProgress = true
         };
-        
+
         var settings = new ApplicationSettings(); // No game path set
-        
+
         Mock.Get(_settingsService).Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
         Mock.Get(_appSettingsService).Setup(x => x.LoadSettingsAsync()).ReturnsAsync(new ApplicationSettings());
-        
+
         // Act
         var result = await _command.ExecuteAsync(options);
-        
+
         // Assert
         // Since GamePathDetection is created internally, we can't easily verify it was called
         // But we can verify that the settings were loaded
         Mock.Get(_settingsService).Verify(x => x.LoadSettingsAsync(), Times.Once);
     }
-    
+
     [Fact]
     public async Task ExecuteAsync_AppliesCommandLineOverrides()
     {
@@ -231,26 +228,26 @@ public class FcxCommandTests : IDisposable
             DisableColors = true,
             DisableProgress = true
         };
-        
+
         var settings = new ApplicationSettings
         {
             GamePath = @"C:\Games\Fallout4",
             ModsFolder = @"C:\Mods",
             IniFolder = @"C:\Ini"
         };
-        
+
         Mock.Get(_settingsService).Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
         Mock.Get(_appSettingsService).Setup(x => x.LoadSettingsAsync()).ReturnsAsync(new ApplicationSettings());
-        
+
         // Act
         var result = await _command.ExecuteAsync(options);
-        
+
         // Assert
         settings.GamePath.Should().Be(options.GamePath, "because command line override should be applied");
         settings.ModsFolder.Should().Be(options.ModsFolder, "because command line override should be applied");
         settings.IniFolder.Should().Be(options.IniFolder, "because command line override should be applied");
     }
-    
+
     [Fact]
     public async Task ExecuteAsync_HandlesExceptions()
     {
@@ -260,13 +257,13 @@ public class FcxCommandTests : IDisposable
             DisableColors = true,
             DisableProgress = true
         };
-        
+
         Mock.Get(_settingsService).Setup(x => x.LoadSettingsAsync())
             .ThrowsAsync(new Exception("Test exception"));
-        
+
         // Act
         var result = await _command.ExecuteAsync(options);
-        
+
         // Assert
         result.Should().Be(1, "because exception should result in error code");
         // Note: Cannot verify logger extension methods with Moq

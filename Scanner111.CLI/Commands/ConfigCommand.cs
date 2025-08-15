@@ -1,30 +1,33 @@
 using Scanner111.CLI.Models;
-using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.CLI.Commands;
 
 public class ConfigCommand : ICommand<ConfigOptions>
 {
-    private readonly ICliSettingsService _settingsService;
     private readonly IMessageHandler _messageHandler;
+    private readonly ICliSettingsService _settingsService;
 
     public ConfigCommand(ICliSettingsService settingsService, IMessageHandler messageHandler)
     {
-        _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
-        _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
+        _settingsService = Guard.NotNull(settingsService, nameof(settingsService));
+        _messageHandler = Guard.NotNull(messageHandler, nameof(messageHandler));
     }
 
     /// <summary>
-    /// Executes the configuration command asynchronously based on the specified options.
+    ///     Executes the configuration command asynchronously based on the specified options.
     /// </summary>
-    /// <param name="options">The configuration options provided to the command, which determine the operation to be performed. This includes listing the current configuration, resetting to defaults, showing the configuration file path, or setting a configuration value.</param>
+    /// <param name="options">
+    ///     The configuration options provided to the command, which determine the operation to be performed.
+    ///     This includes listing the current configuration, resetting to defaults, showing the configuration file path, or
+    ///     setting a configuration value.
+    /// </param>
     /// <returns>
-    /// A task representing the asynchronous operation. The task result contains an integer that indicates the exit code of the command, where 0 typically signifies success.
+    ///     A task representing the asynchronous operation. The task result contains an integer that indicates the exit code of
+    ///     the command, where 0 typically signifies success.
     /// </returns>
     public async Task<int> ExecuteAsync(ConfigOptions options)
     {
-
         if (options.ShowPath)
         {
             var settingsPath = Path.Combine(
@@ -100,7 +103,8 @@ public class ConfigCommand : ICommand<ConfigOptions>
             _messageHandler.ShowInfo("Available settings:");
             _messageHandler.ShowInfo("  FcxMode, ShowFormIdValues, SimplifyLogs, MoveUnsolvedLogs");
             _messageHandler.ShowInfo("  AudioNotifications, VrMode, DisableColors, DisableProgress");
-            _messageHandler.ShowInfo("  DefaultOutputFormat, DefaultGamePath, DefaultScanDirectory, CrashLogsDirectory");
+            _messageHandler.ShowInfo(
+                "  DefaultOutputFormat, DefaultGamePath, DefaultScanDirectory, CrashLogsDirectory");
             _messageHandler.ShowInfo("  EnableUpdateCheck, UpdateSource");
             return 1;
         }

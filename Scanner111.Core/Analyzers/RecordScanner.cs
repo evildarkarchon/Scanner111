@@ -5,13 +5,15 @@ using Scanner111.Core.Models.Yaml;
 namespace Scanner111.Core.Analyzers;
 
 /// <summary>
-/// Represents an analyzer that scans and extracts named records from crash logs.
+///     Represents an analyzer that scans and extracts named records from crash logs.
 /// </summary>
 /// <remarks>
-/// This class provides functionality to identify and process named record patterns within the call stack data of crash logs.
-/// It utilizes YAML-based settings for configuration and is designed to be a direct implementation of a Python record scanner.
+///     This class provides functionality to identify and process named record patterns within the call stack data of crash
+///     logs.
+///     It utilizes YAML-based settings for configuration and is designed to be a direct implementation of a Python record
+///     scanner.
 /// </remarks>
-/// <seealso cref="Scanner111.Core.Analyzers.IAnalyzer"/>
+/// <seealso cref="Scanner111.Core.Analyzers.IAnalyzer" />
 public class RecordScanner : IAnalyzer
 {
     private readonly IYamlSettingsProvider _yamlSettings;
@@ -41,7 +43,7 @@ public class RecordScanner : IAnalyzer
     public bool CanRunInParallel => true;
 
     /// <summary>
-    /// Analyze a crash log for named records.
+    ///     Analyze a crash log for named records.
     /// </summary>
     /// <param name="crashLog">The crash log to analyze.</param>
     /// <param name="cancellationToken">The cancellation token to observe.</param>
@@ -73,8 +75,8 @@ public class RecordScanner : IAnalyzer
     }
 
     /// <summary>
-    /// Scans named records in the provided segment callstack, identifies matches, and updates the autoscan report
-    /// accordingly.
+    ///     Scans named records in the provided segment callstack, identifies matches, and updates the autoscan report
+    ///     accordingly.
     /// </summary>
     /// <param name="segmentCallstack">The callstack to scan for named records</param>
     /// <param name="recordsMatches">A list to hold records that match the scan criteria</param>
@@ -97,7 +99,7 @@ public class RecordScanner : IAnalyzer
     }
 
     /// <summary>
-    /// Finds and collects matching records from a given segment of a call stack based on specified criteria.
+    ///     Finds and collects matching records from a given segment of a call stack based on specified criteria.
     /// </summary>
     /// <param name="segmentCallstack">A list of strings representing the segment of the call stack to analyze</param>
     /// <param name="recordsMatches">A list where matching record lines will be added</param>
@@ -118,33 +120,29 @@ public class RecordScanner : IAnalyzer
         foreach (var line in segmentCallstack)
         {
             var lowerLine = line.ToLower();
-            
+
             // Check if line contains any record pattern
-            bool hasMatch = false;
+            var hasMatch = false;
             foreach (var record in lowerRecords)
-            {
                 if (lowerLine.Contains(record))
                 {
                     hasMatch = true;
                     break;
                 }
-            }
-            
+
             if (!hasMatch) continue;
-            
+
             // Check if it should be ignored
-            bool shouldIgnore = false;
+            var shouldIgnore = false;
             foreach (var ignore in lowerIgnore)
-            {
                 if (lowerLine.Contains(ignore))
                 {
                     shouldIgnore = true;
                     break;
                 }
-            }
-            
+
             if (shouldIgnore) continue;
-            
+
             // Extract the relevant part of the line based on format
             if (line.Contains(rspMarker))
             {
@@ -158,7 +156,7 @@ public class RecordScanner : IAnalyzer
     }
 
     /// <summary>
-    /// Reports the found named records by summarizing their occurrences and adding explanatory notes.
+    ///     Reports the found named records by summarizing their occurrences and adding explanatory notes.
     /// </summary>
     /// <param name="recordsMatches">A list containing the matched named records extracted from a crash log.</param>
     /// <param name="autoscanReport">A list that will be populated with the summarized report of named records.</param>
@@ -176,7 +174,7 @@ public class RecordScanner : IAnalyzer
         // Add explanatory notes
         var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4YamlV2>("CLASSIC Fallout4");
         var crashgenLogName = fallout4Yaml?.GameInfo?.CrashgenLogName ?? "Crash Logger";
-        
+
         var explanatoryNotes = new[]
         {
             "\n[Last number counts how many times each Named Record shows up in the crash log.]\n",
@@ -187,7 +185,7 @@ public class RecordScanner : IAnalyzer
     }
 
     /// <summary>
-    /// Extracts records from a segment callstack based on specific matching criteria.
+    ///     Extracts records from a segment callstack based on specific matching criteria.
     /// </summary>
     /// <param name="segmentCallstack">The list of strings representing the segment callstack to be analyzed.</param>
     /// <returns>A list of strings containing records identified from the provided segment callstack.</returns>

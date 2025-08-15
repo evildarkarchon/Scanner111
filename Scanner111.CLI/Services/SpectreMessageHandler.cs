@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
-using Spectre.Console;
 using Scanner111.Core.Infrastructure;
+using Spectre.Console;
 
 namespace Scanner111.CLI.Services;
 
@@ -14,7 +14,7 @@ public class SpectreMessageHandler : IMessageHandler
     public SpectreMessageHandler()
     {
         _messages = new ConcurrentQueue<(DateTime, string, Markup)>();
-        
+
         _logTable = new Table()
             .Border(TableBorder.None)
             .HideHeaders()
@@ -31,7 +31,7 @@ public class SpectreMessageHandler : IMessageHandler
     public void ShowInfo(string message, MessageTarget target = MessageTarget.All)
     {
         if (target == MessageTarget.GuiOnly) return;
-        
+
         lock (_updateLock)
         {
             var markup = new Markup($"[blue]{Markup.Escape(message)}[/]");
@@ -42,7 +42,7 @@ public class SpectreMessageHandler : IMessageHandler
     public void ShowWarning(string message, MessageTarget target = MessageTarget.All)
     {
         if (target == MessageTarget.GuiOnly) return;
-        
+
         lock (_updateLock)
         {
             var markup = new Markup($"[yellow]{Markup.Escape(message)}[/]");
@@ -53,7 +53,7 @@ public class SpectreMessageHandler : IMessageHandler
     public void ShowError(string message, MessageTarget target = MessageTarget.All)
     {
         if (target == MessageTarget.GuiOnly) return;
-        
+
         lock (_updateLock)
         {
             var markup = new Markup($"[red]{Markup.Escape(message)}[/]");
@@ -64,7 +64,7 @@ public class SpectreMessageHandler : IMessageHandler
     public void ShowSuccess(string message, MessageTarget target = MessageTarget.All)
     {
         if (target == MessageTarget.GuiOnly) return;
-        
+
         lock (_updateLock)
         {
             var markup = new Markup($"[green]{Markup.Escape(message)}[/]");
@@ -75,7 +75,7 @@ public class SpectreMessageHandler : IMessageHandler
     public void ShowDebug(string message, MessageTarget target = MessageTarget.All)
     {
         if (target == MessageTarget.GuiOnly) return;
-        
+
         lock (_updateLock)
         {
             var markup = new Markup($"[dim]{Markup.Escape(message)}[/]");
@@ -86,7 +86,7 @@ public class SpectreMessageHandler : IMessageHandler
     public void ShowCritical(string message, MessageTarget target = MessageTarget.All)
     {
         if (target == MessageTarget.GuiOnly) return;
-        
+
         lock (_updateLock)
         {
             var markup = new Markup($"[bold red]{Markup.Escape(message)}[/]");
@@ -100,7 +100,7 @@ public class SpectreMessageHandler : IMessageHandler
         if (target == MessageTarget.GuiOnly) return;
 
         var fullMessage = details != null ? $"{message}\n{details}" : message;
-        
+
         switch (messageType)
         {
             case MessageType.Info:
@@ -129,34 +129,25 @@ public class SpectreMessageHandler : IMessageHandler
         return CreateProgressContext(title, totalItems);
     }
 
-    public Core.Infrastructure.IProgressContext CreateProgressContext(string title, int totalItems)
+    public IProgressContext CreateProgressContext(string title, int totalItems)
     {
         var progressContext = new SpectreProgressAdapter(title, totalItems);
-        
+
         // Start a background task to display the progress
         Task.Run(async () =>
         {
             await AnsiConsole.Progress()
                 .AutoClear(false)
                 .HideCompleted(false)
-                .Columns(new ProgressColumn[]
-                {
-                    new TaskDescriptionColumn(),
-                    new ProgressBarColumn(),
-                    new PercentageColumn(),
-                    new RemainingTimeColumn(),
-                    new SpinnerColumn()
-                })
+                .Columns(new TaskDescriptionColumn(), new ProgressBarColumn(), new PercentageColumn(),
+                    new RemainingTimeColumn(), new SpinnerColumn())
                 .StartAsync(async ctx =>
                 {
                     var task = ctx.AddTask(title, maxValue: totalItems);
                     progressContext.SetProgressTask(task);
-                    
+
                     // Wait until the progress is completed or disposed
-                    while (!progressContext.IsCompleted && !progressContext.IsDisposed)
-                    {
-                        await Task.Delay(100);
-                    }
+                    while (!progressContext.IsCompleted && !progressContext.IsDisposed) await Task.Delay(100);
                 });
         });
 
@@ -167,12 +158,9 @@ public class SpectreMessageHandler : IMessageHandler
     {
         var timestamp = DateTime.Now;
         _messages.Enqueue((timestamp, message, markup));
-        
+
         // Keep only last 100 messages
-        while (_messages.Count > 100)
-        {
-            _messages.TryDequeue(out _);
-        }
+        while (_messages.Count > 100) _messages.TryDequeue(out _);
 
         // Just write to console directly
         AnsiConsole.MarkupLine($"[dim]{timestamp:HH:mm:ss}[/] {icon} [{color}]{Markup.Escape(message)}[/]");
@@ -181,29 +169,23 @@ public class SpectreMessageHandler : IMessageHandler
     private void UpdateLiveDisplay()
     {
         _logTable.Rows.Clear();
-        
+
         foreach (var (timestamp, _, markup) in _messages.TakeLast(20))
-        {
             _logTable.AddRow(
                 new Text(""),
                 new Text(timestamp.ToString("HH:mm:ss")),
                 markup
             );
-        }
-        
+
         _layout["messages"].Update(_logTable);
     }
 }
 
-internal class SpectreProgressAdapter : Core.Infrastructure.IProgressContext
+internal class SpectreProgressAdapter : IProgressContext
 {
-    private ProgressTask? _task;
-    private bool _disposed;
     private readonly string _title;
     private readonly int _totalItems;
-    
-    public bool IsCompleted { get; private set; }
-    public bool IsDisposed => _disposed;
+    private ProgressTask? _task;
 
     public SpectreProgressAdapter(string title, int totalItems)
     {
@@ -211,23 +193,21 @@ internal class SpectreProgressAdapter : Core.Infrastructure.IProgressContext
         _totalItems = totalItems;
     }
 
-    public void SetProgressTask(ProgressTask task)
-    {
-        _task = task;
-    }
+    public bool IsCompleted { get; private set; }
+    public bool IsDisposed { get; private set; }
 
     public void Update(int current, string message)
     {
-        if (_disposed || _task == null) return;
-        
+        if (IsDisposed || _task == null) return;
+
         _task.Value = current;
         _task.Description = message;
     }
 
     public void Complete()
     {
-        if (_disposed || _task == null) return;
-        
+        if (IsDisposed || _task == null) return;
+
         _task.Value = _task.MaxValue;
         _task.StopTask();
         IsCompleted = true;
@@ -240,10 +220,15 @@ internal class SpectreProgressAdapter : Core.Infrastructure.IProgressContext
 
     public void Dispose()
     {
-        if (!_disposed)
+        if (!IsDisposed)
         {
             Complete();
-            _disposed = true;
+            IsDisposed = true;
         }
+    }
+
+    public void SetProgressTask(ProgressTask task)
+    {
+        _task = task;
     }
 }

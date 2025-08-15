@@ -12,5 +12,6 @@ public interface IUnsolvedLogsMover
     /// <param name="settings">Application settings to use for the operation</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if successfully moved, false otherwise</returns>
-    Task<bool> MoveUnsolvedLogAsync(string crashLogPath, ApplicationSettings? settings = null, CancellationToken cancellationToken = default);
+    Task<bool> MoveUnsolvedLogAsync(string crashLogPath, ApplicationSettings? settings = null,
+        CancellationToken cancellationToken = default);
 }

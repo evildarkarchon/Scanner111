@@ -1,14 +1,6 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
+using System.Diagnostics;
 using Scanner111.CLI.Models;
-using Scanner111.CLI.Services;
-using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
@@ -19,36 +11,51 @@ namespace Scanner111.CLI.Commands;
 
 public class WatchCommand : ICommand<WatchOptions>, IDisposable
 {
+    private readonly IAudioNotificationService? _audioService;
+    private readonly ConcurrentDictionary<string, DateTime> _processedFiles = new();
+    private readonly IRecentItemsService? _recentItemsService;
+    private readonly IReportWriter _reportWriter;
+    private readonly IScanPipeline _scanPipeline;
     private readonly IServiceProvider _serviceProvider;
     private readonly IApplicationSettingsService _settingsService;
-    private readonly IScanPipeline _scanPipeline;
-    private readonly IReportWriter _reportWriter;
-    private readonly ConcurrentDictionary<string, DateTime> _processedFiles = new();
     private readonly ConcurrentDictionary<string, ScanStatistics> _statistics = new();
-    private FileSystemWatcher? _watcher;
+    private readonly IStatisticsService? _statisticsService;
     private CancellationTokenSource? _cancellationTokenSource;
+    private FileSystemWatcher? _watcher;
 
     public WatchCommand(
         IServiceProvider serviceProvider,
         IApplicationSettingsService settingsService,
         IScanPipeline scanPipeline,
-        IReportWriter reportWriter)
+        IReportWriter reportWriter,
+        IStatisticsService? statisticsService = null,
+        IAudioNotificationService? audioService = null,
+        IRecentItemsService? recentItemsService = null)
     {
         _serviceProvider = serviceProvider;
         _settingsService = settingsService;
         _scanPipeline = scanPipeline;
         _reportWriter = reportWriter;
+        _statisticsService = statisticsService;
+        _audioService = audioService;
+        _recentItemsService = recentItemsService;
     }
 
     public async Task<int> ExecuteAsync(WatchOptions options)
     {
         return await ExecuteAsync(options, CancellationToken.None);
     }
-    
+
+    public void Dispose()
+    {
+        _watcher?.Dispose();
+        _cancellationTokenSource?.Dispose();
+    }
+
     public async Task<int> ExecuteAsync(WatchOptions options, CancellationToken cancellationToken)
     {
         _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        
+
         var watchPath = DetermineWatchPath(options);
         if (string.IsNullOrEmpty(watchPath) || !Directory.Exists(watchPath))
         {
@@ -57,19 +64,12 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
         }
 
         // Don't clear if not showing dashboard to preserve output
+        if (options.ShowDashboard) AnsiConsole.Clear();
+
         if (options.ShowDashboard)
-        {
-            AnsiConsole.Clear();
-        }
-        
-        if (options.ShowDashboard)
-        {
             await RunWithDashboard(watchPath, options, _cancellationTokenSource.Token);
-        }
         else
-        {
             await RunSimpleWatch(watchPath, options, _cancellationTokenSource.Token);
-        }
 
         return 0;
     }
@@ -77,7 +77,7 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
     private async Task RunWithDashboard(string watchPath, WatchOptions options, CancellationToken cancellationToken)
     {
         var layout = CreateDashboardLayout();
-        
+
         await AnsiConsole.Live(layout)
             .AutoClear(false)
             .Overflow(VerticalOverflow.Ellipsis)
@@ -87,16 +87,13 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
                 InitializeWatcher(watchPath, options);
 
                 // Scan existing files if requested
-                if (options.ScanExisting)
-                {
-                    await ScanExistingFiles(watchPath, options, cancellationToken);
-                }
+                if (options.ScanExisting) await ScanExistingFiles(watchPath, options, cancellationToken);
 
                 UpdateDashboard(layout, watchPath, options);
 
                 // Start monitoring
                 _watcher!.EnableRaisingEvents = true;
-                
+
                 AnsiConsole.MarkupLine($"\n[green]Monitoring:[/] {watchPath}");
                 AnsiConsole.MarkupLine("[dim]Press Ctrl+C to stop monitoring[/]\n");
 
@@ -119,10 +116,7 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
 
         InitializeWatcher(watchPath, options);
 
-        if (options.ScanExisting)
-        {
-            await ScanExistingFiles(watchPath, options, cancellationToken);
-        }
+        if (options.ScanExisting) await ScanExistingFiles(watchPath, options, cancellationToken);
 
         _watcher!.EnableRaisingEvents = true;
 
@@ -150,10 +144,8 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
     {
         // Check if we've already processed this file recently (debounce)
         if (_processedFiles.TryGetValue(filePath, out var lastProcessed))
-        {
             if (DateTime.Now - lastProcessed < TimeSpan.FromSeconds(2))
                 return;
-        }
 
         await ProcessNewFile(filePath, options);
     }
@@ -162,16 +154,15 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
     {
         // Check if we've already processed this file recently (debounce)
         if (_processedFiles.TryGetValue(filePath, out var lastProcessed))
-        {
             if (DateTime.Now - lastProcessed < TimeSpan.FromSeconds(2))
                 return;
-        }
 
         await ProcessNewFile(filePath, options);
     }
 
     private async Task ProcessNewFile(string filePath, WatchOptions options)
     {
+        var stopwatch = Stopwatch.StartNew();
         try
         {
             // Wait a moment for file write to complete
@@ -182,10 +173,11 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
 
             _processedFiles[filePath] = DateTime.Now;
 
+            // Track recent file
+            _recentItemsService?.AddRecentLogFile(filePath);
+
             if (options.ShowNotifications)
-            {
                 AnsiConsole.MarkupLine($"\n[yellow]New crash log detected:[/] {Path.GetFileName(filePath)}");
-            }
 
             ScanResult? scanResult = null;
             try
@@ -195,6 +187,10 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
 
                 // Update statistics
                 UpdateStatistics(filePath, scanResult);
+                stopwatch.Stop();
+
+                // Record to statistics service
+                await RecordStatisticsAsync(scanResult, stopwatch.Elapsed);
 
                 // Generate report
                 var reportWritten = await _reportWriter.WriteReportAsync(scanResult, CancellationToken.None);
@@ -206,11 +202,12 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
                     var statusIcon = hasIssues ? "[red]✗[/]" : "[green]✓[/]";
                     AnsiConsole.MarkupLine($"{statusIcon} Analysis complete: {issueCount} issues found");
                     if (reportWritten)
-                    {
                         AnsiConsole.MarkupLine($"[dim]Report saved to: {Path.GetFileName(scanResult.OutputPath)}[/]");
-                    }
                 }
-                
+
+                // Play audio notification
+                await PlayNotificationAsync(scanResult);
+
                 // Move file if requested
                 var moveIssueCount = scanResult.AnalysisResults.Count(r => r.HasFindings);
                 if (options.AutoMove && moveIssueCount == 0)
@@ -219,11 +216,9 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
                     Directory.CreateDirectory(solvedDir);
                     var destPath = Path.Combine(solvedDir, Path.GetFileName(filePath));
                     File.Move(filePath, destPath, true);
-                    
+
                     if (options.ShowNotifications)
-                    {
                         AnsiConsole.MarkupLine($"[dim]Moved to: Solved/{Path.GetFileName(filePath)}[/]");
-                    }
                 }
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("interactive functions concurrently"))
@@ -238,6 +233,108 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
         }
     }
 
+    private async Task RecordStatisticsAsync(ScanResult result, TimeSpan processingTime)
+    {
+        if (_statisticsService == null) return;
+
+        try
+        {
+            var issuesByType = new Dictionary<string, int>();
+            var criticalCount = 0;
+            var warningCount = 0;
+            var infoCount = 0;
+            string? primaryIssueType = null;
+            var maxIssueCount = 0;
+
+            foreach (var analysis in result.AnalysisResults)
+            {
+                if (!analysis.HasFindings) continue;
+
+                var analyzerName = analysis.AnalyzerName;
+                var issueCount = analysis.HasFindings ? 1 : 0;
+
+                if (issuesByType.ContainsKey(analyzerName))
+                    issuesByType[analyzerName] += issueCount;
+                else
+                    issuesByType[analyzerName] = issueCount;
+
+                if (issueCount > maxIssueCount)
+                {
+                    maxIssueCount = issueCount;
+                    primaryIssueType = analyzerName;
+                }
+
+                // Since AnalysisResult doesn't have severity levels, count all findings as warnings
+                if (analysis.HasFindings)
+                    warningCount++;
+            }
+
+            var statistics = new Core.Services.ScanStatistics
+            {
+                Timestamp = DateTime.Now,
+                LogFilePath = result.LogPath,
+                GameType = DetectGameType(result.LogPath),
+                TotalIssuesFound = criticalCount + warningCount + infoCount,
+                CriticalIssues = criticalCount,
+                WarningIssues = warningCount,
+                InfoIssues = infoCount,
+                ProcessingTime = processingTime,
+                WasSolved = criticalCount == 0,
+                PrimaryIssueType = primaryIssueType,
+                IssuesByType = issuesByType
+            };
+
+            await _statisticsService.RecordScanAsync(statistics);
+        }
+        catch (Exception ex)
+        {
+            // Don't fail the scan if statistics recording fails
+            AnsiConsole.MarkupLine($"[dim]Failed to record statistics: {ex.Message}[/]");
+        }
+    }
+
+    private async Task PlayNotificationAsync(ScanResult result)
+    {
+        if (_audioService == null || !_audioService.IsEnabled) return;
+
+        try
+        {
+            // Since AnalysisResult doesn't have severity levels, check for errors
+            var hasCriticalIssues = result.AnalysisResults.Any(r => r.Errors.Count > 0);
+            var hasAnyIssues = result.AnalysisResults.Any(r => r.HasFindings);
+
+            if (hasCriticalIssues)
+                await _audioService.PlayCriticalIssueAsync();
+            else if (hasAnyIssues)
+                await _audioService.PlayErrorFoundAsync();
+            else
+                await _audioService.PlayScanCompleteAsync();
+        }
+        catch (Exception ex)
+        {
+            // Don't fail the scan if audio fails
+            AnsiConsole.MarkupLine($"[dim]Failed to play audio notification: {ex.Message}[/]");
+        }
+    }
+
+    private string DetectGameType(string logPath)
+    {
+        try
+        {
+            var content = File.ReadAllText(logPath).ToLowerInvariant();
+            if (content.Contains("fallout4") || content.Contains("f4se"))
+                return "Fallout4";
+            if (content.Contains("skyrim") || content.Contains("skse"))
+                return "Skyrim";
+        }
+        catch
+        {
+            // Ignore errors reading file
+        }
+
+        return "Unknown";
+    }
+
     private void OnWatcherError(object sender, ErrorEventArgs e)
     {
         AnsiConsole.MarkupLine($"[red]Watcher error:[/] {e.GetException().Message}");
@@ -250,15 +347,13 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
 
         if (existingFiles.Length == 0)
         {
-            if (!options.ShowDashboard && options.ShowNotifications != false)
-            {
+            if (!options.ShowDashboard && options.ShowNotifications)
                 AnsiConsole.MarkupLine("[yellow]No existing crash logs found[/]");
-            }
             return;
         }
 
         // Skip progress display when notifications are disabled (typically in tests)
-        if (options.ShowNotifications == false)
+        if (!options.ShowNotifications)
         {
             foreach (var file in existingFiles)
             {
@@ -328,10 +423,10 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
     {
         // Header
         var headerPanel = new Panel(
-            Align.Center(
-                new FigletText("Scanner111")
-                    .Color(Color.Cyan1),
-                VerticalAlignment.Middle))
+                Align.Center(
+                    new FigletText("Scanner111")
+                        .Color(Color.Cyan1),
+                    VerticalAlignment.Middle))
             .Border(BoxBorder.Rounded);
         layout["header"].Update(headerPanel);
 
@@ -348,7 +443,7 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
         statsTable.AddRow("Total Issues", _statistics.Values.Sum(s => s.IssueCount).ToString());
         statsTable.AddRow("Critical Issues", _statistics.Values.Sum(s => s.CriticalCount).ToString());
         statsTable.AddRow("Warnings", _statistics.Values.Sum(s => s.WarningCount).ToString());
-        
+
         layout["stats"].Update(new Panel(statsTable).Header("[yellow]Live Statistics[/]"));
 
         // Recent files
@@ -362,10 +457,10 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
         foreach (var file in _processedFiles.OrderByDescending(f => f.Value).Take(10))
         {
             var stats = _statistics.GetValueOrDefault(file.Key);
-            var status = stats?.IssueCount > 0 
-                ? $"[red]{stats.IssueCount} issues[/]" 
+            var status = stats?.IssueCount > 0
+                ? $"[red]{stats.IssueCount} issues[/]"
                 : "[green]Clean[/]";
-            
+
             recentTable.AddRow(
                 file.Value.ToString("HH:mm:ss"),
                 Path.GetFileName(file.Key),
@@ -398,11 +493,5 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
         public int CriticalCount { get; set; }
         public int WarningCount { get; set; }
         public int InfoCount { get; set; }
-    }
-
-    public void Dispose()
-    {
-        _watcher?.Dispose();
-        _cancellationTokenSource?.Dispose();
     }
 }

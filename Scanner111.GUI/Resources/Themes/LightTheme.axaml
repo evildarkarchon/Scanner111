@@ -1,0 +1,49 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Light Theme Colors -->
+    <SolidColorBrush x:Key="BackgroundColor">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="ForegroundColor">#FF1e1e1e</SolidColorBrush>
+    <SolidColorBrush x:Key="PrimaryColor">#FF0078D4</SolidColorBrush>
+    <SolidColorBrush x:Key="SecondaryColor">#FFF0F0F0</SolidColorBrush>
+    <SolidColorBrush x:Key="AccentColor">#FF005A9E</SolidColorBrush>
+    <SolidColorBrush x:Key="ErrorColor">#FFD32F2F</SolidColorBrush>
+    <SolidColorBrush x:Key="WarningColor">#FFF57C00</SolidColorBrush>
+    <SolidColorBrush x:Key="SuccessColor">#FF388E3C</SolidColorBrush>
+    <SolidColorBrush x:Key="InfoColor">#FF1976D2</SolidColorBrush>
+
+    <!-- Control Colors -->
+    <SolidColorBrush x:Key="ButtonBackground">#FFF0F0F0</SolidColorBrush>
+    <SolidColorBrush x:Key="ButtonForeground">#FF1e1e1e</SolidColorBrush>
+    <SolidColorBrush x:Key="ButtonHoverBackground">#FFE0E0E0</SolidColorBrush>
+    <SolidColorBrush x:Key="ButtonPressedBackground">#FFD0D0D0</SolidColorBrush>
+
+    <SolidColorBrush x:Key="TextBoxBackground">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="TextBoxForeground">#FF1e1e1e</SolidColorBrush>
+    <SolidColorBrush x:Key="TextBoxBorder">#FFD0D0D0</SolidColorBrush>
+
+    <SolidColorBrush x:Key="MenuBackground">#FFF5F5F5</SolidColorBrush>
+    <SolidColorBrush x:Key="MenuForeground">#FF1e1e1e</SolidColorBrush>
+    <SolidColorBrush x:Key="MenuItemHoverBackground">#FFE0E0E0</SolidColorBrush>
+
+    <SolidColorBrush x:Key="TabControlBackground">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="TabItemBackground">#FFF0F0F0</SolidColorBrush>
+    <SolidColorBrush x:Key="TabItemSelectedBackground">#FF0078D4</SolidColorBrush>
+
+    <SolidColorBrush x:Key="ListBoxBackground">#FFFFFFFF</SolidColorBrush>
+    <SolidColorBrush x:Key="ListBoxItemHoverBackground">#FFF0F0F0</SolidColorBrush>
+    <SolidColorBrush x:Key="ListBoxItemSelectedBackground">#FF0078D4</SolidColorBrush>
+
+    <SolidColorBrush x:Key="BorderBrush">#FFD0D0D0</SolidColorBrush>
+    <SolidColorBrush x:Key="SeparatorBrush">#FFE0E0E0</SolidColorBrush>
+
+    <!-- Progress Bar Colors -->
+    <SolidColorBrush x:Key="ProgressBarBackground">#FFE0E0E0</SolidColorBrush>
+    <SolidColorBrush x:Key="ProgressBarForeground">#FF0078D4</SolidColorBrush>
+
+    <!-- Scrollbar Colors -->
+    <SolidColorBrush x:Key="ScrollBarBackground">#FFF5F5F5</SolidColorBrush>
+    <SolidColorBrush x:Key="ScrollBarThumbBackground">#FFD0D0D0</SolidColorBrush>
+    <SolidColorBrush x:Key="ScrollBarThumbHoverBackground">#FFB0B0B0</SolidColorBrush>
+
+</ResourceDictionary>

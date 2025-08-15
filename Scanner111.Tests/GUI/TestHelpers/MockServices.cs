@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
@@ -16,10 +12,6 @@ public class MockSettingsService : ISettingsService
 {
     private ApplicationSettings _applicationSettings;
     private UserSettings _userSettings;
-    public bool SaveCalled { get; private set; }
-    public bool LoadCalled { get; private set; }
-    public Exception? LoadException { get; set; }
-    public Exception? SaveException { get; set; }
 
     public MockSettingsService()
     {
@@ -46,6 +38,11 @@ public class MockSettingsService : ISettingsService
 
         _userSettings = CreateUserSettingsFromApplicationSettings(_applicationSettings);
     }
+
+    public bool SaveCalled { get; private set; }
+    public bool LoadCalled { get; private set; }
+    public Exception? LoadException { get; set; }
+    public Exception? SaveException { get; set; }
 
     public Task<ApplicationSettings> LoadSettingsAsync()
     {
@@ -256,32 +253,21 @@ public class MockCacheManager : ICacheManager
     public T? GetOrSetYamlSetting<T>(string yamlFile, string keyPath, Func<T?> factory, TimeSpan? expiry = null)
     {
         var cacheKey = $"yaml:{yamlFile}:{keyPath}";
-        if (_cache.TryGetValue(cacheKey, out var cached) && cached is T typedValue)
-        {
-            return typedValue;
-        }
+        if (_cache.TryGetValue(cacheKey, out var cached) && cached is T typedValue) return typedValue;
 
         var value = factory();
-        if (value != null)
-        {
-            _cache[cacheKey] = value;
-        }
+        if (value != null) _cache[cacheKey] = value;
         return value;
     }
 
-    public async Task<T?> GetOrSetYamlSettingAsync<T>(string yamlFile, string keyPath, Func<Task<T?>> factory, TimeSpan? expiry = null)
+    public async Task<T?> GetOrSetYamlSettingAsync<T>(string yamlFile, string keyPath, Func<Task<T?>> factory,
+        TimeSpan? expiry = null)
     {
         var cacheKey = $"yaml:{yamlFile}:{keyPath}";
-        if (_cache.TryGetValue(cacheKey, out var cached) && cached is T typedValue)
-        {
-            return typedValue;
-        }
+        if (_cache.TryGetValue(cacheKey, out var cached) && cached is T typedValue) return typedValue;
 
         var value = await factory().ConfigureAwait(false);
-        if (value != null)
-        {
-            _cache[cacheKey] = value;
-        }
+        if (value != null) _cache[cacheKey] = value;
         return value;
     }
 
@@ -336,7 +322,8 @@ public class MockUnsolvedLogsMover : IUnsolvedLogsMover
     public bool ShouldFail { get; set; }
     public string? FailureMessage { get; set; }
 
-    public Task<bool> MoveUnsolvedLogAsync(string crashLogPath, ApplicationSettings? settings = null, CancellationToken cancellationToken = default)
+    public Task<bool> MoveUnsolvedLogAsync(string crashLogPath, ApplicationSettings? settings = null,
+        CancellationToken cancellationToken = default)
     {
         if (ShouldFail)
         {

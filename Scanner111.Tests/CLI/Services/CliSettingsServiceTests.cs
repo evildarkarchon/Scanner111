@@ -1,47 +1,44 @@
-using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
 using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
-using Xunit;
 
 namespace Scanner111.Tests.CLI.Services;
 
 [Collection("Settings Tests")]
 public class CliSettingsServiceTests : IDisposable
 {
-    private readonly string _testSettingsDir;
     private readonly Mock<IApplicationSettingsService> _mockApplicationSettingsService;
+    private readonly string _testSettingsDir;
 
     public CliSettingsServiceTests()
     {
         // Create a temporary directory for test settings
         _testSettingsDir = Path.Combine(Path.GetTempPath(), $"Scanner111Tests_{Guid.NewGuid()}");
         Directory.CreateDirectory(_testSettingsDir);
-        
+
         // Override the settings directory for testing
         Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", _testSettingsDir);
-        
+
         // Initialize mock
         _mockApplicationSettingsService = new Mock<IApplicationSettingsService>();
         _mockApplicationSettingsService.Setup(x => x.LoadSettingsAsync())
             .ReturnsAsync(new ApplicationSettings());
         _mockApplicationSettingsService.Setup(x => x.GetDefaultSettings())
             .Returns(new ApplicationSettings());
-        
+
         // Small delay to avoid race conditions during parallel test execution
-        System.Threading.Thread.Sleep(Random.Shared.Next(50, 150));
+        Thread.Sleep(Random.Shared.Next(50, 150));
     }
 
     public void Dispose()
     {
         // Clean up test directory
         Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", null);
-        
+
         if (Directory.Exists(_testSettingsDir))
-        {
             try
             {
                 Directory.Delete(_testSettingsDir, true);
@@ -50,17 +47,17 @@ public class CliSettingsServiceTests : IDisposable
             {
                 // Best effort - ignore cleanup failures
             }
-        }
     }
+
     [Fact]
     public async Task LoadSettingsAsync_ReturnsApplicationSettings()
     {
         // Arrange
         var service = new CliSettingsService(_mockApplicationSettingsService.Object);
-        
+
         // Act
         var settings = await service.LoadSettingsAsync();
-        
+
         // Assert
         settings.Should().NotBeNull("because LoadSettingsAsync should return settings");
         settings.Should().BeOfType<ApplicationSettings>("because the service returns ApplicationSettings");
@@ -76,7 +73,7 @@ public class CliSettingsServiceTests : IDisposable
             FcxMode = true,
             ShowFormIdValues = true
         };
-        
+
         // Act & Assert - Should not throw
         await service.SaveSettingsAsync(settings);
     }
@@ -86,10 +83,10 @@ public class CliSettingsServiceTests : IDisposable
     {
         // Arrange
         var service = new CliSettingsService(_mockApplicationSettingsService.Object);
-        
+
         // Act
         await service.SaveSettingAsync("FcxMode", true);
-        
+
         // Assert
         var settings = await service.LoadSettingsAsync();
         settings.FcxMode.Should().BeTrue("because FcxMode was set to true");
@@ -100,16 +97,17 @@ public class CliSettingsServiceTests : IDisposable
     {
         // Arrange
         var service = new CliSettingsService(_mockApplicationSettingsService.Object);
-        
+
         // Act
         var defaults = service.GetDefaultSettings();
-        
+
         // Assert
         defaults.Should().NotBeNull("because GetDefaultSettings should return valid defaults");
         defaults.FcxMode.Should().BeFalse("because FcxMode is false by default");
         defaults.ShowFormIdValues.Should().BeFalse("because ShowFormIdValues is false by default");
         defaults.CacheEnabled.Should().BeTrue("because CacheEnabled is true by default");
-        defaults.MaxConcurrentScans.Should().Be(Environment.ProcessorCount * 2, "because default is 2x processor count");
+        defaults.MaxConcurrentScans.Should()
+            .Be(Environment.ProcessorCount * 2, "because default is 2x processor count");
     }
 
     [Fact]
@@ -117,7 +115,7 @@ public class CliSettingsServiceTests : IDisposable
     {
         // Arrange
         var service = new CliSettingsService(_mockApplicationSettingsService.Object);
-        
+
         // First save some app settings
         var appSettings = new ApplicationSettings
         {
@@ -140,12 +138,12 @@ public class CliSettingsServiceTests : IDisposable
         };
         appSettings.AddRecentScanDirectory("path1");
         appSettings.AddRecentScanDirectory("path2");
-        
+
         await service.SaveSettingsAsync(appSettings);
-        
+
         // Act
         var cliSettings = await service.LoadCliSettingsAsync();
-        
+
         // Assert
         cliSettings.FcxMode.Should().Be(appSettings.FcxMode, "because settings should map correctly");
         cliSettings.ShowFormIdValues.Should().Be(appSettings.ShowFormIdValues);
@@ -194,10 +192,10 @@ public class CliSettingsServiceTests : IDisposable
         };
         cliSettings.AddRecentPath("cli-path1");
         cliSettings.AddRecentPath("cli-path2");
-        
+
         // Act
         await service.SaveCliSettingsAsync(cliSettings);
-        
+
         // Assert - Load back as app settings
         var appSettings = await service.LoadSettingsAsync();
         appSettings.FcxMode.Should().Be(cliSettings.FcxMode, "because settings should map correctly");
@@ -234,11 +232,11 @@ public class CliSettingsServiceTests : IDisposable
             DefaultOutputFormat = "json"
         };
         originalCli.AddRecentPath("test-path");
-        
+
         // Act - Save as CLI settings, load back as CLI settings
         await service.SaveCliSettingsAsync(originalCli);
         var loadedCli = await service.LoadCliSettingsAsync();
-        
+
         // Assert
         loadedCli.FcxMode.Should().Be(originalCli.FcxMode, "because settings should round-trip correctly");
         loadedCli.ShowFormIdValues.Should().Be(originalCli.ShowFormIdValues);
@@ -253,7 +251,7 @@ public class CliSettingsServiceTests : IDisposable
     {
         // Arrange
         var service = new CliSettingsService(_mockApplicationSettingsService.Object);
-        
+
         // Set up app settings with values that don't map to CLI settings
         var appSettings = await service.LoadSettingsAsync();
         appSettings.WindowWidth = 1920;
@@ -262,11 +260,11 @@ public class CliSettingsServiceTests : IDisposable
         appSettings.RecentLogFiles.Add("log1.txt");
         appSettings.RecentGamePaths.Add("game1");
         await service.SaveSettingsAsync(appSettings);
-        
+
         // Act - Save CLI settings
         var cliSettings = new CliSettings { FcxMode = true };
         await service.SaveCliSettingsAsync(cliSettings);
-        
+
         // Assert - Unmapped values should be preserved
         var reloadedApp = await service.LoadSettingsAsync();
         reloadedApp.WindowWidth.Should().Be(1920, "because window width should be preserved");
@@ -286,11 +284,11 @@ public class CliSettingsServiceTests : IDisposable
         {
             RecentScanPaths = null // Simulate null list
         };
-        
+
         // Act & Assert - Should handle gracefully
         await service.SaveCliSettingsAsync(cliSettings);
         var loaded = await service.LoadCliSettingsAsync();
-        
+
         loaded.RecentScanPaths.Should().NotBeNull("because null paths should be handled gracefully");
     }
 
@@ -299,12 +297,12 @@ public class CliSettingsServiceTests : IDisposable
     {
         // Arrange
         var service = new CliSettingsService(_mockApplicationSettingsService.Object);
-        
+
         // Act & Assert - Should handle different types
         await service.SaveSettingAsync("FcxMode", true);
         await service.SaveSettingAsync("MaxConcurrentScans", 24);
         await service.SaveSettingAsync("DefaultOutputFormat", "xml");
-        
+
         var settings = await service.LoadSettingsAsync();
         settings.FcxMode.Should().BeTrue("because FcxMode was set to true");
         settings.MaxConcurrentScans.Should().Be(24, "because MaxConcurrentScans was set to 24");

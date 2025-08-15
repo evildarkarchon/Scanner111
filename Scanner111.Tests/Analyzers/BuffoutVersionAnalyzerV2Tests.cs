@@ -1,14 +1,13 @@
 using FluentAssertions;
 using Scanner111.Core.Analyzers;
-using Scanner111.Core.Models;
 using Scanner111.Core.Infrastructure;
+using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
-using Xunit;
 
 namespace Scanner111.Tests.Analyzers;
 
 /// <summary>
-/// Unit tests for the BuffoutVersionAnalyzerV2 class
+///     Unit tests for the BuffoutVersionAnalyzerV2 class
 /// </summary>
 public class BuffoutVersionAnalyzerV2Tests
 {
@@ -49,7 +48,7 @@ public class BuffoutVersionAnalyzerV2Tests
         // This test is actually for the settings scanner, not version analyzer
         // Version analyzer only checks version, not AutoOpen settings
         // Keeping test name for consistency with plan, but testing version functionality
-        
+
         // Arrange
         var crashLog = new CrashLog
         {
@@ -73,7 +72,7 @@ public class BuffoutVersionAnalyzerV2Tests
     {
         // This test is actually for the plugin analyzer, not version analyzer
         // Testing version parsing with minimal version format instead
-        
+
         // Arrange
         var crashLog = new CrashLog
         {
@@ -97,7 +96,7 @@ public class BuffoutVersionAnalyzerV2Tests
     {
         // This test is actually for the settings scanner, not version analyzer
         // Testing version without 'v' prefix instead
-        
+
         // Arrange
         var crashLog = new CrashLog
         {
@@ -121,7 +120,7 @@ public class BuffoutVersionAnalyzerV2Tests
     {
         // This test is actually for the settings scanner, not version analyzer
         // Testing version with extra suffix instead
-        
+
         // Arrange
         var crashLog = new CrashLog
         {
@@ -188,7 +187,7 @@ public class BuffoutVersionAnalyzerV2Tests
     {
         // Arrange
         var analyzer = new BuffoutVersionAnalyzerV2(new NullYamlSettingsProvider());
-        
+
         var crashLog = new CrashLog
         {
             FilePath = "test.log",
@@ -238,12 +237,22 @@ public class BuffoutVersionAnalyzerV2Tests
     }
 
     /// <summary>
-    /// Helper class for testing YAML load failures
+    ///     Helper class for testing YAML load failures
     /// </summary>
     private class NullYamlSettingsProvider : IYamlSettingsProvider
     {
-        public T? LoadYaml<T>(string yamlFile) where T : class => null;
-        public Task<T?> LoadYamlAsync<T>(string yamlFile) where T : class => Task.FromResult<T?>(null);
-        public void ClearCache() { }
+        public T? LoadYaml<T>(string yamlFile) where T : class
+        {
+            return null;
+        }
+
+        public Task<T?> LoadYamlAsync<T>(string yamlFile) where T : class
+        {
+            return Task.FromResult<T?>(null);
+        }
+
+        public void ClearCache()
+        {
+        }
     }
 }

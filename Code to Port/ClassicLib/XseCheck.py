@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Any, cast
 
 from ClassicLib import Constants, GlobalRegistry, msg_warning
+from ClassicLib.FileIOCore import read_bytes_sync, read_lines_sync
 from ClassicLib.Logger import logger
-from ClassicLib.Util import open_file_with_encoding
 from ClassicLib.YamlSettingsCache import yaml_settings
 
 
@@ -107,8 +107,7 @@ def _check_xse_installation(  # noqa: PLR0913
     messages.append(f"✔️ REQUIRED: *{full_name}* is installed! \n-----\n")
 
     # Check XSE version and log for errors
-    with open_file_with_encoding(log_path) as xse_log:
-        log_contents: list[str] = xse_log.readlines()
+    log_contents: list[str] = read_lines_sync(log_path)
 
     # Check version
     if str(latest_version) in log_contents[0]:
@@ -184,12 +183,11 @@ def _calculate_script_hashes(script_filenames: Iterable[str], scripts_folder: st
 
         if script_path.is_file():
             try:
-                with script_path.open("rb") as f:
-                    file_contents = f.read()
-                    # Algo should match the one used for Database YAML!
-                    file_hash = hashlib.sha256(file_contents).hexdigest()
-                    actual_hashes[filename] = file_hash
-            except OSError as e:
+                file_contents = read_bytes_sync(script_path)
+                # Algo should match the one used for Database YAML!
+                file_hash = hashlib.sha256(file_contents).hexdigest()
+                actual_hashes[filename] = file_hash
+            except (OSError, FileNotFoundError, PermissionError) as e:
                 logger.debug(f"Error reading file {script_path}: {e}")
                 msg_warning(f"Cannot read script file: {script_path.name}")
                 actual_hashes[filename] = None

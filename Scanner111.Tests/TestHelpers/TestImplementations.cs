@@ -1,34 +1,37 @@
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analyzers;
+using Scanner111.Core.FCX;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Models.Yaml;
 using Scanner111.Core.Pipeline;
-using Scanner111.Core.FCX;
-using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
+using GameVersionInfo = Scanner111.Core.Models.Yaml.GameVersionInfo;
 
 namespace Scanner111.Tests.TestHelpers;
 
 /// <summary>
-/// A test implementation of the IYamlSettingsProvider interface for use in testing scenarios.
-/// Provides methods for accessing and manipulating YAML-based settings within tests.
+///     A test implementation of the IYamlSettingsProvider interface for use in testing scenarios.
+///     Provides methods for accessing and manipulating YAML-based settings within tests.
 /// </summary>
 public class TestYamlSettingsProvider : IYamlSettingsProvider
 {
-
     /// Loads and deserializes data from a YAML file into a specified object type.
     /// <typeparam name="T">The type of the object to deserialize the YAML content into. Must be a reference class.</typeparam>
     /// <param name="yamlFile">The path or name of the YAML file to load and parse.</param>
-    /// <returns>An object of type <typeparamref name="T"/> populated with data from the YAML file if successful; otherwise, returns null.</returns>
+    /// <returns>
+    ///     An object of type <typeparamref name="T" /> populated with data from the YAML file if successful; otherwise,
+    ///     returns null.
+    /// </returns>
     public T? LoadYaml<T>(string yamlFile) where T : class
     {
         return yamlFile switch
         {
             "CLASSIC Main" when typeof(T) == typeof(ClassicMainYaml) => CreateTestMainYaml() as T,
-            "CLASSIC Fallout4" when typeof(T) == typeof(ClassicFallout4Yaml) => CreateTestFallout4Yaml() as T,
             "CLASSIC Fallout4" when typeof(T) == typeof(ClassicFallout4YamlV2) => CreateTestFallout4YamlV2() as T,
-            "CLASSIC Fallout4" when typeof(T) == typeof(Dictionary<string, object>) => CreateTestFallout4Dictionary() as T,
+            "CLASSIC Fallout4" when typeof(T) == typeof(Dictionary<string, object>) =>
+                CreateTestFallout4Dictionary() as T,
             _ => null
         };
     }
@@ -36,6 +39,14 @@ public class TestYamlSettingsProvider : IYamlSettingsProvider
     public Task<T?> LoadYamlAsync<T>(string yamlFile) where T : class
     {
         return Task.FromResult(LoadYaml<T>(yamlFile));
+    }
+
+    /// Clears any cached settings or data within the provider implementation.
+    /// This operation is useful to ensure the state of the provider is reset
+    /// or to reload fresh settings when necessary.
+    public void ClearCache()
+    {
+        // Test implementation - do nothing
     }
 
     private ClassicMainYaml CreateTestMainYaml()
@@ -59,41 +70,6 @@ public class TestYamlSettingsProvider : IYamlSettingsProvider
         };
     }
 
-    private ClassicFallout4Yaml CreateTestFallout4Yaml()
-    {
-        return new ClassicFallout4Yaml
-        {
-            GameInfo = new GameInfo
-            {
-                MainRootName = "Fallout 4",
-                MainDocsName = "Fallout4",
-                MainSteamId = 377160,
-                CrashgenLogName = "Buffout 4",
-                CrashgenLatestVer = "v0.3.0", // Latest version for tests
-                CrashgenIgnore = new List<string> { "F4EE", "WaitForDebugger", "Achievements" }
-            },
-            GameVrInfo = new GameInfo
-            {
-                CrashgenLatestVer = "v0.3.0" // Latest NG version for tests
-            },
-            CrashlogRecordsExclude = new List<string> { "\"\"", "...", "FE:" },
-            CrashlogPluginsExclude = new List<string> { "Buffout4.dll", "Fallout4.esm", "DLCCoast.esm", "ignored.esp" },
-            CrashlogErrorCheck = new Dictionary<string, string>
-            {
-                { "5 | Access Violation", "access violation" },
-                { "4 | Null Pointer", "null pointer" },
-                { "3 | Memory Error", "memory error" },
-                { "6 | Stack Overflow Crash", "EXCEPTION_STACK_OVERFLOW" }
-            },
-            CrashlogStackCheck = new Dictionary<string, List<string>>
-            {
-                { "5 | Stack Overflow", new List<string> { "stack overflow", "ME-REQ|overflow" } },
-                { "4 | Invalid Handle", new List<string> { "invalid handle", "2|bad handle" } },
-                { "3 | Debug Assert", new List<string> { "debug assert", "NOT|release mode" } }
-            }
-        };
-    }
-
     private ClassicFallout4YamlV2 CreateTestFallout4YamlV2()
     {
         return new ClassicFallout4YamlV2
@@ -105,15 +81,15 @@ public class TestYamlSettingsProvider : IYamlSettingsProvider
                 MainSteamId = 377160,
                 CrashgenLogName = "Buffout 4",
                 CrashgenIgnore = new List<string> { "F4EE", "WaitForDebugger", "Achievements" },
-                Versions = new Dictionary<string, Scanner111.Core.Models.Yaml.GameVersionInfo>
+                Versions = new Dictionary<string, GameVersionInfo>
                 {
-                    ["pre_ng"] = new Scanner111.Core.Models.Yaml.GameVersionInfo
+                    ["pre_ng"] = new()
                     {
                         Name = "Pre-Next Gen",
                         BuffoutLatest = "v1.28.0",
                         GameVersion = "1.10.163.0"
                     },
-                    ["next_gen"] = new Scanner111.Core.Models.Yaml.GameVersionInfo
+                    ["next_gen"] = new()
                     {
                         Name = "Next Gen",
                         BuffoutLatest = "v1.28.0",
@@ -158,19 +134,11 @@ public class TestYamlSettingsProvider : IYamlSettingsProvider
             }
         };
     }
-
-    /// Clears any cached settings or data within the provider implementation.
-    /// This operation is useful to ensure the state of the provider is reset
-    /// or to reload fresh settings when necessary.
-    public void ClearCache()
-    {
-        // Test implementation - do nothing
-    }
 }
 
 /// <summary>
-/// A test implementation of the IFormIdDatabaseService interface for use in testing scenarios.
-/// Provides methods for querying database entries and determining the existence of the database.
+///     A test implementation of the IFormIdDatabaseService interface for use in testing scenarios.
+///     Provides methods for querying database entries and determining the existence of the database.
 /// </summary>
 public class TestFormIdDatabaseService : IFormIdDatabaseService
 {
@@ -188,9 +156,9 @@ public class TestFormIdDatabaseService : IFormIdDatabaseService
 }
 
 /// <summary>
-/// A test implementation of the ILogger interface for use in testing scenarios with generic type support.
-/// Provides methods to log messages with specified log levels, event IDs, and formatting,
-/// while allowing for testing and validation of logging behavior within test cases.
+///     A test implementation of the ILogger interface for use in testing scenarios with generic type support.
+///     Provides methods to log messages with specified log levels, event IDs, and formatting,
+///     while allowing for testing and validation of logging behavior within test cases.
 /// </summary>
 /// <typeparam name="T">The type associated with the logger instance, used for categorization of log messages.</typeparam>
 public class TestLogger<T> : ILogger<T>
@@ -199,7 +167,10 @@ public class TestLogger<T> : ILogger<T>
     /// This method is typically used to group log messages together within a logical operation or context.
     /// <typeparam name="TState">The type of the state object being used for the scope.</typeparam>
     /// <param name="state">The state object that defines the scope. This is used as part of log message formatting.</param>
-    /// <returns>An IDisposable instance representing the created logging scope. The scope is disposed to end the logical operation.</returns>
+    /// <returns>
+    ///     An IDisposable instance representing the created logging scope. The scope is disposed to end the logical
+    ///     operation.
+    /// </returns>
     public IDisposable BeginScope<TState>(TState state) where TState : notnull
     {
         return null!;
@@ -231,14 +202,17 @@ public class TestLogger<T> : ILogger<T>
 }
 
 /// <summary>
-/// A test implementation of the IMessageHandler interface, designed for use in testing scenarios.
-/// Provides no-op methods for displaying messages of various types and simulating progress operations.
+///     A test implementation of the IMessageHandler interface, designed for use in testing scenarios.
+///     Provides no-op methods for displaying messages of various types and simulating progress operations.
 /// </summary>
 public class TestMessageHandler : IMessageHandler
 {
     /// Displays an informational message targeted at a specified audience or all targets by default.
     /// <param name="message">The informational message to be displayed or logged.</param>
-    /// <param name="target">Specifies the target audience or medium for the message. Defaults to <see cref="MessageTarget.All"/>.</param>
+    /// <param name="target">
+    ///     Specifies the target audience or medium for the message. Defaults to
+    ///     <see cref="MessageTarget.All" />.
+    /// </param>
     public void ShowInfo(string message, MessageTarget target = MessageTarget.All)
     {
     }
@@ -259,7 +233,7 @@ public class TestMessageHandler : IMessageHandler
 
     /// Displays a success message to the specified target(s).
     /// <param name="message">The success message to be displayed.</param>
-    /// <param name="target">The target destination(s) for the message. The default is <see cref="MessageTarget.All"/>.</param>
+    /// <param name="target">The target destination(s) for the message. The default is <see cref="MessageTarget.All" />.</param>
     public void ShowSuccess(string message, MessageTarget target = MessageTarget.All)
     {
     }
@@ -274,8 +248,8 @@ public class TestMessageHandler : IMessageHandler
     /// Displays a critical message to the specified target or targets.
     /// <param name="message">The critical message to display.</param>
     /// <param name="target">
-    /// The target audience for the message. Defaults to `MessageTarget.All`,
-    /// which sends the message to all available outputs.
+    ///     The target audience for the message. Defaults to `MessageTarget.All`,
+    ///     which sends the message to all available outputs.
     /// </param>
     public void ShowCritical(string message, MessageTarget target = MessageTarget.All)
     {
@@ -284,7 +258,10 @@ public class TestMessageHandler : IMessageHandler
     /// Displays a message with optional details, type, and target indication.
     /// <param name="message">The main message to be displayed.</param>
     /// <param name="details">Additional details or context for the message. This parameter is optional.</param>
-    /// <param name="messageType">The type of the message, indicating its importance or nature. Defaults to <c>MessageType.Info</c>.</param>
+    /// <param name="messageType">
+    ///     The type of the message, indicating its importance or nature. Defaults to
+    ///     <c>MessageType.Info</c>.
+    /// </param>
     /// <param name="target">Specifies the target audience or system for the message. Defaults to <c>MessageTarget.All</c>.</param>
     public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info,
         MessageTarget target = MessageTarget.All)
@@ -294,7 +271,7 @@ public class TestMessageHandler : IMessageHandler
     /// Reports progress during an operation using the specified title and total item count.
     /// <param name="title">The title or description of the progress operation.</param>
     /// <param name="totalItems">The total number of items that the operation will process.</param>
-    /// <returns>An instance of <see cref="IProgress{ProgressInfo}"/> to report progress updates.</returns>
+    /// <returns>An instance of <see cref="IProgress{ProgressInfo}" /> to report progress updates.</returns>
     public IProgress<ProgressInfo> ShowProgress(string title, int totalItems)
     {
         return new Progress<ProgressInfo>();
@@ -303,7 +280,7 @@ public class TestMessageHandler : IMessageHandler
     /// Creates a progress context for tracking and reporting progress of a task.
     /// <param name="title">The title of the progress context, typically describing the task being tracked.</param>
     /// <param name="totalItems">The total number of items or units of work for the task.</param>
-    /// <returns>An instance of <see cref="IProgressContext"/> for tracking progress.</returns>
+    /// <returns>An instance of <see cref="IProgressContext" /> for tracking progress.</returns>
     public IProgressContext CreateProgressContext(string title, int totalItems)
     {
         return new TestProgressContext();
@@ -311,8 +288,8 @@ public class TestMessageHandler : IMessageHandler
 }
 
 /// <summary>
-/// A test implementation of the ICacheManager interface for use in testing scenarios.
-/// Provides methods for simulating caching behavior for analysis results and other test-related operations.
+///     A test implementation of the ICacheManager interface for use in testing scenarios.
+///     Provides methods for simulating caching behavior for analysis results and other test-related operations.
 /// </summary>
 public class TestCacheManager : ICacheManager
 {
@@ -374,65 +351,51 @@ public class TestCacheManager : ICacheManager
     /// <param name="keyPath">The key path within the YAML file to locate the setting.</param>
     /// <param name="factory">A function that generates the value in case it is not already available.</param>
     /// <param name="expiry">An optional expiration duration for the cached value. If null, no expiration is applied.</param>
-    /// <returns>The value of the setting of the specified type if found or generated; otherwise, returns null if the factory does not produce a value.</returns>
+    /// <returns>
+    ///     The value of the setting of the specified type if found or generated; otherwise, returns null if the factory
+    ///     does not produce a value.
+    /// </returns>
     public T? GetOrSetYamlSetting<T>(string yamlFile, string keyPath, Func<T?> factory, TimeSpan? expiry = null)
     {
         var cacheKey = $"{yamlFile}:{keyPath}";
-        
-        if (_yamlCache.TryGetValue(cacheKey, out var cached))
-        {
-            return (T?)cached;
-        }
-        
+
+        if (_yamlCache.TryGetValue(cacheKey, out var cached)) return (T?)cached;
+
         var result = factory();
-        if (result != null)
-        {
-            _yamlCache[cacheKey] = result;
-        }
-        
+        if (result != null) _yamlCache[cacheKey] = result;
+
         return result;
     }
 
-    public async Task<T?> GetOrSetYamlSettingAsync<T>(string yamlFile, string keyPath, Func<Task<T?>> factory, TimeSpan? expiry = null)
+    public async Task<T?> GetOrSetYamlSettingAsync<T>(string yamlFile, string keyPath, Func<Task<T?>> factory,
+        TimeSpan? expiry = null)
     {
         var cacheKey = $"{yamlFile}:{keyPath}";
-        
-        if (_yamlCache.TryGetValue(cacheKey, out var cached))
-        {
-            return (T?)cached;
-        }
-        
+
+        if (_yamlCache.TryGetValue(cacheKey, out var cached)) return (T?)cached;
+
         var result = await factory().ConfigureAwait(false);
-        if (result != null)
-        {
-            _yamlCache[cacheKey] = result;
-        }
-        
+        if (result != null) _yamlCache[cacheKey] = result;
+
         return result;
     }
 }
 
 /// <summary>
-/// A test implementation of the IErrorHandlingPolicy interface for use in testing scenarios.
-/// Provides methods for simulating retry logic, error handling, and continuation behavior in tests.
+///     A test implementation of the IErrorHandlingPolicy interface for use in testing scenarios.
+///     Provides methods for simulating retry logic, error handling, and continuation behavior in tests.
 /// </summary>
 public class TestErrorHandlingPolicy : IErrorHandlingPolicy
 {
-    /// Determines whether a retry should be attempted based on the provided exception and the current attempt count.
-    /// <param name="exception">The exception that occurred, which may provide contextual information about the error.</param>
-    /// <param name="attemptCount">The current number of attempts made so far.</param>
-    /// <returns>True if a retry should be attempted; otherwise, false.</returns>
-    public bool ShouldRetry(Exception exception, int attemptCount)
-    {
-        return attemptCount < 3; // Retry up to 3 times for testing
-    }
-
     /// Handles an error based on the provided exception, context, and attempt count, returning an object
     /// that specifies the action to take and additional details regarding the error handling result.
     /// <param name="exception">The exception that occurred and needs to be handled.</param>
     /// <param name="context">The context or operation during which the exception occurred.</param>
     /// <param name="attemptCount">The number of attempts made prior to this error handling invocation.</param>
-    /// <returns>An instance of <see cref="ErrorHandlingResult"/> containing the action to take, an optional message, and other error handling details.</returns>
+    /// <returns>
+    ///     An instance of <see cref="ErrorHandlingResult" /> containing the action to take, an optional message, and
+    ///     other error handling details.
+    /// </returns>
     public ErrorHandlingResult HandleError(Exception exception, string context, int attemptCount)
     {
         return new ErrorHandlingResult
@@ -440,6 +403,15 @@ public class TestErrorHandlingPolicy : IErrorHandlingPolicy
             Action = ErrorAction.Continue,
             Message = "Test error handling"
         };
+    }
+
+    /// Determines whether a retry should be attempted based on the provided exception and the current attempt count.
+    /// <param name="exception">The exception that occurred, which may provide contextual information about the error.</param>
+    /// <param name="attemptCount">The current number of attempts made so far.</param>
+    /// <returns>True if a retry should be attempted; otherwise, false.</returns>
+    public bool ShouldRetry(Exception exception, int attemptCount)
+    {
+        return attemptCount < 3; // Retry up to 3 times for testing
     }
 
     /// Calculates the delay duration before the next retry attempt based on the current attempt count.
@@ -461,17 +433,17 @@ public class TestErrorHandlingPolicy : IErrorHandlingPolicy
 
 public class TestProgressContext : IProgressContext
 {
-    public string Description { get; }
-    public int Total { get; }
-    public bool IsCompleted { get; private set; }
-    public int CurrentValue { get; private set; }
-    public string LastMessage { get; private set; } = string.Empty;
-
     public TestProgressContext(string description = "", int total = 100)
     {
         Description = description;
         Total = total;
     }
+
+    public string Description { get; }
+    public int Total { get; }
+    public bool IsCompleted { get; private set; }
+    public int CurrentValue { get; private set; }
+    public string LastMessage { get; private set; } = string.Empty;
 
     public void Update(int current, string message)
     {
@@ -479,7 +451,10 @@ public class TestProgressContext : IProgressContext
         LastMessage = message;
     }
 
-    public void Complete() => IsCompleted = true;
+    public void Complete()
+    {
+        IsCompleted = true;
+    }
 
     public void Report(ProgressInfo value)
     {
@@ -487,16 +462,18 @@ public class TestProgressContext : IProgressContext
         LastMessage = value.Message;
     }
 
-    public void Dispose() { }
+    public void Dispose()
+    {
+    }
 }
 
 /// <summary>
-/// A test implementation of the IApplicationSettingsService interface for use in testing scenarios.
-/// Provides methods for simulating application settings behavior in tests.
+///     A test implementation of the IApplicationSettingsService interface for use in testing scenarios.
+///     Provides methods for simulating application settings behavior in tests.
 /// </summary>
 public class TestApplicationSettingsService : IApplicationSettingsService
 {
-    private readonly ApplicationSettings _settings = new()
+    public ApplicationSettings Settings { get; } = new()
     {
         ShowFormIdValues = true,
         FcxMode = false,
@@ -505,29 +482,27 @@ public class TestApplicationSettingsService : IApplicationSettingsService
         VrMode = false
     };
 
-    public ApplicationSettings Settings => _settings;
-
     public Task<ApplicationSettings> LoadSettingsAsync()
     {
-        return Task.FromResult(_settings);
+        return Task.FromResult(Settings);
     }
 
     public Task SaveSettingsAsync(ApplicationSettings settings)
     {
         // Update all properties from the provided settings
-        _settings.FcxMode = settings.FcxMode;
-        _settings.ShowFormIdValues = settings.ShowFormIdValues;
-        _settings.SimplifyLogs = settings.SimplifyLogs;
-        _settings.MoveUnsolvedLogs = settings.MoveUnsolvedLogs;
-        _settings.VrMode = settings.VrMode;
-        _settings.DefaultGamePath = settings.DefaultGamePath;
-        _settings.ModsFolder = settings.ModsFolder;
-        _settings.DefaultLogPath = settings.DefaultLogPath;
-        _settings.GamePath = settings.GamePath;
-        _settings.DefaultScanDirectory = settings.DefaultScanDirectory;
-        _settings.CrashLogsDirectory = settings.CrashLogsDirectory;
-        _settings.BackupDirectory = settings.BackupDirectory;
-        _settings.IniFolder = settings.IniFolder;
+        Settings.FcxMode = settings.FcxMode;
+        Settings.ShowFormIdValues = settings.ShowFormIdValues;
+        Settings.SimplifyLogs = settings.SimplifyLogs;
+        Settings.MoveUnsolvedLogs = settings.MoveUnsolvedLogs;
+        Settings.VrMode = settings.VrMode;
+        Settings.DefaultGamePath = settings.DefaultGamePath;
+        Settings.ModsFolder = settings.ModsFolder;
+        Settings.DefaultLogPath = settings.DefaultLogPath;
+        Settings.GamePath = settings.GamePath;
+        Settings.DefaultScanDirectory = settings.DefaultScanDirectory;
+        Settings.CrashLogsDirectory = settings.CrashLogsDirectory;
+        Settings.BackupDirectory = settings.BackupDirectory;
+        Settings.IniFolder = settings.IniFolder;
         return Task.CompletedTask;
     }
 
@@ -543,56 +518,27 @@ public class TestApplicationSettingsService : IApplicationSettingsService
 }
 
 /// <summary>
-/// Test implementation of IScanPipeline for testing purposes
+///     Test implementation of IScanPipeline for testing purposes
 /// </summary>
 public class TestScanPipeline : IScanPipeline
 {
     private readonly List<ScanResult> _results = new();
     private readonly Dictionary<string, ScanResult> _resultsByPath = new();
-    
+
     public List<string> ProcessedPaths { get; } = new();
     public bool IsDisposed { get; private set; }
-
-    public void SetResult(ScanResult result)
-    {
-        _results.Clear();
-        _resultsByPath.Clear();
-        _results.Add(result);
-        if (!string.IsNullOrEmpty(result.LogPath))
-        {
-            _resultsByPath[result.LogPath] = result;
-        }
-    }
-
-    public void SetBatchResults(IEnumerable<ScanResult> results)
-    {
-        _results.Clear();
-        _resultsByPath.Clear();
-        _results.AddRange(results);
-        foreach (var result in _results)
-        {
-            if (!string.IsNullOrEmpty(result.LogPath))
-            {
-                _resultsByPath[result.LogPath] = result;
-            }
-        }
-    }
 
     public virtual Task<ScanResult> ProcessSingleAsync(string logPath, CancellationToken cancellationToken = default)
     {
         ProcessedPaths.Add(logPath);
-        
+
         // First check if we have a result specifically for this path
-        if (_resultsByPath.TryGetValue(logPath, out var specificResult))
-        {
-            return Task.FromResult(specificResult);
-        }
-        
+        if (_resultsByPath.TryGetValue(logPath, out var specificResult)) return Task.FromResult(specificResult);
+
         // If no specific result, return the first available result (for single result scenarios)
         // but update its LogPath to match the requested path
         var result = _results.FirstOrDefault();
         if (result != null)
-        {
             // Clone the result with the correct path
             result = new ScanResult
             {
@@ -606,22 +552,19 @@ public class TestScanPipeline : IScanPipeline
                 Status = result.Status,
                 WasCopiedFromXse = result.WasCopiedFromXse
             };
-        }
         else
-        {
             // Default empty result
             result = new ScanResult
             {
                 LogPath = logPath,
                 AnalysisResults = new List<AnalysisResult>()
             };
-        }
-        
+
         return Task.FromResult(result);
     }
 
     public async IAsyncEnumerable<ScanResult> ProcessBatchAsync(
-        IEnumerable<string> logPaths, 
+        IEnumerable<string> logPaths,
         ScanOptions? options = null,
         IProgress<BatchProgress>? progress = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -630,21 +573,16 @@ public class TestScanPipeline : IScanPipeline
         {
             ProcessedPaths.Add(path);
             cancellationToken.ThrowIfCancellationRequested();
-            
+
             var result = _results.FirstOrDefault() ?? new ScanResult
             {
                 LogPath = path,
                 AnalysisResults = new List<AnalysisResult>()
             };
-            
+
             yield return result;
             await Task.Yield();
         }
-    }
-
-    public void Dispose()
-    {
-        IsDisposed = true;
     }
 
     public ValueTask DisposeAsync()
@@ -652,78 +590,92 @@ public class TestScanPipeline : IScanPipeline
         IsDisposed = true;
         return ValueTask.CompletedTask;
     }
+
+    public void SetResult(ScanResult result)
+    {
+        _results.Clear();
+        _resultsByPath.Clear();
+        _results.Add(result);
+        if (!string.IsNullOrEmpty(result.LogPath)) _resultsByPath[result.LogPath] = result;
+    }
+
+    public void SetBatchResults(IEnumerable<ScanResult> results)
+    {
+        _results.Clear();
+        _resultsByPath.Clear();
+        _results.AddRange(results);
+        foreach (var result in _results)
+            if (!string.IsNullOrEmpty(result.LogPath))
+                _resultsByPath[result.LogPath] = result;
+    }
+
+    public void Dispose()
+    {
+        IsDisposed = true;
+    }
 }
 
 /// <summary>
-/// Test implementation of IModScanner for unit testing FCX analyzers
+///     Test implementation of IModScanner for unit testing FCX analyzers
 /// </summary>
 public class TestModScanner : IModScanner
 {
     private readonly ModScanResult _result;
-    
+
     public TestModScanner()
     {
         _result = new ModScanResult();
     }
-    
+
     public TestModScanner(ModScanResult result)
     {
         _result = result;
     }
-    
-    public void AddIssue(ModIssue issue)
-    {
-        _result.Issues.Add(issue);
-    }
-    
-    public Task<ModScanResult> ScanUnpackedModsAsync(string modPath, IProgress<string>? progress = null, CancellationToken ct = default)
+
+    public Task<ModScanResult> ScanUnpackedModsAsync(string modPath, IProgress<string>? progress = null,
+        CancellationToken ct = default)
     {
         return Task.FromResult(_result);
     }
-    
-    public Task<ModScanResult> ScanArchivedModsAsync(string modPath, IProgress<string>? progress = null, CancellationToken ct = default)
+
+    public Task<ModScanResult> ScanArchivedModsAsync(string modPath, IProgress<string>? progress = null,
+        CancellationToken ct = default)
     {
         return Task.FromResult(_result);
     }
-    
-    public Task<ModScanResult> ScanAllModsAsync(string modPath, IProgress<string>? progress = null, CancellationToken ct = default)
+
+    public Task<ModScanResult> ScanAllModsAsync(string modPath, IProgress<string>? progress = null,
+        CancellationToken ct = default)
     {
         _result.TotalFilesScanned = 100;
         _result.TotalArchivesScanned = 10;
         return Task.FromResult(_result);
     }
+
+    public void AddIssue(ModIssue issue)
+    {
+        _result.Issues.Add(issue);
+    }
 }
 
 /// <summary>
-/// Test implementation of IHashValidationService for unit testing
+///     Test implementation of IHashValidationService for unit testing
 /// </summary>
 public class TestHashValidationService : IHashValidationService
 {
     private readonly Dictionary<string, string> _fileHashes = new();
     private readonly Dictionary<string, HashValidation> _validationResults = new();
-    
-    public void SetFileHash(string filePath, string hash)
-    {
-        _fileHashes[filePath] = hash;
-    }
-    
-    public void SetValidationResult(string filePath, HashValidation result)
-    {
-        _validationResults[filePath] = result;
-    }
-    
+
     public Task<string> CalculateFileHashAsync(string filePath, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(_fileHashes.TryGetValue(filePath, out var hash) ? hash : "default_hash");
     }
-    
-    public Task<HashValidation> ValidateFileAsync(string filePath, string expectedHash, CancellationToken cancellationToken = default)
+
+    public Task<HashValidation> ValidateFileAsync(string filePath, string expectedHash,
+        CancellationToken cancellationToken = default)
     {
-        if (_validationResults.TryGetValue(filePath, out var result))
-        {
-            return Task.FromResult(result);
-        }
-        
+        if (_validationResults.TryGetValue(filePath, out var result)) return Task.FromResult(result);
+
         var actualHash = _fileHashes.TryGetValue(filePath, out var hash) ? hash : "different_hash";
         return Task.FromResult(new HashValidation
         {
@@ -733,20 +685,30 @@ public class TestHashValidationService : IHashValidationService
             HashType = "SHA256"
         });
     }
-    
-    public Task<Dictionary<string, HashValidation>> ValidateBatchAsync(Dictionary<string, string> fileHashMap, CancellationToken cancellationToken = default)
+
+    public Task<Dictionary<string, HashValidation>> ValidateBatchAsync(Dictionary<string, string> fileHashMap,
+        CancellationToken cancellationToken = default)
     {
         var results = new Dictionary<string, HashValidation>();
         foreach (var kvp in fileHashMap)
-        {
             results[kvp.Key] = ValidateFileAsync(kvp.Key, kvp.Value, cancellationToken).Result;
-        }
         return Task.FromResult(results);
     }
-    
-    public Task<string> CalculateFileHashWithProgressAsync(string filePath, IProgress<long>? progress, CancellationToken cancellationToken = default)
+
+    public Task<string> CalculateFileHashWithProgressAsync(string filePath, IProgress<long>? progress,
+        CancellationToken cancellationToken = default)
     {
         progress?.Report(100);
         return CalculateFileHashAsync(filePath, cancellationToken);
+    }
+
+    public void SetFileHash(string filePath, string hash)
+    {
+        _fileHashes[filePath] = hash;
+    }
+
+    public void SetValidationResult(string filePath, HashValidation result)
+    {
+        _validationResults[filePath] = result;
     }
 }

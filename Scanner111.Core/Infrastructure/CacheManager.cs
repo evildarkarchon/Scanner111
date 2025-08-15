@@ -18,7 +18,8 @@ public interface ICacheManager
     /// <summary>
     ///     Get or set YAML settings with caching (async version)
     /// </summary>
-    Task<T?> GetOrSetYamlSettingAsync<T>(string yamlFile, string keyPath, Func<Task<T?>> factory, TimeSpan? expiry = null);
+    Task<T?> GetOrSetYamlSettingAsync<T>(string yamlFile, string keyPath, Func<Task<T?>> factory,
+        TimeSpan? expiry = null);
 
     /// <summary>
     ///     Cache analysis result for a file
@@ -64,7 +65,7 @@ public class CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger
     private bool _disposed;
 
     /// <summary>
-    /// Retrieves a YAML setting from the cache or sets it using the provided factory function if not cached.
+    ///     Retrieves a YAML setting from the cache or sets it using the provided factory function if not cached.
     /// </summary>
     /// <typeparam name="T">The type of the value to retrieve or set.</typeparam>
     /// <param name="yamlFile">The name of the YAML file containing the setting.</param>
@@ -98,7 +99,8 @@ public class CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger
         return value;
     }
 
-    public async Task<T?> GetOrSetYamlSettingAsync<T>(string yamlFile, string keyPath, Func<Task<T?>> factory, TimeSpan? expiry = null)
+    public async Task<T?> GetOrSetYamlSettingAsync<T>(string yamlFile, string keyPath, Func<Task<T?>> factory,
+        TimeSpan? expiry = null)
     {
         CheckDisposed();
         var cacheKey = $"{YamlPrefix}{yamlFile}:{keyPath}";
@@ -125,8 +127,8 @@ public class CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger
     }
 
     /// <summary>
-    /// Caches the analysis result for a specified file and analyzer,
-    /// with expiration settings and file modification tracking.
+    ///     Caches the analysis result for a specified file and analyzer,
+    ///     with expiration settings and file modification tracking.
     /// </summary>
     /// <param name="filePath">The path to the file being analyzed.</param>
     /// <param name="analyzerName">The name of the analyzer associated with the result.</param>
@@ -164,13 +166,13 @@ public class CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger
     }
 
     /// <summary>
-    /// Retrieves the cached analysis result for a specific file and analyzer, if available and valid.
+    ///     Retrieves the cached analysis result for a specific file and analyzer, if available and valid.
     /// </summary>
     /// <param name="filePath">The path of the file analyzed.</param>
     /// <param name="analyzerName">The name of the analyzer used.</param>
     /// <returns>
-    /// The cached <see cref="AnalysisResult"/> if the result exists and the file is unmodified;
-    /// otherwise, null.
+    ///     The cached <see cref="AnalysisResult" /> if the result exists and the file is unmodified;
+    ///     otherwise, null.
     /// </returns>
     public AnalysisResult? GetCachedAnalysisResult(string filePath, string analyzerName)
     {
@@ -206,13 +208,13 @@ public class CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger
     }
 
     /// <summary>
-    /// Verifies whether the file is still valid in the cache by checking if its last modification time
-    /// is less than or equal to the cached time.
+    ///     Verifies whether the file is still valid in the cache by checking if its last modification time
+    ///     is less than or equal to the cached time.
     /// </summary>
     /// <param name="filePath">The file path of the file to validate in the cache.</param>
     /// <returns>
-    /// Returns true if the file exists and its last modification time is less than or equal to the cached time;
-    /// otherwise, returns false.
+    ///     Returns true if the file exists and its last modification time is less than or equal to the cached time;
+    ///     otherwise, returns false.
     /// </returns>
     public bool IsFileCacheValid(string filePath)
     {
@@ -234,7 +236,7 @@ public class CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger
     }
 
     /// <summary>
-    /// Clears all items from the cache, resets hit and miss counters, and logs the operation.
+    ///     Clears all items from the cache, resets hit and miss counters, and logs the operation.
     /// </summary>
     public void ClearCache()
     {
@@ -249,12 +251,12 @@ public class CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger
     }
 
     /// <summary>
-    /// Retrieves cache statistics including total hits, misses, hit rate,
-    /// number of cached files, and memory usage.
+    ///     Retrieves cache statistics including total hits, misses, hit rate,
+    ///     number of cached files, and memory usage.
     /// </summary>
     /// <returns>
-    /// A <see cref="CacheStatistics"/> instance containing detailed metrics
-    /// about cache performance and usage.
+    ///     A <see cref="CacheStatistics" /> instance containing detailed metrics
+    ///     about cache performance and usage.
     /// </returns>
     public CacheStatistics GetStatistics()
     {
@@ -277,11 +279,11 @@ public class CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger
     }
 
     /// <summary>
-    /// Releases all resources used by the current instance of the CacheManager class.
+    ///     Releases all resources used by the current instance of the CacheManager class.
     /// </summary>
     /// <remarks>
-    /// This method clears all internal caches, marks the current instance as disposed,
-    /// and suppresses finalization to prevent unnecessary garbage collection overhead.
+    ///     This method clears all internal caches, marks the current instance as disposed,
+    ///     and suppresses finalization to prevent unnecessary garbage collection overhead.
     /// </remarks>
     public void Dispose()
     {
@@ -295,7 +297,7 @@ public class CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger
     }
 
     /// <summary>
-    /// Records a cache hit in the internal statistics for the given cache key.
+    ///     Records a cache hit in the internal statistics for the given cache key.
     /// </summary>
     /// <param name="cacheKey">The unique key identifying the cached item that was accessed.</param>
     private void RecordCacheHit(string cacheKey)
@@ -304,10 +306,10 @@ public class CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger
     }
 
     /// <summary>
-    /// Records a cache miss for the specified cache key.
+    ///     Records a cache miss for the specified cache key.
     /// </summary>
     /// <param name="cacheKey">
-    /// The key for which the cache miss is recorded.
+    ///     The key for which the cache miss is recorded.
     /// </param>
     private void RecordCacheMiss(string cacheKey)
     {
@@ -315,7 +317,7 @@ public class CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger
     }
 
     /// <summary>
-    /// Generates a cache key for storing analysis results based on the file path and analyzer name.
+    ///     Generates a cache key for storing analysis results based on the file path and analyzer name.
     /// </summary>
     /// <param name="filePath">The file path associated with the analysis result.</param>
     /// <param name="analyzerName">The name of the analyzer that produced the result.</param>
@@ -326,7 +328,7 @@ public class CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger
     }
 
     /// <summary>
-    /// Estimates the memory size of the provided analysis result.
+    ///     Estimates the memory size of the provided analysis result.
     /// </summary>
     /// <param name="result">The analysis result for which to estimate the memory size.</param>
     /// <returns>The estimated size in bytes of the analysis result.</returns>
@@ -340,10 +342,10 @@ public class CacheManager(IMemoryCache memoryCache, ILogger<CacheManager> logger
     }
 
     /// <summary>
-    /// Verifies whether the current object has been disposed of and throws an exception if it has.
+    ///     Verifies whether the current object has been disposed of and throws an exception if it has.
     /// </summary>
     /// <exception cref="ObjectDisposedException">
-    /// Thrown if the object has already been disposed.
+    ///     Thrown if the object has already been disposed.
     /// </exception>
     private void CheckDisposed()
     {

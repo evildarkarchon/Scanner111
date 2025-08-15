@@ -1,10 +1,9 @@
 using FluentAssertions;
-using Spectre.Console;
-using Spectre.Console.Testing;
 using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Tests.CLI.TestHelpers;
-using Xunit;
+using Spectre.Console;
+using Spectre.Console.Testing;
 
 namespace Scanner111.Tests.CLI.Services;
 
@@ -152,10 +151,10 @@ public class SpectreMessageHandlerTests
     {
         // Act
         var context = _handler.CreateProgressContext("Test Progress", 100);
-        
+
         // Update progress
         context.Update(50, "Half way there");
-        
+
         // Assert - no exceptions thrown
         context.Should().NotBeNull("because context should remain valid after updates");
     }
@@ -202,10 +201,7 @@ public class SpectreMessageHandlerTests
         };
 
         // Act
-        var exception = Record.Exception(() =>
-        {
-            context.Report(progressInfo);
-        });
+        var exception = Record.Exception(() => { context.Report(progressInfo); });
 
         // Assert
         exception.Should().BeNull("because reporting progress should not throw exceptions");
@@ -238,6 +234,7 @@ public class SpectreMessageHandlerTests
         // Assert
         var output = _console.Output;
         // The message should be properly escaped
-        output.Should().Contain("Message with [brackets] and special chars: <>&", "because special characters should be escaped");
+        output.Should().Contain("Message with [brackets] and special chars: <>&",
+            "because special characters should be escaped");
     }
 }

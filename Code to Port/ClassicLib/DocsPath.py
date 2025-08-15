@@ -1,5 +1,6 @@
 import contextlib
 import platform
+from io import StringIO
 from pathlib import Path
 from typing import cast
 
@@ -7,6 +8,7 @@ from iniparse import configparser
 
 from ClassicLib import GlobalRegistry, msg_error, msg_info
 from ClassicLib.Constants import YAML
+from ClassicLib.FileIOCore import append_file_sync, read_lines_sync, write_file_sync
 from ClassicLib.Logger import logger
 from ClassicLib.Util import remove_readonly
 from ClassicLib.YamlSettingsCache import classic_settings, yaml_settings
@@ -134,8 +136,7 @@ class DocumentsPathManager:
             return
 
         library_path: Path = Path()
-        with libraryfolders_path.open(encoding="utf-8", errors="ignore") as steam_library_raw:
-            steam_library: list[str] = steam_library_raw.readlines()
+        steam_library: list[str] = read_lines_sync(libraryfolders_path)
 
         for library_line in steam_library:
             if "path" in library_line:
@@ -303,8 +304,10 @@ class DocumentsPathManager:
         ini_config.set("Archive", "bInvalidateOlderFiles", "1")
         ini_config.set("Archive", "sResourceDataDirsFinal", "")
 
-        with ini_path.open("w+", encoding="utf-8", errors="ignore") as ini_file:
-            ini_config.write(ini_file, space_around_delimiters=False)
+        # Write the config back to file
+        output = StringIO()
+        ini_config.write(output, space_around_delimiters=False)
+        write_file_sync(ini_path, output.getvalue())
 
         return message_list
 
@@ -327,15 +330,14 @@ class DocumentsPathManager:
                 "    This will create files and INI settings required for the game to run. \n-----\n",
             ])
         elif ini_name.lower() == f"{self.docs_name.lower()}custom.ini":
-            with ini_path.open("a", encoding="utf-8", errors="ignore") as ini_file:
-                message_list.extend([
-                    "❌ WARNING : Archive Invalidation / Loose Files setting is not enabled. \n",
-                    "  CLASSIC will now enable this setting automatically in the game INI files. \n-----\n",
-                ])
-                customini_config: str | None = yaml_settings(str, YAML.Game, "Default_CustomINI")
-                if not isinstance(customini_config, str):
-                    raise TypeError("Invalid customINI config")
-                ini_file.write(customini_config)
+            message_list.extend([
+                "❌ WARNING : Archive Invalidation / Loose Files setting is not enabled. \n",
+                "  CLASSIC will now enable this setting automatically in the game INI files. \n-----\n",
+            ])
+            customini_config: str | None = yaml_settings(str, YAML.Game, "Default_CustomINI")
+            if not isinstance(customini_config, str):
+                raise TypeError("Invalid customINI config")
+            append_file_sync(ini_path, customini_config)
 
         return message_list
 

@@ -1,11 +1,10 @@
-namespace Scanner111.Core.ModManagers
+namespace Scanner111.Core.ModManagers;
+
+public enum ModManagerType
 {
-    public enum ModManagerType
-    {
-        None,
-        ModOrganizer2,
-        Vortex,
-        NexusModManager,
-        WabbajackPortable
-    }
+    None,
+    ModOrganizer2,
+    Vortex,
+    NexusModManager,
+    WabbajackPortable
 }

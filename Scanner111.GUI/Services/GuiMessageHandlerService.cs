@@ -5,24 +5,15 @@ using Scanner111.GUI.ViewModels;
 namespace Scanner111.GUI.Services;
 
 /// <summary>
-/// GUI-specific implementation of IMessageHandler that forwards messages to the MainWindowViewModel
-/// for display in the user interface.
+///     GUI-specific implementation of IMessageHandler that forwards messages to the MainWindowViewModel
+///     for display in the user interface.
 /// </summary>
 public class GuiMessageHandlerService : IMessageHandler
 {
     private MainWindowViewModel? _viewModel;
 
     /// <summary>
-    /// Sets the view model to receive message notifications.
-    /// </summary>
-    /// <param name="viewModel">The MainWindowViewModel to receive messages.</param>
-    public void SetViewModel(MainWindowViewModel viewModel)
-    {
-        _viewModel = viewModel;
-    }
-
-    /// <summary>
-    /// Shows an informational message.
+    ///     Shows an informational message.
     /// </summary>
     /// <param name="message">The message to display.</param>
     /// <param name="target">The target for the message (currently not used in GUI).</param>
@@ -33,7 +24,7 @@ public class GuiMessageHandlerService : IMessageHandler
     }
 
     /// <summary>
-    /// Shows a warning message.
+    ///     Shows a warning message.
     /// </summary>
     /// <param name="message">The warning message to display.</param>
     /// <param name="target">The target for the message (currently not used in GUI).</param>
@@ -44,7 +35,7 @@ public class GuiMessageHandlerService : IMessageHandler
     }
 
     /// <summary>
-    /// Shows an error message.
+    ///     Shows an error message.
     /// </summary>
     /// <param name="message">The error message to display.</param>
     /// <param name="target">The target for the message (currently not used in GUI).</param>
@@ -55,7 +46,7 @@ public class GuiMessageHandlerService : IMessageHandler
     }
 
     /// <summary>
-    /// Shows a success message.
+    ///     Shows a success message.
     /// </summary>
     /// <param name="message">The success message to display.</param>
     /// <param name="target">The target for the message (currently not used in GUI).</param>
@@ -66,7 +57,7 @@ public class GuiMessageHandlerService : IMessageHandler
     }
 
     /// <summary>
-    /// Shows a debug message.
+    ///     Shows a debug message.
     /// </summary>
     /// <param name="message">The debug message to display.</param>
     /// <param name="target">The target for the message (currently not used in GUI).</param>
@@ -79,7 +70,7 @@ public class GuiMessageHandlerService : IMessageHandler
     }
 
     /// <summary>
-    /// Shows a critical error message.
+    ///     Shows a critical error message.
     /// </summary>
     /// <param name="message">The critical error message to display.</param>
     /// <param name="target">The target for the message (currently not used in GUI).</param>
@@ -90,13 +81,14 @@ public class GuiMessageHandlerService : IMessageHandler
     }
 
     /// <summary>
-    /// Shows a message with optional details.
+    ///     Shows a message with optional details.
     /// </summary>
     /// <param name="message">The message to display.</param>
     /// <param name="details">Optional details for the message.</param>
     /// <param name="messageType">The type of message.</param>
     /// <param name="target">The target for the message (currently not used in GUI).</param>
-    public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info, MessageTarget target = MessageTarget.All)
+    public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info,
+        MessageTarget target = MessageTarget.All)
     {
         if (_viewModel == null) return;
 
@@ -115,7 +107,7 @@ public class GuiMessageHandlerService : IMessageHandler
     }
 
     /// <summary>
-    /// Shows a progress indicator.
+    ///     Shows a progress indicator.
     /// </summary>
     /// <param name="title">The title for the progress indicator.</param>
     /// <param name="totalItems">The total number of items to process.</param>
@@ -126,7 +118,7 @@ public class GuiMessageHandlerService : IMessageHandler
     }
 
     /// <summary>
-    /// Creates a progress context for use with 'using' statements.
+    ///     Creates a progress context for use with 'using' statements.
     /// </summary>
     /// <param name="title">The title for the progress context.</param>
     /// <param name="totalItems">The total number of items to process.</param>
@@ -135,16 +127,25 @@ public class GuiMessageHandlerService : IMessageHandler
     {
         return new GuiProgressContext(_viewModel, title, totalItems);
     }
+
+    /// <summary>
+    ///     Sets the view model to receive message notifications.
+    /// </summary>
+    /// <param name="viewModel">The MainWindowViewModel to receive messages.</param>
+    public void SetViewModel(MainWindowViewModel viewModel)
+    {
+        _viewModel = viewModel;
+    }
 }
 
 /// <summary>
-/// GUI-specific progress implementation that updates the MainWindowViewModel.
+///     GUI-specific progress implementation that updates the MainWindowViewModel.
 /// </summary>
 internal class GuiProgress : IProgress<ProgressInfo>
 {
-    private readonly MainWindowViewModel? _viewModel;
     private readonly string _title;
     private readonly int _totalItems;
+    private readonly MainWindowViewModel? _viewModel;
 
     public GuiProgress(MainWindowViewModel? viewModel, string title, int totalItems)
     {
@@ -164,13 +165,13 @@ internal class GuiProgress : IProgress<ProgressInfo>
 }
 
 /// <summary>
-/// GUI-specific progress context implementation.
+///     GUI-specific progress context implementation.
 /// </summary>
 internal class GuiProgressContext : IProgressContext
 {
     private readonly GuiProgress _progress;
-    private readonly MainWindowViewModel? _viewModel;
     private readonly int _totalItems;
+    private readonly MainWindowViewModel? _viewModel;
     private bool _disposed;
 
     public GuiProgressContext(MainWindowViewModel? viewModel, string title, int totalItems)

@@ -1,11 +1,5 @@
-using System;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
 using FluentAssertions;
-using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
-using Xunit;
 
 namespace Scanner111.Tests.Infrastructure;
 
@@ -141,7 +135,7 @@ public class CliMessageHandlerTests
         var handler = new CliMessageHandler(false);
 
         // Act & Assert - Should not throw
-        handler.ShowMessage("Main message", "Additional details", MessageType.Info);
+        handler.ShowMessage("Main message", "Additional details");
     }
 
     [Fact]
@@ -245,7 +239,7 @@ public class CliMessageHandlerTests
             "Scanner111", "DebugLogs");
 
         // Create more than 10 log files
-        for (int i = 0; i < 15; i++)
+        for (var i = 0; i < 15; i++)
         {
             var filename = Path.Combine(logDirectory, $"scanner111-debug-test{i:D2}.log");
             File.WriteAllText(filename, "test");
@@ -282,5 +276,4 @@ public class CliMessageHandlerTests
         handler.ShowSuccess("Test");
         handler.ShowCritical("Test");
     }
-
 }

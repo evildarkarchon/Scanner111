@@ -4,7 +4,6 @@ using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Tests.TestHelpers;
-using Xunit;
 
 namespace Scanner111.Tests.CLI;
 
@@ -18,13 +17,18 @@ public class AboutCommandTests : IDisposable
         MessageHandler.Initialize(_messageCapture);
     }
 
+    public void Dispose()
+    {
+        MessageHandler.Initialize(new TestMessageHandler());
+    }
+
     [Fact]
     public async Task ExecuteAsync_DisplaysVersionAndAboutInformation()
     {
         // Arrange
         var command = new AboutCommand(_messageCapture);
         var options = new AboutOptions();
-        
+
         var assembly = Assembly.GetAssembly(typeof(AboutCommand));
         var expectedVersion = assembly?.GetName().Version ?? new Version(1, 0, 0);
 
@@ -41,10 +45,5 @@ public class AboutCommandTests : IDisposable
             "because compatibility information should be shown");
         _messageCapture.InfoMessages.Should().Contain("Based on CLASSIC Python implementation",
             "because the origin should be mentioned");
-    }
-
-    public void Dispose()
-    {
-        MessageHandler.Initialize(new TestMessageHandler());
     }
 }

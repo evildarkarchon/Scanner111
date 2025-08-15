@@ -1,26 +1,19 @@
-using System;
-using System.Net;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Moq.Protected;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Services;
-using Xunit;
 
 namespace Scanner111.Tests.Services;
 
 public class UpdateServiceTests
 {
-    private readonly Mock<ILogger<UpdateService>> _loggerMock;
-    private readonly Mock<IApplicationSettingsService> _settingsServiceMock;
-    private readonly Mock<IMessageHandler> _messageHandlerMock;
     private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
+    private readonly Mock<ILogger<UpdateService>> _loggerMock;
+    private readonly Mock<IMessageHandler> _messageHandlerMock;
     private readonly UpdateService _service;
+    private readonly Mock<IApplicationSettingsService> _settingsServiceMock;
 
     public UpdateServiceTests()
     {
@@ -28,13 +21,13 @@ public class UpdateServiceTests
         _settingsServiceMock = new Mock<IApplicationSettingsService>();
         _messageHandlerMock = new Mock<IMessageHandler>();
         _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
-        
+
         // Create service with mocked HttpClient
         var httpClient = new HttpClient(_httpMessageHandlerMock.Object);
-        
+
         // Since UpdateService uses a static HttpClient, we need to test via the public API
         _service = new UpdateService(_loggerMock.Object, _settingsServiceMock.Object, _messageHandlerMock.Object);
-        
+
         // Setup default settings
         _settingsServiceMock.Setup(x => x.LoadSettingsAsync())
             .ReturnsAsync(new ApplicationSettings { EnableUpdateCheck = true, UpdateSource = "Both" });
@@ -63,7 +56,7 @@ public class UpdateServiceTests
             .ReturnsAsync(new ApplicationSettings { EnableUpdateCheck = false });
 
         // Act
-        var result = await _service.IsLatestVersionAsync(quiet: true);
+        var result = await _service.IsLatestVersionAsync(true);
 
         // Assert
         result.Should().BeFalse("because update checking is disabled");
@@ -171,13 +164,13 @@ public class UpdateServiceTests
     }
 
     [Theory]
-    [InlineData("1.0.0", "1.0.1", null, true)]  // GitHub newer
-    [InlineData("1.0.0", null, "1.0.1", true)]  // Nexus newer
-    [InlineData("1.0.0", "1.0.1", "1.0.2", true)]  // Both newer
-    [InlineData("1.0.1", "1.0.0", "1.0.0", false)]  // Current is latest
-    [InlineData("1.0.0", "1.0.0", "1.0.0", false)]  // All same
-    [InlineData(null, "1.0.0", null, true)]  // Current version unknown
-    [InlineData("1.0.0", null, null, false)]  // No remote versions
+    [InlineData("1.0.0", "1.0.1", null, true)] // GitHub newer
+    [InlineData("1.0.0", null, "1.0.1", true)] // Nexus newer
+    [InlineData("1.0.0", "1.0.1", "1.0.2", true)] // Both newer
+    [InlineData("1.0.1", "1.0.0", "1.0.0", false)] // Current is latest
+    [InlineData("1.0.0", "1.0.0", "1.0.0", false)] // All same
+    [InlineData(null, "1.0.0", null, true)] // Current version unknown
+    [InlineData("1.0.0", null, null, false)] // No remote versions
     public void IsUpdateAvailable_VariousScenarios(string currentVer, string gitHubVer, string nexusVer, bool expected)
     {
         // This tests the update detection logic
@@ -203,7 +196,7 @@ public class UpdateServiceTests
     {
         // This would require mocking the HTTP client or using a test server
         // For now, we verify the service doesn't crash with default setup
-        
+
         // Act
         var result = await _service.IsLatestVersionAsync();
 
@@ -213,10 +206,11 @@ public class UpdateServiceTests
     }
 
     [Theory]
-    [InlineData("GitHub", true, false)]  // Only GitHub fails
-    [InlineData("Nexus", false, true)]   // Only Nexus fails
-    [InlineData("Both", true, true)]     // Both fail
-    public async Task GetUpdateInfoAsync_SourceFailures_HandlesGracefully(string updateSource, bool gitHubFails, bool nexusFails)
+    [InlineData("GitHub", true, false)] // Only GitHub fails
+    [InlineData("Nexus", false, true)] // Only Nexus fails
+    [InlineData("Both", true, true)] // Both fail
+    public async Task GetUpdateInfoAsync_SourceFailures_HandlesGracefully(string updateSource, bool gitHubFails,
+        bool nexusFails)
     {
         // Arrange
         _settingsServiceMock.Setup(x => x.LoadSettingsAsync())
@@ -248,15 +242,15 @@ public class UpdateServiceTests
     {
         // Act - Constructor doesn't validate parameters, so we just ensure it creates successfully
         var service = new UpdateService(_loggerMock.Object, _settingsServiceMock.Object, _messageHandlerMock.Object);
-        
+
         // Assert
         service.Should().NotBeNull("because the constructor should create a valid instance");
     }
 
     [Theory]
-    [InlineData("999.999.999.999")]  // Very large version
-    [InlineData("0.0.0.1")]          // Very small version
-    [InlineData("1.2.3.4.5.6")]      // Extra version parts
+    [InlineData("999.999.999.999")] // Very large version
+    [InlineData("0.0.0.1")] // Very small version
+    [InlineData("1.2.3.4.5.6")] // Extra version parts
     public async Task GetUpdateInfoAsync_ExtremeVersionNumbers_HandlesGracefully(string versionString)
     {
         // Test that extreme version numbers don't crash the service
@@ -271,14 +265,12 @@ public class UpdateServiceTests
         var tasks = new Task<bool>[10];
 
         // Act
-        for (int i = 0; i < tasks.Length; i++)
-        {
-            tasks[i] = _service.IsLatestVersionAsync(quiet: true);
-        }
-        
+        for (var i = 0; i < tasks.Length; i++) tasks[i] = _service.IsLatestVersionAsync(true);
+
         var results = await Task.WhenAll(tasks);
 
         // Assert
-        results.Should().AllSatisfy(r => r.Should().BeFalse("because all concurrent calls should return the same result"));
+        results.Should()
+            .AllSatisfy(r => r.Should().BeFalse("because all concurrent calls should return the same result"));
     }
 }

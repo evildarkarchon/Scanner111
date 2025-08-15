@@ -1,8 +1,6 @@
-using System;
 using System.Globalization;
 using FluentAssertions;
 using Scanner111.GUI.Converters;
-using Xunit;
 
 namespace Scanner111.Tests.GUI.Converters;
 

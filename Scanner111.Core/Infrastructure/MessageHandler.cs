@@ -151,7 +151,7 @@ public static class MessageHandler
     /// <param name="handler">Handler implementation</param>
     public static void Initialize(IMessageHandler handler)
     {
-        _handler = handler ?? throw new ArgumentNullException(nameof(handler));
+        _handler = Guard.NotNull(handler, nameof(handler));
     }
 
     /// <summary>

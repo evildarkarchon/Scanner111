@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
-using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
@@ -9,17 +8,17 @@ using Scanner111.Tests.TestHelpers;
 namespace Scanner111.Tests.Pipeline;
 
 /// <summary>
-/// Unit tests for the FcxEnabledPipeline class that validates FCX (File Integrity Check) functionality
+///     Unit tests for the FcxEnabledPipeline class that validates FCX (File Integrity Check) functionality
 /// </summary>
 public class FcxEnabledPipelineTests : IAsyncDisposable
 {
-    private readonly ILogger<FcxEnabledPipeline> _logger;
-    private readonly IMessageHandler _messageHandler;
-    private readonly IYamlSettingsProvider _yamlSettings;
-    private readonly TestApplicationSettingsService _settingsService;
     private readonly TestHashValidationService _hashService;
     private readonly TestScanPipeline _innerPipeline;
-    private FcxEnabledPipeline _pipeline;
+    private readonly ILogger<FcxEnabledPipeline> _logger;
+    private readonly IMessageHandler _messageHandler;
+    private readonly FcxEnabledPipeline _pipeline;
+    private readonly TestApplicationSettingsService _settingsService;
+    private readonly IYamlSettingsProvider _yamlSettings;
 
     public FcxEnabledPipelineTests()
     {
@@ -29,7 +28,7 @@ public class FcxEnabledPipelineTests : IAsyncDisposable
         _settingsService = new TestApplicationSettingsService();
         _hashService = new TestHashValidationService();
         _innerPipeline = new TestScanPipeline();
-        
+
         _pipeline = new FcxEnabledPipeline(
             _innerPipeline,
             _settingsService,
@@ -40,7 +39,7 @@ public class FcxEnabledPipelineTests : IAsyncDisposable
     }
 
     /// <summary>
-    /// Ensures proper disposal of the pipeline resources
+    ///     Ensures proper disposal of the pipeline resources
     /// </summary>
     public async ValueTask DisposeAsync()
     {
@@ -77,7 +76,7 @@ public class FcxEnabledPipelineTests : IAsyncDisposable
         _settingsService.Settings.FcxMode = true;
         _settingsService.Settings.DefaultGamePath = @"C:\Games\Fallout4";
         var testLogPath = "test.log";
-        
+
         var innerResult = new ScanResult
         {
             LogPath = testLogPath,
@@ -91,7 +90,7 @@ public class FcxEnabledPipelineTests : IAsyncDisposable
         // Assert
         Assert.NotNull(result);
         Assert.Equal(testLogPath, result.LogPath);
-        
+
         // Should have FCX result added to analysis results
         var fcxResult = result.AnalysisResults.FirstOrDefault(r => r.AnalyzerName == "FCX File Integrity");
         Assert.NotNull(fcxResult);
@@ -104,28 +103,22 @@ public class FcxEnabledPipelineTests : IAsyncDisposable
         // Arrange
         _settingsService.Settings.FcxMode = false;
         var logPaths = new[] { "log1.log", "log2.log", "log3.log" };
-        
+
         var expectedResults = logPaths.Select(path => new ScanResult
         {
             LogPath = path,
             Status = ScanStatus.Completed
         }).ToList();
-        
+
         _innerPipeline.SetBatchResults(expectedResults);
 
         // Act
         var results = new List<ScanResult>();
-        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths))
-        {
-            results.Add(result);
-        }
+        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths)) results.Add(result);
 
         // Assert
         Assert.Equal(3, results.Count);
-        for (int i = 0; i < results.Count; i++)
-        {
-            Assert.Equal(expectedResults[i], results[i]);
-        }
+        for (var i = 0; i < results.Count; i++) Assert.Equal(expectedResults[i], results[i]);
     }
 
     [Fact]
@@ -135,25 +128,22 @@ public class FcxEnabledPipelineTests : IAsyncDisposable
         _settingsService.Settings.FcxMode = true;
         _settingsService.Settings.DefaultGamePath = @"C:\Games\Fallout4";
         var logPaths = new[] { "log1.log", "log2.log" };
-        
+
         var innerResults = logPaths.Select(path => new ScanResult
         {
             LogPath = path,
             Status = ScanStatus.Completed
         }).ToList();
-        
+
         _innerPipeline.SetBatchResults(innerResults);
 
         // Act
         var results = new List<ScanResult>();
-        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths))
-        {
-            results.Add(result);
-        }
+        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths)) results.Add(result);
 
         // Assert
         Assert.Equal(2, results.Count);
-        
+
         // Each result should have FCX findings merged in
         foreach (var result in results)
         {
@@ -167,27 +157,24 @@ public class FcxEnabledPipelineTests : IAsyncDisposable
     {
         // Arrange
         _settingsService.Settings.FcxMode = true;
-        _settingsService.Settings.DefaultGamePath = @"C:\InvalidPath";  // This will cause FCX to fail
+        _settingsService.Settings.DefaultGamePath = @"C:\InvalidPath"; // This will cause FCX to fail
         var logPaths = new[] { "log1.log" };
-        
+
         var innerResults = logPaths.Select(path => new ScanResult
         {
             LogPath = path,
             Status = ScanStatus.Completed
         }).ToList();
-        
+
         _innerPipeline.SetBatchResults(innerResults);
 
         // Act
         var results = new List<ScanResult>();
-        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths))
-        {
-            results.Add(result);
-        }
+        await foreach (var result in _pipeline.ProcessBatchAsync(logPaths)) results.Add(result);
 
         // Assert
         Assert.True(results.Count >= 1);
-        
+
         // Check if FCX-only result was yielded for critical issues
         var fcxOnlyResult = results.FirstOrDefault(r => r.LogPath == "FCX_CHECK");
         if (fcxOnlyResult != null)
@@ -204,10 +191,10 @@ public class FcxEnabledPipelineTests : IAsyncDisposable
         // Arrange
         _settingsService.Settings.FcxMode = true;
         _settingsService.Settings.DefaultGamePath = @"C:\Games\Fallout4";
-        
+
         // Simulate a critical FCX issue by not having the game installed
         _hashService.SetFileExists(@"C:\Games\Fallout4\Fallout4.exe", false);
-        
+
         var testLogPath = "test.log";
         var innerResult = new ScanResult
         {
@@ -221,11 +208,11 @@ public class FcxEnabledPipelineTests : IAsyncDisposable
 
         // Assert
         Assert.NotNull(result);
-        
+
         // Check for critical issue warning
-        var warningMessage = result.ErrorMessages.FirstOrDefault(msg => 
+        var warningMessage = result.ErrorMessages.FirstOrDefault(msg =>
             msg.Contains("FCX detected critical game integrity issues"));
-        
+
         // The warning might not be present if FCX doesn't find critical issues
         // This depends on the FileIntegrityAnalyzer implementation
     }
@@ -242,26 +229,14 @@ public class FcxEnabledPipelineTests : IAsyncDisposable
 }
 
 /// <summary>
-/// Test implementation of IScanPipeline for unit testing
+///     Test implementation of IScanPipeline for unit testing
 /// </summary>
 internal class TestScanPipeline : IScanPipeline
 {
     private readonly List<ScanResult> _results = new();
-    
+
     public List<string> ProcessedPaths { get; } = new();
     public bool IsDisposed { get; private set; }
-
-    public void SetResult(ScanResult result)
-    {
-        _results.Clear();
-        _results.Add(result);
-    }
-
-    public void SetBatchResults(IEnumerable<ScanResult> results)
-    {
-        _results.Clear();
-        _results.AddRange(results);
-    }
 
     public Task<ScanResult> ProcessSingleAsync(string logPath, CancellationToken cancellationToken = default)
     {
@@ -275,11 +250,8 @@ internal class TestScanPipeline : IScanPipeline
         IProgress<BatchProgress>? progress = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        foreach (var result in _results)
-        {
-            yield return result;
-        }
-        
+        foreach (var result in _results) yield return result;
+
         await Task.CompletedTask;
     }
 
@@ -288,10 +260,22 @@ internal class TestScanPipeline : IScanPipeline
         IsDisposed = true;
         return ValueTask.CompletedTask;
     }
+
+    public void SetResult(ScanResult result)
+    {
+        _results.Clear();
+        _results.Add(result);
+    }
+
+    public void SetBatchResults(IEnumerable<ScanResult> results)
+    {
+        _results.Clear();
+        _results.AddRange(results);
+    }
 }
 
 /// <summary>
-/// Test implementation of IApplicationSettingsService
+///     Test implementation of IApplicationSettingsService
 /// </summary>
 internal class TestApplicationSettingsService : IApplicationSettingsService
 {
@@ -330,12 +314,50 @@ internal class TestApplicationSettingsService : IApplicationSettingsService
 }
 
 /// <summary>
-/// Test implementation of IHashValidationService
+///     Test implementation of IHashValidationService
 /// </summary>
 internal class TestHashValidationService : IHashValidationService
 {
     private readonly Dictionary<string, bool> _fileExistence = new();
     private readonly Dictionary<string, string> _fileHashes = new();
+
+    public Task<string> CalculateFileHashAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        if (_fileHashes.TryGetValue(filePath, out var hash)) return Task.FromResult(hash);
+
+        return Task.FromResult("TESTHASH123456");
+    }
+
+    public Task<string> CalculateFileHashWithProgressAsync(string filePath, IProgress<long>? progress,
+        CancellationToken cancellationToken = default)
+    {
+        return CalculateFileHashAsync(filePath, cancellationToken);
+    }
+
+    public Task<HashValidation> ValidateFileAsync(string filePath, string expectedHash,
+        CancellationToken cancellationToken = default)
+    {
+        var validation = new HashValidation
+        {
+            FilePath = filePath,
+            ExpectedHash = expectedHash,
+            ActualHash = _fileHashes.GetValueOrDefault(filePath, "INVALID"),
+            HashType = "SHA256"
+        };
+
+        return Task.FromResult(validation);
+    }
+
+    public async Task<Dictionary<string, HashValidation>> ValidateBatchAsync(Dictionary<string, string> fileHashMap,
+        CancellationToken cancellationToken = default)
+    {
+        var results = new Dictionary<string, HashValidation>();
+
+        foreach (var kvp in fileHashMap)
+            results[kvp.Key] = await ValidateFileAsync(kvp.Key, kvp.Value, cancellationToken);
+
+        return results;
+    }
 
     public void SetFileExists(string path, bool exists)
     {
@@ -345,45 +367,5 @@ internal class TestHashValidationService : IHashValidationService
     public void SetFileHash(string path, string hash)
     {
         _fileHashes[path] = hash;
-    }
-
-    public Task<string> CalculateFileHashAsync(string filePath, CancellationToken cancellationToken = default)
-    {
-        if (_fileHashes.TryGetValue(filePath, out var hash))
-        {
-            return Task.FromResult(hash);
-        }
-        
-        return Task.FromResult("TESTHASH123456");
-    }
-
-    public Task<string> CalculateFileHashWithProgressAsync(string filePath, IProgress<long>? progress, CancellationToken cancellationToken = default)
-    {
-        return CalculateFileHashAsync(filePath, cancellationToken);
-    }
-
-    public Task<HashValidation> ValidateFileAsync(string filePath, string expectedHash, CancellationToken cancellationToken = default)
-    {
-        var validation = new HashValidation
-        {
-            FilePath = filePath,
-            ExpectedHash = expectedHash,
-            ActualHash = _fileHashes.GetValueOrDefault(filePath, "INVALID"),
-            HashType = "SHA256"
-        };
-        
-        return Task.FromResult(validation);
-    }
-
-    public async Task<Dictionary<string, HashValidation>> ValidateBatchAsync(Dictionary<string, string> fileHashMap, CancellationToken cancellationToken = default)
-    {
-        var results = new Dictionary<string, HashValidation>();
-        
-        foreach (var kvp in fileHashMap)
-        {
-            results[kvp.Key] = await ValidateFileAsync(kvp.Key, kvp.Value, cancellationToken);
-        }
-        
-        return results;
     }
 }

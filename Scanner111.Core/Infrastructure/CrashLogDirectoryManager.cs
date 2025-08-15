@@ -1,16 +1,16 @@
 namespace Scanner111.Core.Infrastructure;
 
 /// <summary>
-/// Provides functionality for managing crash log directories, including
-/// handling game-specific subfolders and organizing crash logs
+///     Provides functionality for managing crash log directories, including
+///     handling game-specific subfolders and organizing crash logs
 /// </summary>
 public static class CrashLogDirectoryManager
 {
     /// <summary>
-    /// Gets the default crash logs directory path.
+    ///     Gets the default crash logs directory path.
     /// </summary>
     /// <returns>
-    /// The file path to the default crash logs directory.
+    ///     The file path to the default crash logs directory.
     /// </returns>
     public static string GetDefaultCrashLogsDirectory()
     {
@@ -19,24 +19,33 @@ public static class CrashLogDirectoryManager
     }
 
     /// <summary>
-    /// Detects the type of game based on the provided game path or crash log file path.
+    ///     Detects the type of game based on the provided game path or crash log file path.
     /// </summary>
-    /// <param name="gamePath">The optional path to the game installation directory. Used for determining the game type based on executable files.</param>
-    /// <param name="crashLogPath">The optional path to a crash log file. Used for analyzing the game type based on log content.</param>
-    /// <returns>The name of the game type subfolder corresponding to the detected game type, or a default value of "Fallout4" if detection fails.</returns>
+    /// <param name="gamePath">
+    ///     The optional path to the game installation directory. Used for determining the game type based
+    ///     on executable files.
+    /// </param>
+    /// <param name="crashLogPath">
+    ///     The optional path to a crash log file. Used for analyzing the game type based on log
+    ///     content.
+    /// </param>
+    /// <returns>
+    ///     The name of the game type subfolder corresponding to the detected game type, or a default value of "Fallout4"
+    ///     if detection fails.
+    /// </returns>
     public static string DetectGameType(string? gamePath = null, string? crashLogPath = null)
     {
         // Try to detect from game path first
         if (!string.IsNullOrEmpty(gamePath))
         {
             // Check path for game type hints first (for test scenarios)
-            if (gamePath.Contains("SkyrimSE", StringComparison.OrdinalIgnoreCase) || 
+            if (gamePath.Contains("SkyrimSE", StringComparison.OrdinalIgnoreCase) ||
                 gamePath.Contains("Skyrim Special Edition", StringComparison.OrdinalIgnoreCase))
                 return "SkyrimSE";
-            if (gamePath.Contains("Fallout4VR", StringComparison.OrdinalIgnoreCase) || 
+            if (gamePath.Contains("Fallout4VR", StringComparison.OrdinalIgnoreCase) ||
                 gamePath.Contains("Fallout 4 VR", StringComparison.OrdinalIgnoreCase))
                 return "Fallout4VR";
-            
+
             // Then check for actual executables if directory exists
             if (Directory.Exists(gamePath))
             {
@@ -94,7 +103,7 @@ public static class CrashLogDirectoryManager
     }
 
     /// <summary>
-    /// Gets the full path for a game-specific crash logs directory.
+    ///     Gets the full path for a game-specific crash logs directory.
     /// </summary>
     /// <param name="baseDirectory">The base crash logs directory.</param>
     /// <param name="gameType">The type of the game (e.g., "Fallout4", "SkyrimSE").</param>
@@ -105,7 +114,7 @@ public static class CrashLogDirectoryManager
     }
 
     /// <summary>
-    /// Ensures the crash logs directory structure exists for the specified game type.
+    ///     Ensures the crash logs directory structure exists for the specified game type.
     /// </summary>
     /// <param name="baseDirectory">The base crash logs directory.</param>
     /// <param name="gameType">The game type for which the subdirectory will be created.</param>
@@ -127,7 +136,7 @@ public static class CrashLogDirectoryManager
     }
 
     /// <summary>
-    /// Gets the target path for copying a crash log file to the appropriate game-specific directory.
+    ///     Gets the target path for copying a crash log file to the appropriate game-specific directory.
     /// </summary>
     /// <param name="baseDirectory">The base directory where crash logs are stored.</param>
     /// <param name="gameType">The type of game the crash log is associated with.</param>
@@ -141,7 +150,7 @@ public static class CrashLogDirectoryManager
     }
 
     /// <summary>
-    /// Copies a crash log file to the appropriate game-specific directory.
+    ///     Copies a crash log file to the appropriate game-specific directory.
     /// </summary>
     /// <param name="sourceFilePath">The file path to the source crash log.</param>
     /// <param name="baseDirectory">The base directory where crash logs are stored.</param>

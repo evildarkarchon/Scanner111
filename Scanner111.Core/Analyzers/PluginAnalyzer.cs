@@ -11,9 +11,9 @@ namespace Scanner111.Core.Analyzers;
 /// </summary>
 public class PluginAnalyzer : IAnalyzer
 {
+    private readonly ILogger<PluginAnalyzer> _logger;
     private readonly HashSet<string> _lowerPluginsIgnore;
     private readonly IYamlSettingsProvider _yamlSettings;
-    private readonly ILogger<PluginAnalyzer> _logger;
 
     /// <summary>
     ///     Initialize the plugin analyzer
@@ -49,7 +49,7 @@ public class PluginAnalyzer : IAnalyzer
     public bool CanRunInParallel => true;
 
     /// <summary>
-    /// Analyzes a crash log for plugin-related information asynchronously.
+    ///     Analyzes a crash log for plugin-related information asynchronously.
     /// </summary>
     /// <param name="crashLog">The crash log containing data to analyze.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
@@ -85,7 +85,7 @@ public class PluginAnalyzer : IAnalyzer
         var filteredPlugins = FilterIgnoredPlugins(crashLog.Plugins);
 
         // Debug: log plugin count
-        _logger.LogDebug("Crash log plugins: {OriginalCount}, filtered: {FilteredCount}", 
+        _logger.LogDebug("Crash log plugins: {OriginalCount}, filtered: {FilteredCount}",
             crashLog.Plugins.Count, filteredPlugins.Count);
 
         // Perform plugin matching
@@ -170,12 +170,9 @@ public class PluginAnalyzer : IAnalyzer
         {
             // Still check for XSE plugins in the call stack
             CheckXsePluginsInCallStack(segmentCallstackLower, autoscanReport);
-            
+
             // If no XSE plugins found either, report no suspects
-            if (autoscanReport.Count == 0)
-            {
-                autoscanReport.Add("* COULDN'T FIND ANY PLUGIN SUSPECTS *\n\n");
-            }
+            if (autoscanReport.Count == 0) autoscanReport.Add("* COULDN'T FIND ANY PLUGIN SUSPECTS *\n\n");
             return;
         }
 
@@ -204,7 +201,7 @@ public class PluginAnalyzer : IAnalyzer
                 autoscanReport.Add($"- {plugin} | {count}\n");
 
             autoscanReport.AddRange([
-              "\n[Last number counts how many times each Plugin Suspect shows up in the crash log.]\n",
+                "\n[Last number counts how many times each Plugin Suspect shows up in the crash log.]\n",
                 $"These Plugins were caught by {GetCrashgenLogName()} and some of them might be responsible for this crash.\n",
                 "You can try disabling these plugins and check if the game still crashes, though this method can be unreliable.\n\n"
             ]);
@@ -255,7 +252,7 @@ public class PluginAnalyzer : IAnalyzer
     }
 
     /// <summary>
-    /// Checks for XSE (F4SE) plugins in the call stack when regular plugin list is missing
+    ///     Checks for XSE (F4SE) plugins in the call stack when regular plugin list is missing
     /// </summary>
     /// <param name="segmentCallstackLower">Lowercased call stack lines</param>
     /// <param name="autoscanReport">Report to add findings to</param>
@@ -270,33 +267,22 @@ public class PluginAnalyzer : IAnalyzer
         };
 
         var foundXsePlugins = new HashSet<string>();
-        
+
         foreach (var line in segmentCallstackLower)
-        {
-            foreach (var pattern in xsePluginPatterns)
+        foreach (var pattern in xsePluginPatterns)
+            if (line.Contains(pattern))
             {
-                if (line.Contains(pattern))
-                {
-                    // Extract the DLL name from the line
-                    var parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-                    foreach (var part in parts)
-                    {
-                        if (part.Contains(".dll") && !foundXsePlugins.Contains(part))
-                        {
-                            foundXsePlugins.Add(part);
-                        }
-                    }
-                }
+                // Extract the DLL name from the line
+                var parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var part in parts)
+                    if (part.Contains(".dll") && !foundXsePlugins.Contains(part))
+                        foundXsePlugins.Add(part);
             }
-        }
 
         if (foundXsePlugins.Count > 0)
         {
             autoscanReport.Add("The following XSE PLUGINS were found in the CRASH STACK:\n");
-            foreach (var plugin in foundXsePlugins.OrderBy(x => x))
-            {
-                autoscanReport.Add($"- {plugin}\n");
-            }
+            foreach (var plugin in foundXsePlugins.OrderBy(x => x)) autoscanReport.Add($"- {plugin}\n");
             autoscanReport.Add("\n[XSE plugins found in call stack when regular plugin list unavailable]\n\n");
         }
     }

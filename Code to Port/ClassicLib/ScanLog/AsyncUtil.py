@@ -53,21 +53,53 @@ class AsyncDatabasePool:
 
         """
         async with self._lock:
-            for db_path in DB_PATHS:
-                if db_path.is_file():
+            opened_connections = []
+            try:
+                for db_path in DB_PATHS:
+                    if db_path.is_file():
+                        try:
+                            conn = await aiosqlite.connect(db_path)
+                            self.connections[db_path] = conn
+                            opened_connections.append(conn)
+                            logger.debug(f"Opened async connection to {db_path}")
+                        except (OSError, aiosqlite.Error) as e:
+                            logger.error(f"Failed to open database {db_path}: {e}")
+            except Exception:
+                # Clean up any connections that were opened before the exception
+                for conn in opened_connections:
                     try:
-                        conn = await aiosqlite.connect(db_path)
-                        self.connections[db_path] = conn
-                        logger.debug(f"Opened async connection to {db_path}")
-                    except (OSError, aiosqlite.Error) as e:
-                        logger.error(f"Failed to open database {db_path}: {e}")
+                        await conn.close()
+                    except Exception as close_error:
+                        logger.error(f"Error closing connection during cleanup: {close_error}")
+                self.connections.clear()
+                raise
 
     async def close(self) -> None:
-        """Close all database connections."""
+        """Close all database connections with timeout protection."""
+        # Get a copy of connections to close without holding the lock
         async with self._lock:
-            for conn in self.connections.values():
-                await conn.close()
+            connections_to_close = list(self.connections.values())
             self.connections.clear()
+
+        # Close connections outside the lock to prevent deadlock
+        close_tasks = []
+        for conn in connections_to_close:
+            # Create task with timeout for each connection close
+            task = asyncio.create_task(self._close_connection_with_timeout(conn))
+            close_tasks.append(task)
+
+        # Wait for all connections to close (or timeout)
+        if close_tasks:
+            await asyncio.gather(*close_tasks, return_exceptions=True)
+
+    async def _close_connection_with_timeout(self, conn: aiosqlite.Connection, timeout: float = 5.0) -> None:
+        """Close a single connection with timeout."""
+        try:
+            await asyncio.wait_for(conn.close(), timeout=timeout)
+        except TimeoutError:
+            logger.error(f"Timeout closing database connection after {timeout}s")
+        except Exception as e:
+            logger.error(f"Error closing database connection: {e}")
 
     async def get_entry(self, formid: str, plugin: str) -> str | None:
         """
@@ -137,9 +169,16 @@ async def read_file_async(file_path: Path) -> list[str]:
         Raised if the file's content cannot be decoded using the specified encoding.
     """
     try:
-        async with aiofiles.open(file_path, encoding="utf-8", errors="ignore") as f:
-            content = await f.read()
-            return content.splitlines()
+        # Try to use async encoding detection if available
+        try:
+            from ClassicLib.AsyncUtil import read_lines_with_encoding_async
+
+            return await read_lines_with_encoding_async(file_path)
+        except ImportError:
+            # Fallback to UTF-8
+            async with aiofiles.open(file_path, encoding="utf-8", errors="ignore") as f:
+                content = await f.read()
+                return content.splitlines()
     except (OSError, UnicodeDecodeError) as e:
         logger.error(f"Error reading {file_path}: {e}")
         return []

@@ -51,15 +51,16 @@ class FCXModeHandler:
         """
         if self.fcx_mode:
             # Import here to avoid circular imports
-            from CLASSIC_Main import main_combined_result
             from CLASSIC_ScanGame import game_combined_result
+            from ClassicLib.SetupCoordinator import SetupCoordinator
 
             # Use class-level lock to ensure thread safety
             with FCXModeHandler._fcx_lock:
                 # Check if we've already run the FCX checks in this scan session
                 if not FCXModeHandler._fcx_checks_run:
                     # Run the checks once and store results in class variables
-                    FCXModeHandler._main_files_result = main_combined_result()
+                    coordinator = SetupCoordinator()
+                    FCXModeHandler._main_files_result = coordinator.generate_combined_results()
                     FCXModeHandler._game_files_result = game_combined_result()
                     FCXModeHandler._fcx_checks_run = True
 

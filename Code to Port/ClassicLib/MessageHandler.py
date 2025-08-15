@@ -673,6 +673,7 @@ class MessageHandler(QObject):
 
 # Global instance management
 _message_handler: MessageHandler | None = None
+_message_handler_lock = threading.Lock()
 
 
 def init_message_handler(parent: QWidget | None = None, is_gui_mode: bool = False) -> MessageHandler:
@@ -691,8 +692,9 @@ def init_message_handler(parent: QWidget | None = None, is_gui_mode: bool = Fals
         MessageHandler: The initialized MessageHandler instance prepared for use.
     """
     global _message_handler  # noqa: PLW0603
-    _message_handler = MessageHandler(parent, is_gui_mode)
-    return _message_handler
+    with _message_handler_lock:
+        _message_handler = MessageHandler(parent, is_gui_mode)
+        return _message_handler
 
 
 def get_message_handler() -> MessageHandler:
@@ -710,9 +712,10 @@ def get_message_handler() -> MessageHandler:
     Raises:
         RuntimeError: If the global message handler has not been initialized.
     """
-    if _message_handler is None:
-        raise RuntimeError("Message handler not initialized. Call init_message_handler() first.")
-    return _message_handler
+    with _message_handler_lock:
+        if _message_handler is None:
+            raise RuntimeError("Message handler not initialized. Call init_message_handler() first.")
+        return _message_handler
 
 
 # Convenience functions for direct access

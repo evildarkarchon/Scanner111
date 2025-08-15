@@ -3,7 +3,6 @@ using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Tests.TestHelpers;
-using Xunit;
 
 namespace Scanner111.Tests.CLI;
 
@@ -16,6 +15,12 @@ public class DemoCommandTests : IDisposable
         _messageCapture = new TestMessageCapture();
         MessageHandler.Initialize(_messageCapture);
     }
+
+    public void Dispose()
+    {
+        MessageHandler.Initialize(new TestMessageHandler());
+    }
+
     [Fact]
     public async Task ExecuteAsync_DisplaysAllMessageTypesAndProgress()
     {
@@ -28,7 +33,7 @@ public class DemoCommandTests : IDisposable
 
         // Assert
         result.Should().Be(0, "because the demo should complete successfully");
-        
+
         // Verify all message types were displayed
         _messageCapture.InfoMessages.Should().Contain("This is an info message",
             "because demo should display info messages");
@@ -42,11 +47,11 @@ public class DemoCommandTests : IDisposable
             "because demo should display debug messages");
         _messageCapture.CriticalMessages.Should().Contain("This is a critical message",
             "because demo should display critical messages");
-        
+
         // Verify completion message
         _messageCapture.SuccessMessages.Should().Contain("Demo complete!",
             "because demo should report completion");
-        
+
         // Verify progress was created and completed
         _messageCapture.LastProgressContext.Should().NotBeNull("because progress context should be created");
         _messageCapture.LastProgressContext.Description.Should().Be("Demo Progress",
@@ -55,10 +60,5 @@ public class DemoCommandTests : IDisposable
             "because demo should have 5 total steps");
         _messageCapture.LastProgressContext.IsCompleted.Should().BeTrue(
             "because progress should be marked as completed");
-    }
-
-    public void Dispose()
-    {
-        MessageHandler.Initialize(new TestMessageHandler());
     }
 }

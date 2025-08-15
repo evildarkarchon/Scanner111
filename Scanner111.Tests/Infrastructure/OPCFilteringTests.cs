@@ -6,11 +6,11 @@ using Scanner111.Core.Infrastructure;
 namespace Scanner111.Tests.Infrastructure;
 
 /// <summary>
-/// Contains unit tests for filtering OPC-specific content from reports.
+///     Contains unit tests for filtering OPC-specific content from reports.
 /// </summary>
 /// <remarks>
-/// This class ensures OPC-related headers, sections, or messages within given report content
-/// are correctly identified and removed while preserving other valid sections.
+///     This class ensures OPC-related headers, sections, or messages within given report content
+///     are correctly identified and removed while preserving other valid sections.
 /// </remarks>
 public class OpcFilteringTests : IDisposable
 {
@@ -25,11 +25,11 @@ public class OpcFilteringTests : IDisposable
     }
 
     /// <summary>
-    /// Releases resources used by the OpcFilteringTests instance, including the temporary directory
-    /// created during test initialization.
+    ///     Releases resources used by the OpcFilteringTests instance, including the temporary directory
+    ///     created during test initialization.
     /// </summary>
     /// <remarks>
-    /// Deletes the temporary directory if it exists and suppresses finalization for the instance.
+    ///     Deletes the temporary directory if it exists and suppresses finalization for the instance.
     /// </remarks>
     public void Dispose()
     {
@@ -38,8 +38,8 @@ public class OpcFilteringTests : IDisposable
     }
 
     /// <summary>
-    /// Validates that OPC-specific headers and related content are removed from the report,
-    /// while preserving other valid sections and content.
+    ///     Validates that OPC-specific headers and related content are removed from the report,
+    ///     while preserving other valid sections and content.
     /// </summary>
     /// <param name="opcHeader">The text of the OPC header that signifies the start of OPC-related content in the report.</param>
     [Theory]
@@ -58,8 +58,10 @@ public class OpcFilteringTests : IDisposable
         var filtered = InvokeFilterReportContent(reportContent);
 
         // Assert
-        filtered.Should().Contain("Normal content before", "because normal content before OPC section should be preserved");
-        filtered.Should().Contain("Normal content after", "because normal content after OPC section should be preserved");
+        filtered.Should().Contain("Normal content before",
+            "because normal content before OPC section should be preserved");
+        filtered.Should().Contain("Normal content after",
+            "because normal content after OPC section should be preserved");
         filtered.Should().NotContain("OPC content to be removed", "because OPC content should be filtered out");
         filtered.Should().NotContain("More OPC content", "because all OPC content should be removed");
         filtered.Should().NotContain(opcHeader, "because OPC headers should be removed");
@@ -67,12 +69,13 @@ public class OpcFilteringTests : IDisposable
     }
 
     /// <summary>
-    /// Verifies that OPC-related content found in the provided report is correctly removed while other content is preserved.
+    ///     Verifies that OPC-related content found in the provided report is correctly removed while other content is
+    ///     preserved.
     /// </summary>
     /// <remarks>
-    /// Ensures that specific OPC-related headers, messages, and sections, such as those indicating
-    /// diagnostics or patch statuses through the OPC installer, are identified and filtered out
-    /// from the input report content.
+    ///     Ensures that specific OPC-related headers, messages, and sections, such as those indicating
+    ///     diagnostics or patch statuses through the OPC installer, are identified and filtered out
+    ///     from the input report content.
     /// </remarks>
     [Fact]
     public void FilterReportContent_WithOPCFoundMessage_RemovesOPCContent()
@@ -93,17 +96,20 @@ public class OpcFilteringTests : IDisposable
         // Assert
         filtered.Should().Contain("Regular analysis", "because non-OPC content should be preserved");
         filtered.Should().Contain("Continuing with normal analysis", "because content after OPC section should remain");
-        filtered.Should().NotContain("FOUND NO PROBLEMATIC MODS THAT ARE ALREADY PATCHED THROUGH THE OPC INSTALLER", "because OPC result messages should be removed");
-        filtered.Should().NotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER", "because OPC headers should be removed");
-        filtered.Should().Contain("CHECKING FOR MODS THAT IF IMPORTANT PATCHES & FIXES ARE INSTALLED", "because non-OPC sections should be preserved");
+        filtered.Should().NotContain("FOUND NO PROBLEMATIC MODS THAT ARE ALREADY PATCHED THROUGH THE OPC INSTALLER",
+            "because OPC result messages should be removed");
+        filtered.Should().NotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER",
+            "because OPC headers should be removed");
+        filtered.Should().Contain("CHECKING FOR MODS THAT IF IMPORTANT PATCHES & FIXES ARE INSTALLED",
+            "because non-OPC sections should be preserved");
     }
 
     /// <summary>
-    /// Filters the report content containing nested OPC sections and removes all OPC-specific content.
+    ///     Filters the report content containing nested OPC sections and removes all OPC-specific content.
     /// </summary>
     /// <remarks>
-    /// Ensures that all headers, sections, and messages specific to OPC, including nested instances,
-    /// are completely removed from the report content while retaining other sections and entries.
+    ///     Ensures that all headers, sections, and messages specific to OPC, including nested instances,
+    ///     are completely removed from the report content while retaining other sections and entries.
     /// </remarks>
     [Fact]
     public void FilterReportContent_WithNestedOPCSections_RemovesAllOPCContent()
@@ -127,16 +133,17 @@ public class OpcFilteringTests : IDisposable
         filtered.Should().NotContain("First OPC section", "because first OPC section content should be removed");
         filtered.Should().NotContain("Second OPC section", "because second OPC section content should be removed");
         filtered.Should().NotContain("MODS PATCHED THROUGH OPC INSTALLER", "because OPC headers should be removed");
-        filtered.Should().NotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER", "because all OPC headers should be removed");
+        filtered.Should().NotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER",
+            "because all OPC headers should be removed");
     }
 
     /// <summary>
-    /// Ensures that OPC content at the beginning of a report is correctly identified and removed while
-    /// preserving valid sections that follow.
+    ///     Ensures that OPC content at the beginning of a report is correctly identified and removed while
+    ///     preserving valid sections that follow.
     /// </summary>
     /// <remarks>
-    /// This method verifies that report content starting with OPC-specific headers or sections
-    /// is processed to exclude those segments, ensuring only non-OPC content remains in the final output.
+    ///     This method verifies that report content starting with OPC-specific headers or sections
+    ///     is processed to exclude those segments, ensuring only non-OPC content remains in the final output.
     /// </remarks>
     [Fact]
     public void FilterReportContent_WithOPCAtBeginning_RemovesOPCContent()
@@ -153,18 +160,19 @@ public class OpcFilteringTests : IDisposable
 
         // Assert
         filtered.Should().NotContain("OPC content at start", "because OPC content at the beginning should be removed");
-        filtered.Should().NotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER", "because OPC headers should be removed");
+        filtered.Should().NotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER",
+            "because OPC headers should be removed");
         filtered.Should().Contain("NORMAL SECTION", "because non-OPC sections should be preserved");
         filtered.Should().Contain("Normal content", "because normal content should be preserved");
     }
 
     /// <summary>
-    /// Filters report content to remove any OPC-specific content found at the end of the report.
+    ///     Filters report content to remove any OPC-specific content found at the end of the report.
     /// </summary>
     /// <remarks>
-    /// Ensures that OPC-related sections or messages, such as "MODS PATCHED THROUGH OPC INSTALLER"
-    /// or other similar OPC headers/messages located at the end of the report, are entirely removed,
-    /// while preserving the integrity of other non-OPC-related content.
+    ///     Ensures that OPC-related sections or messages, such as "MODS PATCHED THROUGH OPC INSTALLER"
+    ///     or other similar OPC headers/messages located at the end of the report, are entirely removed,
+    ///     while preserving the integrity of other non-OPC-related content.
     /// </remarks>
     [Fact]
     public void FilterReportContent_WithOPCAtEnd_RemovesOPCContent()
@@ -187,12 +195,12 @@ public class OpcFilteringTests : IDisposable
     }
 
     /// <summary>
-    /// Validates that the filtering process does not alter report content when no OPC-specific
-    /// content is present.
+    ///     Validates that the filtering process does not alter report content when no OPC-specific
+    ///     content is present.
     /// </summary>
     /// <remarks>
-    /// Ensures that reports containing no OPC-related headers, sections, or messages remain unchanged
-    /// after applying the filtering logic.
+    ///     Ensures that reports containing no OPC-related headers, sections, or messages remain unchanged
+    ///     after applying the filtering logic.
     /// </remarks>
     [Fact]
     public void FilterReportContent_WithoutOPCContent_ReturnsUnchanged()
@@ -212,12 +220,12 @@ public class OpcFilteringTests : IDisposable
     }
 
     /// <summary>
-    /// Tests whether the FilterReportContent method correctly handles an empty input string by
-    /// returning an empty string without attempting any filtering operations.
+    ///     Tests whether the FilterReportContent method correctly handles an empty input string by
+    ///     returning an empty string without attempting any filtering operations.
     /// </summary>
     /// <remarks>
-    /// Ensures that providing an empty report content does not produce any unintended
-    /// alterations or errors in the filtering process.
+    ///     Ensures that providing an empty report content does not produce any unintended
+    ///     alterations or errors in the filtering process.
     /// </remarks>
     [Fact]
     public void FilterReportContent_WithEmptyContent_ReturnsEmpty()
@@ -233,10 +241,10 @@ public class OpcFilteringTests : IDisposable
     }
 
     /// <summary>
-    /// Verifies that the FilterReportContent method returns null when provided with null input content.
+    ///     Verifies that the FilterReportContent method returns null when provided with null input content.
     /// </summary>
     /// <remarks>
-    /// Ensures that the method properly handles null values and does not throw exceptions or return unintended results.
+    ///     Ensures that the method properly handles null values and does not throw exceptions or return unintended results.
     /// </remarks>
     [Fact]
     public void FilterReportContent_WithNullContent_ReturnsNull()
@@ -252,12 +260,12 @@ public class OpcFilteringTests : IDisposable
     }
 
     /// <summary>
-    /// Ensures that report content containing mentions of OPC within the middle of a line,
-    /// without being part of an OPC-specific header or section, is not removed.
+    ///     Ensures that report content containing mentions of OPC within the middle of a line,
+    ///     without being part of an OPC-specific header or section, is not removed.
     /// </summary>
     /// <remarks>
-    /// Validates that lines mentioning "OPC" in a non-structural context are preserved,
-    /// ensuring unintentional filtering does not occur in such cases.
+    ///     Validates that lines mentioning "OPC" in a non-structural context are preserved,
+    ///     ensuring unintentional filtering does not occur in such cases.
     /// </remarks>
     [Fact]
     public void FilterReportContent_WithOPCInMiddleOfLine_DoesNotRemove()
@@ -273,18 +281,20 @@ public class OpcFilteringTests : IDisposable
 
         // Assert
         filtered.Should().Be(reportContent, "because OPC mentions in regular content should not be filtered");
-        filtered.Should().Contain("This line mentions OPC INSTALLER but is not a section header", "because OPC mentions outside headers should be preserved");
-        filtered.Should().Contain("Some plugins may need OPC installer patches", "because OPC references in content should remain");
+        filtered.Should().Contain("This line mentions OPC INSTALLER but is not a section header",
+            "because OPC mentions outside headers should be preserved");
+        filtered.Should().Contain("Some plugins may need OPC installer patches",
+            "because OPC references in content should remain");
     }
 
     /// <summary>
-    /// Tests the filtering logic of report content containing OPC-related sections or messages across
-    /// varying case sensitivities.
+    ///     Tests the filtering logic of report content containing OPC-related sections or messages across
+    ///     varying case sensitivities.
     /// </summary>
     /// <remarks>
-    /// Ensures that OPC-specific content, even with case variations in headers or text, is correctly
-    /// handled by the filtering mechanism without impacting unrelated sections of the report.
-    /// This test reflects the current case-sensitive behavior of the implementation.
+    ///     Ensures that OPC-specific content, even with case variations in headers or text, is correctly
+    ///     handled by the filtering mechanism without impacting unrelated sections of the report.
+    ///     This test reflects the current case-sensitive behavior of the implementation.
     /// </remarks>
     [Fact]
     public void FilterReportContent_WithOPCCaseVariations_RemovesOPCContent()
@@ -305,18 +315,19 @@ public class OpcFilteringTests : IDisposable
         filtered.Should().Contain("NORMAL SECTION", "because non-OPC sections should be preserved");
         // Note: The current implementation is case-sensitive, so this would NOT be filtered
         // This test documents the current behavior
-        filtered.Should().Contain("checking for mods that are patched through opc installer", "because lowercase OPC headers are not filtered in current implementation");
+        filtered.Should().Contain("checking for mods that are patched through opc installer",
+            "because lowercase OPC headers are not filtered in current implementation");
     }
 
     /// <summary>
-    /// Filters report content to remove OPC-related result messages found within the content.
+    ///     Filters report content to remove OPC-related result messages found within the content.
     /// </summary>
     /// <param name="opcResultMessage">
-    /// A string representing an OPC result message to be removed from the report content.
+    ///     A string representing an OPC result message to be removed from the report content.
     /// </param>
     /// <remarks>
-    /// Ensures that OPC-related result messages, typically produced during analysis, are identified and removed
-    /// while preserving other content and sections in the report.
+    ///     Ensures that OPC-related result messages, typically produced during analysis, are identified and removed
+    ///     while preserving other content and sections in the report.
     /// </remarks>
     [Theory]
     [InlineData("FOUND NO PROBLEMATIC MODS THAT ARE ALREADY PATCHED THROUGH THE OPC INSTALLER")]
@@ -339,11 +350,12 @@ public class OpcFilteringTests : IDisposable
         filtered.Should().Contain("Analysis continues", "because content after OPC section should be preserved");
         filtered.Should().Contain("NEXT SECTION", "because non-OPC sections should be preserved");
         filtered.Should().NotContain(opcResultMessage, "because OPC result messages should be removed");
-        filtered.Should().NotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER", "because OPC headers should be removed");
+        filtered.Should().NotContain("CHECKING FOR MODS THAT ARE PATCHED THROUGH OPC INSTALLER",
+            "because OPC headers should be removed");
     }
 
     /// <summary>
-    /// Invokes the private FilterReportContent method on the ReportWriter using reflection.
+    ///     Invokes the private FilterReportContent method on the ReportWriter using reflection.
     /// </summary>
     /// <param name="reportContent">The report content to be passed into the FilterReportContent method.</param>
     /// <returns>The filtered report content after removing specific sections defined by the FilterReportContent logic.</returns>

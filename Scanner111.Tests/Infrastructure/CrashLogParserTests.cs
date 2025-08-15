@@ -5,25 +5,25 @@ using Scanner111.Core.Infrastructure;
 namespace Scanner111.Tests.Infrastructure;
 
 /// <summary>
-/// Unit test suite for validating the functionality of the CrashLogParser class.
+///     Unit test suite for validating the functionality of the CrashLogParser class.
 /// </summary>
 /// <remarks>
-/// The tests in this class focus on verifying various parsing scenarios, ensuring
-/// correct handling of different types of crash logs, and validating proper error
-/// handling during parsing operations.
+///     The tests in this class focus on verifying various parsing scenarios, ensuring
+///     correct handling of different types of crash logs, and validating proper error
+///     handling during parsing operations.
 /// </remarks>
 /// <example>
-/// Contains tests that cover cases such as:
-/// - Parsing valid crash log files.
-/// - Handling invalid or incomplete log files.
-/// - Extracting specific details such as versions, error messages, plugins, and more.
-/// - Gracefully handling edge cases, such as missing or malformed data.
-/// - Ensuring cancellation token respect.
+///     Contains tests that cover cases such as:
+///     - Parsing valid crash log files.
+///     - Handling invalid or incomplete log files.
+///     - Extracting specific details such as versions, error messages, plugins, and more.
+///     - Gracefully handling edge cases, such as missing or malformed data.
+///     - Ensuring cancellation token respect.
 /// </example>
 /// <note>
-/// Each test ensures that CrashLogParser produces the expected output or behavior
-/// under different conditions, ensuring robustness and reliability of the parser.
-/// Temporary files created during testing are cleaned up after each test.
+///     Each test ensures that CrashLogParser produces the expected output or behavior
+///     under different conditions, ensuring robustness and reliability of the parser.
+///     Temporary files created during testing are cleaned up after each test.
 /// </note>
 public class CrashLogParserTests : IDisposable
 {
@@ -61,8 +61,10 @@ public class CrashLogParserTests : IDisposable
     /// This test ensures that when a valid crash log is provided, the parser extracts
     /// the relevant information without errors and returns a non-null, correctly
     /// populated result.
-    /// <returns>Asserts that the returned CrashLog is not null, has the correct file
-    /// path, and contains non-empty original lines.</returns>
+    /// <returns>
+    ///     Asserts that the returned CrashLog is not null, has the correct file
+    ///     path, and contains non-empty original lines.
+    /// </returns>
     [Fact]
     public async Task ParseAsync_WithValidCrashLog_ReturnsCorrectlySized()
     {
@@ -83,7 +85,7 @@ public class CrashLogParserTests : IDisposable
     /// The method should return null if the file does not meet the minimum length
     /// required for parsing.
     /// <returns>
-    /// A null value to indicate that the crash log file is too short to be parsed.
+    ///     A null value to indicate that the crash log file is too short to be parsed.
     /// </returns>
     [Fact]
     public async Task ParseAsync_WithTooShortFile_ReturnsNull()
@@ -137,7 +139,7 @@ public class CrashLogParserTests : IDisposable
     /// This test ensures that the returned CrashLog object contains the expected value for the CrashGenVersion property.
     /// The input crash log file is generated with valid contents, and the test validates the parsing capability.
     /// <returns>
-    /// Asserts that the CrashGenVersion property of the parsed CrashLog object matches the expected value.
+    ///     Asserts that the CrashGenVersion property of the parsed CrashLog object matches the expected value.
     /// </returns>
     [Fact]
     public async Task ParseAsync_ParsesCrashGenVersionCorrectly()
@@ -159,9 +161,11 @@ public class CrashLogParserTests : IDisposable
     /// and details such as memory addresses or exceptions.
     /// Useful for validating the parser's ability to extract
     /// the main error information accurately.
-    /// <returns>Returns a task representing the asynchronous operation. The result includes a
-    /// deserialized CrashLog object whose MainError property correctly reflects the
-    /// extracted main error content.</returns>
+    /// <returns>
+    ///     Returns a task representing the asynchronous operation. The result includes a
+    ///     deserialized CrashLog object whose MainError property correctly reflects the
+    ///     extracted main error content.
+    /// </returns>
     [Fact]
     public async Task ParseAsync_ParsesMainErrorCorrectly()
     {
@@ -204,8 +208,10 @@ public class CrashLogParserTests : IDisposable
     /// the modules listed in the provided crash log file.
     /// Verifies that the parsed modules include expected entries
     /// such as filenames of dynamically loaded plugins.
-    /// <returns> A task that represents the asynchronous test, confirming
-    /// the successful parsing of the XSE modules.</returns>
+    /// <returns>
+    ///     A task that represents the asynchronous test, confirming
+    ///     the successful parsing of the XSE modules.
+    /// </returns>
     [Fact]
     public async Task ParseAsync_ParsesXseModulesCorrectly()
     {
@@ -227,8 +233,10 @@ public class CrashLogParserTests : IDisposable
     /// `CrashgenSettings` dictionary match the expected data, such as specific plugin versions
     /// or settings. Ensures that the method handles settings with mixed types and nested data
     /// structures appropriately.
-    /// <returns>Task representing the asynchronous unit test operation that validates the parsing
-    /// of crash generation settings in a crash log.</returns>
+    /// <returns>
+    ///     Task representing the asynchronous unit test operation that validates the parsing
+    ///     of crash generation settings in a crash log.
+    /// </returns>
     [Fact]
     public async Task ParseAsync_ParsesCrashgenSettingsCorrectly()
     {
@@ -265,7 +273,8 @@ public class CrashLogParserTests : IDisposable
         {
             // Find and remove all plugin entries (lines starting with [XX:YYY])
             var lines = originalLog.Split('\n');
-            var filteredLines = lines.Where(line => !line.TrimStart().StartsWith("[") || !line.Contains("]") || !line.Contains(".es")).ToList();
+            var filteredLines = lines.Where(line =>
+                !line.TrimStart().StartsWith("[") || !line.Contains("]") || !line.Contains(".es")).ToList();
 
             incompleteLog = string.Join("\n", filteredLines);
         }
@@ -288,10 +297,10 @@ public class CrashLogParserTests : IDisposable
     /// This test ensures that the CallStack property in the resulting CrashLog object includes
     /// the expected entries from the parsed crash log file.
     /// <returns>
-    /// A task representing the asynchronous operation. The task result will validate that:
-    /// - The returned CrashLog object is not null.
-    /// - The CallStack contains at least one entry.
-    /// - The CallStack includes a specific entry, such as "Fallout4.exe+2479DFA".
+    ///     A task representing the asynchronous operation. The task result will validate that:
+    ///     - The returned CrashLog object is not null.
+    ///     - The CallStack contains at least one entry.
+    ///     - The CallStack includes a specific entry, such as "Fallout4.exe+2479DFA".
     /// </returns>
     [Fact]
     public async Task ParseAsync_ExtractsCallStackCorrectly()
@@ -336,8 +345,10 @@ public class CrashLogParserTests : IDisposable
     /// all components of the error message, including segments following the pipe character.
     /// Ensures that the method accurately processes and retains both the exception details
     /// and the piped information within the `MainError` field.
-    /// <returns>Asserts that the parsed `CrashLog.MainError` is not null and contains the expected
-    /// details, including the pipe-separated values.</returns>
+    /// <returns>
+    ///     Asserts that the parsed `CrashLog.MainError` is not null and contains the expected
+    ///     details, including the pipe-separated values.
+    /// </returns>
     [Fact]
     public async Task ParseAsync_HandlesMainErrorWithPipeCorrectly()
     {
@@ -363,8 +374,10 @@ public class CrashLogParserTests : IDisposable
     /// are empty or incomplete. Additionally, it validates the proper handling of other
     /// sections such as call stack and modules, and ensures the parsed result is marked
     /// as incomplete where appropriate.
-    /// <returns>Task representing the asynchronous operation, used for verification
-    /// of the test's assertions.</returns>
+    /// <returns>
+    ///     Task representing the asynchronous operation, used for verification
+    ///     of the test's assertions.
+    /// </returns>
     [Fact]
     public async Task ParseAsync_HandlesEmptySegmentsGracefully()
     {
@@ -407,9 +420,9 @@ PLUGINS:
     /// present in the crash log file. This test checks whether values, regardless of their case,
     /// are mapped correctly to the `CrashgenSettings` dictionary with the appropriate data types.
     /// <returns>
-    /// A task that represents the asynchronous operation. If parsing is successful,
-    /// the parsed CrashLog object is returned containing the settings with correct values.
-    /// Fails the test if the parsing result does not meet the expectations.
+    ///     A task that represents the asynchronous operation. If parsing is successful,
+    ///     the parsed CrashLog object is returned containing the settings with correct values.
+    ///     Fails the test if the parsing result does not meet the expectations.
     /// </returns>
     [Fact]
     public async Task ParseAsync_ParsesMixedCaseSettingsCorrectly()
@@ -436,8 +449,8 @@ PLUGINS:
     /// This test arranges a crash log with mixed versioned and non-versioned XSE modules, invokes the parser,
     /// and asserts the presence of all intended modules in the result.
     /// <returns>
-    /// Does not return a value as it is a unit test. The test asserts the presence of
-    /// correctly parsed XSE modules in the CrashLog object produced by the ParseAsync method.
+    ///     Does not return a value as it is a unit test. The test asserts the presence of
+    ///     correctly parsed XSE modules in the CrashLog object produced by the ParseAsync method.
     /// </returns>
     [Fact]
     public async Task ParseAsync_HandlesXseModulesWithoutVersions()
@@ -463,9 +476,9 @@ PLUGINS:
     /// This test initiates the parsing of a crash log file and ensures that an OperationCanceledException
     /// is thrown if the provided CancellationToken is canceled before or during execution.
     /// <returns>
-    /// A task representing the asynchronous operation of the test. This task will fail if
-    /// the ParseAsync method does not correctly handle the canceled token or if it does
-    /// not throw the expected OperationCanceledException.
+    ///     A task representing the asynchronous operation of the test. This task will fail if
+    ///     the ParseAsync method does not correctly handle the canceled token or if it does
+    ///     not throw the expected OperationCanceledException.
     /// </returns>
     [Fact]
     public async Task ParseAsync_WithCancellationToken_RespectsCanellation()
@@ -516,13 +529,13 @@ PLUGINS:
     // Helper methods
     /// Creates a test crash log file with the specified filename and content.
     /// <param name="filename">
-    /// The name of the crash log file to be created.
+    ///     The name of the crash log file to be created.
     /// </param>
     /// <param name="content">
-    /// The content to be written into the crash log file.
+    ///     The content to be written into the crash log file.
     /// </param>
     /// <returns>
-    /// The full file path of the created test crash log file.
+    ///     The full file path of the created test crash log file.
     /// </returns>
     private string CreateTestCrashLog(string filename, string content)
     {
@@ -580,7 +593,7 @@ PLUGINS:
     /// and game plugins. The generated log is designed to test parsing functionality
     /// and ensure compatibility with different structures and contents of crash logs.
     /// <returns>
-    /// A string representing the simulated crash log for Skyrim Special Edition.
+    ///     A string representing the simulated crash log for Skyrim Special Edition.
     /// </returns>
     private string GenerateSkyrimCrashLog()
     {

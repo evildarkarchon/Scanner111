@@ -3,7 +3,8 @@ using System.Collections.Concurrent;
 namespace Scanner111.Core.Pipeline;
 
 /// <summary>
-/// Represents detailed progress reporting for scanning operations, capable of capturing file and analyzer states during the process.
+///     Represents detailed progress reporting for scanning operations, capable of capturing file and analyzer states
+///     during the process.
 /// </summary>
 public class DetailedProgress : IProgress<DetailedProgressInfo>
 {
@@ -113,7 +114,7 @@ public class DetailedProgress : IProgress<DetailedProgressInfo>
     }
 
     /// <summary>
-    /// Combines the analyzer name and file path into a unique key.
+    ///     Combines the analyzer name and file path into a unique key.
     /// </summary>
     /// <param name="analyzerName">The name of the analyzer.</param>
     /// <param name="filePath">The path of the file being analyzed.</param>
@@ -125,8 +126,8 @@ public class DetailedProgress : IProgress<DetailedProgressInfo>
 }
 
 /// <summary>
-/// Represents detailed information about the progress of a scanning operation, including file processing status,
-/// analyzer progress, timing, and performance metrics.
+///     Represents detailed information about the progress of a scanning operation, including file processing status,
+///     analyzer progress, timing, and performance metrics.
 /// </summary>
 public record DetailedProgressInfo
 {
@@ -159,8 +160,9 @@ public record DetailedProgressInfo
 }
 
 /// <summary>
-/// Represents the progress of an individual analyzer, capturing details such as the analyzer's name, associated file, status,
-/// start time, end time, and duration of execution.
+///     Represents the progress of an individual analyzer, capturing details such as the analyzer's name, associated file,
+///     status,
+///     start time, end time, and duration of execution.
 /// </summary>
 public class AnalyzerProgress
 {
@@ -173,7 +175,7 @@ public class AnalyzerProgress
 }
 
 /// <summary>
-/// Represents the status of a file during its processing lifecycle.
+///     Represents the status of a file during its processing lifecycle.
 /// </summary>
 public enum FileProcessingStatus
 {
@@ -185,7 +187,7 @@ public enum FileProcessingStatus
 }
 
 /// <summary>
-/// Represents the execution status of an analyzer in a scanning or processing pipeline.
+///     Represents the execution status of an analyzer in a scanning or processing pipeline.
 /// </summary>
 public enum AnalyzerStatus
 {

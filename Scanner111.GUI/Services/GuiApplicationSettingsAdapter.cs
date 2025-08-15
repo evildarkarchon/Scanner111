@@ -5,7 +5,7 @@ using Scanner111.Core.Models;
 namespace Scanner111.GUI.Services;
 
 /// <summary>
-/// Adapter that bridges between GUI's ISettingsService and Core's IApplicationSettingsService
+///     Adapter that bridges between GUI's ISettingsService and Core's IApplicationSettingsService
 /// </summary>
 public class GuiApplicationSettingsAdapter : IApplicationSettingsService
 {
@@ -19,7 +19,7 @@ public class GuiApplicationSettingsAdapter : IApplicationSettingsService
     public async Task<ApplicationSettings> LoadSettingsAsync()
     {
         var userSettings = await _settingsService.LoadUserSettingsAsync();
-        
+
         // Convert UserSettings to ApplicationSettings
         return new ApplicationSettings
         {
@@ -29,48 +29,48 @@ public class GuiApplicationSettingsAdapter : IApplicationSettingsService
             SimplifyLogs = false, // Not in UserSettings
             MoveUnsolvedLogs = userSettings.MoveUnsolvedLogs,
             VrMode = false, // Not in UserSettings
-            
+
             // Path Settings
             DefaultLogPath = userSettings.DefaultLogPath,
             DefaultGamePath = userSettings.DefaultGamePath,
             DefaultScanDirectory = userSettings.DefaultScanDirectory,
             CrashLogsDirectory = userSettings.CrashLogsDirectory,
             BackupDirectory = userSettings.BackupDirectory,
-            
+
             // Output Settings
             DefaultOutputFormat = userSettings.DefaultOutputFormat,
             AutoSaveResults = userSettings.AutoSaveResults,
-            
+
             // XSE Settings
             AutoLoadF4SeLogs = userSettings.AutoLoadF4SeLogs,
             SkipXseCopy = userSettings.SkipXseCopy,
-            
+
             // Performance Settings
             MaxConcurrentScans = 16, // Not in UserSettings
             CacheEnabled = true, // Not in UserSettings
-            
+
             // Debug/Logging Settings
             EnableDebugLogging = userSettings.EnableDebugLogging,
             VerboseLogging = false, // Not in UserSettings
-            
+
             // Notification Settings
             AudioNotifications = false, // Not in UserSettings
             EnableProgressNotifications = userSettings.EnableProgressNotifications,
-            
+
             // Update Check Settings
             EnableUpdateCheck = userSettings.EnableUpdateCheck,
             UpdateSource = userSettings.UpdateSource,
-            
+
             // CLI-Specific Display Settings
             DisableColors = false, // Not in UserSettings
             DisableProgress = false, // Not in UserSettings
-            
+
             // GUI-Specific Settings
             RememberWindowSize = userSettings.RememberWindowSize,
             WindowWidth = userSettings.WindowWidth,
             WindowHeight = userSettings.WindowHeight,
             MaxLogMessages = userSettings.MaxLogMessages,
-            
+
             // Recent Items Management
             RecentLogFiles = userSettings.RecentLogFiles,
             RecentGamePaths = userSettings.RecentGamePaths,
@@ -83,7 +83,7 @@ public class GuiApplicationSettingsAdapter : IApplicationSettingsService
     public async Task SaveSettingsAsync(ApplicationSettings settings)
     {
         var userSettings = await _settingsService.LoadUserSettingsAsync();
-        
+
         // Update UserSettings with values from ApplicationSettings
         userSettings.FcxMode = settings.FcxMode;
         userSettings.MoveUnsolvedLogs = settings.MoveUnsolvedLogs;
@@ -111,14 +111,14 @@ public class GuiApplicationSettingsAdapter : IApplicationSettingsService
         userSettings.LastUsedAnalyzers = settings.LastUsedAnalyzers;
         userSettings.ModsFolder = settings.ModsFolder ?? "";
         userSettings.IniFolder = settings.IniFolder ?? "";
-        
+
         await _settingsService.SaveUserSettingsAsync(userSettings);
     }
 
     public async Task SaveSettingAsync(string key, object value)
     {
         var settings = await LoadSettingsAsync();
-        
+
         // Use reflection to set the property value
         var property = settings.GetType().GetProperty(key);
         if (property != null && property.CanWrite)

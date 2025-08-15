@@ -6,13 +6,13 @@ using Scanner111.Core.Models.Yaml;
 namespace Scanner111.Core.Analyzers;
 
 /// <summary>
-/// Represents an analyzer that validates crash generator and mod settings.
+///     Represents an analyzer that validates crash generator and mod settings.
 /// </summary>
 public class SettingsScanner : IAnalyzer
 {
-    private readonly IYamlSettingsProvider _yamlSettings;
-    private readonly ILogger<SettingsScanner> _logger;
     private readonly Lazy<string> _crashgenLogName;
+    private readonly ILogger<SettingsScanner> _logger;
+    private readonly IYamlSettingsProvider _yamlSettings;
 
     /// <summary>
     ///     Initialize the settings scanner
@@ -46,7 +46,7 @@ public class SettingsScanner : IAnalyzer
     public bool CanRunInParallel => false;
 
     /// <summary>
-    /// Analyze a crash log for settings validation
+    ///     Analyze a crash log for settings validation
     /// </summary>
     /// <param name="crashLog">The crash log to be analyzed</param>
     /// <param name="cancellationToken">Token to monitor for cancellation requests</param>
@@ -108,7 +108,7 @@ public class SettingsScanner : IAnalyzer
     }
 
     /// <summary>
-    /// Scans the Buffout achievements setting in the configuration for conflicts and generates a report.
+    ///     Scans the Buffout achievements setting in the configuration for conflicts and generates a report.
     /// </summary>
     /// <param name="autoscanReport">The list used to append the generated autoscan report messages</param>
     /// <param name="xseModules">A collection of currently loaded XSE plugin modules</param>
@@ -129,7 +129,7 @@ public class SettingsScanner : IAnalyzer
     }
 
     /// <summary>
-    /// Analyzes and adjusts memory management settings based on compatibility requirements.
+    ///     Analyzes and adjusts memory management settings based on compatibility requirements.
     /// </summary>
     /// <param name="autoscanReport">A list containing the current autoscan report</param>
     /// <param name="crashgen">A dictionary containing the current memory management configuration settings</param>
@@ -215,9 +215,12 @@ public class SettingsScanner : IAnalyzer
     }
 
     /// <summary>
-    /// Scans and assesses the configuration of the "ArchiveLimit" setting in crash generation settings.
+    ///     Scans and assesses the configuration of the "ArchiveLimit" setting in crash generation settings.
     /// </summary>
-    /// <param name="autoscanReport">Collection for storing validation results or recommendations about the "ArchiveLimit" setting</param>
+    /// <param name="autoscanReport">
+    ///     Collection for storing validation results or recommendations about the "ArchiveLimit"
+    ///     setting
+    /// </param>
     /// <param name="crashgen">Dictionary representing crash generation settings, including the "ArchiveLimit" parameter</param>
     private void ScanArchiveLimitSetting(List<string> autoscanReport, Dictionary<string, object> crashgen)
     {
@@ -233,7 +236,8 @@ public class SettingsScanner : IAnalyzer
     }
 
     /// <summary>
-    /// Analyzes the LooksMenu setting in the provided crash generation settings, verifying compatibility and extracting any issues.
+    ///     Analyzes the LooksMenu setting in the provided crash generation settings, verifying compatibility and extracting
+    ///     any issues.
     /// </summary>
     /// <param name="crashgen">A dictionary containing crash generation settings to be analyzed</param>
     /// <param name="autoscanReport">A list for appending messages generated during the scan process</param>
@@ -256,8 +260,8 @@ public class SettingsScanner : IAnalyzer
     }
 
     /// <summary>
-    /// Checks for disabled settings in the crash generation configuration and
-    /// logs warnings for any that are not in the ignore list.
+    ///     Checks for disabled settings in the crash generation configuration and
+    ///     logs warnings for any that are not in the ignore list.
     /// </summary>
     /// <param name="crashgen">A dictionary containing the crash generation settings.</param>
     /// <param name="autoscanReport">A list to which any warning or notice messages will be appended.</param>

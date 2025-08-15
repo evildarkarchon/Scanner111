@@ -1,25 +1,18 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Threading.Channels;
 using FluentAssertions;
-using Spectre.Console;
-using Spectre.Console.Testing;
 using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Tests.CLI.TestHelpers;
-using Xunit;
-using System.Reflection;
+using Spectre.Console;
+using Spectre.Console.Testing;
 
 namespace Scanner111.Tests.CLI.Services;
 
 public class ProgressManagerTests : IAsyncLifetime
 {
     private readonly TestConsole _console;
-    private ProgressManager _progressManager;
     private CancellationTokenSource _cts;
+    private ProgressManager _progressManager;
 
     public ProgressManagerTests()
     {
@@ -31,7 +24,7 @@ public class ProgressManagerTests : IAsyncLifetime
     {
         _progressManager = new ProgressManager();
         _cts = new CancellationTokenSource();
-        
+
         // Start the progress manager
         _ = Task.Run(() => _progressManager.StartAsync(_cts.Token));
         await Task.Delay(100); // Allow startup
@@ -41,12 +34,38 @@ public class ProgressManagerTests : IAsyncLifetime
     {
         _cts?.Cancel();
         _cts?.Dispose();
-        
-        if (_progressManager != null)
-        {
-            await _progressManager.DisposeAsync();
-        }
+
+        if (_progressManager != null) await _progressManager.DisposeAsync();
     }
+
+    #region Command Processing Tests
+
+    [Fact]
+    public async Task CommandChannel_ProcessesCommandsInOrder()
+    {
+        // Arrange
+        var contexts = new List<IProgressContext>();
+
+        // Act
+        for (var i = 0; i < 5; i++)
+        {
+            var context = _progressManager.CreateContext($"Ordered {i}", 100);
+            contexts.Add(context);
+            context.Update(50, $"Task {i} at 50%");
+        }
+
+        await Task.Delay(200);
+
+        // Complete in order
+        foreach (var context in contexts) context.Complete();
+
+        await Task.Delay(200);
+
+        // Assert - all commands should be processed
+        Assert.Equal(0, _progressManager.ActiveTaskCount);
+    }
+
+    #endregion
 
     #region Context Creation Tests
 
@@ -134,12 +153,12 @@ public class ProgressManagerTests : IAsyncLifetime
     public async Task MultipleContexts_CanBeCreatedConcurrently()
     {
         // Arrange
-        var tasks = new List<Task<Scanner111.Core.Infrastructure.IProgressContext>>();
+        var tasks = new List<Task<IProgressContext>>();
 
         // Act
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
-            int index = i;
+            var index = i;
             tasks.Add(Task.Run(() => _progressManager.CreateContext($"Concurrent {index}", 100)));
         }
 
@@ -154,16 +173,13 @@ public class ProgressManagerTests : IAsyncLifetime
     public async Task ConcurrentUpdates_ProcessCorrectly()
     {
         // Arrange
-        var contexts = new List<Scanner111.Core.Infrastructure.IProgressContext>();
-        for (int i = 0; i < 5; i++)
-        {
-            contexts.Add(_progressManager.CreateContext($"Concurrent {i}", 100));
-        }
+        var contexts = new List<IProgressContext>();
+        for (var i = 0; i < 5; i++) contexts.Add(_progressManager.CreateContext($"Concurrent {i}", 100));
 
         // Act
         var updateTasks = contexts.Select((context, index) => Task.Run(async () =>
         {
-            for (int j = 0; j <= 100; j += 10)
+            for (var j = 0; j <= 100; j += 10)
             {
                 context.Update(j, $"Task {index}: {j}%");
                 await Task.Delay(5);
@@ -180,11 +196,8 @@ public class ProgressManagerTests : IAsyncLifetime
     public async Task ConcurrentCompletions_ProcessCorrectly()
     {
         // Arrange
-        var contexts = new List<Scanner111.Core.Infrastructure.IProgressContext>();
-        for (int i = 0; i < 10; i++)
-        {
-            contexts.Add(_progressManager.CreateContext($"Complete {i}", 100));
-        }
+        var contexts = new List<IProgressContext>();
+        for (var i = 0; i < 10; i++) contexts.Add(_progressManager.CreateContext($"Complete {i}", 100));
         await Task.Delay(150);
 
         // Act
@@ -199,38 +212,6 @@ public class ProgressManagerTests : IAsyncLifetime
 
         // Assert
         _progressManager.ActiveTaskCount.Should().Be(0, "because all tasks should be completed");
-    }
-
-    #endregion
-
-    #region Command Processing Tests
-
-    [Fact]
-    public async Task CommandChannel_ProcessesCommandsInOrder()
-    {
-        // Arrange
-        var contexts = new List<Scanner111.Core.Infrastructure.IProgressContext>();
-
-        // Act
-        for (int i = 0; i < 5; i++)
-        {
-            var context = _progressManager.CreateContext($"Ordered {i}", 100);
-            contexts.Add(context);
-            context.Update(50, $"Task {i} at 50%");
-        }
-
-        await Task.Delay(200);
-
-        // Complete in order
-        foreach (var context in contexts)
-        {
-            context.Complete();
-        }
-
-        await Task.Delay(200);
-
-        // Assert - all commands should be processed
-        Assert.Equal(0, _progressManager.ActiveTaskCount);
     }
 
     #endregion
@@ -312,7 +293,7 @@ public class ProgressManagerTests : IAsyncLifetime
 }
 
 /// <summary>
-/// Tests for the ProgressContextAdapter class
+///     Tests for the ProgressContextAdapter class
 /// </summary>
 public class ProgressContextAdapterTests
 {
@@ -365,12 +346,10 @@ public class ProgressContextAdapterTests
 
         // Assert - only one complete command should be sent
         var commands = new List<ProgressCommand>();
-        while (channel.Reader.TryRead(out var command))
-        {
-            commands.Add(command);
-        }
+        while (channel.Reader.TryRead(out var command)) commands.Add(command);
         commands.Should().ContainSingle("because only one complete command should be sent");
-        commands[0].Should().BeOfType<CompleteProgressCommand>("because the single command should be CompleteProgressCommand");
+        commands[0].Should()
+            .BeOfType<CompleteProgressCommand>("because the single command should be CompleteProgressCommand");
     }
 
     [Fact]
@@ -401,10 +380,7 @@ public class ProgressContextAdapterTests
 
         // Assert - only one complete command
         var commands = new List<ProgressCommand>();
-        while (channel.Reader.TryRead(out var command))
-        {
-            commands.Add(command);
-        }
+        while (channel.Reader.TryRead(out var command)) commands.Add(command);
         commands.Should().ContainSingle("because only one complete command should be sent even after dispose");
     }
 
@@ -414,7 +390,7 @@ public class ProgressContextAdapterTests
         // Arrange
         var channel = Channel.CreateUnbounded<ProgressCommand>();
         var adapter = new ProgressContextAdapter("test-id", "Test", 100, channel.Writer);
-        var progressInfo = new Scanner111.Core.Infrastructure.ProgressInfo
+        var progressInfo = new ProgressInfo
         {
             Current = 75,
             Total = 100,
@@ -441,10 +417,10 @@ public class ProgressContextAdapterTests
 
         // Act
         adapter.Dispose();
-        
+
         // Clear the complete command
         channel.Reader.TryRead(out _);
-        
+
         adapter.Update(50, "Should be ignored");
 
         // Assert - no new commands after disposal
@@ -460,10 +436,10 @@ public class ProgressContextAdapterTests
 
         // Act
         adapter.Complete();
-        
+
         // Clear the complete command
         channel.Reader.TryRead(out _);
-        
+
         adapter.Update(50, "Should be ignored");
 
         // Assert - no new commands after completion

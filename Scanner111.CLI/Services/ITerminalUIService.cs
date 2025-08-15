@@ -1,5 +1,5 @@
-using Scanner111.Core.Models;
 using Scanner111.Core.Infrastructure;
+using Scanner111.Core.Models;
 
 namespace Scanner111.CLI.Services;
 

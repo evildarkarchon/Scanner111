@@ -15,30 +15,30 @@ namespace Scanner111.GUI.ViewModels;
 public class SettingsWindowViewModel : ViewModelBase
 {
     private readonly ISettingsService _settingsService;
+    private bool _autoDetectModManagers = true;
     private bool _autoLoadF4SeLogs = true;
     private bool _autoSaveResults = true;
     private string _defaultGamePath = "";
     private string _defaultLogPath = "";
+    private string _defaultModManager = "None";
     private string _defaultOutputFormat = "text"; // Hardcoded to text - JSON/XML formats not yet implemented
     private string _defaultScanDirectory = "";
     private bool _enableDebugLogging;
     private bool _enableProgressNotifications = true;
+    private bool _enableUpdateCheck = true;
+    private bool _fcxMode;
+    private string _iniFolder = "";
     private int _maxLogMessages = 100;
     private int _maxRecentItems = 10;
+    private string _mo2InstallPath = "";
+    private string _modsFolder = "";
+    private bool _moveUnsolvedLogs;
     private UserSettings _originalSettings;
     private bool _rememberWindowSize = true;
+    private string _updateSource = "Both";
+    private string _vortexDataPath = "";
     private double _windowHeight = 800;
     private double _windowWidth = 1200;
-    private bool _enableUpdateCheck = true;
-    private string _updateSource = "Both";
-    private bool _fcxMode;
-    private bool _moveUnsolvedLogs = false;
-    private string _modsFolder = "";
-    private string _iniFolder = "";
-    private bool _autoDetectModManagers = true;
-    private string _mo2InstallPath = "";
-    private string _vortexDataPath = "";
-    private string _defaultModManager = "None";
 
     public SettingsWindowViewModel() : this(new SettingsService())
     {
@@ -64,143 +64,158 @@ public class SettingsWindowViewModel : ViewModelBase
         // Load settings on initialization
         _ = LoadSettingsAsync();
     }
+
     /// <summary>
-    /// Gets or sets the default log file path used by the application.
-    /// This property is typically bound to the UI for user configuration of the default crash log file.
-    /// It allows users to specify a file path to load or save log data as needed during runtime.
-    /// Changes to this property raise notifications to update bindings or trigger additional logic.
+    ///     Gets or sets the default log file path used by the application.
+    ///     This property is typically bound to the UI for user configuration of the default crash log file.
+    ///     It allows users to specify a file path to load or save log data as needed during runtime.
+    ///     Changes to this property raise notifications to update bindings or trigger additional logic.
     /// </summary>
     public string DefaultLogPath
     {
         get => _defaultLogPath;
         set => this.RaiseAndSetIfChanged(ref _defaultLogPath, value);
     }
+
     /// <summary>
-    /// Gets or sets the default game installation path used by the application.
-    /// This property is typically used to configure and store the location of the game's installation directory.
-    /// It allows users to specify a directory path that the application can utilize for game-related operations.
-    /// Changes to this property raise notifications to update bindings or trigger related logic as needed.
+    ///     Gets or sets the default game installation path used by the application.
+    ///     This property is typically used to configure and store the location of the game's installation directory.
+    ///     It allows users to specify a directory path that the application can utilize for game-related operations.
+    ///     Changes to this property raise notifications to update bindings or trigger related logic as needed.
     /// </summary>
     public string DefaultGamePath
     {
         get => _defaultGamePath;
         set => this.RaiseAndSetIfChanged(ref _defaultGamePath, value);
     }
+
     /// <summary>
-    /// Gets or sets the default directory path used to scan for files or logs within the application.
-    /// This property is utilized for configuring the location to be scanned during runtime.
-    /// Typically bound to the user interface, it allows users to specify or update the scan directory through the settings page.
-    /// Changes to this property raise notifications to update relevant bindings or trigger associated logic.
+    ///     Gets or sets the default directory path used to scan for files or logs within the application.
+    ///     This property is utilized for configuring the location to be scanned during runtime.
+    ///     Typically bound to the user interface, it allows users to specify or update the scan directory through the settings
+    ///     page.
+    ///     Changes to this property raise notifications to update relevant bindings or trigger associated logic.
     /// </summary>
     public string DefaultScanDirectory
     {
         get => _defaultScanDirectory;
         set => this.RaiseAndSetIfChanged(ref _defaultScanDirectory, value);
     }
+
     /// <summary>
-    /// Gets or sets a value indicating whether F4SE crash logs should be automatically loaded by the application.
-    /// This property is typically used to control the automated behavior of loading logs upon application startup
-    /// or when specific events occur, improving user convenience.
-    /// Changes to this property trigger notifications to update bindings, ensuring the UI reflects the current state.
+    ///     Gets or sets a value indicating whether F4SE crash logs should be automatically loaded by the application.
+    ///     This property is typically used to control the automated behavior of loading logs upon application startup
+    ///     or when specific events occur, improving user convenience.
+    ///     Changes to this property trigger notifications to update bindings, ensuring the UI reflects the current state.
     /// </summary>
     public bool AutoLoadF4SeLogs
     {
         get => _autoLoadF4SeLogs;
         set => this.RaiseAndSetIfChanged(ref _autoLoadF4SeLogs, value);
     }
+
     /// <summary>
-    /// Gets or sets the maximum number of log messages that can be retained in the application's log history.
-    /// This property is configurable by the user to control how many log entries are kept when logging activities.
-    /// It is typically bound to UI elements for user input to dynamically adjust the log limit.
+    ///     Gets or sets the maximum number of log messages that can be retained in the application's log history.
+    ///     This property is configurable by the user to control how many log entries are kept when logging activities.
+    ///     It is typically bound to UI elements for user input to dynamically adjust the log limit.
     /// </summary>
     public int MaxLogMessages
     {
         get => _maxLogMessages;
         set => this.RaiseAndSetIfChanged(ref _maxLogMessages, value);
     }
+
     /// <summary>
-    /// Gets or sets a value indicating whether progress notifications are enabled in the application.
-    /// This property is typically used to control the display or management of notifications
-    /// related to the progress of ongoing operations. It supports binding to the user interface,
-    /// allowing users to toggle this functionality as needed. Changes to this property raise notifications
-    /// to update bindings or trigger additional logic.
+    ///     Gets or sets a value indicating whether progress notifications are enabled in the application.
+    ///     This property is typically used to control the display or management of notifications
+    ///     related to the progress of ongoing operations. It supports binding to the user interface,
+    ///     allowing users to toggle this functionality as needed. Changes to this property raise notifications
+    ///     to update bindings or trigger additional logic.
     /// </summary>
     public bool EnableProgressNotifications
     {
         get => _enableProgressNotifications;
         set => this.RaiseAndSetIfChanged(ref _enableProgressNotifications, value);
     }
+
     /// <summary>
-    /// Gets or sets a value indicating whether the application should remember
-    /// the window's size and position across sessions.
-    /// When enabled, this property ensures that the window is restored to its
-    /// last known dimensions and location on subsequent launches.
-    /// Changes to this property may trigger updates to UI bindings or save
-    /// configuration settings for future use.
+    ///     Gets or sets a value indicating whether the application should remember
+    ///     the window's size and position across sessions.
+    ///     When enabled, this property ensures that the window is restored to its
+    ///     last known dimensions and location on subsequent launches.
+    ///     Changes to this property may trigger updates to UI bindings or save
+    ///     configuration settings for future use.
     /// </summary>
     public bool RememberWindowSize
     {
         get => _rememberWindowSize;
         set => this.RaiseAndSetIfChanged(ref _rememberWindowSize, value);
     }
+
     /// <summary>
-    /// Gets or sets the width of the application window.
-    /// This property represents the current width of the UI window and is usually bound to ensure
-    /// persistent user interface settings, such as remembering the window size between application sessions.
-    /// Changes to this property trigger notifications to update UI bindings or respond to layout adjustments.
-    ///</summary>
+    ///     Gets or sets the width of the application window.
+    ///     This property represents the current width of the UI window and is usually bound to ensure
+    ///     persistent user interface settings, such as remembering the window size between application sessions.
+    ///     Changes to this property trigger notifications to update UI bindings or respond to layout adjustments.
+    /// </summary>
     public double WindowWidth
     {
         get => _windowWidth;
         set => this.RaiseAndSetIfChanged(ref _windowWidth, value);
     }
+
     /// <summary>
-    /// Gets or sets the height of the application window.
-    /// This property determines the vertical size of the window and can be bound to the UI for user customization.
-    /// Changes to this property trigger notifications to update bindings or apply window size adjustments at runtime.
-    /// Default value is set to 800, but it is adjustable within specified constraints, such as during user configuration.
+    ///     Gets or sets the height of the application window.
+    ///     This property determines the vertical size of the window and can be bound to the UI for user customization.
+    ///     Changes to this property trigger notifications to update bindings or apply window size adjustments at runtime.
+    ///     Default value is set to 800, but it is adjustable within specified constraints, such as during user configuration.
     /// </summary>
     public double WindowHeight
     {
         get => _windowHeight;
         set => this.RaiseAndSetIfChanged(ref _windowHeight, value);
     }
+
     /// <summary>
-    /// Gets or sets a value indicating whether debug logging is enabled in the application.
-    /// This property allows users to toggle detailed logging, primarily used for diagnostic purposes.
-    /// Changes to this property may trigger UI updates or logging behavior modifications in the system.
+    ///     Gets or sets a value indicating whether debug logging is enabled in the application.
+    ///     This property allows users to toggle detailed logging, primarily used for diagnostic purposes.
+    ///     Changes to this property may trigger UI updates or logging behavior modifications in the system.
     /// </summary>
     public bool EnableDebugLogging
     {
         get => _enableDebugLogging;
         set => this.RaiseAndSetIfChanged(ref _enableDebugLogging, value);
     }
+
     /// <summary>
-    /// Gets or sets the maximum number of recent items to maintain in the application.
-    /// This property determines the limit for how many recent items or paths are tracked
-    /// and displayed in the user interface, such as in dropdowns or menus.
-    /// Used for customizing the application behavior related to recent file or directory tracking.\
+    ///     Gets or sets the maximum number of recent items to maintain in the application.
+    ///     This property determines the limit for how many recent items or paths are tracked
+    ///     and displayed in the user interface, such as in dropdowns or menus.
+    ///     Used for customizing the application behavior related to recent file or directory tracking.\
     /// </summary>
     public int MaxRecentItems
     {
         get => _maxRecentItems;
         set => this.RaiseAndSetIfChanged(ref _maxRecentItems, value);
     }
+
     /// <summary>
-    /// Gets or sets a value indicating whether scan results should be automatically saved.
-    /// When enabled, the application saves results without requiring explicit user action, streamlining the workflow.
-    /// Typically bound to the user interface, this setting controls the behavior of automated result storage during operations.
+    ///     Gets or sets a value indicating whether scan results should be automatically saved.
+    ///     When enabled, the application saves results without requiring explicit user action, streamlining the workflow.
+    ///     Typically bound to the user interface, this setting controls the behavior of automated result storage during
+    ///     operations.
     /// </summary>
     public bool AutoSaveResults
     {
         get => _autoSaveResults;
         set => this.RaiseAndSetIfChanged(ref _autoSaveResults, value);
     }
+
     /// <summary>
-    /// Gets or sets the default format used for output in the application.
-    /// This property is typically used to configure how output data is represented
-    /// and could be set through the user interface or programmatically.
-    /// Updates to this property may trigger property change notifications for data bindings.
+    ///     Gets or sets the default format used for output in the application.
+    ///     This property is typically used to configure how output data is represented
+    ///     and could be set through the user interface or programmatically.
+    ///     Updates to this property may trigger property change notifications for data bindings.
     /// </summary>
     public string DefaultOutputFormat
     {
@@ -209,8 +224,8 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether automatic update checking is enabled.
-    /// When enabled, the application will check for updates on startup.
+    ///     Gets or sets a value indicating whether automatic update checking is enabled.
+    ///     When enabled, the application will check for updates on startup.
     /// </summary>
     public bool EnableUpdateCheck
     {
@@ -219,8 +234,8 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets the update source for checking new versions.
-    /// Valid values are "Both", "GitHub", or "Nexus".
+    ///     Gets or sets the update source for checking new versions.
+    ///     Valid values are "Both", "GitHub", or "Nexus".
     /// </summary>
     public string UpdateSource
     {
@@ -229,8 +244,8 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether FCX mode is enabled.
-    /// When enabled, additional file integrity checks are performed during scanning.
+    ///     Gets or sets a value indicating whether FCX mode is enabled.
+    ///     When enabled, additional file integrity checks are performed during scanning.
     /// </summary>
     public bool FcxMode
     {
@@ -239,8 +254,8 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether unsolved logs should be moved to a separate folder.
-    /// When enabled, crash logs that fail analysis are moved to a backup directory.
+    ///     Gets or sets a value indicating whether unsolved logs should be moved to a separate folder.
+    ///     When enabled, crash logs that fail analysis are moved to a backup directory.
     /// </summary>
     public bool MoveUnsolvedLogs
     {
@@ -249,7 +264,7 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets the path to the mods folder for FCX integrity checking.
+    ///     Gets or sets the path to the mods folder for FCX integrity checking.
     /// </summary>
     public string ModsFolder
     {
@@ -258,7 +273,7 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets the path to the INI folder for FCX configuration validation.
+    ///     Gets or sets the path to the INI folder for FCX configuration validation.
     /// </summary>
     public string IniFolder
     {
@@ -267,7 +282,7 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets whether mod managers should be automatically detected.
+    ///     Gets or sets whether mod managers should be automatically detected.
     /// </summary>
     public bool AutoDetectModManagers
     {
@@ -276,7 +291,7 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets the Mod Organizer 2 installation path.
+    ///     Gets or sets the Mod Organizer 2 installation path.
     /// </summary>
     public string MO2InstallPath
     {
@@ -285,7 +300,7 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets the Vortex data path.
+    ///     Gets or sets the Vortex data path.
     /// </summary>
     public string VortexDataPath
     {
@@ -294,7 +309,7 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets the default mod manager.
+    ///     Gets or sets the default mod manager.
     /// </summary>
     public string DefaultModManager
     {
@@ -325,18 +340,19 @@ public class SettingsWindowViewModel : ViewModelBase
     public Func<string, string, Task<string>>? ShowFilePickerAsync { get; set; }
     public Func<string, Task<string>>? ShowFolderPickerAsync { get; set; }
     public Action? CloseWindow { get; set; }
-    ///<summary>
-    /// Creates a deep copy of the provided UserSettings instance.
-    /// This method performs a deep copy of the UserSettings object,
-    /// including copying all primitive properties and duplicating the contents
-    /// of any collections to ensure no shared references between the original
-    /// and copied objects.
+
+    /// <summary>
+    ///     Creates a deep copy of the provided UserSettings instance.
+    ///     This method performs a deep copy of the UserSettings object,
+    ///     including copying all primitive properties and duplicating the contents
+    ///     of any collections to ensure no shared references between the original
+    ///     and copied objects.
     /// </summary>
     /// <param name="source">
-    /// The UserSettings instance to copy. This value should not be null.
+    ///     The UserSettings instance to copy. This value should not be null.
     /// </param>
     /// <returns>
-    /// A new instance of UserSettings that is a deep copy of the source.
+    ///     A new instance of UserSettings that is a deep copy of the source.
     /// </returns>
     private UserSettings CreateDeepCopy(UserSettings source)
     {
@@ -382,14 +398,14 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Asynchronously loads user settings from the settings service
-    /// and applies the retrieved values to the current instance.
-    /// If loading the settings fails, default settings are applied
-    /// and the view model is reset accordingly.
+    ///     Asynchronously loads user settings from the settings service
+    ///     and applies the retrieved values to the current instance.
+    ///     If loading the settings fails, default settings are applied
+    ///     and the view model is reset accordingly.
     /// </summary>
     /// <returns>
-    /// A task representing the asynchronous operation of loading
-    /// and applying settings.
+    ///     A task representing the asynchronous operation of loading
+    ///     and applying settings.
     /// </returns>
     private async Task LoadSettingsAsync()
     {
@@ -432,13 +448,13 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Loads user settings into the current view model by populating its properties
-    /// with values from the provided <see cref="UserSettings"/> instance.
-    /// Additionally, notifies changes to relevant properties and updates collections.
+    ///     Loads user settings into the current view model by populating its properties
+    ///     with values from the provided <see cref="UserSettings" /> instance.
+    ///     Additionally, notifies changes to relevant properties and updates collections.
     /// </summary>
     /// <param name="settings">
-    /// The instance of <see cref="UserSettings"/> containing the values to apply.
-    /// This parameter must not be null.
+    ///     The instance of <see cref="UserSettings" /> containing the values to apply.
+    ///     This parameter must not be null.
     /// </param>
     private void LoadFromSettings(UserSettings settings)
     {
@@ -484,13 +500,13 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Creates a UserSettings instance using the current state of the SettingsWindowViewModel.
-    /// This method extracts relevant properties and collections from the ViewModel
-    /// and maps them to a new UserSettings instance.
+    ///     Creates a UserSettings instance using the current state of the SettingsWindowViewModel.
+    ///     This method extracts relevant properties and collections from the ViewModel
+    ///     and maps them to a new UserSettings instance.
     /// </summary>
     /// <returns>
-    /// A UserSettings instance populated with the values and collections
-    /// from the current SettingsWindowViewModel.
+    ///     A UserSettings instance populated with the values and collections
+    ///     from the current SettingsWindowViewModel.
     /// </returns>
     private UserSettings CreateSettingsFromViewModel()
     {
@@ -534,13 +550,13 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Opens a file picker to allow the user to select a default log file.
-    /// This method sets the DefaultLogPath property to the selected file path
-    /// if a file is picked successfully and the result is not null or empty.
+    ///     Opens a file picker to allow the user to select a default log file.
+    ///     This method sets the DefaultLogPath property to the selected file path
+    ///     if a file is picked successfully and the result is not null or empty.
     /// </summary>
     /// <returns>
-    /// A task that represents the asynchronous operation of opening a file picker
-    /// and updating the default log path.
+    ///     A task that represents the asynchronous operation of opening a file picker
+    ///     and updating the default log path.
     /// </returns>
     private async Task BrowseLogPath()
     {
@@ -552,12 +568,12 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Opens a folder picker dialog to allow the user to select the game installation directory.
-    /// Updates the DefaultGamePath with the selected path if a valid path is chosen.
+    ///     Opens a folder picker dialog to allow the user to select the game installation directory.
+    ///     Updates the DefaultGamePath with the selected path if a valid path is chosen.
     /// </summary>
     /// <returns>
-    /// A task that represents the asynchronous operation of displaying the folder picker.
-    /// The task result has no return value.
+    ///     A task that represents the asynchronous operation of displaying the folder picker.
+    ///     The task result has no return value.
     /// </returns>
     private async Task BrowseGamePath()
     {
@@ -569,11 +585,12 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Opens a folder picker dialog to allow the user to select a default scan directory.
-    /// If the user selects a directory, the selected path is assigned to the DefaultScanDirectory property.
+    ///     Opens a folder picker dialog to allow the user to select a default scan directory.
+    ///     If the user selects a directory, the selected path is assigned to the DefaultScanDirectory property.
     /// </summary>
     /// <returns>
-    /// A task representing the asynchronous operation of browsing and potentially updating the DefaultScanDirectory property.
+    ///     A task representing the asynchronous operation of browsing and potentially updating the DefaultScanDirectory
+    ///     property.
     /// </returns>
     private async Task BrowseScanDirectory()
     {
@@ -585,11 +602,11 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Opens a folder picker dialog to allow the user to select the mods folder.
-    /// This folder is used for FCX integrity checking of installed mods.
+    ///     Opens a folder picker dialog to allow the user to select the mods folder.
+    ///     This folder is used for FCX integrity checking of installed mods.
     /// </summary>
     /// <returns>
-    /// A task representing the asynchronous operation of browsing and potentially updating the ModsFolder property.
+    ///     A task representing the asynchronous operation of browsing and potentially updating the ModsFolder property.
     /// </returns>
     private async Task BrowseModsFolder()
     {
@@ -601,11 +618,11 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Opens a folder picker dialog to allow the user to select the INI folder.
-    /// This folder contains game configuration files used for FCX validation.
+    ///     Opens a folder picker dialog to allow the user to select the INI folder.
+    ///     This folder contains game configuration files used for FCX validation.
     /// </summary>
     /// <returns>
-    /// A task representing the asynchronous operation of browsing and potentially updating the IniFolder property.
+    ///     A task representing the asynchronous operation of browsing and potentially updating the IniFolder property.
     /// </returns>
     private async Task BrowseIniFolder()
     {
@@ -617,7 +634,7 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Opens a folder picker dialog to allow the user to select the MO2 installation path.
+    ///     Opens a folder picker dialog to allow the user to select the MO2 installation path.
     /// </summary>
     private async Task BrowseMO2Path()
     {
@@ -629,7 +646,7 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Opens a folder picker dialog to allow the user to select the Vortex data path.
+    ///     Opens a folder picker dialog to allow the user to select the Vortex data path.
     /// </summary>
     private async Task BrowseVortexPath()
     {
@@ -641,9 +658,9 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Clears all recent file paths stored in the ViewModel, including recent log files,
-    /// recent game paths, and recent scan directories. After clearing these collections,
-    /// it updates the associated properties that indicate the presence of recent items.
+    ///     Clears all recent file paths stored in the ViewModel, including recent log files,
+    ///     recent game paths, and recent scan directories. After clearing these collections,
+    ///     it updates the associated properties that indicate the presence of recent items.
     /// </summary>
     private void ClearRecentFiles()
     {
@@ -657,10 +674,10 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Resets the user's settings to their default values.
-    /// This method retrieves the application's default settings
-    /// using the settings service and applies them to the current
-    /// settings, ensuring the user interface reflects these defaults.
+    ///     Resets the user's settings to their default values.
+    ///     This method retrieves the application's default settings
+    ///     using the settings service and applies them to the current
+    ///     settings, ensuring the user interface reflects these defaults.
     /// </summary>
     private void ResetToDefaults()
     {
@@ -693,13 +710,13 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Saves the current user settings asynchronously.
-    /// This method gathers the settings from the view model,
-    /// persists them using the configured settings service,
-    /// and then triggers the window close operation.
+    ///     Saves the current user settings asynchronously.
+    ///     This method gathers the settings from the view model,
+    ///     persists them using the configured settings service,
+    ///     and then triggers the window close operation.
     /// </summary>
     /// <returns>
-    /// A task representing the asynchronous save operation.
+    ///     A task representing the asynchronous save operation.
     /// </returns>
     private async Task SaveSettings()
     {
@@ -716,9 +733,9 @@ public class SettingsWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Cancels any changes made to the user settings and reverts them to their original state.
-    /// This method reloads the original settings that were saved at the start of the session
-    /// and invokes the action to close the settings window if it has been defined.
+    ///     Cancels any changes made to the user settings and reverts them to their original state.
+    ///     This method reloads the original settings that were saved at the start of the session
+    ///     and invokes the action to close the settings window if it has been defined.
     /// </summary>
     private void Cancel()
     {

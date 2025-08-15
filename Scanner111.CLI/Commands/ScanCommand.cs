@@ -1,46 +1,59 @@
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
+using Scanner111.Core.ModManagers;
 using Scanner111.Core.Pipeline;
 using Scanner111.Core.Services;
-using Scanner111.Core.ModManagers;
 using CliScanOptions = Scanner111.CLI.Models.ScanOptions;
+using ScanStatistics = Scanner111.Core.Services.ScanStatistics;
 
 namespace Scanner111.CLI.Commands;
 
 public class ScanCommand : ICommand<CliScanOptions>
 {
+    private readonly IAudioNotificationService? _audioService;
     private readonly IFileScanService _fileScanService;
-    private readonly IScanResultProcessor _scanResultProcessor;
-    private readonly ICliSettingsService _settingsService;
     private readonly IMessageHandler _messageHandler;
     private readonly IModManagerService? _modManagerService;
+    private readonly IRecentItemsService? _recentItemsService;
+    private readonly IScanResultProcessor _scanResultProcessor;
+    private readonly ICliSettingsService _settingsService;
+    private readonly IStatisticsService? _statisticsService;
 
     public ScanCommand(
         ICliSettingsService settingsService,
         IFileScanService fileScanService,
         IScanResultProcessor scanResultProcessor,
         IMessageHandler messageHandler,
-        IModManagerService? modManagerService = null)
+        IModManagerService? modManagerService = null,
+        IStatisticsService? statisticsService = null,
+        IAudioNotificationService? audioService = null,
+        IRecentItemsService? recentItemsService = null)
     {
-        _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
-        _fileScanService = fileScanService ?? throw new ArgumentNullException(nameof(fileScanService));
-        _scanResultProcessor = scanResultProcessor ?? throw new ArgumentNullException(nameof(scanResultProcessor));
-        _messageHandler = messageHandler ?? throw new ArgumentNullException(nameof(messageHandler));
+        _settingsService = Guard.NotNull(settingsService, nameof(settingsService));
+        _fileScanService = Guard.NotNull(fileScanService, nameof(fileScanService));
+        _scanResultProcessor = Guard.NotNull(scanResultProcessor, nameof(scanResultProcessor));
+        _messageHandler = Guard.NotNull(messageHandler, nameof(messageHandler));
         _modManagerService = modManagerService;
+        _statisticsService = statisticsService;
+        _audioService = audioService;
+        _recentItemsService = recentItemsService;
     }
 
     /// Executes the scan command asynchronously, handling crash log file scanning based on the given options.
     /// <param name="options">
-    /// The options provided through the command line, specifying scan parameters like file path, directory, or override settings.
+    ///     The options provided through the command line, specifying scan parameters like file path, directory, or override
+    ///     settings.
     /// </param>
     /// <returns>
-    /// An integer status code indicating the result of the operation. Returns 0 on success, and 1 if a fatal error occurs.
+    ///     An integer status code indicating the result of the operation. Returns 0 on success, and 1 if a fatal error occurs.
     /// </returns>
     public async Task<int> ExecuteAsync(CliScanOptions options)
     {
+        var stopwatch = Stopwatch.StartNew();
         try
         {
             // Load settings
@@ -81,10 +94,21 @@ public class ScanCommand : ICommand<CliScanOptions>
             // Process files
             var scanResults = await ProcessFilesAsync(pipeline, scanData, options, reportWriter, settings);
 
+            stopwatch.Stop();
+
+            // Record statistics
+            await RecordStatisticsAsync(scanResults, scanData, stopwatch.Elapsed, options);
+
+            // Track recent files
+            await TrackRecentFilesAsync(scanData.FilesToScan, options);
+
             // Summary
             _messageHandler.ShowSuccess($"Analysis complete! Processed {scanData.FilesToScan.Count} files.");
 
             if (options.OutputFormat == "summary") PrintSummary(scanResults);
+
+            // Play completion sound
+            await PlayCompletionSoundAsync(scanResults);
 
             return 0;
         }
@@ -103,12 +127,9 @@ public class ScanCommand : ICommand<CliScanOptions>
             .WithMessageHandler(messageHandler)
             .WithCaching()
             .WithEnhancedErrorHandling();
-        
+
         // Enable FCX mode if specified
-        if (options.FcxMode == true)
-        {
-            pipelineBuilder.WithFcxMode(true);
-        }
+        if (options.FcxMode == true) pipelineBuilder.WithFcxMode();
 
         if (options.Verbose)
             pipelineBuilder.WithLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Debug));
@@ -181,7 +202,7 @@ public class ScanCommand : ICommand<CliScanOptions>
         if (!string.IsNullOrEmpty(options.CrashLogsDirectory)) settings.CrashLogsDirectory = options.CrashLogsDirectory;
 
         // Apply mod manager settings
-        if (!string.IsNullOrEmpty(options.MO2Path)) 
+        if (!string.IsNullOrEmpty(options.MO2Path))
         {
             settings.MO2InstallPath = options.MO2Path;
             if (settings.ModManagerSettings == null)
@@ -219,12 +240,11 @@ public class ScanCommand : ICommand<CliScanOptions>
             if (settings.ModManagerSettings == null)
                 settings.ModManagerSettings = new ModManagerSettings();
             settings.ModManagerSettings.DefaultManager = options.PreferredModManager;
-            
+
             // Set preference in the mod manager service if available
-            if (_modManagerService != null && Enum.TryParse<ModManagerType>(options.PreferredModManager, true, out var managerType))
-            {
+            if (_modManagerService != null &&
+                Enum.TryParse<ModManagerType>(options.PreferredModManager, true, out var managerType))
                 _modManagerService.SetPreferredManager(managerType);
-            }
         }
 
         // Apply defaults from settings if not specified on command line
@@ -242,18 +262,134 @@ public class ScanCommand : ICommand<CliScanOptions>
     {
         _messageHandler.ShowInfo("\n=== SCAN SUMMARY ===");
         _messageHandler.ShowInfo($"Total files scanned: {results.Count}");
-        _messageHandler.ShowInfo($"Files with issues: {results.Count(r => r.AnalysisResults.Any(ar => ar.HasFindings))}");
+        _messageHandler.ShowInfo(
+            $"Files with issues: {results.Count(r => r.AnalysisResults.Any(ar => ar.HasFindings))}");
         _messageHandler.ShowInfo($"Clean files: {results.Count(r => !r.AnalysisResults.Any(ar => ar.HasFindings))}");
 
         var filesWithIssues = results.Where(r => r.AnalysisResults.Any(ar => ar.HasFindings)).ToList();
         if (filesWithIssues.Count == 0) return;
+
+        _messageHandler.ShowInfo("\nFiles with issues:");
+        foreach (var result in filesWithIssues)
         {
-            _messageHandler.ShowInfo("\nFiles with issues:");
-            foreach (var result in filesWithIssues)
+            var issueCount = result.AnalysisResults.Count(ar => ar.HasFindings);
+            _messageHandler.ShowWarning($"  - {Path.GetFileName(result.LogPath)}: {issueCount} issues");
+        }
+    }
+
+    private async Task RecordStatisticsAsync(List<ScanResult> results, FileScanData scanData, TimeSpan processingTime,
+        CliScanOptions options)
+    {
+        if (_statisticsService == null) return;
+
+        try
+        {
+            foreach (var result in results)
             {
-                var issueCount = result.AnalysisResults.Count(ar => ar.HasFindings);
-                _messageHandler.ShowWarning($"  - {Path.GetFileName(result.LogPath)}: {issueCount} issues");
+                var issuesByType = new Dictionary<string, int>();
+                var criticalCount = 0;
+                var warningCount = 0;
+                var infoCount = 0;
+                string? primaryIssueType = null;
+                var maxIssueCount = 0;
+
+                foreach (var analysis in result.AnalysisResults)
+                {
+                    if (!analysis.HasFindings) continue;
+
+                    var analyzerName = analysis.AnalyzerName;
+                    var issueCount = analysis.HasFindings ? 1 : 0;
+
+                    if (issuesByType.ContainsKey(analyzerName))
+                        issuesByType[analyzerName] += issueCount;
+                    else
+                        issuesByType[analyzerName] = issueCount;
+
+                    if (issueCount > maxIssueCount)
+                    {
+                        maxIssueCount = issueCount;
+                        primaryIssueType = analyzerName;
+                    }
+
+                    // Since AnalysisResult doesn't have severity levels, count all findings as warnings
+                    if (analysis.HasFindings)
+                        warningCount++;
+                }
+
+                var statistics = new ScanStatistics
+                {
+                    Timestamp = DateTime.Now,
+                    LogFilePath = result.LogPath,
+                    GameType = DetectGameType(result.LogPath),
+                    TotalIssuesFound = criticalCount + warningCount + infoCount,
+                    CriticalIssues = criticalCount,
+                    WarningIssues = warningCount,
+                    InfoIssues = infoCount,
+                    ProcessingTime = processingTime / results.Count, // Average time per file
+                    WasSolved = criticalCount == 0,
+                    PrimaryIssueType = primaryIssueType,
+                    IssuesByType = issuesByType
+                };
+
+                await _statisticsService.RecordScanAsync(statistics);
             }
         }
+        catch (Exception ex)
+        {
+            _messageHandler.ShowDebug($"Failed to record statistics: {ex.Message}");
+        }
+    }
+
+    private async Task TrackRecentFilesAsync(List<string> files, CliScanOptions options)
+    {
+        if (_recentItemsService == null) return;
+
+        try
+        {
+            foreach (var file in files) _recentItemsService.AddRecentLogFile(file);
+
+            if (!string.IsNullOrEmpty(options.GamePath))
+                _recentItemsService.AddRecentGamePath(options.GamePath);
+
+            if (!string.IsNullOrEmpty(options.ScanDir))
+                _recentItemsService.AddRecentScanDirectory(options.ScanDir);
+        }
+        catch (Exception ex)
+        {
+            _messageHandler.ShowDebug($"Failed to track recent files: {ex.Message}");
+        }
+    }
+
+    private async Task PlayCompletionSoundAsync(List<ScanResult> results)
+    {
+        if (_audioService == null || !_audioService.IsEnabled) return;
+
+        try
+        {
+            // Since AnalysisResult doesn't have severity levels, check for errors in report lines
+            var hasCriticalIssues = results.Any(r => r.AnalysisResults.Any(ar => ar.Errors.Count > 0));
+            var hasAnyIssues = results.Any(r => r.AnalysisResults.Any(ar => ar.HasFindings));
+
+            if (hasCriticalIssues)
+                await _audioService.PlayCriticalIssueAsync();
+            else if (hasAnyIssues)
+                await _audioService.PlayErrorFoundAsync();
+            else
+                await _audioService.PlayScanCompleteAsync();
+        }
+        catch (Exception ex)
+        {
+            _messageHandler.ShowDebug($"Failed to play audio notification: {ex.Message}");
+        }
+    }
+
+    private string DetectGameType(string logPath)
+    {
+        var content = File.ReadAllText(logPath).ToLowerInvariant();
+        if (content.Contains("fallout4") || content.Contains("f4se"))
+            return "Fallout4";
+        if (content.Contains("skyrim") || content.Contains("skse"))
+            return "Skyrim";
+        return "Unknown";
     }
 }

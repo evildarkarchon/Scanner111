@@ -36,9 +36,9 @@ public class SuspectScannerTests
     /// includes verifying the result type, the analyzer's name, detection of findings,
     /// and the presence of specific report lines.
     /// <returns>
-    /// A task representing the asynchronous operation. The task result is a
-    /// SuspectAnalysisResult object containing details of the analysis, including
-    /// findings and generated report lines.
+    ///     A task representing the asynchronous operation. The task result is a
+    ///     SuspectAnalysisResult object containing details of the analysis, including
+    ///     findings and generated report lines.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithValidSuspects_ReturnsSuspectAnalysisResult()
@@ -74,9 +74,9 @@ public class SuspectScannerTests
     /// relevant errors or stack traces in the provided crash log, and it verifies
     /// that the result contains no findings or matches.
     /// <returns>
-    /// A task representing the asynchronous operation. The task result is a
-    /// SuspectAnalysisResult object with HasFindings set to false, and both
-    /// ErrorMatches and StackMatches collections empty.
+    ///     A task representing the asynchronous operation. The task result is a
+    ///     SuspectAnalysisResult object with HasFindings set to false, and both
+    ///     ErrorMatches and StackMatches collections empty.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithNoSuspects_ReturnsEmptyResult()
@@ -112,9 +112,9 @@ public class SuspectScannerTests
     /// and call stack lines, are accurately processed to identify a DLL as a potential
     /// cause of the crash.
     /// <returns>
-    /// A task representing the asynchronous operation. The task result is a
-    /// SuspectAnalysisResult object containing report text with warnings about
-    /// the detected DLL-related crash.
+    ///     A task representing the asynchronous operation. The task result is a
+    ///     SuspectAnalysisResult object containing report text with warnings about
+    ///     the detected DLL-related crash.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithDllCrash_DetectsIt()
@@ -136,8 +136,10 @@ public class SuspectScannerTests
 
         // Assert
         var suspectResult = (SuspectAnalysisResult)result;
-        suspectResult.ReportText.Should().Contain("* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! *");
-        suspectResult.ReportText.Should().Contain("If that dll file belongs to a mod, that mod is a prime suspect for the crash.");
+        suspectResult.ReportText.Should()
+            .Contain("* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! *");
+        suspectResult.ReportText.Should()
+            .Contain("If that dll file belongs to a mod, that mod is a prime suspect for the crash.");
     }
 
     /// Ensures that the AnalyzeAsync method of the SuspectScanner class correctly ignores
@@ -145,8 +147,8 @@ public class SuspectScannerTests
     /// that no suspect warnings or report notices are generated for such cases, ensuring
     /// the correct handling of specific module-related errors.
     /// <returns>
-    /// A task representing the asynchronous operation. The task result is an AnalysisResult object,
-    /// which in this context should not include any suspect notices related to the tbbmalloc.dll module.
+    ///     A task representing the asynchronous operation. The task result is an AnalysisResult object,
+    ///     which in this context should not include any suspect notices related to the tbbmalloc.dll module.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithTbbmallocDll_IgnoresIt()
@@ -168,7 +170,8 @@ public class SuspectScannerTests
 
         // Assert
         var suspectResult = (SuspectAnalysisResult)result;
-        suspectResult.ReportText.Should().NotContain("* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! *");
+        suspectResult.ReportText.Should()
+            .NotContain("* NOTICE : MAIN ERROR REPORTS THAT A DLL FILE WAS INVOLVED IN THIS CRASH! *");
     }
 
     /// Verifies that the AnalyzeAsync method correctly identifies and detects main error suspects
@@ -178,8 +181,8 @@ public class SuspectScannerTests
     /// The verification includes checking the presence of specific report lines and ensuring that the analysis
     /// yields a result with correct findings for the main error suspects.
     /// <returns>
-    /// A task representing the asynchronous operation. The task result is a SuspectAnalysisResult object,
-    /// which includes details about the findings, associated severity levels, and corresponding report text.
+    ///     A task representing the asynchronous operation. The task result is a SuspectAnalysisResult object,
+    ///     which includes details about the findings, associated severity levels, and corresponding report text.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithMainErrorSuspects_DetectsThemCorrectly()
@@ -215,9 +218,9 @@ public class SuspectScannerTests
     /// calls. The test verifies that identified suspects are properly categorized
     /// and included in the result with appropriate severity levels and report details.
     /// <returns>
-    /// A task representing the asynchronous operation. The task result is a
-    /// SuspectAnalysisResult object containing details of the stack-related findings,
-    /// including identified suspects and the associated severity reported in the output.
+    ///     A task representing the asynchronous operation. The task result is a
+    ///     SuspectAnalysisResult object containing details of the stack-related findings,
+    ///     including identified suspects and the associated severity reported in the output.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithStackSuspects_DetectsThemCorrectly()
@@ -261,9 +264,9 @@ public class SuspectScannerTests
     /// CrashLog explicitly contains the expected pattern. The behavior is tested
     /// for scenarios both with and without the required pattern in the main error.
     /// <returns>
-    /// A task representing the asynchronous operation. The task result is a
-    /// SuspectAnalysisResult object. It verifies the presence or absence of findings
-    /// related to the required main error pattern in the generated analysis report.
+    ///     A task representing the asynchronous operation. The task result is a
+    ///     SuspectAnalysisResult object. It verifies the presence or absence of findings
+    ///     related to the required main error pattern in the generated analysis report.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithRequiredMainErrorPattern_RequiresMainErrorMatch()
@@ -319,9 +322,9 @@ public class SuspectScannerTests
     /// This helps confirm the accuracy of the detection logic in handling numeric
     /// thresholds for patterns that might occur multiple times in a crash log.
     /// <returns>
-    /// A task representing the asynchronous operation. The task result is an
-    /// AnalysisResult object indicating whether the minimum occurrence criteria
-    /// were met and including relevant findings if applicable.
+    ///     A task representing the asynchronous operation. The task result is an
+    ///     AnalysisResult object indicating whether the minimum occurrence criteria
+    ///     were met and including relevant findings if applicable.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithCountPattern_RequiresMinimumOccurrences()
@@ -377,10 +380,10 @@ public class SuspectScannerTests
     /// generated for logs containing excluded patterns and that findings are limited
     /// to valid cases without the negative pattern.
     /// <returns>
-    /// A task representing the asynchronous operation. The task result is a
-    /// SuspectAnalysisResult object that either includes valid findings and report
-    /// text when no negative patterns are detected, or excludes specific findings when
-    /// the negative pattern is present.
+    ///     A task representing the asynchronous operation. The task result is a
+    ///     SuspectAnalysisResult object that either includes valid findings and report
+    ///     text when no negative patterns are detected, or excludes specific findings when
+    ///     the negative pattern is present.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithNegativePattern_SkipsWhenPatternFound()
@@ -435,8 +438,8 @@ public class SuspectScannerTests
     /// letter casing used in the provided crash log data. It focuses specifically on verifying
     /// that matching operations are not influenced by character casing in the main error or call stack.
     /// <returns>
-    /// A task representing the asynchronous operation. The task result is a SuspectAnalysisResult
-    /// object, which should confirm whether the case-insensitive matching detects relevant findings.
+    ///     A task representing the asynchronous operation. The task result is a SuspectAnalysisResult
+    ///     object, which should confirm whether the case-insensitive matching detects relevant findings.
     /// </returns>
     [Fact]
     public async Task AnalyzeAsync_WithCaseInsensitiveMatching_WorksCorrectly()

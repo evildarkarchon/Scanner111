@@ -12,9 +12,10 @@ public class ScanResultProcessor : IScanResultProcessor
     {
         _unsolvedLogsMover = unsolvedLogsMover;
     }
+
     /// <summary>
-    /// Processes the scan result and performs operations such as displaying findings,
-    /// and auto-saving reports based on the provided options and application settings.
+    ///     Processes the scan result and performs operations such as displaying findings,
+    ///     and auto-saving reports based on the provided options and application settings.
     /// </summary>
     /// <param name="result">The result of the scan containing analysis and log details.</param>
     /// <param name="options">The scan options specifying how the results should be handled.</param>
@@ -60,8 +61,6 @@ public class ScanResultProcessor : IScanResultProcessor
 
         // Move unsolved logs if enabled and scan failed
         if (settings.MoveUnsolvedLogs && (result.Failed || result.Status == ScanStatus.Failed || result.HasErrors))
-        {
             await _unsolvedLogsMover.MoveUnsolvedLogAsync(result.LogPath, settings).ConfigureAwait(false);
-        }
     }
 }

@@ -1,29 +1,21 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Reactive.Linq;
-using System.Threading.Tasks;
-using Avalonia.Controls;
 using FluentAssertions;
-using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
-using Scanner111.Core.Services;
 using Scanner111.GUI.Models;
 using Scanner111.GUI.ViewModels;
 using Scanner111.Tests.GUI.TestHelpers;
-using Xunit;
 
 namespace Scanner111.Tests.GUI.ViewModels;
 
 public class MainWindowViewModelTests : IDisposable
 {
-    private readonly MockSettingsService _mockSettingsService;
-    private readonly MockGuiMessageHandlerService _mockMessageHandler;
-    private readonly MockUpdateService _mockUpdateService;
     private readonly MockCacheManager _mockCacheManager;
+    private readonly MockGuiMessageHandlerService _mockMessageHandler;
+    private readonly MockSettingsService _mockSettingsService;
     private readonly MockUnsolvedLogsMover _mockUnsolvedLogsMover;
-    private readonly MainWindowViewModel _viewModel;
+    private readonly MockUpdateService _mockUpdateService;
     private readonly string _testDirectory;
+    private readonly MainWindowViewModel _viewModel;
 
     public MainWindowViewModelTests()
     {
@@ -32,7 +24,7 @@ public class MainWindowViewModelTests : IDisposable
         _mockUpdateService = new MockUpdateService();
         _mockCacheManager = new MockCacheManager();
         _mockUnsolvedLogsMover = new MockUnsolvedLogsMover();
-        
+
         _viewModel = new MainWindowViewModel(
             _mockSettingsService,
             _mockMessageHandler,
@@ -46,10 +38,7 @@ public class MainWindowViewModelTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(_testDirectory))
-        {
-            Directory.Delete(_testDirectory, true);
-        }
+        if (Directory.Exists(_testDirectory)) Directory.Delete(_testDirectory, true);
     }
 
     [Fact]
@@ -71,13 +60,14 @@ public class MainWindowViewModelTests : IDisposable
         _viewModel.RunFcxScanCommand.Should().NotBeNull("because FCX scan command is required");
         _viewModel.BackupGameFilesCommand.Should().NotBeNull("because backup command is required");
         _viewModel.ValidateGameInstallCommand.Should().NotBeNull("because validation command is required");
-        
-        _viewModel.StatusText.Should().Be("Ready - Select a crash log file to begin", "because initial status should be set");
+
+        _viewModel.StatusText.Should()
+            .Be("Ready - Select a crash log file to begin", "because initial status should be set");
         _viewModel.IsScanning.Should().BeFalse("because no scan is in progress initially");
         _viewModel.ProgressVisible.Should().BeFalse("because progress should be hidden initially");
         _viewModel.ScanResults.Should().BeEmpty("because no results exist initially");
         // LogMessages may have initialization messages from async initialization, so we don't check if it's empty
-        
+
         _mockSettingsService.LoadCalled.Should().BeTrue("because settings should be loaded on initialization");
         // Note: We cannot verify the ViewModel property because SetViewModel is not virtual in the base class
     }
@@ -101,7 +91,8 @@ public class MainWindowViewModelTests : IDisposable
         // Assert
         _mockUpdateService.IsLatestVersionCalled.Should().BeTrue("because update check should occur when enabled");
         viewModel.LogMessages.Should().NotBeEmpty("because update check should log messages");
-        viewModel.LogMessages[0].Should().Contain("Checking for application updates", "because update check should be logged");
+        viewModel.LogMessages[0].Should()
+            .Contain("Checking for application updates", "because update check should be logged");
     }
 
     [Fact]
@@ -121,7 +112,8 @@ public class MainWindowViewModelTests : IDisposable
         await Task.Delay(200);
 
         // Assert
-        _mockUpdateService.IsLatestVersionCalled.Should().BeFalse("because update check should be skipped when disabled");
+        _mockUpdateService.IsLatestVersionCalled.Should()
+            .BeFalse("because update check should be skipped when disabled");
     }
 
     [Fact]
@@ -133,22 +125,21 @@ public class MainWindowViewModelTests : IDisposable
         // Assert
         _viewModel.LogMessages.Should().HaveCount(1, "because one message was added");
         _viewModel.LogMessages[0].Should().Contain("Test message", "because the message content should be preserved");
-        _viewModel.LogMessages[0].Should().MatchRegex(@"\[\d{2}:\d{2}:\d{2}\]", "because messages should have timestamps");
+        _viewModel.LogMessages[0].Should()
+            .MatchRegex(@"\[\d{2}:\d{2}:\d{2}\]", "because messages should have timestamps");
     }
 
     [Fact]
     public void AddLogMessage_LimitsTo100Messages()
     {
         // Act
-        for (int i = 0; i < 110; i++)
-        {
-            _viewModel.AddLogMessage($"Message {i}");
-        }
+        for (var i = 0; i < 110; i++) _viewModel.AddLogMessage($"Message {i}");
 
         // Assert
         _viewModel.LogMessages.Should().HaveCount(100, "because log messages are limited to 100");
         _viewModel.LogMessages.Last().Should().Contain("Message 109", "because the last message should be the newest");
-        string.Join("\n", _viewModel.LogMessages).Should().NotContain("Message 0", "because old messages should be removed");
+        string.Join("\n", _viewModel.LogMessages).Should()
+            .NotContain("Message 0", "because old messages should be removed");
     }
 
     [Fact]
@@ -172,7 +163,7 @@ public class MainWindowViewModelTests : IDisposable
     public async Task SelectGamePathCommand_UpdatesPath()
     {
         // Arrange
-        _viewModel.ShowFolderPickerAsync = (title) => Task.FromResult(_testDirectory);
+        _viewModel.ShowFolderPickerAsync = title => Task.FromResult(_testDirectory);
 
         // Act
         await _viewModel.SelectGamePathCommand.Execute().FirstAsync();
@@ -186,13 +177,14 @@ public class MainWindowViewModelTests : IDisposable
     public async Task SelectScanDirectoryCommand_UpdatesPath()
     {
         // Arrange
-        _viewModel.ShowFolderPickerAsync = (title) => Task.FromResult(_testDirectory);
+        _viewModel.ShowFolderPickerAsync = title => Task.FromResult(_testDirectory);
 
         // Act
         await _viewModel.SelectScanDirectoryCommand.Execute().FirstAsync();
 
         // Assert
-        _viewModel.SelectedScanDirectory.Should().Be(_testDirectory, "because the selected scan directory should be updated");
+        _viewModel.SelectedScanDirectory.Should()
+            .Be(_testDirectory, "because the selected scan directory should be updated");
         _viewModel.LogMessages[0].Should().Contain("Selected scan directory", "because selection should be logged");
     }
 
@@ -227,11 +219,11 @@ public class MainWindowViewModelTests : IDisposable
             _mockUpdateService,
             _mockCacheManager,
             _mockUnsolvedLogsMover);
-        
+
         await Task.Delay(100); // Allow initialization
         viewModel.SelectedLogPath = "";
         viewModel.SelectedScanDirectory = "";
-        
+
         // Act
         await viewModel.ScanCommand.Execute().FirstAsync();
 
@@ -239,7 +231,8 @@ public class MainWindowViewModelTests : IDisposable
         viewModel.IsScanning.Should().BeFalse("because scan should complete");
         viewModel.StatusText.Should().Be("No crash log files found to scan", "because status should indicate no files");
         viewModel.LogMessages.Should().NotBeEmpty("because command should log messages");
-        viewModel.LogMessages.Any(m => m.Contains("No valid crash log files found")).Should().BeTrue("because warning should be logged");
+        viewModel.LogMessages.Any(m => m.Contains("No valid crash log files found")).Should()
+            .BeTrue("because warning should be logged");
     }
 
     [Fact]
@@ -255,11 +248,11 @@ public class MainWindowViewModelTests : IDisposable
             _mockUpdateService,
             _mockCacheManager,
             _mockUnsolvedLogsMover);
-        
+
         await Task.Delay(100); // Allow initialization
         viewModel.SelectedScanDirectory = ""; // Clear scan directory to prevent finding other files
         viewModel.SelectedGamePath = ""; // Clear game path
-        
+
         var testLog = Path.Combine(_testDirectory, "crash-test.log");
         File.WriteAllText(testLog, "Test crash log content");
         viewModel.SelectedLogPath = testLog;
@@ -271,7 +264,8 @@ public class MainWindowViewModelTests : IDisposable
         viewModel.IsScanning.Should().BeFalse("because scan should complete");
         viewModel.ScanResults.Should().HaveCountGreaterThanOrEqualTo(1, "because at least one file was scanned");
         viewModel.LogMessages.Should().NotBeEmpty("because scan should produce log messages");
-        viewModel.LogMessages.Any(m => m.Contains("completed") || m.Contains("Scan completed")).Should().BeTrue("because completion should be logged");
+        viewModel.LogMessages.Any(m => m.Contains("completed") || m.Contains("Scan completed")).Should()
+            .BeTrue("because completion should be logged");
     }
 
     [Fact]
@@ -283,7 +277,8 @@ public class MainWindowViewModelTests : IDisposable
         // Assert
         _viewModel.StatusText.Should().Be("Cancelling scan...", "because status should indicate cancellation");
         _viewModel.LogMessages.Should().NotBeEmpty("because cancellation should be logged");
-        _viewModel.LogMessages.Last().Should().Contain("Scan cancellation requested", "because cancellation should be logged");
+        _viewModel.LogMessages.Last().Should()
+            .Contain("Scan cancellation requested", "because cancellation should be logged");
     }
 
     [Fact]
@@ -344,7 +339,7 @@ public class MainWindowViewModelTests : IDisposable
             _mockUpdateService,
             _mockCacheManager,
             _mockUnsolvedLogsMover);
-        
+
         await Task.Delay(100); // Allow settings to load
         viewModel.SelectedGamePath = "";
 
@@ -353,7 +348,8 @@ public class MainWindowViewModelTests : IDisposable
 
         // Assert
         viewModel.LogMessages.Should().NotBeEmpty("because command should log messages");
-        viewModel.LogMessages.Last().Should().Contain("Please select a game installation path", "because FCX scan requires game path");
+        viewModel.LogMessages.Last().Should().Contain("Please select a game installation path",
+            "because FCX scan requires game path");
     }
 
     [Fact]
@@ -361,13 +357,14 @@ public class MainWindowViewModelTests : IDisposable
     {
         // Arrange
         _viewModel.SelectedGamePath = "";
-        
+
         // Act
         await _viewModel.BackupGameFilesCommand.Execute().FirstAsync();
 
         // Assert
         _viewModel.LogMessages.Should().NotBeEmpty("because command should log a message");
-        _viewModel.LogMessages.Last().Should().Contain("Please select a game installation path", "because backup requires game path");
+        _viewModel.LogMessages.Last().Should()
+            .Contain("Please select a game installation path", "because backup requires game path");
     }
 
     [Fact]
@@ -375,13 +372,14 @@ public class MainWindowViewModelTests : IDisposable
     {
         // Arrange
         _viewModel.SelectedGamePath = "";
-        
+
         // Act
         await _viewModel.ValidateGameInstallCommand.Execute().FirstAsync();
 
         // Assert
         _viewModel.LogMessages.Should().NotBeEmpty("because command should log a message");
-        _viewModel.LogMessages.Last().Should().Contain("Please select a game installation path", "because validation requires game path");
+        _viewModel.LogMessages.Last().Should().Contain("Please select a game installation path",
+            "because validation requires game path");
     }
 
     [Fact]
@@ -393,7 +391,7 @@ public class MainWindowViewModelTests : IDisposable
         // Assert
         canExecute.Should().BeTrue("because settings command should always be available");
         _viewModel.OpenSettingsCommand.Should().NotBeNull("because settings command should be initialized");
-        
+
         // Note: Actually opening the settings window requires Avalonia platform initialization
         // which is not available in unit tests. Integration tests would be needed for full window testing.
     }
@@ -517,9 +515,9 @@ public class MainWindowViewModelTests : IDisposable
             _mockUpdateService,
             _mockCacheManager,
             _mockUnsolvedLogsMover);
-        
+
         await Task.Delay(100); // Allow settings to load
-        
+
         var testLog = Path.Combine(_testDirectory, "crash-test.log");
         File.WriteAllText(testLog, "Test crash log content");
         viewModel.SelectedLogPath = testLog;
@@ -529,7 +527,8 @@ public class MainWindowViewModelTests : IDisposable
 
         // Assert
         viewModel.LogMessages.Should().NotBeEmpty("because scan should produce log messages");
-        viewModel.LogMessages.Any(m => m.Contains("auto-saved") || m.Contains("Report saved") || m.Contains("completed"))
+        viewModel.LogMessages
+            .Any(m => m.Contains("auto-saved") || m.Contains("Report saved") || m.Contains("completed"))
             .Should().BeTrue("because auto-save should be performed when enabled");
     }
 
@@ -545,22 +544,20 @@ public class MainWindowViewModelTests : IDisposable
             _mockUpdateService,
             _mockCacheManager,
             _mockUnsolvedLogsMover);
-        
+
         await Task.Delay(100); // Allow settings to load
-        
+
         var testLog = Path.Combine(_testDirectory, "crash-test.log");
         File.WriteAllText(testLog, "Test crash log content");
         viewModel.SelectedLogPath = testLog;
 
         // Act
         await viewModel.ScanCommand.Execute().FirstAsync();
-        
+
         // Simulate failed scan
         if (viewModel.ScanResults.Any())
-        {
             // Failed is read-only, so we need to simulate failure differently
             viewModel.ScanResults[0].ScanResult.AddError("Simulated failure");
-        }
 
         // Assert - Would check if unsolved logs mover was called, but scan may succeed in test
         _mockUnsolvedLogsMover.Should().NotBeNull("because unsolved logs mover should be available");

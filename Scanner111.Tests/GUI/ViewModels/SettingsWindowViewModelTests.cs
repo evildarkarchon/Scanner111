@@ -1,11 +1,8 @@
-using System;
 using System.Reactive.Linq;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Scanner111.GUI.Models;
 using Scanner111.GUI.ViewModels;
 using Scanner111.Tests.GUI.TestHelpers;
-using Xunit;
 
 namespace Scanner111.Tests.GUI.ViewModels;
 
@@ -30,7 +27,8 @@ public class SettingsWindowViewModelTests
         _mockSettingsService.LoadCalled.Should().BeTrue("because settings should be loaded on initialization");
         _viewModel.DefaultLogPath.Should().Be(@"C:\Test\default.log", "because default log path should be loaded");
         _viewModel.DefaultGamePath.Should().Be(@"C:\Games\Fallout4", "because default game path should be loaded");
-        _viewModel.DefaultScanDirectory.Should().Be(@"C:\Test\Scans", "because default scan directory should be loaded");
+        _viewModel.DefaultScanDirectory.Should()
+            .Be(@"C:\Test\Scans", "because default scan directory should be loaded");
         _viewModel.AutoLoadF4SeLogs.Should().BeTrue("because auto-load setting should be loaded");
         _viewModel.MaxLogMessages.Should().Be(100, "because max log messages setting should be loaded");
     }
@@ -163,7 +161,7 @@ public class SettingsWindowViewModelTests
     {
         // Arrange
         var pickedPath = @"C:\Games\PickedGame";
-        _viewModel.ShowFolderPickerAsync = (title) => Task.FromResult(pickedPath);
+        _viewModel.ShowFolderPickerAsync = title => Task.FromResult(pickedPath);
 
         // Act
         await _viewModel.BrowseGamePathCommand.Execute().FirstAsync();
@@ -177,7 +175,7 @@ public class SettingsWindowViewModelTests
     {
         // Arrange
         var pickedPath = @"C:\Scans\PickedDir";
-        _viewModel.ShowFolderPickerAsync = (title) => Task.FromResult(pickedPath);
+        _viewModel.ShowFolderPickerAsync = title => Task.FromResult(pickedPath);
 
         // Act
         await _viewModel.BrowseScanDirectoryCommand.Execute().FirstAsync();
@@ -191,7 +189,7 @@ public class SettingsWindowViewModelTests
     {
         // Arrange
         var pickedPath = @"C:\Mods\Folder";
-        _viewModel.ShowFolderPickerAsync = (title) => Task.FromResult(pickedPath);
+        _viewModel.ShowFolderPickerAsync = title => Task.FromResult(pickedPath);
 
         // Act
         await _viewModel.BrowseModsFolderCommand.Execute().FirstAsync();
@@ -205,7 +203,7 @@ public class SettingsWindowViewModelTests
     {
         // Arrange
         var pickedPath = @"C:\INI\Folder";
-        _viewModel.ShowFolderPickerAsync = (title) => Task.FromResult(pickedPath);
+        _viewModel.ShowFolderPickerAsync = title => Task.FromResult(pickedPath);
 
         // Act
         await _viewModel.BrowseIniFolderCommand.Execute().FirstAsync();
@@ -254,13 +252,13 @@ public class SettingsWindowViewModelTests
     {
         // Arrange
         await Task.Delay(100); // Allow async initialization to complete
-        
+
         var property = _viewModel.GetType().GetProperty(propertyName);
-        
+
         // First set to opposite value to ensure change will happen
         var oppositeValue = !value;
         property?.SetValue(_viewModel, oppositeValue);
-        
+
         var propertyChanged = false;
         _viewModel.PropertyChanged += (sender, args) =>
         {
@@ -326,10 +324,10 @@ public class SettingsWindowViewModelTests
         // Arrange & Act
         Assert.False(_viewModel.HasRecentLogFiles);
         _viewModel.RecentLogFiles.Add("test.log");
-        
+
         // Need to manually raise property changed for computed properties
         var propertyInfo = _viewModel.GetType().GetProperty(nameof(_viewModel.HasRecentLogFiles));
-        
+
         // Assert
         _viewModel.RecentLogFiles.Count.Should().BeGreaterThan(0, "because recent log files were added");
     }
@@ -361,11 +359,11 @@ public class SettingsWindowViewModelTests
         userSettings.RecentLogFiles.Add("log2.log");
         userSettings.RecentLogFiles.Add("log3.log");
         _mockSettingsService.SetUserSettings(userSettings);
-        
+
         var viewModel = new SettingsWindowViewModel(_mockSettingsService);
 
         // Wait for async load
-        System.Threading.Thread.Sleep(100);
+        Thread.Sleep(100);
 
         // Assert
         viewModel.RecentLogFiles.Should().HaveCount(3, "because three recent files were added");

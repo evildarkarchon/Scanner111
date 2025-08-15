@@ -48,8 +48,10 @@ public class FormIdDatabaseServiceTests : IDisposable
     }
 
     /// Verifies that the `DatabaseExists` property of the service correctly
-    /// <returns>Asserts `false` when no databases are present in the specified paths.
-    /// This ensures that the method accurately identifies the absence of database files.</returns>
+    /// <returns>
+    ///     Asserts `false` when no databases are present in the specified paths.
+    ///     This ensures that the method accurately identifies the absence of database files.
+    /// </returns>
     [Fact]
     public void DatabaseExists_WhenNoDatabasesExist_ShouldReturnFalse()
     {
@@ -97,9 +99,12 @@ public class FormIdDatabaseServiceTests : IDisposable
     /// Ensures that the method correctly retrieves and returns the expected entry data for
     /// the specified form ID and plugin.
     /// The test sets up a temporary test database, inserts mock data, and verifies that the
-    /// GetEntry method returns the correct entry description.<br/>
-    /// Asserts that:<br/>
-    /// - The retrieved entry matches the expected description associated with the provided form ID and plugin.:<br/>
+    /// GetEntry method returns the correct entry description.
+    /// <br />
+    /// Asserts that:
+    /// <br />
+    /// - The retrieved entry matches the expected description associated with the provided form ID and plugin.:
+    /// <br />
     /// - The method behaves as intended under normal conditions with valid inputs.
     [Fact]
     public void GetEntry_WhenEntryExists_ShouldReturnEntry()
@@ -187,7 +192,8 @@ public class FormIdDatabaseServiceTests : IDisposable
         result3.Should().Be("Test Entry Description", "because cache should handle case-insensitive lookups");
 
         // Verify caching is working by checking the cache
-        service.IsCached("12345".ToUpper(), "TestPlugin.esp").Should().BeTrue("because results should be cached after first query");
+        service.IsCached("12345".ToUpper(), "TestPlugin.esp").Should()
+            .BeTrue("because results should be cached after first query");
     }
 
     /// Tests the ability of the GetEntry method to search multiple databases when locating entries.
@@ -266,15 +272,16 @@ public class FormIdDatabaseServiceTests : IDisposable
         var result = service.GetEntry("12345", "TestPlugin.esp");
 
         // Assert
-        result.Should().Be("Entry from Local DB", "because valid databases should be queried even when corrupt ones exist");
+        result.Should().Be("Entry from Local DB",
+            "because valid databases should be queried even when corrupt ones exist");
     }
 
     /// Verifies that the GetEntry method correctly retrieves database entries
     /// for various valid FormId formats. This test ensures compatibility with
     /// multiple FormId input variations, such as alphanumeric, hexadecimal, and empty formats.
     /// <param name="formId">
-    /// The FormId string to be tested. This could represent different formats,
-    /// including empty strings, spaces, alphanumeric values, or hexadecimal values.
+    ///     The FormId string to be tested. This could represent different formats,
+    ///     including empty strings, spaces, alphanumeric values, or hexadecimal values.
     /// </param>
     [Theory]
     [InlineData("")]
@@ -329,7 +336,7 @@ public class FormIdDatabaseServiceTests : IDisposable
 
         // Assert
         results.Should().HaveCount(50, "because 50 tasks were executed");
-        for (var i = 0; i < 50; i++) 
+        for (var i = 0; i < 50; i++)
             results[i].Should().Be($"Entry {i}", "because concurrent access should return correct results");
     }
 
@@ -413,7 +420,7 @@ internal class TestFormIdDatabaseService : IFormIdDatabaseService
     /// <param name="formId">The form ID that represents the unique identifier of the entry to retrieve.</param>
     /// <param name="plugin">The name of the plugin associated with the entry. This parameter is case-insensitive.</param>
     /// <return>
-    /// A string representing the description of the entry if found; otherwise, null if no matching entry exists.
+    ///     A string representing the description of the entry if found; otherwise, null if no matching entry exists.
     /// </return>
     public string? GetEntry(string formId, string plugin)
     {
@@ -426,7 +433,7 @@ internal class TestFormIdDatabaseService : IFormIdDatabaseService
     /// <param name="formId">The form ID to check for in the cache.</param>
     /// <param name="plugin">The plugin associated with the form ID to validate its presence in the cache.</param>
     /// <returns>
-    /// true if the specified combination of form ID and plugin exists in the cache; otherwise, false.
+    ///     true if the specified combination of form ID and plugin exists in the cache; otherwise, false.
     /// </returns>
     public bool IsCached(string formId, string plugin)
     {

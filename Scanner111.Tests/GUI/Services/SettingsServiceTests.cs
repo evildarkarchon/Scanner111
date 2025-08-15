@@ -1,24 +1,20 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Scanner111.Core.Models;
 using Scanner111.GUI.Models;
 using Scanner111.GUI.Services;
-using Xunit;
 
 namespace Scanner111.Tests.GUI.Services;
 
 /// <summary>
-/// Tests for SettingsService implementation.
-/// These tests verify that the service correctly handles loading, saving, and mapping
-/// between ApplicationSettings and UserSettings.
+///     Tests for SettingsService implementation.
+///     These tests verify that the service correctly handles loading, saving, and mapping
+///     between ApplicationSettings and UserSettings.
 /// </summary>
 public class SettingsServiceTests : IDisposable
 {
     private readonly SettingsService _service;
-    private readonly string _testDirectory;
     private readonly string _settingsPath;
+    private readonly string _testDirectory;
 
     public SettingsServiceTests()
     {
@@ -26,7 +22,7 @@ public class SettingsServiceTests : IDisposable
         _testDirectory = Path.Combine(Path.GetTempPath(), $"Scanner111Test_{Guid.NewGuid()}");
         Directory.CreateDirectory(_testDirectory);
         _settingsPath = Path.Combine(_testDirectory, "settings.json");
-        
+
         // Set the settings path for testing - the environment variable expects a directory, not a file path
         Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", _testDirectory);
     }
@@ -35,7 +31,6 @@ public class SettingsServiceTests : IDisposable
     {
         Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", null);
         if (Directory.Exists(_testDirectory))
-        {
             try
             {
                 Directory.Delete(_testDirectory, true);
@@ -44,7 +39,6 @@ public class SettingsServiceTests : IDisposable
             {
                 // Ignore cleanup errors in tests
             }
-        }
     }
 
     [Fact]
@@ -81,7 +75,7 @@ public class SettingsServiceTests : IDisposable
 
         // Assert
         File.Exists(_settingsPath).Should().BeTrue("because settings file should be created");
-        
+
         // Load settings again to verify persistence
         var loadedSettings = await _service.LoadSettingsAsync();
         loadedSettings.DefaultLogPath.Should().Be(@"C:\Test\custom.log", "because saved path should persist");
@@ -102,7 +96,7 @@ public class SettingsServiceTests : IDisposable
         // Assert
         defaults1.Should().NotBeSameAs(defaults2, "because new instance should be created each time");
         defaults1.Should().BeEquivalentTo(defaults2, "because default values should be consistent");
-        
+
         // Verify specific defaults
         defaults1.DefaultLogPath.Should().BeEmpty("because default log path should be empty");
         defaults1.AutoLoadF4SeLogs.Should().BeTrue("because auto-load should default to true");
@@ -143,7 +137,7 @@ public class SettingsServiceTests : IDisposable
         userSettings.MaxLogMessages.Should().Be(150, "because max messages should be mapped");
         userSettings.EnableUpdateCheck.Should().BeTrue("because update check should be mapped");
         userSettings.UpdateSource.Should().Be("GitHub", "because update source should be mapped");
-        
+
         // UserSettings specific properties
         userSettings.FcxMode.Should().BeFalse("because FCX mode should default to false");
         userSettings.MoveUnsolvedLogs.Should().BeFalse("because move unsolved logs should default to false");
@@ -178,7 +172,7 @@ public class SettingsServiceTests : IDisposable
         appSettings.MaxLogMessages.Should().Be(75, "because max messages should be mapped");
         appSettings.EnableUpdateCheck.Should().BeFalse("because update check should be mapped");
         appSettings.UpdateSource.Should().Be("Nexus", "because update source should be mapped");
-        
+
         // Note: FcxMode and MoveUnsolvedLogs are UserSettings-specific and not in ApplicationSettings
     }
 
@@ -243,7 +237,7 @@ public class SettingsServiceTests : IDisposable
             ModsFolder = @"C:\UserMods",
             IniFolder = @"C:\UserINI"
         };
-        
+
         // Add recent files
         original.RecentLogFiles.Add(@"C:\recent1.log");
         original.RecentLogFiles.Add(@"C:\recent2.log");
@@ -256,17 +250,17 @@ public class SettingsServiceTests : IDisposable
 
         // Assert
         loaded.Should().BeEquivalentTo(original, options => options
-            .Excluding(s => s.RecentLogFiles)
-            .Excluding(s => s.RecentGamePaths)
-            .Excluding(s => s.RecentScanDirectories),
+                .Excluding(s => s.RecentLogFiles)
+                .Excluding(s => s.RecentGamePaths)
+                .Excluding(s => s.RecentScanDirectories),
             "because all basic settings should round-trip correctly");
-        
+
         // Check collections separately
-        loaded.RecentLogFiles.Should().BeEquivalentTo(original.RecentLogFiles, 
+        loaded.RecentLogFiles.Should().BeEquivalentTo(original.RecentLogFiles,
             "because recent log files should be preserved");
-        loaded.RecentGamePaths.Should().BeEquivalentTo(original.RecentGamePaths, 
+        loaded.RecentGamePaths.Should().BeEquivalentTo(original.RecentGamePaths,
             "because recent game paths should be preserved");
-        loaded.RecentScanDirectories.Should().BeEquivalentTo(original.RecentScanDirectories, 
+        loaded.RecentScanDirectories.Should().BeEquivalentTo(original.RecentScanDirectories,
             "because recent scan directories should be preserved");
     }
 
@@ -282,7 +276,7 @@ public class SettingsServiceTests : IDisposable
 
         // Assert
         settings.Should().NotBeNull("because default settings should be returned on error");
-        settings.Should().BeEquivalentTo(_service.GetDefaultSettings(), 
+        settings.Should().BeEquivalentTo(_service.GetDefaultSettings(),
             "because corrupted file should result in default settings");
     }
 
@@ -292,7 +286,7 @@ public class SettingsServiceTests : IDisposable
         // Arrange
         var nestedDir = Path.Combine(_testDirectory, "nested", "deep");
         Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", nestedDir);
-        
+
         var settings = new ApplicationSettings
         {
             DefaultLogPath = @"C:\Test\nested.log"
@@ -316,13 +310,13 @@ public class SettingsServiceTests : IDisposable
         // Act - Attempt concurrent saves
         var task1 = _service.SaveSettingsAsync(settings1);
         var task2 = _service.SaveSettingsAsync(settings2);
-        
+
         await Task.WhenAll(task1, task2);
 
         // Assert - One of the settings should have won
         var loaded = await _service.LoadSettingsAsync();
         loaded.DefaultLogPath.Should().BeOneOf(
-            @"C:\Test\concurrent1.log", 
+            @"C:\Test\concurrent1.log",
             @"C:\Test\concurrent2.log",
             "because one of the concurrent saves should succeed");
     }
@@ -350,12 +344,9 @@ public class SettingsServiceTests : IDisposable
         {
             MaxRecentItems = 5
         };
-        
+
         // Add more items than the limit
-        for (int i = 0; i < 10; i++)
-        {
-            userSettings.RecentLogFiles.Add($@"C:\log{i}.log");
-        }
+        for (var i = 0; i < 10; i++) userSettings.RecentLogFiles.Add($@"C:\log{i}.log");
 
         // Act
         await _service.SaveUserSettingsAsync(userSettings);

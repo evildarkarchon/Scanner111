@@ -2,7 +2,8 @@ using Scanner111.CLI.Models;
 using Scanner111.Core.Models;
 
 /// <summary>
-/// Provides functionality for managing and persisting CLI-related settings, including legacy and application-wide configurations.
+///     Provides functionality for managing and persisting CLI-related settings, including legacy and application-wide
+///     configurations.
 /// </summary>
 public interface ICliSettingsService
 {

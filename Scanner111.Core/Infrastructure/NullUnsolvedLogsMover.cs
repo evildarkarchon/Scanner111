@@ -7,7 +7,8 @@ namespace Scanner111.Core.Infrastructure;
 /// </summary>
 public class NullUnsolvedLogsMover : IUnsolvedLogsMover
 {
-    public Task<bool> MoveUnsolvedLogAsync(string crashLogPath, ApplicationSettings? settings = null, CancellationToken cancellationToken = default)
+    public Task<bool> MoveUnsolvedLogAsync(string crashLogPath, ApplicationSettings? settings = null,
+        CancellationToken cancellationToken = default)
     {
         return Task.FromResult(false);
     }

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from PySide6.QtCore import QObject, QThread, Signal, Slot
+from PySide6.QtCore import QMutex, QObject, QThread, Signal, Slot
 
 from ClassicLib.PapyrusLog import papyrus_logging
 
@@ -98,9 +98,11 @@ class PapyrusMonitorWorker(QObject):
         - Setting the `_should_run` flag to True.
         - Initializing `_last_stats` to None.
         - Initializing `error_sound_played` to False to track if the error sound has played this session.
+        - Creating a mutex for thread-safe access to _should_run.
         """
         super().__init__()
         self._should_run = True
+        self._should_run_mutex = QMutex()
         self._last_stats: PapyrusStats | None = None
         self.error_sound_played = False  # Track if error sound has played this session
 
@@ -108,7 +110,7 @@ class PapyrusMonitorWorker(QObject):
         """
         Stops the running process controlled by this method. This method sets an internal
         flag indicating that the process should no longer continue, without raising errors
-        or exceptions.
+        or exceptions. Thread-safe implementation using mutex.
 
         This function modifies the state of the instance to indicate that the process or
         operation managed by this method should be halted. The actual stopping logic or
@@ -120,7 +122,11 @@ class PapyrusMonitorWorker(QObject):
         Returns:
             None: There are no return values for this method.
         """
-        self._should_run = False
+        self._should_run_mutex.lock()
+        try:
+            self._should_run = False
+        finally:
+            self._should_run_mutex.unlock()
 
     @Slot()
     def run(self) -> None:
@@ -146,7 +152,15 @@ class PapyrusMonitorWorker(QObject):
 
         """
         """Main monitoring loop"""
-        while self._should_run:
+        while True:
+            # Thread-safe check of _should_run
+            self._should_run_mutex.lock()
+            should_continue = self._should_run
+            self._should_run_mutex.unlock()
+
+            if not should_continue:
+                break
+
             try:
                 message, count = papyrus_logging()
 

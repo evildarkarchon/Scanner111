@@ -9,10 +9,10 @@ using Scanner111.Tests.TestHelpers;
 namespace Scanner111.Tests.Integration;
 
 /// <summary>
-/// Integration tests for concurrency safety, resource management,
-/// and validation of high-volume operations in critical paths.
-/// Focuses on ensuring thread safety, proper disposal of resources,
-/// and preventing data corruption under concurrent operations.
+///     Integration tests for concurrency safety, resource management,
+///     and validation of high-volume operations in critical paths.
+///     Focuses on ensuring thread safety, proper disposal of resources,
+///     and preventing data corruption under concurrent operations.
 /// </summary>
 public class ConcurrencyAndResourceTests : IDisposable
 {
@@ -20,17 +20,17 @@ public class ConcurrencyAndResourceTests : IDisposable
     private readonly List<string> _tempFiles = new();
 
     /// <summary>
-    /// Releases all resources used by the ConcurrencyAndResourceTests class.
-    /// This includes disposing any managed disposable resources,
-    /// asynchronously disposing resources when necessary,
-    /// and cleaning up temporary files created during the tests.
+    ///     Releases all resources used by the ConcurrencyAndResourceTests class.
+    ///     This includes disposing any managed disposable resources,
+    ///     asynchronously disposing resources when necessary,
+    ///     and cleaning up temporary files created during the tests.
     /// </summary>
     /// <remarks>
-    /// Since this method handles both synchronous and asynchronous disposables,
-    /// it ensures proper cleanup without leaving resources pending.
-    /// Temporary files created during tests are also deleted if they still exist.
-    /// Suppresses finalization of the class to prevent redundant cleanup by the garbage collector.
-    /// Exceptions during disposal or file deletion are handled gracefully and do not stop execution.
+    ///     Since this method handles both synchronous and asynchronous disposables,
+    ///     it ensures proper cleanup without leaving resources pending.
+    ///     Temporary files created during tests are also deleted if they still exist.
+    ///     Suppresses finalization of the class to prevent redundant cleanup by the garbage collector.
+    ///     Exceptions during disposal or file deletion are handled gracefully and do not stop execution.
     /// </remarks>
     public void Dispose()
     {
@@ -80,22 +80,22 @@ public class ConcurrencyAndResourceTests : IDisposable
     }
 
     /// <summary>
-    /// Validates that concurrent writes to the same file by the ReportWriter
-    /// class do not result in data corruption or unexpected behavior.
+    ///     Validates that concurrent writes to the same file by the ReportWriter
+    ///     class do not result in data corruption or unexpected behavior.
     /// </summary>
     /// <remarks>
-    /// This test creates multiple scan results and writes them concurrently
-    /// to the same output file using the ReportWriter class. Each scan result
-    /// contains specific report data that is expected to be written to the file.
-    /// After all writes are completed, the resulting file is verified to ensure
-    /// that it exists, is not empty, and contains valid content.
-    /// Additional checks include confirming that all write operations succeed,
-    /// asserting no corruption occurred in the final file content, and that
-    /// the file includes data from at least one of the scan results.
+    ///     This test creates multiple scan results and writes them concurrently
+    ///     to the same output file using the ReportWriter class. Each scan result
+    ///     contains specific report data that is expected to be written to the file.
+    ///     After all writes are completed, the resulting file is verified to ensure
+    ///     that it exists, is not empty, and contains valid content.
+    ///     Additional checks include confirming that all write operations succeed,
+    ///     asserting no corruption occurred in the final file content, and that
+    ///     the file includes data from at least one of the scan results.
     /// </remarks>
     /// <returns>
-    /// An asynchronous task that validates the integrity of ReportWriter's
-    /// concurrent write operations and ensures file content accuracy.
+    ///     An asynchronous task that validates the integrity of ReportWriter's
+    ///     concurrent write operations and ensures file content accuracy.
     /// </returns>
     [Fact]
     public async Task ReportWriter_ConcurrentWritesToSameFile_ShouldNotCorruptData()
@@ -172,19 +172,19 @@ public class ConcurrencyAndResourceTests : IDisposable
     }
 
     /// <summary>
-    /// Verifies that the resource disposal process for the ScanPipeline class
-    /// does not result in leaking operating system semaphores or other handles.
-    /// Ensures proper cleanup of all resources even under frequent creation and disposal.
+    ///     Verifies that the resource disposal process for the ScanPipeline class
+    ///     does not result in leaking operating system semaphores or other handles.
+    ///     Ensures proper cleanup of all resources even under frequent creation and disposal.
     /// </summary>
     /// <remarks>
-    /// This test creates multiple instances of ScanPipeline, performs a brief operation
-    /// with each, and disposes of them. It ensures that handle counts remain stable by
-    /// comparing the system's handle count before and after execution. Garbage collection
-    /// and finalizer execution are enforced to eliminate residual references to resources.
+    ///     This test creates multiple instances of ScanPipeline, performs a brief operation
+    ///     with each, and disposes of them. It ensures that handle counts remain stable by
+    ///     comparing the system's handle count before and after execution. Garbage collection
+    ///     and finalizer execution are enforced to eliminate residual references to resources.
     /// </remarks>
     /// <returns>
-    /// Asserts that the increase in operating system handles does not exceed
-    /// a predefined threshold, indicating no significant resource leaks.
+    ///     Asserts that the increase in operating system handles does not exceed
+    ///     a predefined threshold, indicating no significant resource leaks.
     /// </returns>
     [Fact]
     public async Task ScanPipeline_ResourceDisposal_ShouldNotLeakSemaphore()
@@ -208,12 +208,11 @@ public class ConcurrencyAndResourceTests : IDisposable
         }
 
         // Dispose all pipelines first
-        foreach (var pipeline in pipelines) 
+        foreach (var pipeline in pipelines)
             await pipeline.DisposeAsync();
 
         // Then dispose dependencies
         foreach (var dependency in testDependencies)
-        {
             try
             {
                 dependency?.Dispose();
@@ -222,7 +221,6 @@ public class ConcurrencyAndResourceTests : IDisposable
             {
                 // Already disposed by pipeline - this is fine
             }
-        }
 
         // Force garbage collection
         GC.Collect();
@@ -241,20 +239,20 @@ public class ConcurrencyAndResourceTests : IDisposable
     }
 
     /// <summary>
-    /// Verifies that the EnhancedScanPipeline class correctly manages resource disposal,
-    /// ensuring that no semaphore or other system resources are leaked during pipeline creation,
-    /// operation, and disposal under repeated and intensive usage scenarios.
+    ///     Verifies that the EnhancedScanPipeline class correctly manages resource disposal,
+    ///     ensuring that no semaphore or other system resources are leaked during pipeline creation,
+    ///     operation, and disposal under repeated and intensive usage scenarios.
     /// </summary>
     /// <remarks>
-    /// The test creates multiple EnhancedScanPipeline instances, performs operations with them,
-    /// and ensures that proper disposal mechanisms are invoked consistently. This is validated by
-    /// checking the operating system handle count before and after the test execution. The aim
-    /// is to ensure that any transient or disposable resources used by the pipeline are released,
-    /// preventing resource exhaustion or handle leaks during high-volume operations.
+    ///     The test creates multiple EnhancedScanPipeline instances, performs operations with them,
+    ///     and ensures that proper disposal mechanisms are invoked consistently. This is validated by
+    ///     checking the operating system handle count before and after the test execution. The aim
+    ///     is to ensure that any transient or disposable resources used by the pipeline are released,
+    ///     preventing resource exhaustion or handle leaks during high-volume operations.
     /// </remarks>
     /// <returns>
-    /// A task that completes when the test has verified that the EnhancedScanPipeline does not
-    /// contribute to resource leakage, particularly semaphore or file handle leakage.
+    ///     A task that completes when the test has verified that the EnhancedScanPipeline does not
+    ///     contribute to resource leakage, particularly semaphore or file handle leakage.
     /// </returns>
     [Fact]
     public async Task EnhancedScanPipeline_ResourceDisposal_ShouldNotLeakSemaphore()
@@ -295,17 +293,20 @@ public class ConcurrencyAndResourceTests : IDisposable
     }
 
     /// <summary>
-    /// Validates that the scan pipeline can process concurrent batch operations while maintaining file deduplication.
-    /// Ensures that the same file, when included in multiple batches, is processed only once per batch.
+    ///     Validates that the scan pipeline can process concurrent batch operations while maintaining file deduplication.
+    ///     Ensures that the same file, when included in multiple batches, is processed only once per batch.
     /// </summary>
     /// <remarks>
-    /// This test evaluates the scan pipeline's ability to handle concurrent processing of batches that contain duplicate file paths.
-    /// It verifies that deduplication logic is functioning correctly by asserting that each batch only processes a single instance
-    /// of the duplicated file, and the total results across all batches reflect the application of the deduplication rules.
+    ///     This test evaluates the scan pipeline's ability to handle concurrent processing of batches that contain duplicate
+    ///     file paths.
+    ///     It verifies that deduplication logic is functioning correctly by asserting that each batch only processes a single
+    ///     instance
+    ///     of the duplicated file, and the total results across all batches reflect the application of the deduplication
+    ///     rules.
     /// </remarks>
     /// <returns>
-    /// An asynchronous task that completes when the test is finished. Successfully executing the test confirms that
-    /// concurrent batch processing of duplicated files is handled correctly without redundant processing.
+    ///     An asynchronous task that completes when the test is finished. Successfully executing the test confirms that
+    ///     concurrent batch processing of duplicated files is handled correctly without redundant processing.
     /// </returns>
     [Fact]
     public async Task ScanPipeline_ConcurrentBatchProcessing_ShouldHandleFileDeduplication()
@@ -354,20 +355,20 @@ public class ConcurrencyAndResourceTests : IDisposable
     }
 
     /// <summary>
-    /// Verifies that concurrent modification of recent item lists in the ApplicationSettings class
-    /// maintains thread safety and consistent internal state.
-    /// Ensures that multiple threads can simultaneously add items to recent log files,
-    /// game paths, and scan directories without data corruption or inconsistency.
+    ///     Verifies that concurrent modification of recent item lists in the ApplicationSettings class
+    ///     maintains thread safety and consistent internal state.
+    ///     Ensures that multiple threads can simultaneously add items to recent log files,
+    ///     game paths, and scan directories without data corruption or inconsistency.
     /// </summary>
     /// <remarks>
-    /// This test adds items to recent item lists from multiple threads to simulate a highly
-    /// concurrent environment and validates that the maximum size constraint and order of
-    /// most recent items are preserved. Also checks to ensure no null or empty entries
-    /// exist in the lists, confirming data integrity.
+    ///     This test adds items to recent item lists from multiple threads to simulate a highly
+    ///     concurrent environment and validates that the maximum size constraint and order of
+    ///     most recent items are preserved. Also checks to ensure no null or empty entries
+    ///     exist in the lists, confirming data integrity.
     /// </remarks>
     /// <returns>
-    /// Task representing the asynchronous operation of the test. The test will succeed if
-    /// concurrent additions result in consistent and thread-safe behavior of recent item lists.
+    ///     Task representing the asynchronous operation of the test. The test will succeed if
+    ///     concurrent additions result in consistent and thread-safe behavior of recent item lists.
     /// </returns>
     [Fact]
     public async Task ApplicationSettings_ConcurrentRecentItemsModification_ShouldBeThreadSafe()
@@ -408,22 +409,22 @@ public class ConcurrencyAndResourceTests : IDisposable
     }
 
     /// <summary>
-    /// Validates that concurrent operations on the CacheManager do not result in data corruption or
-    /// unexpected behavior. Ensures that cache operations such as insertion, retrieval, and updates
-    /// remain thread-safe and consistent under high levels of contention.
+    ///     Validates that concurrent operations on the CacheManager do not result in data corruption or
+    ///     unexpected behavior. Ensures that cache operations such as insertion, retrieval, and updates
+    ///     remain thread-safe and consistent under high levels of contention.
     /// </summary>
     /// <remarks>
-    /// This test simulates concurrent access to the CacheManager by performing a large number
-    /// of asynchronous tasks. These tasks involve generating and caching analysis results,
-    /// retrieving results, and analyzing cache statistics post-operations. Emphasis is placed
-    /// on avoiding race conditions or corrupt states in multi-threaded environments.
-    /// Verifies that the cached items and statistics remain valid and consistent after execution.
+    ///     This test simulates concurrent access to the CacheManager by performing a large number
+    ///     of asynchronous tasks. These tasks involve generating and caching analysis results,
+    ///     retrieving results, and analyzing cache statistics post-operations. Emphasis is placed
+    ///     on avoiding race conditions or corrupt states in multi-threaded environments.
+    ///     Verifies that the cached items and statistics remain valid and consistent after execution.
     /// </remarks>
     /// <returns>
-    /// Ensures that after the concurrent operations:<br/>
-    /// - The cached files count is non-negative.<br/>
-    /// - The hit rate of the CacheManager is between 0.0 and 1.0.<br/>
-    /// - Some cached items are retrievable, confirming successful cache operations.
+    ///     Ensures that after the concurrent operations:<br />
+    ///     - The cached files count is non-negative.<br />
+    ///     - The hit rate of the CacheManager is between 0.0 and 1.0.<br />
+    ///     - Some cached items are retrievable, confirming successful cache operations.
     /// </returns>
     [Fact]
     public async Task CacheManager_ConcurrentOperations_ShouldNotCorruptData()
@@ -478,23 +479,23 @@ public class ConcurrencyAndResourceTests : IDisposable
     }
 
     /// <summary>
-    /// Verifies that the ReportWriter class can handle a high volume of write operations
-    /// without exhausting system resources such as memory or file handles.
-    /// Ensures robust performance and stability during intensive usage scenarios,
-    /// even when managing concurrent and large-scale tasks.
+    ///     Verifies that the ReportWriter class can handle a high volume of write operations
+    ///     without exhausting system resources such as memory or file handles.
+    ///     Ensures robust performance and stability during intensive usage scenarios,
+    ///     even when managing concurrent and large-scale tasks.
     /// </summary>
     /// <remarks>
-    /// This test checks for potential memory leaks or resource exhaustion by tracking memory usage
-    /// before and after executing a high number of write operations.
-    /// The operations involve creating temporary files, serializing complex objects, and logging outputs.
-    /// Ensures that the memory growth remains within acceptable limits,
-    /// and all tasks complete successfully regardless of the operation scale.
-    /// Disposables like the ReportWriter instance are managed to avoid resource contention issues.
+    ///     This test checks for potential memory leaks or resource exhaustion by tracking memory usage
+    ///     before and after executing a high number of write operations.
+    ///     The operations involve creating temporary files, serializing complex objects, and logging outputs.
+    ///     Ensures that the memory growth remains within acceptable limits,
+    ///     and all tasks complete successfully regardless of the operation scale.
+    ///     Disposables like the ReportWriter instance are managed to avoid resource contention issues.
     /// </remarks>
     /// <returns>
-    /// A Task representing the asynchronous operation, the result of which ensures:
-    /// 1. No excessive memory usage growth during or after execution.
-    /// 2. Successful completion of all write operations without runtime errors.
+    ///     A Task representing the asynchronous operation, the result of which ensures:
+    ///     1. No excessive memory usage growth during or after execution.
+    ///     2. Successful completion of all write operations without runtime errors.
     /// </returns>
     [Fact]
     public async Task ReportWriter_HighVolumeWrites_ShouldNotExhaustResources()
@@ -552,12 +553,12 @@ public class ConcurrencyAndResourceTests : IDisposable
     }
 
     /// <summary>
-    /// Creates and initializes a new test instance of the <see cref="ScanPipeline"/> class.
-    /// Configures the pipeline with test dependencies including analyzers, logger, message handler,
-    /// and settings provider, ensuring components are tracked for proper disposal.
+    ///     Creates and initializes a new test instance of the <see cref="ScanPipeline" /> class.
+    ///     Configures the pipeline with test dependencies including analyzers, logger, message handler,
+    ///     and settings provider, ensuring components are tracked for proper disposal.
     /// </summary>
     /// <returns>
-    /// An instance of <see cref="ScanPipeline"/> configured for testing purposes.
+    ///     An instance of <see cref="ScanPipeline" /> configured for testing purposes.
     /// </returns>
     private ScanPipeline CreateTestPipeline()
     {
@@ -601,17 +602,17 @@ public class ConcurrencyAndResourceTests : IDisposable
     }
 
     /// <summary>
-    /// Creates an instance of the EnhancedScanPipeline configured with test-specific
-    /// components such as mock analyzers, logging, message handling, settings, and caching implementations.
+    ///     Creates an instance of the EnhancedScanPipeline configured with test-specific
+    ///     components such as mock analyzers, logging, message handling, settings, and caching implementations.
     /// </summary>
     /// <remarks>
-    /// This method sets up a fully functional EnhancedScanPipeline by initializing its dependencies with
-    /// test-specific implementations. It includes mock analyzers and necessary tools such as logging,
-    /// error resilience, and caching. Each dependency is tracked for proper disposal. This method ensures
-    /// the pipeline is ready for integration tests requiring specific test setups or configurations.
+    ///     This method sets up a fully functional EnhancedScanPipeline by initializing its dependencies with
+    ///     test-specific implementations. It includes mock analyzers and necessary tools such as logging,
+    ///     error resilience, and caching. Each dependency is tracked for proper disposal. This method ensures
+    ///     the pipeline is ready for integration tests requiring specific test setups or configurations.
     /// </remarks>
     /// <returns>
-    /// A fully configured instance of EnhancedScanPipeline tailored for testing with mocked or test-specific dependencies.
+    ///     A fully configured instance of EnhancedScanPipeline tailored for testing with mocked or test-specific dependencies.
     /// </returns>
     private EnhancedScanPipeline CreateTestEnhancedPipeline()
     {
@@ -641,7 +642,7 @@ public class ConcurrencyAndResourceTests : IDisposable
     }
 
     /// <summary>
-    /// Creates a temporary crash log file with the specified content and tracks it for disposal.
+    ///     Creates a temporary crash log file with the specified content and tracks it for disposal.
     /// </summary>
     /// <param name="fileName">The name of the crash log file to be created.</param>
     /// <param name="content">The content to be written to the crash log file.</param>
@@ -655,14 +656,14 @@ public class ConcurrencyAndResourceTests : IDisposable
     }
 
     /// <summary>
-    /// Creates a temporary file with an optional specific file name.
-    /// The created file's path is added to the internal list of temporary files for later cleanup.
+    ///     Creates a temporary file with an optional specific file name.
+    ///     The created file's path is added to the internal list of temporary files for later cleanup.
     /// </summary>
     /// <param name="fileName">
-    /// The desired name of the temporary file. If null, a unique temporary file with a randomly generated name is created.
+    ///     The desired name of the temporary file. If null, a unique temporary file with a randomly generated name is created.
     /// </param>
     /// <returns>
-    /// The full path to the created temporary file.
+    ///     The full path to the created temporary file.
     /// </returns>
     private string CreateTempFile(string? fileName = null)
     {
@@ -674,19 +675,19 @@ public class ConcurrencyAndResourceTests : IDisposable
     }
 
     /// <summary>
-    /// Retrieves the current handle count for the running process.
-    /// This count provides an indicator of resource utilization for the process, especially
-    /// in scenarios involving concurrency or potential resource leaks.
+    ///     Retrieves the current handle count for the running process.
+    ///     This count provides an indicator of resource utilization for the process, especially
+    ///     in scenarios involving concurrency or potential resource leaks.
     /// </summary>
     /// <remarks>
-    /// This method leverages the <see cref="System.Diagnostics.Process"/> class to obtain
-    /// the number of handles currently allocated by the operating system for the process.
-    /// If the handle count cannot be retrieved due to platform limitations or unexpected errors,
-    /// it safely returns 0 as a fallback.
+    ///     This method leverages the <see cref="System.Diagnostics.Process" /> class to obtain
+    ///     the number of handles currently allocated by the operating system for the process.
+    ///     If the handle count cannot be retrieved due to platform limitations or unexpected errors,
+    ///     it safely returns 0 as a fallback.
     /// </remarks>
     /// <returns>
-    /// An integer representing the number of handles currently in use by the process.
-    /// Returns 0 if the handle count could not be determined.
+    ///     An integer representing the number of handles currently in use by the process.
+    ///     Returns 0 if the handle count could not be determined.
     /// </returns>
     private static int GetCurrentProcessHandleCount()
     {
@@ -743,8 +744,9 @@ PLUGINS:
 }
 
 /// <summary>
-/// Represents a simple implementation of the IAnalyzer interface for testing purposes.
-/// Provides basic analysis capabilities and simulates asynchronous operations for testing concurrency and execution flow.
+///     Represents a simple implementation of the IAnalyzer interface for testing purposes.
+///     Provides basic analysis capabilities and simulates asynchronous operations for testing concurrency and execution
+///     flow.
 /// </summary>
 internal class TestSimpleAnalyzer : IAnalyzer
 {
@@ -759,17 +761,17 @@ internal class TestSimpleAnalyzer : IAnalyzer
     public bool CanRunInParallel => true;
 
     /// <summary>
-    /// Analyzes the provided crash log asynchronously and returns an analysis result.
-    /// The method simulates work with a small delay before generating the result.
+    ///     Analyzes the provided crash log asynchronously and returns an analysis result.
+    ///     The method simulates work with a small delay before generating the result.
     /// </summary>
     /// <param name="crashLog">The crash log to be analyzed. This input provides necessary data for the analysis process.</param>
     /// <param name="cancellationToken">
-    /// A cancellation token to observe while waiting for the task to complete.
-    /// It allows cooperative cancellation of the operation.
+    ///     A cancellation token to observe while waiting for the task to complete.
+    ///     It allows cooperative cancellation of the operation.
     /// </param>
     /// <returns>
-    /// An <see cref="AnalysisResult"/> containing details of the analysis, including success status, analyzer name,
-    /// and any generated report lines.
+    ///     An <see cref="AnalysisResult" /> containing details of the analysis, including success status, analyzer name,
+    ///     and any generated report lines.
     /// </returns>
     public async Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
     {

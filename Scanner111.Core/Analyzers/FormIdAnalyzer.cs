@@ -7,16 +7,16 @@ using Scanner111.Core.Models.Yaml;
 namespace Scanner111.Core.Analyzers;
 
 /// <summary>
-/// Provides functionality for analyzing and extracting information from FormID entries
-/// in crash logs using a specified pattern and configuration settings.
+///     Provides functionality for analyzing and extracting information from FormID entries
+///     in crash logs using a specified pattern and configuration settings.
 /// </summary>
 public class FormIdAnalyzer : IAnalyzer
 {
     private static readonly ConcurrentDictionary<string, Regex> PatternCache = new();
+    private readonly IApplicationSettingsService _appSettings;
     private readonly IFormIdDatabaseService _formIdDatabase;
     private readonly Regex _formIdPattern;
     private readonly IYamlSettingsProvider _yamlSettings;
-    private readonly IApplicationSettingsService _appSettings;
 
     /// <summary>
     ///     Initialize the FormID analyzer
@@ -24,7 +24,8 @@ public class FormIdAnalyzer : IAnalyzer
     /// <param name="yamlSettings">YAML settings provider for configuration</param>
     /// <param name="formIdDatabase">FormID database service for lookups</param>
     /// <param name="appSettings">Application settings service</param>
-    public FormIdAnalyzer(IYamlSettingsProvider yamlSettings, IFormIdDatabaseService formIdDatabase, IApplicationSettingsService appSettings)
+    public FormIdAnalyzer(IYamlSettingsProvider yamlSettings, IFormIdDatabaseService formIdDatabase,
+        IApplicationSettingsService appSettings)
     {
         _yamlSettings = yamlSettings;
         _formIdDatabase = formIdDatabase;
@@ -153,7 +154,7 @@ public class FormIdAnalyzer : IAnalyzer
             }
 
             autoscanReport.AddRange([
-              "\n[Last number counts how many times each Form ID shows up in the crash log.]\n",
+                "\n[Last number counts how many times each Form ID shows up in the crash log.]\n",
                 $"These Form IDs were caught by {GetCrashgenLogName()} and some of them might be related to this crash.\n",
                 "You can try searching any listed Form IDs in xEdit and see if they lead to relevant records.\n\n"
             ]);

@@ -1,21 +1,10 @@
 using Scanner111.Core.Models;
-using System.Linq;
 
 namespace Scanner111.Core.Infrastructure;
 
 public class ApplicationSettingsService : IApplicationSettingsService
 {
     private ApplicationSettings? _cachedSettings;
-    
-    private string GetSettingsFilePath()
-    {
-        var settingsPath = Environment.GetEnvironmentVariable("SCANNER111_SETTINGS_PATH");
-        if (!string.IsNullOrEmpty(settingsPath))
-        {
-            return Path.Combine(settingsPath, "settings.json");
-        }
-        return Path.Combine(SettingsHelper.GetSettingsDirectory(), "settings.json");
-    }
 
     /// Asynchronously loads application settings from a predefined file path.
     /// If the settings file does not exist or is invalid, default settings are loaded and returned.
@@ -23,7 +12,8 @@ public class ApplicationSettingsService : IApplicationSettingsService
     /// <returns>An instance of ApplicationSettings containing the current configuration.</returns>
     public async Task<ApplicationSettings> LoadSettingsAsync()
     {
-        var settings = await SettingsHelper.LoadSettingsAsync(GetSettingsFilePath(), GetDefaultSettings).ConfigureAwait(false);
+        var settings = await SettingsHelper.LoadSettingsAsync(GetSettingsFilePath(), GetDefaultSettings)
+            .ConfigureAwait(false);
         _cachedSettings = settings;
         return settings;
     }
@@ -45,8 +35,8 @@ public class ApplicationSettingsService : IApplicationSettingsService
     /// <param name="value">The new value to assign to the setting. The value must be convertible to the property's data type.</param>
     /// <returns>A task that represents the asynchronous save operation.</returns>
     /// <exception cref="ArgumentException">
-    /// Thrown if the key does not correspond to an existing property of the application settings,
-    /// or if the value cannot be converted to the property's type.
+    ///     Thrown if the key does not correspond to an existing property of the application settings,
+    ///     or if the value cannot be converted to the property's type.
     /// </exception>
     public async Task SaveSettingAsync(string key, object value)
     {
@@ -54,11 +44,11 @@ public class ApplicationSettingsService : IApplicationSettingsService
 
         // Update the specific setting using reflection
         // First try exact match, then case-insensitive match, then PascalCase conversion
-        var property = typeof(ApplicationSettings).GetProperty(key) 
-            ?? typeof(ApplicationSettings).GetProperties()
-                .FirstOrDefault(p => string.Equals(p.Name, key, StringComparison.OrdinalIgnoreCase))
-            ?? typeof(ApplicationSettings).GetProperty(SettingsHelper.ToPascalCase(key));
-            
+        var property = typeof(ApplicationSettings).GetProperty(key)
+                       ?? typeof(ApplicationSettings).GetProperties()
+                           .FirstOrDefault(p => string.Equals(p.Name, key, StringComparison.OrdinalIgnoreCase))
+                       ?? typeof(ApplicationSettings).GetProperty(SettingsHelper.ToPascalCase(key));
+
         if (property != null && property.CanWrite)
             try
             {
@@ -130,5 +120,12 @@ public class ApplicationSettingsService : IApplicationSettingsService
             // Recent Items
             MaxRecentItems = 10
         };
+    }
+
+    private string GetSettingsFilePath()
+    {
+        var settingsPath = Environment.GetEnvironmentVariable("SCANNER111_SETTINGS_PATH");
+        if (!string.IsNullOrEmpty(settingsPath)) return Path.Combine(settingsPath, "settings.json");
+        return Path.Combine(SettingsHelper.GetSettingsDirectory(), "settings.json");
     }
 }

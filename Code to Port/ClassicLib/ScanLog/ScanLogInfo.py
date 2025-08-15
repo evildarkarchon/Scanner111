@@ -24,13 +24,27 @@ class ThreadSafeLogCache:
         # Populate the cache with log content
         # Try async loading first for better performance
         try:
-            from ClassicLib.ScanLog.AsyncFileIO import integrate_async_file_loading
+            # Use FileIOCore for async loading
+            import asyncio
 
-            self.cache = integrate_async_file_loading(logfiles)
+            from ClassicLib.FileIOCore import FileIOCore
+
+            async def load_all_logs() -> dict[str, bytes]:
+                io_core = FileIOCore()
+                results = {}
+                for file in logfiles:
+                    try:
+                        content = await io_core.read_bytes(file)
+                        results[file.name] = content
+                    except (OSError, ValueError, UnicodeDecodeError) as e:
+                        msg_error(f"Error reading {file}: {e}")
+                return results
+
+            self.cache = asyncio.run(load_all_logs())
             from ClassicLib.Logger import logger
 
-            logger.debug(f"Loaded {len(self.cache)} crash logs using async I/O")
-        except (ImportError, Exception):
+            logger.debug(f"Loaded {len(self.cache)} crash logs using FileIOCore")
+        except (ImportError, RuntimeError, OSError):
             # Fallback to sync loading
             for file in logfiles:
                 try:

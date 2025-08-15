@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
 using FluentAssertions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
 using Scanner111.GUI.Models;
-using Xunit;
 
 namespace Scanner111.Tests.GUI.Models;
 
@@ -81,6 +78,7 @@ public class ScanResultViewModelTests
             scanResult.Status = ScanStatus.Failed;
             scanResult.AddError("Failed scan");
         }
+
         if (hasErrors)
             scanResult.AddError("Test error");
         var viewModel = new ScanResultViewModel(scanResult);
@@ -106,7 +104,10 @@ public class ScanResultViewModelTests
             scanResult.Status = ScanStatus.Failed;
         }
         else if (severity == "WARNING")
+        {
             scanResult.AddError("Test error");
+        }
+
         var viewModel = new ScanResultViewModel(scanResult);
 
         // Act
@@ -120,7 +121,7 @@ public class ScanResultViewModelTests
     public void Category_ReturnsStatusString()
     {
         // Arrange
-        var scanResult = new ScanResult 
+        var scanResult = new ScanResult
         {
             LogPath = "test.log",
             Status = ScanStatus.Completed
@@ -229,6 +230,7 @@ public class ScanResultViewModelTests
         // Assert
         viewModel1.ScanResult.Should().BeSameAs(scanResult, "because view model should reference the same scan result");
         viewModel2.ScanResult.Should().BeSameAs(scanResult, "because view model should reference the same scan result");
-        viewModel1.ScanResult.Should().BeSameAs(viewModel2.ScanResult, "because both view models should reference the same instance");
+        viewModel1.ScanResult.Should().BeSameAs(viewModel2.ScanResult,
+            "because both view models should reference the same instance");
     }
 }

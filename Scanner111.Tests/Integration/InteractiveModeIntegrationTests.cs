@@ -1,7 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using Spectre.Console;
-using Spectre.Console.Testing;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
@@ -10,25 +8,26 @@ using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Tests.CLI.TestHelpers;
 using Scanner111.Tests.TestHelpers;
-using Xunit;
+using Spectre.Console;
+using Spectre.Console.Testing;
 
 namespace Scanner111.Tests.Integration;
 
 public class InteractiveModeIntegrationTests : IDisposable
 {
-    private readonly ServiceProvider _serviceProvider;
     private readonly TestConsole _console;
     private readonly TestMessageCapture _messageCapture;
     private readonly Mock<IApplicationSettingsService> _mockSettingsService;
+    private readonly ServiceProvider _serviceProvider;
 
     public InteractiveModeIntegrationTests()
     {
         _console = SpectreTestHelper.CreateTestConsole();
         AnsiConsole.Console = _console;
-        
+
         _messageCapture = new TestMessageCapture();
         MessageHandler.Initialize(_messageCapture);
-        
+
         _mockSettingsService = new Mock<IApplicationSettingsService>();
         _mockSettingsService
             .Setup(x => x.LoadSettingsAsync())
@@ -39,19 +38,25 @@ public class InteractiveModeIntegrationTests : IDisposable
         _serviceProvider = services.BuildServiceProvider();
     }
 
+    public void Dispose()
+    {
+        _serviceProvider?.Dispose();
+        MessageHandler.Initialize(new TestMessageHandler());
+    }
+
     private void ConfigureTestServices(IServiceCollection services)
     {
         // Register test implementations
         services.AddSingleton<IMessageHandler>(_messageCapture);
         services.AddSingleton<IApplicationSettingsService>(_mockSettingsService.Object);
         services.AddSingleton<ITerminalUIService, SpectreTerminalUIService>();
-        
+
         // Register mock commands
         services.AddTransient<ICommand<ScanOptions>>(sp => new MockScanCommand());
         services.AddTransient<ICommand<FcxOptions>>(sp => new MockFcxCommand());
         services.AddTransient<ICommand<ConfigOptions>>(sp => new MockConfigCommand());
         services.AddTransient<ICommand<AboutOptions>>(sp => new MockAboutCommand());
-        
+
         // Register the interactive command
         services.AddTransient<InteractiveCommand>();
     }
@@ -162,7 +167,7 @@ public class InteractiveModeIntegrationTests : IDisposable
         // Arrange
         var command = _serviceProvider.GetRequiredService<InteractiveCommand>();
         var options = new InteractiveOptions { Theme = "default" };
-        
+
         // Simulate user selecting "Quit"
         _console.Input.PushKey(ConsoleKey.DownArrow);
         _console.Input.PushKey(ConsoleKey.DownArrow);
@@ -177,12 +182,6 @@ public class InteractiveModeIntegrationTests : IDisposable
 
         // Assert
         Assert.Equal(0, result);
-    }
-
-    public void Dispose()
-    {
-        _serviceProvider?.Dispose();
-        MessageHandler.Initialize(new TestMessageHandler());
     }
 
     // Mock command implementations for testing

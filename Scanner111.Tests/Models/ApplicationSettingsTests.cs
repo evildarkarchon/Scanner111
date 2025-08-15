@@ -1,7 +1,6 @@
 using System.Text.Json.Serialization;
-using Scanner111.Core.Models;
-using Xunit;
 using FluentAssertions;
+using Scanner111.Core.Models;
 
 namespace Scanner111.Tests.Models;
 
@@ -11,7 +10,7 @@ public class ApplicationSettingsTests
     public void Constructor_InitializesDefaultValues()
     {
         var settings = new ApplicationSettings();
-        
+
         settings.FcxMode.Should().BeFalse("FcxMode should be false by default");
         settings.ShowFormIdValues.Should().BeFalse("ShowFormIdValues should be false by default");
         settings.SimplifyLogs.Should().BeFalse("SimplifyLogs should be false by default");
@@ -60,8 +59,9 @@ public class ApplicationSettingsTests
         var settings = new ApplicationSettings();
         settings.RecentScanDirectories.Add("path1");
         settings.RecentScanDirectories.Add("path2");
-        
-        settings.RecentScanPaths.Should().BeSameAs(settings.RecentScanDirectories, "RecentScanPaths should reference the same list as RecentScanDirectories");
+
+        settings.RecentScanPaths.Should().BeSameAs(settings.RecentScanDirectories,
+            "RecentScanPaths should reference the same list as RecentScanDirectories");
         settings.RecentScanPaths.Should().HaveCount(2, "two items should be in the list");
         settings.RecentScanPaths[0].Should().Be("path1", "value should match expected");
         settings.RecentScanPaths[1].Should().Be("path2", "value should match expected");
@@ -71,10 +71,10 @@ public class ApplicationSettingsTests
     public void AddRecentLogFile_AddsToFrontOfList()
     {
         var settings = new ApplicationSettings();
-        
+
         settings.AddRecentLogFile("path1");
         settings.AddRecentLogFile("path2");
-        
+
         settings.RecentLogFiles.Should().HaveCount(2, "two items should be in the list");
         settings.RecentLogFiles[0].Should().Be("path2", "value should match expected");
         settings.RecentLogFiles[1].Should().Be("path1", "value should match expected");
@@ -84,11 +84,11 @@ public class ApplicationSettingsTests
     public void AddRecentLogFile_RemovesDuplicates()
     {
         var settings = new ApplicationSettings();
-        
+
         settings.AddRecentLogFile("path1");
         settings.AddRecentLogFile("path2");
         settings.AddRecentLogFile("path1");
-        
+
         settings.RecentLogFiles.Should().HaveCount(2, "two items should be in the list");
         settings.RecentLogFiles[0].Should().Be("path1", "value should match expected");
         settings.RecentLogFiles[1].Should().Be("path2", "value should match expected");
@@ -98,12 +98,12 @@ public class ApplicationSettingsTests
     public void AddRecentLogFile_RespectsMaxRecentItems()
     {
         var settings = new ApplicationSettings { MaxRecentItems = 3 };
-        
+
         settings.AddRecentLogFile("path1");
         settings.AddRecentLogFile("path2");
         settings.AddRecentLogFile("path3");
         settings.AddRecentLogFile("path4");
-        
+
         settings.RecentLogFiles.Should().HaveCount(3, "count should match expected");
         settings.RecentLogFiles[0].Should().Be("path4", "value should match expected");
         settings.RecentLogFiles[1].Should().Be("path3", "value should match expected");
@@ -115,11 +115,11 @@ public class ApplicationSettingsTests
     public void AddRecentLogFile_IgnoresEmptyOrNullPaths()
     {
         var settings = new ApplicationSettings();
-        
+
         settings.AddRecentLogFile(null);
         settings.AddRecentLogFile("");
         settings.AddRecentLogFile("   ");
-        
+
         settings.RecentLogFiles.Should().BeEmpty("collection should be empty");
     }
 
@@ -127,10 +127,10 @@ public class ApplicationSettingsTests
     public void AddRecentGamePath_AddsToFrontOfList()
     {
         var settings = new ApplicationSettings();
-        
+
         settings.AddRecentGamePath("path1");
         settings.AddRecentGamePath("path2");
-        
+
         settings.RecentGamePaths.Should().HaveCount(2, "count should match expected");
         settings.RecentGamePaths[0].Should().Be("path2", "value should match expected");
         settings.RecentGamePaths[1].Should().Be("path1", "value should match expected");
@@ -140,11 +140,11 @@ public class ApplicationSettingsTests
     public void AddRecentGamePath_RemovesDuplicates()
     {
         var settings = new ApplicationSettings();
-        
+
         settings.AddRecentGamePath("path1");
         settings.AddRecentGamePath("path2");
         settings.AddRecentGamePath("path1");
-        
+
         settings.RecentGamePaths.Should().HaveCount(2, "count should match expected");
         settings.RecentGamePaths[0].Should().Be("path1", "value should match expected");
         settings.RecentGamePaths[1].Should().Be("path2", "value should match expected");
@@ -154,12 +154,12 @@ public class ApplicationSettingsTests
     public void AddRecentGamePath_RespectsMaxRecentItems()
     {
         var settings = new ApplicationSettings { MaxRecentItems = 3 };
-        
+
         settings.AddRecentGamePath("path1");
         settings.AddRecentGamePath("path2");
         settings.AddRecentGamePath("path3");
         settings.AddRecentGamePath("path4");
-        
+
         settings.RecentGamePaths.Should().HaveCount(3, "count should match expected");
         settings.RecentGamePaths[0].Should().Be("path4", "value should match expected");
         settings.RecentGamePaths[1].Should().Be("path3", "value should match expected");
@@ -171,10 +171,10 @@ public class ApplicationSettingsTests
     public void AddRecentGamePath_IgnoresEmptyOrNullPaths()
     {
         var settings = new ApplicationSettings();
-        
+
         settings.AddRecentGamePath(null);
         settings.AddRecentGamePath("");
-        
+
         settings.RecentGamePaths.Should().BeEmpty("collection should be empty");
     }
 
@@ -182,10 +182,10 @@ public class ApplicationSettingsTests
     public void AddRecentScanDirectory_AddsToFrontOfList()
     {
         var settings = new ApplicationSettings();
-        
+
         settings.AddRecentScanDirectory("path1");
         settings.AddRecentScanDirectory("path2");
-        
+
         settings.RecentScanDirectories.Should().HaveCount(2, "count should match expected");
         settings.RecentScanDirectories[0].Should().Be("path2", "value should match expected");
         settings.RecentScanDirectories[1].Should().Be("path1", "value should match expected");
@@ -195,11 +195,11 @@ public class ApplicationSettingsTests
     public void AddRecentScanDirectory_RemovesDuplicates()
     {
         var settings = new ApplicationSettings();
-        
+
         settings.AddRecentScanDirectory("path1");
         settings.AddRecentScanDirectory("path2");
         settings.AddRecentScanDirectory("path1");
-        
+
         settings.RecentScanDirectories.Should().HaveCount(2, "count should match expected");
         settings.RecentScanDirectories[0].Should().Be("path1", "value should match expected");
         settings.RecentScanDirectories[1].Should().Be("path2", "value should match expected");
@@ -209,12 +209,12 @@ public class ApplicationSettingsTests
     public void AddRecentScanDirectory_RespectsMaxRecentItems()
     {
         var settings = new ApplicationSettings { MaxRecentItems = 3 };
-        
+
         settings.AddRecentScanDirectory("path1");
         settings.AddRecentScanDirectory("path2");
         settings.AddRecentScanDirectory("path3");
         settings.AddRecentScanDirectory("path4");
-        
+
         settings.RecentScanDirectories.Should().HaveCount(3, "count should match expected");
         settings.RecentScanDirectories[0].Should().Be("path4", "value should match expected");
         settings.RecentScanDirectories[1].Should().Be("path3", "value should match expected");
@@ -226,10 +226,10 @@ public class ApplicationSettingsTests
     public void AddRecentScanDirectory_IgnoresEmptyOrNullPaths()
     {
         var settings = new ApplicationSettings();
-        
+
         settings.AddRecentScanDirectory(null);
         settings.AddRecentScanDirectory("");
-        
+
         settings.RecentScanDirectories.Should().BeEmpty("collection should be empty");
     }
 
@@ -237,10 +237,10 @@ public class ApplicationSettingsTests
     public void AddRecentPath_DelegatesToAddRecentScanDirectory()
     {
         var settings = new ApplicationSettings();
-        
+
         settings.AddRecentPath("path1");
         settings.AddRecentPath("path2");
-        
+
         settings.RecentScanDirectories.Should().HaveCount(2, "count should match expected");
         settings.RecentScanDirectories[0].Should().Be("path2", "value should match expected");
         settings.RecentScanDirectories[1].Should().Be("path1", "value should match expected");
@@ -251,9 +251,9 @@ public class ApplicationSettingsTests
     {
         var settings = new ApplicationSettings { MaxRecentItems = 10 };
         var tasks = new List<Task>();
-        
+
         // Add items concurrently from multiple threads
-        for (int i = 0; i < 100; i++)
+        for (var i = 0; i < 100; i++)
         {
             var index = i;
             tasks.Add(Task.Run(() =>
@@ -263,14 +263,17 @@ public class ApplicationSettingsTests
                 settings.AddRecentScanDirectory($"scan{index}");
             }));
         }
-        
+
         Task.WaitAll(tasks.ToArray());
-        
+
         // Verify lists are not corrupted and respect max items
-        settings.RecentLogFiles.Count.Should().BeLessThanOrEqualTo(settings.MaxRecentItems, "value should be within limit");
-        settings.RecentGamePaths.Count.Should().BeLessThanOrEqualTo(settings.MaxRecentItems, "value should be within limit");
-        settings.RecentScanDirectories.Count.Should().BeLessThanOrEqualTo(settings.MaxRecentItems, "value should be within limit");
-        
+        settings.RecentLogFiles.Count.Should()
+            .BeLessThanOrEqualTo(settings.MaxRecentItems, "value should be within limit");
+        settings.RecentGamePaths.Count.Should()
+            .BeLessThanOrEqualTo(settings.MaxRecentItems, "value should be within limit");
+        settings.RecentScanDirectories.Count.Should()
+            .BeLessThanOrEqualTo(settings.MaxRecentItems, "value should be within limit");
+
         // Verify no null entries were added during concurrent access
         settings.RecentLogFiles.Should().NotContain((string)null!, "list should not contain null");
         settings.RecentGamePaths.Should().NotContain((string)null!, "list should not contain null");
@@ -282,20 +285,21 @@ public class ApplicationSettingsTests
     {
         var settings = new ApplicationSettings();
         var type = settings.GetType();
-        
+
         // Verify some key properties have correct JSON property names
         var fcxModeProperty = type.GetProperty(nameof(ApplicationSettings.FcxMode));
         var fcxModeAttribute = fcxModeProperty?.GetCustomAttributes(typeof(JsonPropertyNameAttribute), false)
             .FirstOrDefault() as JsonPropertyNameAttribute;
         fcxModeAttribute?.Name.Should().Be("fcxMode", "value should match expected");
-        
+
         var showFormIdProperty = type.GetProperty(nameof(ApplicationSettings.ShowFormIdValues));
         var showFormIdAttribute = showFormIdProperty?.GetCustomAttributes(typeof(JsonPropertyNameAttribute), false)
             .FirstOrDefault() as JsonPropertyNameAttribute;
         showFormIdAttribute?.Name.Should().Be("showFormIdValues", "value should match expected");
-        
+
         var defaultLogPathProperty = type.GetProperty(nameof(ApplicationSettings.DefaultLogPath));
-        var defaultLogPathAttribute = defaultLogPathProperty?.GetCustomAttributes(typeof(JsonPropertyNameAttribute), false)
+        var defaultLogPathAttribute = defaultLogPathProperty
+            ?.GetCustomAttributes(typeof(JsonPropertyNameAttribute), false)
             .FirstOrDefault() as JsonPropertyNameAttribute;
         defaultLogPathAttribute?.Name.Should().Be("defaultLogPath", "value should match expected");
     }
@@ -304,20 +308,20 @@ public class ApplicationSettingsTests
     public void SettingsProperties_CanBeModified()
     {
         var settings = new ApplicationSettings();
-        
+
         // Test modifying various properties
         settings.FcxMode = true;
         settings.FcxMode.Should().BeTrue("condition should be true");
-        
+
         settings.ShowFormIdValues = true;
         settings.ShowFormIdValues.Should().BeTrue("condition should be true");
-        
+
         settings.MaxConcurrentScans = 32;
         settings.MaxConcurrentScans.Should().Be(32, "value should match expected");
-        
+
         settings.DefaultOutputFormat = "json";
         settings.DefaultOutputFormat.Should().Be("json", "value should match expected");
-        
+
         settings.WindowWidth = 1920;
         settings.WindowHeight = 1080;
         settings.WindowWidth.Should().Be(1920, "value should match expected");

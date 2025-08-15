@@ -5,11 +5,11 @@ using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analyzers;
+using Scanner111.Core.FCX;
 using Scanner111.Core.Infrastructure;
+using Scanner111.Core.ModManagers;
 using Scanner111.Core.Pipeline;
 using Scanner111.Core.Services;
-using Scanner111.Core.ModManagers;
-using Scanner111.Core.FCX;
 using Scanner111.GUI.Services;
 using Scanner111.GUI.ViewModels;
 using Scanner111.GUI.Views;
@@ -21,13 +21,13 @@ public class App : Application
     private IServiceProvider? _serviceProvider;
 
     /// <summary>
-    /// Initializes the Avalonia application by loading its XAML resources.
+    ///     Initializes the Avalonia application by loading its XAML resources.
     /// </summary>
     /// <remarks>
-    /// This method is overridden from the base <see cref="Application"/> class to
-    /// load the XAML resources associated with the application. It ensures that
-    /// all styles, templates, and other UI components defined in XAML are properly
-    /// initialized before the application starts running.
+    ///     This method is overridden from the base <see cref="Application" /> class to
+    ///     load the XAML resources associated with the application. It ensures that
+    ///     all styles, templates, and other UI components defined in XAML are properly
+    ///     initialized before the application starts running.
     /// </remarks>
     public override void Initialize()
     {
@@ -35,16 +35,16 @@ public class App : Application
     }
 
     /// <summary>
-    /// Called when the framework has completed its initialization process.
+    ///     Called when the framework has completed its initialization process.
     /// </summary>
     /// <remarks>
-    /// This method is overridden to provide additional setup for the application's
-    /// startup sequence. It configures dependency injection and ensures that the main window
-    /// is created and assigned to the application's lifetime. If the application is configured
-    /// to use a <see cref="IClassicDesktopStyleApplicationLifetime"/>, the main window
-    /// will be set to an instance of <c>MainWindow</c> with proper DI integration.
-    /// After performing the custom initialization, the method calls the base implementation
-    /// to complete the default framework setup process.
+    ///     This method is overridden to provide additional setup for the application's
+    ///     startup sequence. It configures dependency injection and ensures that the main window
+    ///     is created and assigned to the application's lifetime. If the application is configured
+    ///     to use a <see cref="IClassicDesktopStyleApplicationLifetime" />, the main window
+    ///     will be set to an instance of <c>MainWindow</c> with proper DI integration.
+    ///     After performing the custom initialization, the method calls the base implementation
+    ///     to complete the default framework setup process.
     /// </remarks>
     public override void OnFrameworkInitializationCompleted()
     {
@@ -64,7 +64,7 @@ public class App : Application
     }
 
     /// <summary>
-    /// Configures the dependency injection container with all required services.
+    ///     Configures the dependency injection container with all required services.
     /// </summary>
     /// <param name="services">The service collection to configure.</param>
     private static void ConfigureServices(IServiceCollection services)

@@ -13,7 +13,8 @@
         Icon="/Assets/avalonia-logo.ico"
         Title="Scanner111 - CLASSIC Crash Log Analyzer"
         MinWidth="800" MinHeight="600"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        DragDrop.AllowDrop="True">
 
     <NativeMenu.Menu>
         <NativeMenu>
@@ -48,12 +49,41 @@
         <!-- Traditional Menu Bar -->
         <Menu Grid.Row="0" Background="#FF3c3c3c">
             <MenuItem Header="_File">
-                <MenuItem Header="_Settings..." Command="{Binding OpenSettingsCommand}" />
+                <MenuItem Header="_Open Log File..." Command="{Binding SelectLogFileCommand}" InputGesture="Ctrl+O" />
+                <MenuItem Header="Open _Recent" IsVisible="{Binding HasRecentFiles}">
+                    <MenuItem.ItemsSource>
+                        <Binding Path="RecentFiles" />
+                    </MenuItem.ItemsSource>
+                    <MenuItem.ItemTemplate>
+                        <DataTemplate>
+                            <MenuItem Header="{Binding DisplayName}"
+                                      ToolTip.Tip="{Binding Path}"
+                                      Command="{Binding $parent[Window].DataContext.OpenRecentFileCommand}"
+                                      CommandParameter="{Binding Path}" />
+                        </DataTemplate>
+                    </MenuItem.ItemTemplate>
+                </MenuItem>
+                <MenuItem Header="_Clear Recent Files"
+                          Command="{Binding ClearRecentFilesCommand}"
+                          IsEnabled="{Binding HasRecentFiles}" />
                 <Separator />
-                <MenuItem Header="E_xit" />
+                <MenuItem Header="_Settings..." Command="{Binding OpenSettingsCommand}" InputGesture="Ctrl+," />
+                <Separator />
+                <MenuItem Header="E_xit" Command="{Binding ExitCommand}" InputGesture="Ctrl+Q" />
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Header="_Statistics" Command="{Binding ShowStatisticsCommand}" InputGesture="Ctrl+T" />
+                <Separator />
+                <MenuItem Header="_Theme">
+                    <MenuItem Header="_Dark" Command="{Binding SetThemeCommand}" CommandParameter="Dark" />
+                    <MenuItem Header="_Light" Command="{Binding SetThemeCommand}" CommandParameter="Light" />
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="_Help">
-                <MenuItem Header="_About" />
+                <MenuItem Header="_Documentation" Command="{Binding ShowHelpCommand}" InputGesture="F1" />
+                <MenuItem Header="_Keyboard Shortcuts" Command="{Binding ShowKeyboardShortcutsCommand}" />
+                <Separator />
+                <MenuItem Header="_About" Command="{Binding ShowAboutCommand}" />
             </MenuItem>
         </Menu>
 
@@ -367,29 +397,30 @@
                     <!-- FCX Controls -->
                     <Border Grid.Row="0" Background="#FF3c3c3c" Padding="15" Margin="5">
                         <StackPanel Spacing="10">
-                            <TextBlock Text="File Integrity Check (FCX)" 
-                                       FontSize="16" FontWeight="Bold" 
+                            <TextBlock Text="File Integrity Check (FCX)"
+                                       FontSize="16" FontWeight="Bold"
                                        Foreground="#FF0e639c" />
-                            
-                            <TextBlock Text="Verify game installation integrity and check for missing or corrupted files"
-                                       Foreground="#FFCCCCCC" />
-                            
+
+                            <TextBlock
+                                Text="Verify game installation integrity and check for missing or corrupted files"
+                                Foreground="#FFCCCCCC" />
+
                             <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left">
-                                <Button Content="Run FCX Scan" 
+                                <Button Content="Run FCX Scan"
                                         Command="{Binding RunFcxScanCommand}"
-                                        Background="#FF0e639c" 
+                                        Background="#FF0e639c"
                                         Foreground="White"
                                         Padding="15,5" />
-                                
-                                <Button Content="Validate Game Install" 
+
+                                <Button Content="Validate Game Install"
                                         Command="{Binding ValidateGameInstallCommand}"
-                                        Background="#FF666666" 
+                                        Background="#FF666666"
                                         Foreground="White"
                                         Padding="15,5" />
-                                
-                                <Button Content="Backup Game Files" 
+
+                                <Button Content="Backup Game Files"
                                         Command="{Binding BackupGameFilesCommand}"
-                                        Background="#FF666666" 
+                                        Background="#FF666666"
                                         Foreground="White"
                                         Padding="15,5" />
                             </StackPanel>
@@ -405,45 +436,45 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            
+
                             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
-                                <TextBlock Text="Mod Manager:" 
-                                           Foreground="White" 
+                                <TextBlock Text="Mod Manager:"
+                                           Foreground="White"
                                            FontWeight="Bold"
                                            VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding ModManagerStatus}" 
+                                <TextBlock Text="{Binding ModManagerStatus}"
                                            Foreground="#FF0e639c"
                                            VerticalAlignment="Center" />
                             </StackPanel>
-                            
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" 
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10"
                                         HorizontalAlignment="Center"
                                         IsVisible="{Binding ModManagerDetected}">
-                                <TextBlock Text="Active Mods:" 
+                                <TextBlock Text="Active Mods:"
                                            Foreground="White"
                                            VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding DetectedMods.Count}" 
+                                <TextBlock Text="{Binding DetectedMods.Count}"
                                            Foreground="#FF0e639c"
                                            FontWeight="Bold"
                                            VerticalAlignment="Center" />
                             </StackPanel>
-                            
-                            <Button Grid.Column="2" 
-                                    Content="Refresh" 
+
+                            <Button Grid.Column="2"
+                                    Content="Refresh"
                                     Command="{Binding RefreshModManagersCommand}"
-                                    Background="#FF666666" 
+                                    Background="#FF666666"
                                     Foreground="White"
                                     Padding="10,3" />
                         </Grid>
                     </Border>
 
                     <!-- FCX Status -->
-                    <Border Grid.Row="2" Background="#FF3c3c3c" Padding="10" Margin="5,0,5,5" 
+                    <Border Grid.Row="2" Background="#FF3c3c3c" Padding="10" Margin="5,0,5,5"
                             IsVisible="{Binding FcxResult, Converter={x:Static ObjectConverters.IsNotNull}}">
                         <StackPanel Orientation="Horizontal" Spacing="20">
                             <TextBlock Text="FCX Status:" Foreground="White" FontWeight="Bold" />
-                            <TextBlock Text="{Binding FcxResult.OverallStatus}" 
-                                       Foreground="{Binding FcxResult.StatusColor}" 
+                            <TextBlock Text="{Binding FcxResult.OverallStatus}"
+                                       Foreground="{Binding FcxResult.StatusColor}"
                                        FontWeight="Bold" />
                             <Separator Width="1" Background="#FF666666" />
                             <TextBlock Text="{Binding FcxResult.Summary}" Foreground="#FFCCCCCC" />

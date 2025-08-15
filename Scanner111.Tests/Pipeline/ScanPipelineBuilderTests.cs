@@ -1,15 +1,10 @@
-using System;
-using System.Linq;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
-using Scanner111.Tests.TestHelpers;
-using Xunit;
 
 namespace Scanner111.Tests.Pipeline;
 
@@ -29,12 +24,12 @@ public class ScanPipelineBuilderTests
     {
         // Arrange
         _builder.WithMessageHandler(_messageHandler)
-                .WithCaching(false)
-                .WithEnhancedErrorHandling(false);
-        
+            .WithCaching(false)
+            .WithEnhancedErrorHandling(false);
+
         // Act
         var pipeline = _builder.Build();
-        
+
         // Assert
         pipeline.Should().NotBeNull();
         pipeline.Should().BeOfType<ScanPipeline>();
@@ -45,12 +40,12 @@ public class ScanPipelineBuilderTests
     {
         // Arrange
         _builder.WithMessageHandler(_messageHandler)
-                .WithCaching(true)
-                .WithEnhancedErrorHandling(false);
-        
+            .WithCaching()
+            .WithEnhancedErrorHandling(false);
+
         // Act
         var pipeline = _builder.Build();
-        
+
         // Assert
         pipeline.Should().NotBeNull();
         pipeline.Should().BeOfType<EnhancedScanPipeline>();
@@ -61,12 +56,12 @@ public class ScanPipelineBuilderTests
     {
         // Arrange
         _builder.WithMessageHandler(_messageHandler)
-                .WithCaching(false)
-                .WithEnhancedErrorHandling(true);
-        
+            .WithCaching(false)
+            .WithEnhancedErrorHandling();
+
         // Act
         var pipeline = _builder.Build();
-        
+
         // Assert
         pipeline.Should().NotBeNull();
         pipeline.Should().BeOfType<EnhancedScanPipeline>();
@@ -77,11 +72,11 @@ public class ScanPipelineBuilderTests
     {
         // Arrange
         _builder.WithMessageHandler(_messageHandler)
-                .WithPerformanceMonitoring(true);
-        
+            .WithPerformanceMonitoring();
+
         // Act
         var pipeline = _builder.Build();
-        
+
         // Assert
         pipeline.Should().NotBeNull();
         pipeline.Should().BeOfType<PerformanceMonitoringPipeline>();
@@ -92,11 +87,11 @@ public class ScanPipelineBuilderTests
     {
         // Arrange
         _builder.WithMessageHandler(_messageHandler)
-                .WithFcxMode(true);
-        
+            .WithFcxMode();
+
         // Act
         var pipeline = _builder.Build();
-        
+
         // Assert
         pipeline.Should().NotBeNull();
         pipeline.Should().BeOfType<FcxEnabledPipeline>();
@@ -107,18 +102,18 @@ public class ScanPipelineBuilderTests
     {
         // Arrange
         _builder.WithMessageHandler(_messageHandler)
-                .WithCaching(true)
-                .WithEnhancedErrorHandling(true)
-                .WithFcxMode(true)
-                .WithPerformanceMonitoring(true);
-        
+            .WithCaching()
+            .WithEnhancedErrorHandling()
+            .WithFcxMode()
+            .WithPerformanceMonitoring();
+
         // Act
         var pipeline = _builder.Build();
-        
+
         // Assert
         pipeline.Should().NotBeNull();
         pipeline.Should().BeOfType<PerformanceMonitoringPipeline>();
-        
+
         // The wrapped pipeline hierarchy should include FcxEnabledPipeline
         // Note: Direct field access testing removed due to encapsulation
     }
@@ -128,10 +123,10 @@ public class ScanPipelineBuilderTests
     {
         // Arrange & Act
         _builder.AddAnalyzer<TestAnalyzer>()
-                .WithMessageHandler(_messageHandler);
-        
+            .WithMessageHandler(_messageHandler);
+
         var pipeline = _builder.Build();
-        
+
         // Assert
         // We can't directly inspect the analyzers, but the pipeline should build successfully
         pipeline.Should().NotBeNull();
@@ -142,10 +137,10 @@ public class ScanPipelineBuilderTests
     {
         // Arrange & Act
         _builder.AddDefaultAnalyzers()
-                .WithMessageHandler(_messageHandler);
-        
+            .WithMessageHandler(_messageHandler);
+
         var pipeline = _builder.Build();
-        
+
         // Assert
         // The pipeline should build successfully with all default analyzers
         pipeline.Should().NotBeNull();
@@ -156,13 +151,13 @@ public class ScanPipelineBuilderTests
     {
         // Arrange
         var customHandler = new Mock<IMessageHandler>().Object;
-        
+
         // Act
         var result = _builder.WithMessageHandler(customHandler);
-        
+
         // Assert
         Assert.Same(_builder, result); // Fluent interface returns same instance
-        
+
         // Build pipeline to verify handler is used
         var pipeline = _builder.Build();
         pipeline.Should().NotBeNull();
@@ -173,17 +168,17 @@ public class ScanPipelineBuilderTests
     {
         // Arrange
         var logConfigured = false;
-        
+
         // Act
         var result = _builder.WithLogging(logging =>
         {
             logConfigured = true;
             logging.SetMinimumLevel(LogLevel.Debug);
         }).WithMessageHandler(_messageHandler);
-        
+
         // Assert
         Assert.Same(_builder, result);
-        
+
         var pipeline = _builder.Build();
         pipeline.Should().NotBeNull();
         logConfigured.Should().BeTrue();
@@ -194,7 +189,7 @@ public class ScanPipelineBuilderTests
     {
         // Act
         var pipeline = _builder.Build();
-        
+
         // Assert
         pipeline.Should().NotBeNull();
         // Pipeline should build successfully with default NullMessageHandler
@@ -205,11 +200,11 @@ public class ScanPipelineBuilderTests
     {
         // Arrange
         _builder.WithCaching(false)
-                .WithMessageHandler(_messageHandler);
-        
+            .WithMessageHandler(_messageHandler);
+
         // Act
         var pipeline = _builder.Build();
-        
+
         // Assert
         pipeline.Should().NotBeNull();
         // Should use NullCacheManager when caching is disabled
@@ -220,11 +215,11 @@ public class ScanPipelineBuilderTests
     {
         // Arrange
         _builder.WithEnhancedErrorHandling(false)
-                .WithMessageHandler(_messageHandler);
-        
+            .WithMessageHandler(_messageHandler);
+
         // Act
         var pipeline = _builder.Build();
-        
+
         // Assert
         pipeline.Should().NotBeNull();
         // Should use NoRetryErrorPolicy when enhanced error handling is disabled
@@ -235,12 +230,12 @@ public class ScanPipelineBuilderTests
     {
         // Arrange & Act
         _builder.AddAnalyzer<TestAnalyzer>()
-                .AddAnalyzer<TestAnalyzer2>()
-                .AddAnalyzer<TestAnalyzer3>()
-                .WithMessageHandler(_messageHandler);
-        
+            .AddAnalyzer<TestAnalyzer2>()
+            .AddAnalyzer<TestAnalyzer3>()
+            .WithMessageHandler(_messageHandler);
+
         var pipeline = _builder.Build();
-        
+
         // Assert
         pipeline.Should().NotBeNull();
         // All analyzers should be registered and pipeline should build successfully
@@ -251,11 +246,11 @@ public class ScanPipelineBuilderTests
     {
         // Arrange
         _builder.WithMessageHandler(_messageHandler);
-        
+
         // Act
         var pipeline1 = _builder.Build();
         var pipeline2 = _builder.Build();
-        
+
         // Assert
         pipeline1.Should().NotBeNull();
         pipeline2.Should().NotBeNull();
@@ -274,7 +269,7 @@ public class ScanPipelineBuilderTests
         var result6 = _builder.WithEnhancedErrorHandling();
         var result7 = _builder.WithFcxMode();
         var result8 = _builder.WithLogging(_ => { });
-        
+
         // Assert
         Assert.Same(_builder, result1);
         Assert.Same(_builder, result2);
@@ -292,7 +287,7 @@ public class ScanPipelineBuilderTests
         public string Name => "Test Analyzer";
         public int Priority => 100;
         public bool CanRunInParallel => true;
-        
+
         public Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
         {
             return Task.FromResult<AnalysisResult>(new GenericAnalysisResult { AnalyzerName = Name });
@@ -304,7 +299,7 @@ public class ScanPipelineBuilderTests
         public string Name => "Test Analyzer 2";
         public int Priority => 200;
         public bool CanRunInParallel => false;
-        
+
         public Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
         {
             return Task.FromResult<AnalysisResult>(new GenericAnalysisResult { AnalyzerName = Name });
@@ -316,7 +311,7 @@ public class ScanPipelineBuilderTests
         public string Name => "Test Analyzer 3";
         public int Priority => 300;
         public bool CanRunInParallel => true;
-        
+
         public Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
         {
             return Task.FromResult<AnalysisResult>(new GenericAnalysisResult { AnalyzerName = Name });

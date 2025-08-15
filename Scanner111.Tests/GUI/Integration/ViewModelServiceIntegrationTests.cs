@@ -1,8 +1,4 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Reactive.Linq;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
 using Scanner111.Core.Infrastructure;
@@ -11,40 +7,39 @@ using Scanner111.Core.Services;
 using Scanner111.GUI.Models;
 using Scanner111.GUI.Services;
 using Scanner111.GUI.ViewModels;
-using Xunit;
 
 namespace Scanner111.Tests.GUI.Integration;
 
 /// <summary>
-/// Integration tests that verify the interaction between ViewModels and Services.
-/// These tests ensure that ViewModels correctly utilize services and that the
-/// entire GUI layer works together properly.
+///     Integration tests that verify the interaction between ViewModels and Services.
+///     These tests ensure that ViewModels correctly utilize services and that the
+///     entire GUI layer works together properly.
 /// </summary>
 public class ViewModelServiceIntegrationTests : IDisposable
 {
-    private readonly string _testDirectory;
-    private readonly SettingsService _settingsService;
     private readonly GuiMessageHandlerService _messageHandler;
-    private readonly Mock<IUpdateService> _mockUpdateService;
     private readonly Mock<ICacheManager> _mockCacheManager;
     private readonly Mock<IUnsolvedLogsMover> _mockUnsolvedLogsMover;
+    private readonly Mock<IUpdateService> _mockUpdateService;
+    private readonly SettingsService _settingsService;
+    private readonly string _testDirectory;
 
     public ViewModelServiceIntegrationTests()
     {
         _testDirectory = Path.Combine(Path.GetTempPath(), $"Scanner111Test_{Guid.NewGuid()}");
         Directory.CreateDirectory(_testDirectory);
-        
+
         // Use real services where possible
         _settingsService = new SettingsService();
         _messageHandler = new GuiMessageHandlerService();
-        
+
         // Mock services that have external dependencies
         _mockUpdateService = new Mock<IUpdateService>();
         _mockCacheManager = new Mock<ICacheManager>();
         _mockUnsolvedLogsMover = new Mock<IUnsolvedLogsMover>();
-        
+
         // Set test environment
-        Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", 
+        Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH",
             Path.Combine(_testDirectory, "settings.json"));
     }
 
@@ -52,7 +47,6 @@ public class ViewModelServiceIntegrationTests : IDisposable
     {
         Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", null);
         if (Directory.Exists(_testDirectory))
-        {
             try
             {
                 Directory.Delete(_testDirectory, true);
@@ -61,7 +55,6 @@ public class ViewModelServiceIntegrationTests : IDisposable
             {
                 // Ignore cleanup errors
             }
-        }
     }
 
     [Fact]
@@ -74,7 +67,7 @@ public class ViewModelServiceIntegrationTests : IDisposable
             _mockUpdateService.Object,
             _mockCacheManager.Object,
             _mockUnsolvedLogsMover.Object);
-        
+
         // Wait for async initialization
         await Task.Delay(100);
 
@@ -85,9 +78,9 @@ public class ViewModelServiceIntegrationTests : IDisposable
         _messageHandler.ShowError("Error occurred");
 
         // Assert
-        viewModel.LogMessages.Should().Contain(m => m.Contains("Test message"), 
+        viewModel.LogMessages.Should().Contain(m => m.Contains("Test message"),
             "because log message was added directly");
-        viewModel.StatusText.Should().Be("Error: Error occurred", 
+        viewModel.StatusText.Should().Be("Error: Error occurred",
             "because the last message was an error");
     }
 
@@ -111,12 +104,12 @@ public class ViewModelServiceIntegrationTests : IDisposable
             _mockUpdateService.Object,
             _mockCacheManager.Object,
             _mockUnsolvedLogsMover.Object);
-        
+
         // Wait for async initialization
         await Task.Delay(200);
 
         // Assert
-        _mockUpdateService.Verify(u => u.IsLatestVersionAsync(It.IsAny<bool>(), default), 
+        _mockUpdateService.Verify(u => u.IsLatestVersionAsync(It.IsAny<bool>(), default),
             Times.Never, "because update check is disabled in settings");
     }
 
@@ -126,7 +119,7 @@ public class ViewModelServiceIntegrationTests : IDisposable
         // Arrange
         var settingsViewModel = new SettingsWindowViewModel(_settingsService);
         await Task.Delay(100); // Wait for initialization
-        
+
         // Modify settings
         settingsViewModel.DefaultLogPath = @"C:\Integration\modified.log";
         settingsViewModel.MaxLogMessages = 250;
@@ -144,10 +137,10 @@ public class ViewModelServiceIntegrationTests : IDisposable
         // Verify persistence by creating new view model
         var newSettingsViewModel = new SettingsWindowViewModel(_settingsService);
         await Task.Delay(100); // Wait for initialization
-        
-        newSettingsViewModel.DefaultLogPath.Should().Be(@"C:\Integration\modified.log", 
+
+        newSettingsViewModel.DefaultLogPath.Should().Be(@"C:\Integration\modified.log",
             "because settings were persisted");
-        newSettingsViewModel.MaxLogMessages.Should().Be(250, 
+        newSettingsViewModel.MaxLogMessages.Should().Be(250,
             "because max messages setting was persisted");
         newSettingsViewModel.EnableDebugLogging.Should().BeTrue(
             "because debug logging setting was persisted");
@@ -165,23 +158,23 @@ public class ViewModelServiceIntegrationTests : IDisposable
             _mockUpdateService.Object,
             _mockCacheManager.Object,
             _mockUnsolvedLogsMover.Object);
-        
+
         await Task.Delay(100); // Wait for initialization
 
         // Act - Use message handler to show progress
         using (var progressContext = _messageHandler.CreateProgressContext("Integration Test", 100))
         {
             progressContext.Update(25, "Processing step 1");
-            
+
             // Assert - During progress
             viewModel.ProgressVisible.Should().BeTrue("because progress is active");
-            viewModel.ProgressText.Should().Be("Integration Test: Processing step 1", 
+            viewModel.ProgressText.Should().Be("Integration Test: Processing step 1",
                 "because progress text is updated");
             viewModel.ProgressValue.Should().Be(25.0, "because progress is at 25%");
-            
+
             progressContext.Update(75, "Processing step 2");
             viewModel.ProgressValue.Should().Be(75.0, "because progress is at 75%");
-            
+
             progressContext.Complete();
             viewModel.ProgressValue.Should().Be(100.0, "because progress is complete");
         }
@@ -210,21 +203,21 @@ public class ViewModelServiceIntegrationTests : IDisposable
             _mockUpdateService.Object,
             _mockCacheManager.Object,
             _mockUnsolvedLogsMover.Object);
-        
+
         var settingsViewModel = new SettingsWindowViewModel(_settingsService);
-        
+
         await Task.Delay(200); // Wait for initialization
 
         // Assert - Both view models should have consistent settings
-        settingsViewModel.DefaultLogPath.Should().Be(@"C:\Shared\test.log", 
+        settingsViewModel.DefaultLogPath.Should().Be(@"C:\Shared\test.log",
             "because settings view model loaded the saved settings");
-        settingsViewModel.DefaultGamePath.Should().Be(@"C:\Games\Shared", 
+        settingsViewModel.DefaultGamePath.Should().Be(@"C:\Games\Shared",
             "because settings view model loaded the saved settings");
-        settingsViewModel.MaxLogMessages.Should().Be(150, 
+        settingsViewModel.MaxLogMessages.Should().Be(150,
             "because settings view model loaded the saved settings");
-        
+
         // Main view model should have attempted update check
-        _mockUpdateService.Verify(u => u.IsLatestVersionAsync(It.IsAny<bool>(), default), 
+        _mockUpdateService.Verify(u => u.IsLatestVersionAsync(It.IsAny<bool>(), default),
             Times.Once, "because update check is enabled in settings");
     }
 
@@ -240,7 +233,7 @@ public class ViewModelServiceIntegrationTests : IDisposable
         userSettings.RecentLogFiles.Add(@"C:\recent2.log");
         userSettings.RecentGamePaths.Add(@"C:\Games\Recent");
         userSettings.RecentScanDirectories.Add(@"C:\Scans\Recent");
-        
+
         await _settingsService.SaveUserSettingsAsync(userSettings);
 
         // Act
@@ -248,15 +241,15 @@ public class ViewModelServiceIntegrationTests : IDisposable
         await Task.Delay(100); // Wait for initialization
 
         // Assert
-        settingsViewModel.RecentLogFiles.Should().HaveCount(2, 
+        settingsViewModel.RecentLogFiles.Should().HaveCount(2,
             "because two recent log files were saved");
-        settingsViewModel.RecentLogFiles.Should().Contain(@"C:\recent1.log", 
+        settingsViewModel.RecentLogFiles.Should().Contain(@"C:\recent1.log",
             "because it was in saved settings");
-        settingsViewModel.RecentGamePaths.Should().HaveCount(1, 
+        settingsViewModel.RecentGamePaths.Should().HaveCount(1,
             "because one recent game path was saved");
-        settingsViewModel.RecentScanDirectories.Should().HaveCount(1, 
+        settingsViewModel.RecentScanDirectories.Should().HaveCount(1,
             "because one recent scan directory was saved");
-        
+
         settingsViewModel.HasRecentLogFiles.Should().BeTrue(
             "because recent log files exist");
         settingsViewModel.HasRecentGamePaths.Should().BeTrue(
@@ -273,7 +266,7 @@ public class ViewModelServiceIntegrationTests : IDisposable
         userSettings.RecentLogFiles.Add(@"C:\tobecleared.log");
         userSettings.RecentGamePaths.Add(@"C:\Games\ToBeCleared");
         await _settingsService.SaveUserSettingsAsync(userSettings);
-        
+
         var settingsViewModel = new SettingsWindowViewModel(_settingsService);
         await Task.Delay(100); // Wait for initialization
 
@@ -299,16 +292,16 @@ public class ViewModelServiceIntegrationTests : IDisposable
             DefaultOutputFormat = "markdown"
         };
         await _settingsService.SaveSettingsAsync(settings);
-        
+
         var viewModel = new MainWindowViewModel(
             _settingsService,
             _messageHandler,
             _mockUpdateService.Object,
             _mockCacheManager.Object,
             _mockUnsolvedLogsMover.Object);
-        
+
         await Task.Delay(100); // Wait for initialization
-        
+
         // Create a test log file
         var testLog = Path.Combine(_testDirectory, "test.log");
         File.WriteAllText(testLog, "Test crash log content");
@@ -318,7 +311,7 @@ public class ViewModelServiceIntegrationTests : IDisposable
         await viewModel.ScanCommand.Execute().FirstAsync();
 
         // Assert
-        viewModel.ScanResults.Should().HaveCount(1, 
+        viewModel.ScanResults.Should().HaveCount(1,
             "because one file was scanned");
         viewModel.LogMessages.Should().Contain(m => m.Contains("completed") || m.Contains("Scan completed"),
             "because scan completion should be logged");
@@ -346,9 +339,9 @@ public class ViewModelServiceIntegrationTests : IDisposable
             _mockUpdateService.Object,
             _mockCacheManager.Object,
             _mockUnsolvedLogsMover.Object);
-        
+
         await Task.Delay(100); // Wait for initialization
-        
+
         // Should not throw and should have some default state
         mainViewModel.Should().NotBeNull("because view model should be created despite error");
         mainViewModel.StatusText.Should().NotBeNullOrEmpty("because status should be set");
@@ -364,10 +357,10 @@ public class ViewModelServiceIntegrationTests : IDisposable
             MaxLogMessages = 100
         };
         await _settingsService.SaveSettingsAsync(originalSettings);
-        
+
         var settingsViewModel = new SettingsWindowViewModel(_settingsService);
         await Task.Delay(100); // Wait for initialization
-        
+
         // Modify settings
         settingsViewModel.DefaultLogPath = @"C:\Modified\path.log";
         settingsViewModel.MaxLogMessages = 200;
@@ -379,14 +372,14 @@ public class ViewModelServiceIntegrationTests : IDisposable
 
         // Assert
         windowClosed.Should().BeTrue("because window closes on cancel");
-        settingsViewModel.DefaultLogPath.Should().Be(@"C:\Original\path.log", 
+        settingsViewModel.DefaultLogPath.Should().Be(@"C:\Original\path.log",
             "because original value was restored");
-        settingsViewModel.MaxLogMessages.Should().Be(100, 
+        settingsViewModel.MaxLogMessages.Should().Be(100,
             "because original value was restored");
-        
+
         // Verify settings were not saved
         var loadedSettings = await _settingsService.LoadSettingsAsync();
-        loadedSettings.DefaultLogPath.Should().Be(@"C:\Original\path.log", 
+        loadedSettings.DefaultLogPath.Should().Be(@"C:\Original\path.log",
             "because cancelled changes were not persisted");
     }
 }

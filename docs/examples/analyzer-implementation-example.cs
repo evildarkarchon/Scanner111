@@ -15,7 +15,7 @@ public class RecordScanner : IAnalyzer
     
     // Cache the YAML data on initialization to avoid repeated file access
     private readonly ClassicMainYaml? _mainYaml;
-    private readonly ClassicFallout4Yaml? _fallout4Yaml;
+    private readonly ClassicFallout4YamlV2? _fallout4Yaml;
 
     public RecordScanner(
         IYamlSettingsProvider yamlSettings, 
@@ -32,7 +32,7 @@ public class RecordScanner : IAnalyzer
         var currentGame = appSettings.GetCurrentSettings().ManagedGame;
         if (currentGame == "Fallout 4")
         {
-            _fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+            _fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4YamlV2>("CLASSIC Fallout4");
         }
     }
 
@@ -156,11 +156,11 @@ public class GameDetectionService
     private void LoadGameInfo()
     {
         // Load Fallout 4 info
-        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4Yaml>("CLASSIC Fallout4");
+        var fallout4Yaml = _yamlSettings.LoadYaml<ClassicFallout4YamlV2>("CLASSIC Fallout4");
         if (fallout4Yaml != null)
         {
+            // Note: V2 doesn't have separate VR info - it's included in Versions
             _gameInfoCache["Fallout 4"] = fallout4Yaml.GameInfo;
-            _gameInfoCache["Fallout 4 VR"] = fallout4Yaml.GameVrInfo;
         }
         
         // Could load other games here

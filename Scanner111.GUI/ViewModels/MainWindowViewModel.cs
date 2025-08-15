@@ -15,9 +15,9 @@ using ReactiveUI;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
+using Scanner111.Core.ModManagers;
 using Scanner111.Core.Pipeline;
 using Scanner111.Core.Services;
-using Scanner111.Core.ModManagers;
 using Scanner111.GUI.Models;
 using Scanner111.GUI.Services;
 using Scanner111.GUI.Views;
@@ -25,34 +25,40 @@ using Scanner111.GUI.Views;
 namespace Scanner111.GUI.ViewModels;
 
 /// <summary>
-/// Represents the main ViewModel for the application's main window.
+///     Represents the main ViewModel for the application's main window.
 /// </summary>
 /// <remarks>
-/// This ViewModel is responsible for managing the main operations of the application,
-/// including file and folder selection, initiating and canceling scanning, managing scan results, and handling progress updates.
-/// It provides commands and properties to support the user interface.
-/// Inherits from <see cref="ViewModelBase"/> to leverage reactive property functionality.
+///     This ViewModel is responsible for managing the main operations of the application,
+///     including file and folder selection, initiating and canceling scanning, managing scan results, and handling
+///     progress updates.
+///     It provides commands and properties to support the user interface.
+///     Inherits from <see cref="ViewModelBase" /> to leverage reactive property functionality.
 /// </remarks>
 public class MainWindowViewModel : ViewModelBase
 {
-    private readonly ISettingsService _settingsService;
-    private readonly GuiMessageHandlerService _messageHandlerService;
-    private readonly IUpdateService _updateService;
     private readonly ICacheManager _cacheManager;
+    private readonly GuiMessageHandlerService _messageHandlerService;
     private readonly IModManagerService? _modManagerService;
+    private readonly IRecentItemsService? _recentItemsService;
+    private readonly ISettingsService _settingsService;
+    private readonly IStatisticsService? _statisticsService;
+    private readonly IThemeService? _themeService;
+    private readonly IUnsolvedLogsMover? _unsolvedLogsMover;
+    private readonly IUpdateService _updateService;
+    private IAudioNotificationService? _audioNotificationService;
     private UserSettings _currentSettings;
+    private ObservableCollection<ModInfo> _detectedMods = new();
+    private FcxResultViewModel? _fcxResult;
     private bool _isScanning;
     private IMessageHandler? _messageHandler;
+    private bool _modManagerDetected;
+    private string _modManagerStatus = "No mod manager detected";
     private string _progressText = "";
     private double _progressValue;
     private bool _progressVisible;
+    private ObservableCollection<RecentItem> _recentFiles = new();
     private IReportWriter? _reportWriter;
     private CancellationTokenSource? _scanCancellationTokenSource;
-    private FcxResultViewModel? _fcxResult;
-    private IUnsolvedLogsMover? _unsolvedLogsMover;
-    private string _modManagerStatus = "No mod manager detected";
-    private bool _modManagerDetected;
-    private ObservableCollection<ModInfo> _detectedMods = new();
 
     private IScanPipeline? _scanPipeline;
     private string _selectedGamePath = "";
@@ -62,19 +68,27 @@ public class MainWindowViewModel : ViewModelBase
     private string _statusText = "Ready";
 
     public MainWindowViewModel(
-        ISettingsService settingsService, 
-        GuiMessageHandlerService messageHandlerService, 
-        IUpdateService updateService, 
-        ICacheManager cacheManager, 
+        ISettingsService settingsService,
+        GuiMessageHandlerService messageHandlerService,
+        IUpdateService updateService,
+        ICacheManager cacheManager,
         IUnsolvedLogsMover unsolvedLogsMover,
-        IModManagerService? modManagerService = null)
+        IModManagerService? modManagerService = null,
+        IRecentItemsService? recentItemsService = null,
+        IAudioNotificationService? audioNotificationService = null,
+        IStatisticsService? statisticsService = null,
+        IThemeService? themeService = null)
     {
-        _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
-        _messageHandlerService = messageHandlerService ?? throw new ArgumentNullException(nameof(messageHandlerService));
-        _updateService = updateService ?? throw new ArgumentNullException(nameof(updateService));
-        _cacheManager = cacheManager ?? throw new ArgumentNullException(nameof(cacheManager));
-        _unsolvedLogsMover = unsolvedLogsMover ?? throw new ArgumentNullException(nameof(unsolvedLogsMover));
+        _settingsService = Guard.NotNull(settingsService, nameof(settingsService));
+        _messageHandlerService = Guard.NotNull(messageHandlerService, nameof(messageHandlerService));
+        _updateService = Guard.NotNull(updateService, nameof(updateService));
+        _cacheManager = Guard.NotNull(cacheManager, nameof(cacheManager));
+        _unsolvedLogsMover = Guard.NotNull(unsolvedLogsMover, nameof(unsolvedLogsMover));
         _modManagerService = modManagerService;
+        _recentItemsService = recentItemsService;
+        _audioNotificationService = audioNotificationService;
+        _statisticsService = statisticsService;
+        _themeService = themeService;
         _currentSettings = new UserSettings();
 
         // Set this view model in the message handler service
@@ -92,14 +106,26 @@ public class MainWindowViewModel : ViewModelBase
             this.WhenAnyValue(x => x.SelectedResult).Select(x => x != null));
         ExportAllReportsCommand = ReactiveCommand.CreateFromTask(ExportAllReports,
             this.WhenAnyValue(x => x.ScanResults.Count).Select(x => x > 0));
-        
+
         // FCX Commands
         RunFcxScanCommand = ReactiveCommand.CreateFromTask(RunFcxScan);
         BackupGameFilesCommand = ReactiveCommand.CreateFromTask(BackupGameFiles);
         ValidateGameInstallCommand = ReactiveCommand.CreateFromTask(ValidateGameInstall);
-        
+
         // Mod Manager Commands
         RefreshModManagersCommand = ReactiveCommand.CreateFromTask(DetectModManagersAsync);
+
+        // Recent Files Commands
+        OpenRecentFileCommand = ReactiveCommand.CreateFromTask<string>(OpenRecentFile);
+        ClearRecentFilesCommand = ReactiveCommand.Create(ClearRecentFiles);
+
+        // View Commands
+        ShowStatisticsCommand = ReactiveCommand.CreateFromTask(ShowStatistics);
+        ShowHelpCommand = ReactiveCommand.CreateFromTask(ShowHelp);
+        ShowKeyboardShortcutsCommand = ReactiveCommand.CreateFromTask(ShowKeyboardShortcuts);
+        ShowAboutCommand = ReactiveCommand.CreateFromTask(ShowAbout);
+        SetThemeCommand = ReactiveCommand.CreateFromTask<string>(SetTheme);
+        ExitCommand = ReactiveCommand.Create(Exit);
 
         StatusText = "Ready - Select a crash log file to begin";
 
@@ -108,9 +134,9 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets the current status message displayed in the application's user interface.
-    /// The <c>StatusText</c> property is typically used to provide feedback or updates to the user
-    /// about the current state of operations, such as scanning progress, errors, or user actions.
+    ///     Gets or sets the current status message displayed in the application's user interface.
+    ///     The <c>StatusText</c> property is typically used to provide feedback or updates to the user
+    ///     about the current state of operations, such as scanning progress, errors, or user actions.
     /// </summary>
     public string StatusText
     {
@@ -125,9 +151,9 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether a scanning operation is currently in progress.
-    /// The <c>IsScanning</c> property is used to control and reflect the state of the scanning process,
-    /// ensuring UI elements react accordingly, such as disabling interactions or displaying progress indicators.
+    ///     Gets or sets a value indicating whether a scanning operation is currently in progress.
+    ///     The <c>IsScanning</c> property is used to control and reflect the state of the scanning process,
+    ///     ensuring UI elements react accordingly, such as disabling interactions or displaying progress indicators.
     /// </summary>
     public bool IsScanning
     {
@@ -142,9 +168,9 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets the progress value representing the percentage of completion for the current operation.
-    /// The <c>ProgressValue</c> property is typically used to update progress indicators in the user interface
-    /// and ranges from 0.0 to 100.0, where 100.0 indicates the completion of the operation.
+    ///     Gets or sets the progress value representing the percentage of completion for the current operation.
+    ///     The <c>ProgressValue</c> property is typically used to update progress indicators in the user interface
+    ///     and ranges from 0.0 to 100.0, where 100.0 indicates the completion of the operation.
     /// </summary>
     public double ProgressValue
     {
@@ -159,9 +185,9 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets the text indicating the current progress of an operation.
-    /// The <c>ProgressText</c> property is typically used to provide descriptive feedback
-    /// to the user about the ongoing progress, such as the number of files processed during a scan or export operation.
+    ///     Gets or sets the text indicating the current progress of an operation.
+    ///     The <c>ProgressText</c> property is typically used to provide descriptive feedback
+    ///     to the user about the ongoing progress, such as the number of files processed during a scan or export operation.
     /// </summary>
     public string ProgressText
     {
@@ -176,9 +202,9 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the progress indicator is visible in the user interface.
-    /// The <c>ProgressVisible</c> property is used to show or hide visual elements
-    /// related to progress during operations such as scanning or exporting.
+    ///     Gets or sets a value indicating whether the progress indicator is visible in the user interface.
+    ///     The <c>ProgressVisible</c> property is used to show or hide visual elements
+    ///     related to progress during operations such as scanning or exporting.
     /// </summary>
     public bool ProgressVisible
     {
@@ -193,11 +219,11 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets the file path of the currently selected log for analysis or processing.
-    /// The <c>SelectedLogPath</c> property is used to specify the location of a log file,
-    /// enabling the application to read or process its contents as part of the scanning workflow.
-    /// Changes to this property may trigger updates in the UI or internal operations, such as
-    /// populating scan results or adding log messages.
+    ///     Gets or sets the file path of the currently selected log for analysis or processing.
+    ///     The <c>SelectedLogPath</c> property is used to specify the location of a log file,
+    ///     enabling the application to read or process its contents as part of the scanning workflow.
+    ///     Changes to this property may trigger updates in the UI or internal operations, such as
+    ///     populating scan results or adding log messages.
     /// </summary>
     public string SelectedLogPath
     {
@@ -212,11 +238,11 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets the file system path to the selected game directory.
-    /// The <c>SelectedGamePath</c> property is used to indicate the root folder
-    /// of the game files required for various operations such as log scanning or processing.
-    /// Its value can influence how specific tasks are executed, such as searching for logs
-    /// or detecting specific configurations within the game directory.
+    ///     Gets or sets the file system path to the selected game directory.
+    ///     The <c>SelectedGamePath</c> property is used to indicate the root folder
+    ///     of the game files required for various operations such as log scanning or processing.
+    ///     Its value can influence how specific tasks are executed, such as searching for logs
+    ///     or detecting specific configurations within the game directory.
     /// </summary>
     public string SelectedGamePath
     {
@@ -231,10 +257,10 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets the directory path selected for scanning log files.
-    /// The <c>SelectedScanDirectory</c> property is typically used to define the location
-    /// from which files are collected for analysis or processing. Changes to this property
-    /// may trigger updates to the application's state or initiate file loading processes.
+    ///     Gets or sets the directory path selected for scanning log files.
+    ///     The <c>SelectedScanDirectory</c> property is typically used to define the location
+    ///     from which files are collected for analysis or processing. Changes to this property
+    ///     may trigger updates to the application's state or initiate file loading processes.
     /// </summary>
     public string SelectedScanDirectory
     {
@@ -249,10 +275,10 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets the currently selected scan result in the user interface.
-    /// The <c>SelectedResult</c> property represents the item that the user has chosen
-    /// from the list of available scan results and is used to facilitate actions
-    /// like exporting detailed reports or displaying result-specific information.
+    ///     Gets or sets the currently selected scan result in the user interface.
+    ///     The <c>SelectedResult</c> property represents the item that the user has chosen
+    ///     from the list of available scan results and is used to facilitate actions
+    ///     like exporting detailed reports or displaying result-specific information.
     /// </summary>
     public ScanResultViewModel? SelectedResult
     {
@@ -268,9 +294,9 @@ public class MainWindowViewModel : ViewModelBase
 
     public ObservableCollection<ScanResultViewModel> ScanResults { get; } = new();
     public ObservableCollection<string> LogMessages { get; } = new();
-    
+
     /// <summary>
-    /// Gets the collection of detected mods from the active mod manager.
+    ///     Gets the collection of detected mods from the active mod manager.
     /// </summary>
     public ObservableCollection<ModInfo> DetectedMods
     {
@@ -278,8 +304,16 @@ public class MainWindowViewModel : ViewModelBase
         private set => this.RaiseAndSetIfChanged(ref _detectedMods, value);
     }
 
+    public ObservableCollection<RecentItem> RecentFiles
+    {
+        get => _recentFiles;
+        private set => this.RaiseAndSetIfChanged(ref _recentFiles, value);
+    }
+
+    public bool HasRecentFiles => RecentFiles?.Count > 0;
+
     /// <summary>
-    /// Gets or sets the mod manager status text displayed in the UI.
+    ///     Gets or sets the mod manager status text displayed in the UI.
     /// </summary>
     public string ModManagerStatus
     {
@@ -294,7 +328,7 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets whether a mod manager has been detected.
+    ///     Gets or sets whether a mod manager has been detected.
     /// </summary>
     public bool ModManagerDetected
     {
@@ -309,7 +343,7 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Gets or sets the FCX scan result view model.
+    ///     Gets or sets the FCX scan result view model.
     /// </summary>
     public FcxResultViewModel? FcxResult
     {
@@ -337,23 +371,35 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> ValidateGameInstallCommand { get; }
     public ReactiveCommand<Unit, Unit> RefreshModManagersCommand { get; }
 
+    // Recent Files Commands
+    public ReactiveCommand<string, Unit> OpenRecentFileCommand { get; }
+    public ReactiveCommand<Unit, Unit> ClearRecentFilesCommand { get; }
+
+    // View Commands  
+    public ReactiveCommand<Unit, Unit> ShowStatisticsCommand { get; }
+    public ReactiveCommand<Unit, Unit> ShowHelpCommand { get; }
+    public ReactiveCommand<Unit, Unit> ShowKeyboardShortcutsCommand { get; }
+    public ReactiveCommand<Unit, Unit> ShowAboutCommand { get; }
+    public ReactiveCommand<string, Unit> SetThemeCommand { get; }
+    public ReactiveCommand<Unit, Unit> ExitCommand { get; }
+
     // File picker delegates - set by the View
     public Func<string, string, Task<string>>? ShowFilePickerAsync { get; set; }
     public Func<string, Task<string>>? ShowFolderPickerAsync { get; set; }
     public Window? TopLevel { get; set; }
 
     /// <summary>
-    /// Ensures that the scan pipeline is initialized for the application. If the pipeline has not yet been initialized,
-    /// this method sets up the necessary components, including a message handler, caching, enhanced error handling,
-    /// and logging configuration.
+    ///     Ensures that the scan pipeline is initialized for the application. If the pipeline has not yet been initialized,
+    ///     this method sets up the necessary components, including a message handler, caching, enhanced error handling,
+    ///     and logging configuration.
     /// </summary>
     /// <remarks>
-    /// This method initializes necessary components for the scan pipeline:
-    /// - A message handler (GUI-specific implementation).
-    /// - Default analyzers added to the pipeline.
-    /// - Optional caching and error handling mechanisms.
-    /// - Logging system, such as console-based logging.
-    /// Additionally, it initializes the report writer with a null logger, as console logging is not required for the GUI.
+    ///     This method initializes necessary components for the scan pipeline:
+    ///     - A message handler (GUI-specific implementation).
+    ///     - Default analyzers added to the pipeline.
+    ///     - Optional caching and error handling mechanisms.
+    ///     - Logging system, such as console-based logging.
+    ///     Additionally, it initializes the report writer with a null logger, as console logging is not required for the GUI.
     /// </remarks>
     private void EnsurePipelineInitialized()
     {
@@ -366,13 +412,10 @@ public class MainWindowViewModel : ViewModelBase
             .WithCaching()
             .WithEnhancedErrorHandling()
             .WithLogging(builder => builder.AddConsole());
-            
+
         // Enable FCX mode if configured in settings
-        if (_currentSettings.FcxMode)
-        {
-            pipelineBuilder.WithFcxMode(true);
-        }
-        
+        if (_currentSettings.FcxMode) pipelineBuilder.WithFcxMode();
+
         _scanPipeline = pipelineBuilder.Build();
 
         // Initialize report writer with null logger (GUI doesn't need console logging)
@@ -380,8 +423,8 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Resets the scan pipeline, forcing it to be recreated with current settings.
-    /// This should be called when FCX mode or other pipeline-affecting settings change.
+    ///     Resets the scan pipeline, forcing it to be recreated with current settings.
+    ///     This should be called when FCX mode or other pipeline-affecting settings change.
     /// </summary>
     private async Task ResetPipelineAsync()
     {
@@ -393,17 +436,18 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Opens a file picker to allow the user to select a crash log file. Once a file is selected, this method updates the
-    /// selected log file path, displays the file name in the status text, logs the file selection, and saves the current
-    /// paths to the settings.
+    ///     Opens a file picker to allow the user to select a crash log file. Once a file is selected, this method updates the
+    ///     selected log file path, displays the file name in the status text, logs the file selection, and saves the current
+    ///     paths to the settings.
     /// </summary>
     /// <remarks>
-    /// This method displays a dialog for file selection. If a file is selected:
-    /// - The file path is set to the SelectedLogPath property.
-    /// - The file name is shown in the StatusText property.
-    /// - A log message is added with the selected file path.
-    /// - The selected paths are persisted to user settings.
-    /// If an error occurs during file selection, an error message is displayed in the status text, and the error is logged.
+    ///     This method displays a dialog for file selection. If a file is selected:
+    ///     - The file path is set to the SelectedLogPath property.
+    ///     - The file name is shown in the StatusText property.
+    ///     - A log message is added with the selected file path.
+    ///     - The selected paths are persisted to user settings.
+    ///     If an error occurs during file selection, an error message is displayed in the status text, and the error is
+    ///     logged.
     /// </remarks>
     /// <returns>Returns a task that represents the asynchronous operation of selecting a file.</returns>
     private async Task SelectLogFile()
@@ -418,6 +462,8 @@ public class MainWindowViewModel : ViewModelBase
                     SelectedLogPath = result;
                     StatusText = $"Selected: {Path.GetFileName(result)}";
                     AddLogMessage($"Selected crash log: {result}");
+                    _recentItemsService?.AddRecentLogFile(result);
+                    UpdateRecentFiles();
                     _ = SaveCurrentPathsToSettings();
                 }
             }
@@ -430,19 +476,19 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Prompts the user to select a directory for the game installation. Once a directory is selected, it updates the
-    /// selected game path, logs the chosen path, and saves the updated path to the user settings.
+    ///     Prompts the user to select a directory for the game installation. Once a directory is selected, it updates the
+    ///     selected game path, logs the chosen path, and saves the updated path to the user settings.
     /// </summary>
     /// <remarks>
-    /// This method uses a folder picker dialog to allow the user to select the game installation directory.
-    /// If a valid path is chosen, the following steps are executed:
-    /// - Updates the SelectedGamePath property with the chosen path.
-    /// - Logs the selected game path for user reference.
-    /// - Asynchronously saves the updated paths to the application settings.
-    /// If an error occurs during path selection or saving, it logs the error message.
+    ///     This method uses a folder picker dialog to allow the user to select the game installation directory.
+    ///     If a valid path is chosen, the following steps are executed:
+    ///     - Updates the SelectedGamePath property with the chosen path.
+    ///     - Logs the selected game path for user reference.
+    ///     - Asynchronously saves the updated paths to the application settings.
+    ///     If an error occurs during path selection or saving, it logs the error message.
     /// </remarks>
     /// <returns>
-    /// A task representing the asynchronous operation of selecting a game path, with no direct result.
+    ///     A task representing the asynchronous operation of selecting a game path, with no direct result.
     /// </returns>
     private async Task SelectGamePath()
     {
@@ -466,18 +512,20 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Prompts the user to select a directory for scanning crash logs and updates the application state with the selected path.
+    ///     Prompts the user to select a directory for scanning crash logs and updates the application state with the selected
+    ///     path.
     /// </summary>
     /// <remarks>
-    /// This method displays a folder picker dialog to the user, allowing them to select the directory to be scanned for crash logs.
-    /// Once a valid directory is selected:
-    /// - The selected directory path is stored in the <see cref="SelectedScanDirectory"/> property.
-    /// - A log message is added to indicate the selected directory.
-    /// - The application paths are saved to the settings asynchronously.
-    /// If an error occurs during the directory selection process, a corresponding log message is added.
+    ///     This method displays a folder picker dialog to the user, allowing them to select the directory to be scanned for
+    ///     crash logs.
+    ///     Once a valid directory is selected:
+    ///     - The selected directory path is stored in the <see cref="SelectedScanDirectory" /> property.
+    ///     - A log message is added to indicate the selected directory.
+    ///     - The application paths are saved to the settings asynchronously.
+    ///     If an error occurs during the directory selection process, a corresponding log message is added.
     /// </remarks>
     /// <returns>
-    /// A task that represents the asynchronous operation of selecting a directory.
+    ///     A task that represents the asynchronous operation of selecting a directory.
     /// </returns>
     private async Task SelectScanDirectory()
     {
@@ -501,22 +549,23 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Executes the scan process for analyzing crash log files. This method initializes the scan pipeline, processes
-    /// the necessary configurations, and performs the scanning operation on the selected files, updating the user
-    /// interface with progress and status information throughout the operation.
+    ///     Executes the scan process for analyzing crash log files. This method initializes the scan pipeline, processes
+    ///     the necessary configurations, and performs the scanning operation on the selected files, updating the user
+    ///     interface with progress and status information throughout the operation.
     /// </summary>
     /// <remarks>
-    /// This method handles the following tasks:
-    /// - Initializes the scan pipeline using the <c>EnsurePipelineInitialized</c> method if it has not already been set up.
-    /// - Updates the scanning status, progress bar, and related UI elements during the scan lifecycle.
-    /// - Collects the specified files marked for analysis and logs their count.
-    /// - Executes log analysis on each file and accumulates results, updating the progress asynchronously.
-    /// - Handles cancellation requests by the user during the scan process.
-    /// - Manages error handling in case of scan failures due to unexpected exceptions.
-    /// - Cleans up resources, such as cancellation tokens, used for coordinating the scanning operation.
+    ///     This method handles the following tasks:
+    ///     - Initializes the scan pipeline using the <c>EnsurePipelineInitialized</c> method if it has not already been set
+    ///     up.
+    ///     - Updates the scanning status, progress bar, and related UI elements during the scan lifecycle.
+    ///     - Collects the specified files marked for analysis and logs their count.
+    ///     - Executes log analysis on each file and accumulates results, updating the progress asynchronously.
+    ///     - Handles cancellation requests by the user during the scan process.
+    ///     - Manages error handling in case of scan failures due to unexpected exceptions.
+    ///     - Cleans up resources, such as cancellation tokens, used for coordinating the scanning operation.
     /// </remarks>
     /// <returns>
-    /// A task representing the asynchronous operation of the scan process.
+    ///     A task representing the asynchronous operation of the scan process.
     /// </returns>
     private async Task ExecuteScan()
     {
@@ -603,19 +652,19 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Collects a list of files to be scanned based on selected paths and specific criteria. This method consolidates
-    /// files from multiple sources including auto-copied logs, a manually selected log file, and logs located in a
-    /// specified directory.
+    ///     Collects a list of files to be scanned based on selected paths and specific criteria. This method consolidates
+    ///     files from multiple sources including auto-copied logs, a manually selected log file, and logs located in a
+    ///     specified directory.
     /// </summary>
     /// <remarks>
-    /// This method performs the following operations to gather files for scanning:
-    /// - Automatically retrieves and copies XSE logs (e.g., F4SE and SKSE).
-    /// - Adds a single, manually selected log file if specified and valid.
-    /// - Scans a user-selected directory to find and include valid log files.
-    /// The returned list ensures no duplicate entries and only includes valid files.
+    ///     This method performs the following operations to gather files for scanning:
+    ///     - Automatically retrieves and copies XSE logs (e.g., F4SE and SKSE).
+    ///     - Adds a single, manually selected log file if specified and valid.
+    ///     - Scans a user-selected directory to find and include valid log files.
+    ///     The returned list ensures no duplicate entries and only includes valid files.
     /// </remarks>
     /// <returns>
-    /// A task representing the asynchronous operation, containing a list of file paths to be scanned.
+    ///     A task representing the asynchronous operation, containing a list of file paths to be scanned.
     /// </returns>
     private async Task<List<string>> CollectFilesToScan()
     {
@@ -640,17 +689,17 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Copies XSE crash logs (F4SE and SKSE) from commonly known directories to a specified crash logs directory.
-    /// If the user has disabled this feature via settings, the operation is skipped. The method identifies potential
-    /// source directories (e.g., Fallout4 and Skyrim-related SKSE/F4SE paths) and attempts to copy logs to the configured
-    /// destination, logging the results of the process.
+    ///     Copies XSE crash logs (F4SE and SKSE) from commonly known directories to a specified crash logs directory.
+    ///     If the user has disabled this feature via settings, the operation is skipped. The method identifies potential
+    ///     source directories (e.g., Fallout4 and Skyrim-related SKSE/F4SE paths) and attempts to copy logs to the configured
+    ///     destination, logging the results of the process.
     /// </summary>
     /// <param name="filesToScan">
-    /// A list of file paths that may be updated with paths to the copied XSE crash logs, depending on the process.
+    ///     A list of file paths that may be updated with paths to the copied XSE crash logs, depending on the process.
     /// </param>
     /// <returns>
-    /// A task that represents the asynchronous operation for copying XSE logs. The task completes once the logs have been
-    /// processed or skipped.
+    ///     A task that represents the asynchronous operation for copying XSE logs. The task completes once the logs have been
+    ///     processed or skipped.
     /// </returns>
     private async Task CopyXseLogsAsync(List<string> filesToScan)
     {
@@ -715,11 +764,16 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Scans a specified directory for log files matching predefined criteria and adds them to a given collection of files to be scanned.
-    /// The method identifies log files by extension (.log or .txt) and checks if their names contain keywords such as "crash", "dump", or "error".
+    ///     Scans a specified directory for log files matching predefined criteria and adds them to a given collection of files
+    ///     to be scanned.
+    ///     The method identifies log files by extension (.log or .txt) and checks if their names contain keywords such as
+    ///     "crash", "dump", or "error".
     /// </summary>
     /// <param name="directory">The path of the directory to scan for log files.</param>
-    /// <param name="filesToScan">A list to which the discovered log files will be added if they meet the criteria and do not already exist in the list.</param>
+    /// <param name="filesToScan">
+    ///     A list to which the discovered log files will be added if they meet the criteria and do not
+    ///     already exist in the list.
+    /// </param>
     private async Task ScanDirectoryForLogs(string directory, List<string> filesToScan)
     {
         try
@@ -756,13 +810,13 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Cancels the currently running scan operation, if any, by signaling the associated cancellation token.
-    /// Updates the application status to reflect the cancellation state and logs an appropriate message.
+    ///     Cancels the currently running scan operation, if any, by signaling the associated cancellation token.
+    ///     Updates the application status to reflect the cancellation state and logs an appropriate message.
     /// </summary>
     /// <remarks>
-    /// This method invokes the cancellation token's cancel signal to stop an ongoing scan process.
-    /// Post-cancellation actions include updating the status text with a "Cancelling scan..." message
-    /// and adding a log entry to denote that a scan cancellation was requested by the user.
+    ///     This method invokes the cancellation token's cancel signal to stop an ongoing scan process.
+    ///     Post-cancellation actions include updating the status text with a "Cancelling scan..." message
+    ///     and adding a log entry to denote that a scan cancellation was requested by the user.
     /// </remarks>
     private void CancelScan()
     {
@@ -772,16 +826,16 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Clears all scan results and log messages from the application. Resets the associated user interface elements,
-    /// including status text and progress visibility.
+    ///     Clears all scan results and log messages from the application. Resets the associated user interface elements,
+    ///     including status text and progress visibility.
     /// </summary>
     /// <remarks>
-    /// This method performs the following actions:
-    /// - Clears the collection of scan results.
-    /// - Clears the collection of log messages.
-    /// - Updates the status text to indicate that results have been cleared.
-    /// - Hides the progress indicator.
-    /// It ensures that the UI reflects a fresh state, ready for a new scanning operation.
+    ///     This method performs the following actions:
+    ///     - Clears the collection of scan results.
+    ///     - Clears the collection of log messages.
+    ///     - Updates the status text to indicate that results have been cleared.
+    ///     - Hides the progress indicator.
+    ///     It ensures that the UI reflects a fresh state, ready for a new scanning operation.
     /// </remarks>
     private void ClearResults()
     {
@@ -792,14 +846,14 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Adds a log message to the log messages collection with a timestamp. This helps track user actions, errors,
-    /// or other significant events as they occur in the application.
+    ///     Adds a log message to the log messages collection with a timestamp. This helps track user actions, errors,
+    ///     or other significant events as they occur in the application.
     /// </summary>
     /// <param name="message">The content of the log message to be added. This should describe the event or error being logged.</param>
     /// <remarks>
-    /// The log message is prefixed with the current time in "HH:mm:ss" format. This method also ensures that
-    /// the log messages collection does not exceed 100 entries by removing the oldest messages when necessary.
-    /// Thread-safe updates to the UI are handled via a helper method.
+    ///     The log message is prefixed with the current time in "HH:mm:ss" format. This method also ensures that
+    ///     the log messages collection does not exceed 100 entries by removing the oldest messages when necessary.
+    ///     Thread-safe updates to the UI are handled via a helper method.
     /// </remarks>
     public void AddLogMessage(string message)
     {
@@ -814,15 +868,15 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Executes the specified action on the UI thread. If the calling thread is already
-    /// the UI thread, the action is executed directly; otherwise, it is dispatched
-    /// to the UI thread for execution using Avalonia's dispatcher system.
+    ///     Executes the specified action on the UI thread. If the calling thread is already
+    ///     the UI thread, the action is executed directly; otherwise, it is dispatched
+    ///     to the UI thread for execution using Avalonia's dispatcher system.
     /// </summary>
     /// <param name="action">The action to be performed on the UI thread.</param>
     /// <remarks>
-    /// This method ensures that UI-related actions are executed safely and consistently
-    /// on the UI thread. It checks the current thread's access and dispatches the
-    /// action if required, providing thread safety for UI updates in the application.
+    ///     This method ensures that UI-related actions are executed safely and consistently
+    ///     on the UI thread. It checks the current thread's access and dispatches the
+    ///     action if required, providing thread safety for UI updates in the application.
     /// </remarks>
     private void UpdateUi(Action action)
     {
@@ -833,7 +887,7 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Initializes the ViewModel by loading settings and performing startup tasks like update checking.
+    ///     Initializes the ViewModel by loading settings and performing startup tasks like update checking.
     /// </summary>
     /// <returns>A task representing the asynchronous initialization.</returns>
     private async Task InitializeAsync()
@@ -841,10 +895,11 @@ public class MainWindowViewModel : ViewModelBase
         await LoadSettingsAsync();
         await PerformStartupUpdateCheckAsync();
         await DetectModManagersAsync();
+        UpdateRecentFiles();
     }
 
     /// <summary>
-    /// Detects installed mod managers and updates the UI accordingly.
+    ///     Detects installed mod managers and updates the UI accordingly.
     /// </summary>
     private async Task DetectModManagersAsync()
     {
@@ -867,7 +922,7 @@ public class MainWindowViewModel : ViewModelBase
         try
         {
             AddLogMessage("Detecting installed mod managers...");
-            
+
             var managers = await _modManagerService.GetAvailableManagersAsync();
             if (!managers.Any())
             {
@@ -882,7 +937,7 @@ public class MainWindowViewModel : ViewModelBase
             {
                 ModManagerStatus = $"{activeManager.Name} detected";
                 ModManagerDetected = true;
-                
+
                 // Load mods if FCX mode is enabled
                 if (_currentSettings.FcxMode)
                 {
@@ -890,13 +945,11 @@ public class MainWindowViewModel : ViewModelBase
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         DetectedMods.Clear();
-                        foreach (var mod in mods.Where(m => m.IsEnabled))
-                        {
-                            DetectedMods.Add(mod);
-                        }
+                        foreach (var mod in mods.Where(m => m.IsEnabled)) DetectedMods.Add(mod);
                     });
-                    
-                    AddLogMessage($"Loaded {mods.Count()} mods from {activeManager.Name} ({mods.Count(m => m.IsEnabled)} enabled)");
+
+                    AddLogMessage(
+                        $"Loaded {mods.Count()} mods from {activeManager.Name} ({mods.Count(m => m.IsEnabled)} enabled)");
                 }
             }
         }
@@ -909,7 +962,7 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Performs an update check during startup, respecting user configuration settings.
+    ///     Performs an update check during startup, respecting user configuration settings.
     /// </summary>
     /// <returns>A task representing the asynchronous update check operation.</returns>
     private async Task PerformStartupUpdateCheckAsync()
@@ -920,7 +973,7 @@ public class MainWindowViewModel : ViewModelBase
             if (_currentSettings.EnableUpdateCheck)
             {
                 AddLogMessage("Checking for application updates...");
-                await _updateService.IsLatestVersionAsync(quiet: false);
+                await _updateService.IsLatestVersionAsync();
             }
         }
         catch (UpdateCheckException ex)
@@ -936,21 +989,21 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Asynchronously loads and applies user settings to the application. This method retrieves the settings
-    /// from a storage service and updates relevant properties such as default paths for logs, game files,
-    /// and scan directories. If any settings are missing, existing values remain unchanged.
+    ///     Asynchronously loads and applies user settings to the application. This method retrieves the settings
+    ///     from a storage service and updates relevant properties such as default paths for logs, game files,
+    ///     and scan directories. If any settings are missing, existing values remain unchanged.
     /// </summary>
     /// <remarks>
-    /// During the loading process, default paths from the user settings are applied to the following properties
-    /// if they are currently empty:
-    /// - SelectedLogPath: Set to the default log path if available.
-    /// - SelectedGamePath: Set to the default game path if available.
-    /// - SelectedScanDirectory: Set to the default scan directory if available.
-    /// In case of an error during the load operation, the error message is logged for troubleshooting purposes.
+    ///     During the loading process, default paths from the user settings are applied to the following properties
+    ///     if they are currently empty:
+    ///     - SelectedLogPath: Set to the default log path if available.
+    ///     - SelectedGamePath: Set to the default game path if available.
+    ///     - SelectedScanDirectory: Set to the default scan directory if available.
+    ///     In case of an error during the load operation, the error message is logged for troubleshooting purposes.
     /// </remarks>
     /// <returns>
-    /// A task representing the asynchronous operation. The task completes when the settings are successfully loaded
-    /// or when an error occurs during the loading process.
+    ///     A task representing the asynchronous operation. The task completes when the settings are successfully loaded
+    ///     or when an error occurs during the loading process.
     /// </returns>
     private async Task LoadSettingsAsync()
     {
@@ -969,12 +1022,13 @@ public class MainWindowViewModel : ViewModelBase
             if (string.IsNullOrEmpty(SelectedScanDirectory) &&
                 !string.IsNullOrEmpty(_currentSettings.DefaultScanDirectory))
                 SelectedScanDirectory = _currentSettings.DefaultScanDirectory;
-                
+
             // Reset pipeline if FCX mode has changed
             if (previousFcxMode != _currentSettings.FcxMode)
             {
                 await ResetPipelineAsync();
-                AddLogMessage($"FCX mode {(_currentSettings.FcxMode ? "enabled" : "disabled")} - scan pipeline updated");
+                AddLogMessage(
+                    $"FCX mode {(_currentSettings.FcxMode ? "enabled" : "disabled")} - scan pipeline updated");
             }
         }
         catch (Exception ex)
@@ -984,19 +1038,19 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Saves the currently selected paths to the application settings. This includes paths for logs, game directories,
-    /// and scan directories, if they are not empty. The settings are stored asynchronously to ensure persistence.
+    ///     Saves the currently selected paths to the application settings. This includes paths for logs, game directories,
+    ///     and scan directories, if they are not empty. The settings are stored asynchronously to ensure persistence.
     /// </summary>
     /// <remarks>
-    /// This method updates the recent paths in the application settings:
-    /// - Adds the selected log path to the recent log files.
-    /// - Adds the selected game path to the recent game paths.
-    /// - Adds the selected scan directory to the recent scan directories.
-    /// Once updated, it saves the user settings using the settings service.
-    /// If an error occurs during the save process, an error message is added to the log.
+    ///     This method updates the recent paths in the application settings:
+    ///     - Adds the selected log path to the recent log files.
+    ///     - Adds the selected game path to the recent game paths.
+    ///     - Adds the selected scan directory to the recent scan directories.
+    ///     Once updated, it saves the user settings using the settings service.
+    ///     If an error occurs during the save process, an error message is added to the log.
     /// </remarks>
     /// <returns>
-    /// A task that represents the asynchronous operation of saving the settings.
+    ///     A task that represents the asynchronous operation of saving the settings.
     /// </returns>
     private async Task SaveCurrentPathsToSettings()
     {
@@ -1021,18 +1075,18 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Opens the settings window, allowing the user to modify configuration options.
-    /// After the settings window is closed, the current settings are reloaded asynchronously.
+    ///     Opens the settings window, allowing the user to modify configuration options.
+    ///     After the settings window is closed, the current settings are reloaded asynchronously.
     /// </summary>
     /// <remarks>
-    /// This method creates and initializes the settings window, setting its DataContext to a new
-    /// instance of <see cref="SettingsWindowViewModel"/>. The method also ensures that the
-    /// settings window's "Close" action is properly configured. Upon closing the dialog, the
-    /// application reloads settings using an asynchronous operation. Errors encountered during
-    /// this process are logged for troubleshooting.
+    ///     This method creates and initializes the settings window, setting its DataContext to a new
+    ///     instance of <see cref="SettingsWindowViewModel" />. The method also ensures that the
+    ///     settings window's "Close" action is properly configured. Upon closing the dialog, the
+    ///     application reloads settings using an asynchronous operation. Errors encountered during
+    ///     this process are logged for troubleshooting.
     /// </remarks>
     /// <returns>
-    /// A task that represents the asynchronous operation of opening the settings window and reloading the settings.
+    ///     A task that represents the asynchronous operation of opening the settings window and reloading the settings.
     /// </returns>
     private async Task OpenSettings()
     {
@@ -1060,10 +1114,13 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Attempts to automatically save the scan result using the report writer, if the auto-save setting is enabled.
+    ///     Attempts to automatically save the scan result using the report writer, if the auto-save setting is enabled.
     /// </summary>
     /// <param name="result">The scan result to be auto-saved, containing the processed data and analysis results.</param>
-    /// <returns>A task representing the asynchronous operation of saving the report. If the report saving succeeds, the operation logs a success message; otherwise, logs an error message upon failure.</returns>
+    /// <returns>
+    ///     A task representing the asynchronous operation of saving the report. If the report saving succeeds, the
+    ///     operation logs a success message; otherwise, logs an error message upon failure.
+    /// </returns>
     private async Task AutoSaveResult(ScanResult result)
     {
         if (_reportWriter == null || !_currentSettings.AutoSaveResults) return;
@@ -1079,8 +1136,8 @@ public class MainWindowViewModel : ViewModelBase
         }
 
         // Move unsolved logs if enabled and scan failed
-        if (_currentSettings.MoveUnsolvedLogs && (result.Failed || result.Status == ScanStatus.Failed || result.HasErrors))
-        {
+        if (_currentSettings.MoveUnsolvedLogs &&
+            (result.Failed || result.Status == ScanStatus.Failed || result.HasErrors))
             try
             {
                 if (_unsolvedLogsMover != null)
@@ -1093,20 +1150,19 @@ public class MainWindowViewModel : ViewModelBase
             {
                 AddLogMessage($"Failed to move unsolved log: {ex.Message}");
             }
-        }
     }
 
     /// <summary>
-    /// Exports the currently selected scan result as a report. This process utilizes the configured report writer
-    /// to generate and save the report to the appropriate output path.
+    ///     Exports the currently selected scan result as a report. This process utilizes the configured report writer
+    ///     to generate and save the report to the appropriate output path.
     /// </summary>
     /// <remarks>
-    /// If a scan result is selected and the report writer is initialized, this method attempts to export the
-    /// selected result as a report. It ensures error handling by catching exceptions during the export process
-    /// and logs any errors or success messages.
+    ///     If a scan result is selected and the report writer is initialized, this method attempts to export the
+    ///     selected result as a report. It ensures error handling by catching exceptions during the export process
+    ///     and logs any errors or success messages.
     /// </remarks>
     /// <returns>
-    /// A task representing the asynchronous operation of exporting the selected report.
+    ///     A task representing the asynchronous operation of exporting the selected report.
     /// </returns>
     private async Task ExportSelectedReport()
     {
@@ -1126,17 +1182,21 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Exports all available scan results to reports using the configured report writer. This method processes each result
-    /// in the current collection, attempts to generate and save a report, and updates the progress to reflect export activity.
+    ///     Exports all available scan results to reports using the configured report writer. This method processes each result
+    ///     in the current collection, attempts to generate and save a report, and updates the progress to reflect export
+    ///     activity.
     /// </summary>
     /// <remarks>
-    /// This method checks if a report writer is properly initialized and if any scan results exist before proceeding.
-    /// It iterates through the list of results and attempts to export each one individually, tracking the number of successfully
-    /// exported and failed attempts. During the operation, progress visibility and textual updates are provided to the user.
-    /// In case of an error, appropriate feedback is added to the operation log.
+    ///     This method checks if a report writer is properly initialized and if any scan results exist before proceeding.
+    ///     It iterates through the list of results and attempts to export each one individually, tracking the number of
+    ///     successfully
+    ///     exported and failed attempts. During the operation, progress visibility and textual updates are provided to the
+    ///     user.
+    ///     In case of an error, appropriate feedback is added to the operation log.
     /// </remarks>
     /// <returns>
-    /// A task that performs batch exportation of reports for all scan results, including progress reporting and error logging.
+    ///     A task that performs batch exportation of reports for all scan results, including progress reporting and error
+    ///     logging.
     /// </returns>
     private async Task ExportAllReports()
     {
@@ -1182,7 +1242,7 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Runs an FCX (File Integrity Check) scan on the game installation.
+    ///     Runs an FCX (File Integrity Check) scan on the game installation.
     /// </summary>
     /// <returns>A task representing the asynchronous FCX scan operation.</returns>
     private async Task RunFcxScan()
@@ -1214,10 +1274,10 @@ public class MainWindowViewModel : ViewModelBase
             // Create a FileIntegrityAnalyzer for FCX scanning
             var hashService = new HashValidationService(NullLogger<HashValidationService>.Instance);
             var yamlSettings = new YamlSettingsService(_cacheManager, NullLogger<YamlSettingsService>.Instance);
-            
+
             // Create an adapter for settings service
             var appSettingsService = new GuiApplicationSettingsAdapter(_settingsService);
-            
+
             var fileIntegrityAnalyzer = new FileIntegrityAnalyzer(
                 hashService,
                 appSettingsService,
@@ -1256,18 +1316,12 @@ public class MainWindowViewModel : ViewModelBase
                     case GameIntegrityStatus.Warning:
                         StatusText = "FCX scan completed - Minor issues found";
                         AddLogMessage($"⚠️ FCX scan completed: {fcxResult.VersionWarnings.Count} warnings found");
-                        foreach (var warning in fcxResult.VersionWarnings)
-                        {
-                            AddLogMessage($"   • {warning}");
-                        }
+                        foreach (var warning in fcxResult.VersionWarnings) AddLogMessage($"   • {warning}");
                         break;
                     case GameIntegrityStatus.Critical:
                         StatusText = "FCX scan completed - Critical issues found";
-                        AddLogMessage($"❌ FCX scan completed: Critical issues detected");
-                        foreach (var fix in fcxResult.RecommendedFixes)
-                        {
-                            AddLogMessage($"   • Recommended: {fix}");
-                        }
+                        AddLogMessage("❌ FCX scan completed: Critical issues detected");
+                        foreach (var fix in fcxResult.RecommendedFixes) AddLogMessage($"   • Recommended: {fix}");
                         break;
                     case GameIntegrityStatus.Invalid:
                         StatusText = "FCX scan failed - Invalid game installation";
@@ -1281,9 +1335,7 @@ public class MainWindowViewModel : ViewModelBase
                 {
                     AddLogMessage($"Failed file checks: {failedChecks.Count}");
                     foreach (var check in failedChecks.Take(5)) // Show first 5 failures
-                    {
                         AddLogMessage($"   • {Path.GetFileName(check.FilePath)}: {check.ErrorMessage}");
-                    }
                 }
             }
             else
@@ -1315,7 +1367,7 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Backs up critical game files.
+    ///     Backs up critical game files.
     /// </summary>
     /// <returns>A task representing the asynchronous backup operation.</returns>
     private async Task BackupGameFiles()
@@ -1339,7 +1391,7 @@ public class MainWindowViewModel : ViewModelBase
             // Create backup service
             var appSettingsService = new GuiApplicationSettingsAdapter(_settingsService);
             var backupService = new BackupService(NullLogger<BackupService>.Instance, appSettingsService);
-            
+
             // Create progress reporter
             var progress = new Progress<BackupProgress>(p =>
             {
@@ -1351,31 +1403,29 @@ public class MainWindowViewModel : ViewModelBase
 
             // Perform full backup of critical files
             var result = await backupService.CreateFullBackupAsync(
-                SelectedGamePath, 
-                progress, 
+                SelectedGamePath,
+                progress,
                 _scanCancellationTokenSource.Token);
 
             if (result.Success)
             {
                 StatusText = "Backup completed successfully";
-                AddLogMessage($"✅ Backup completed successfully!");
+                AddLogMessage("✅ Backup completed successfully!");
                 AddLogMessage($"   • Location: {result.BackupPath}");
                 AddLogMessage($"   • Files backed up: {result.BackedUpFiles.Count}");
-                AddLogMessage($"   • Total size: {result.TotalSize:N0} bytes ({result.TotalSize / 1024.0 / 1024.0:F1} MB)");
-                
+                AddLogMessage(
+                    $"   • Total size: {result.TotalSize:N0} bytes ({result.TotalSize / 1024.0 / 1024.0:F1} MB)");
+
                 // Show some of the backed up files
                 var importantFiles = result.BackedUpFiles
                     .Where(f => f.EndsWith(".exe") || f.EndsWith(".dll") || f.EndsWith(".esm"))
                     .Take(5)
                     .ToList();
-                    
+
                 if (importantFiles.Any())
                 {
                     AddLogMessage("   • Important files included:");
-                    foreach (var file in importantFiles)
-                    {
-                        AddLogMessage($"     - {file}");
-                    }
+                    foreach (var file in importantFiles) AddLogMessage($"     - {file}");
                 }
 
                 // Offer to open backup folder
@@ -1389,11 +1439,9 @@ public class MainWindowViewModel : ViewModelBase
             {
                 StatusText = "Backup failed";
                 AddLogMessage($"❌ Backup failed: {result.ErrorMessage}");
-                
+
                 if (result.BackedUpFiles.Count > 0)
-                {
                     AddLogMessage($"   • Partially backed up {result.BackedUpFiles.Count} files before failure");
-                }
             }
 
             ProgressValue = 100;
@@ -1419,7 +1467,7 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Validates the game installation for missing or corrupted files.
+    ///     Validates the game installation for missing or corrupted files.
     /// </summary>
     /// <returns>A task representing the asynchronous validation operation.</returns>
     private async Task ValidateGameInstall()
@@ -1441,7 +1489,7 @@ public class MainWindowViewModel : ViewModelBase
             _scanCancellationTokenSource = new CancellationTokenSource();
 
             var hashService = new HashValidationService(NullLogger<HashValidationService>.Instance);
-            
+
             // Define critical game files to validate
             var criticalFiles = new Dictionary<string, string>
             {
@@ -1476,8 +1524,8 @@ public class MainWindowViewModel : ViewModelBase
 
                 var filePath = Path.Combine(SelectedGamePath, fileName);
                 processedFiles++;
-                
-                ProgressValue = (processedFiles * 100.0) / totalFiles;
+
+                ProgressValue = processedFiles * 100.0 / totalFiles;
                 ProgressText = $"Checking {fileName}...";
 
                 if (!File.Exists(filePath))
@@ -1491,7 +1539,7 @@ public class MainWindowViewModel : ViewModelBase
                     {
                         // Check file size and basic integrity
                         var fileInfo = new FileInfo(filePath);
-                        
+
                         // Minimum size checks for BA2 archives
                         if (fileName.EndsWith(".ba2", StringComparison.OrdinalIgnoreCase))
                         {
@@ -1508,7 +1556,8 @@ public class MainWindowViewModel : ViewModelBase
                         else if (fileName == "Fallout4.exe")
                         {
                             // Calculate hash for the executable
-                            var hash = await hashService.CalculateFileHashAsync(filePath, _scanCancellationTokenSource.Token);
+                            var hash = await hashService.CalculateFileHashAsync(filePath,
+                                _scanCancellationTokenSource.Token);
                             var shortHash = hash.Length > 8 ? hash.Substring(0, 8) : hash;
                             validationResults.Add($"✅ Valid: {fileName} - Hash: {shortHash}...");
                         }
@@ -1529,30 +1578,21 @@ public class MainWindowViewModel : ViewModelBase
             }
 
             // Report results
-            AddLogMessage($"\nValidation Results:");
+            AddLogMessage("\nValidation Results:");
             AddLogMessage($"Total files checked: {processedFiles}");
             AddLogMessage($"✅ Valid files: {processedFiles - missingFiles.Count - corruptedFiles.Count}");
-            
+
             if (missingFiles.Count > 0)
             {
                 AddLogMessage($"❌ Missing files: {missingFiles.Count}");
-                foreach (var file in missingFiles.Take(5))
-                {
-                    AddLogMessage($"   • {file}");
-                }
-                if (missingFiles.Count > 5)
-                {
-                    AddLogMessage($"   ... and {missingFiles.Count - 5} more");
-                }
+                foreach (var file in missingFiles.Take(5)) AddLogMessage($"   • {file}");
+                if (missingFiles.Count > 5) AddLogMessage($"   ... and {missingFiles.Count - 5} more");
             }
-            
+
             if (corruptedFiles.Count > 0)
             {
                 AddLogMessage($"⚠️ Suspicious files: {corruptedFiles.Count}");
-                foreach (var file in corruptedFiles.Take(5))
-                {
-                    AddLogMessage($"   • {file}");
-                }
+                foreach (var file in corruptedFiles.Take(5)) AddLogMessage($"   • {file}");
             }
 
             // Overall status
@@ -1564,12 +1604,12 @@ public class MainWindowViewModel : ViewModelBase
             else if (missingFiles.Count > 0)
             {
                 StatusText = $"Game validation failed - {missingFiles.Count} files missing";
-                AddLogMessage($"\n❌ Game installation has issues. Consider verifying game files through Steam/GOG.");
+                AddLogMessage("\n❌ Game installation has issues. Consider verifying game files through Steam/GOG.");
             }
             else
             {
-                StatusText = $"Game validation completed with warnings";
-                AddLogMessage($"\n⚠️ Game installation may have issues. Consider verifying game files.");
+                StatusText = "Game validation completed with warnings";
+                AddLogMessage("\n⚠️ Game installation may have issues. Consider verifying game files.");
             }
 
             ProgressValue = 100;
@@ -1593,5 +1633,96 @@ public class MainWindowViewModel : ViewModelBase
             _scanCancellationTokenSource = null;
         }
     }
-}
 
+    // Recent Files Command Implementations
+    private async Task OpenRecentFile(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return;
+
+        if (File.Exists(path))
+        {
+            SelectedLogPath = path;
+            _recentItemsService?.AddRecentLogFile(path);
+            UpdateRecentFiles();
+
+            // Automatically start scan
+            if (!string.IsNullOrEmpty(SelectedLogPath)) await ExecuteScan();
+        }
+        else
+        {
+            AddLogMessage($"Recent file not found: {path}");
+            _recentItemsService?.RemoveRecentItem(RecentItemType.LogFile, path);
+            UpdateRecentFiles();
+        }
+    }
+
+    private void ClearRecentFiles()
+    {
+        _recentItemsService?.ClearRecentLogFiles();
+        UpdateRecentFiles();
+        AddLogMessage("Recent files cleared");
+    }
+
+    private void UpdateRecentFiles()
+    {
+        if (_recentItemsService != null)
+        {
+            var recentItems = _recentItemsService.GetRecentLogFiles();
+            RecentFiles = new ObservableCollection<RecentItem>(recentItems);
+            this.RaisePropertyChanged(nameof(HasRecentFiles));
+        }
+    }
+
+    // View Command Implementations
+    private async Task ShowStatistics()
+    {
+        if (_statisticsService != null && TopLevel != null)
+        {
+            var summary = await _statisticsService.GetSummaryAsync();
+            var statsWindow = new StatisticsWindow
+            {
+                DataContext = new StatisticsViewModel(_statisticsService)
+            };
+            await statsWindow.ShowDialog(TopLevel);
+        }
+    }
+
+    private async Task ShowHelp()
+    {
+        if (TopLevel != null)
+        {
+            var helpWindow = new HelpWindow();
+            await helpWindow.ShowDialog(TopLevel);
+        }
+    }
+
+    private async Task ShowKeyboardShortcuts()
+    {
+        if (TopLevel != null)
+        {
+            var shortcutsWindow = new KeyboardShortcutsWindow();
+            await shortcutsWindow.ShowDialog(TopLevel);
+        }
+    }
+
+    private async Task ShowAbout()
+    {
+        if (TopLevel != null)
+        {
+            var aboutWindow = new AboutWindow();
+            await aboutWindow.ShowDialog(TopLevel);
+        }
+    }
+
+    private async Task SetTheme(string themeName)
+    {
+        _themeService?.SetTheme(themeName);
+        AddLogMessage($"Theme changed to: {themeName}");
+        await Task.CompletedTask;
+    }
+
+    private void Exit()
+    {
+        if (TopLevel is Window window) window.Close();
+    }
+}

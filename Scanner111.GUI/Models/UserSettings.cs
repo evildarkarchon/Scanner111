@@ -4,26 +4,26 @@ using System.Text.Json.Serialization;
 namespace Scanner111.GUI.Models;
 
 /// <summary>
-/// Represents a set of configurable user settings for the application.
+///     Represents a set of configurable user settings for the application.
 /// </summary>
 /// <remarks>
-/// This class is designed to store and manage user preferences related to the
-/// application's behavior and appearance. The settings include paths, UI
-/// preferences, logging configurations, and other relevant options. Most
-/// properties are serialized and deserialized using JSON for ease of
-/// persistence.
+///     This class is designed to store and manage user preferences related to the
+///     application's behavior and appearance. The settings include paths, UI
+///     preferences, logging configurations, and other relevant options. Most
+///     properties are serialized and deserialized using JSON for ease of
+///     persistence.
 /// </remarks>
 /// <example>
-/// Use this class to load, modify, and save user-specific settings in the
-/// application. It provides various configurable properties such as file
-/// paths, window dimensions, and options for enabling or disabling specific
-/// features.
+///     Use this class to load, modify, and save user-specific settings in the
+///     application. It provides various configurable properties such as file
+///     paths, window dimensions, and options for enabling or disabling specific
+///     features.
 /// </example>
 /// <remarks>
-/// The settings can be saved or loaded using a suitable persistence mechanism,
-/// such as a settings service, to enable customization and state management.
-/// Specific helper methods are provided to ease the management of the
-/// "recent items" lists.
+///     The settings can be saved or loaded using a suitable persistence mechanism,
+///     such as a settings service, to enable customization and state management.
+///     Specific helper methods are provided to ease the management of the
+///     "recent items" lists.
 /// </remarks>
 public class UserSettings
 {
@@ -47,6 +47,8 @@ public class UserSettings
     [JsonPropertyName("windowWidth")] public double WindowWidth { get; set; } = 1200;
 
     [JsonPropertyName("windowHeight")] public double WindowHeight { get; set; } = 800;
+
+    [JsonPropertyName("preferredTheme")] public string PreferredTheme { get; set; } = "Dark";
 
     [JsonPropertyName("enableDebugLogging")]
     public bool EnableDebugLogging { get; set; } = false;
@@ -73,7 +75,8 @@ public class UserSettings
 
     [JsonPropertyName("skipXSECopy")] public bool SkipXseCopy { get; set; } = false;
 
-    [JsonPropertyName("enableUpdateCheck")] public bool EnableUpdateCheck { get; set; } = true;
+    [JsonPropertyName("enableUpdateCheck")]
+    public bool EnableUpdateCheck { get; set; } = true;
 
     [JsonPropertyName("updateSource")] public string UpdateSource { get; set; } = "Both"; // "Both", "GitHub", "Nexus"
 
@@ -87,13 +90,15 @@ public class UserSettings
 
     [JsonPropertyName("backupDirectory")] public string BackupDirectory { get; set; } = "";
 
-    [JsonPropertyName("autoDetectModManagers")] public bool AutoDetectModManagers { get; set; } = true;
+    [JsonPropertyName("autoDetectModManagers")]
+    public bool AutoDetectModManagers { get; set; } = true;
 
     [JsonPropertyName("mo2InstallPath")] public string? MO2InstallPath { get; set; }
 
     [JsonPropertyName("vortexDataPath")] public string? VortexDataPath { get; set; }
 
-    [JsonPropertyName("defaultModManager")] public string? DefaultModManager { get; set; }
+    [JsonPropertyName("defaultModManager")]
+    public string? DefaultModManager { get; set; }
 
     /// Adds a specified log file path to the list of recent log files.
     /// Maintains the maximum number of recent items as defined by MaxRecentItems.

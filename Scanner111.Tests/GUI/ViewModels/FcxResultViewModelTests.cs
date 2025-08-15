@@ -1,10 +1,6 @@
-using System.Collections.Generic;
 using FluentAssertions;
-using Scanner111.Core.Analyzers;
 using Scanner111.Core.Models;
-using Scanner111.Core.FCX;
 using Scanner111.GUI.ViewModels;
-using Xunit;
 
 namespace Scanner111.Tests.GUI.ViewModels;
 
@@ -78,21 +74,21 @@ public class FcxResultViewModelTests
     [InlineData(10, 9, 5, 5, true)]
     [InlineData(10, 10, 5, 4, true)]
     [InlineData(10, 8, 5, 3, true)]
-    public void HasIssues_CalculatesCorrectly(int totalFiles, int passedFiles, int totalHashes, int passedHashes, bool expectedHasIssues)
+    public void HasIssues_CalculatesCorrectly(int totalFiles, int passedFiles, int totalHashes, int passedHashes,
+        bool expectedHasIssues)
     {
         // Arrange
         var fileChecks = new List<FileIntegrityCheck>();
-        for (int i = 0; i < totalFiles; i++)
-        {
+        for (var i = 0; i < totalFiles; i++)
             fileChecks.Add(new FileIntegrityCheck { FilePath = $"file{i}", IsValid = i < passedFiles });
-        }
 
         var hashValidations = new List<HashValidation>();
-        for (int i = 0; i < totalHashes; i++)
+        for (var i = 0; i < totalHashes; i++)
         {
             var expectedHash = "expected" + i;
             var actualHash = i < passedHashes ? expectedHash : "different" + i;
-            hashValidations.Add(new HashValidation { FilePath = $"hash{i}", ExpectedHash = expectedHash, ActualHash = actualHash });
+            hashValidations.Add(new HashValidation
+                { FilePath = $"hash{i}", ExpectedHash = expectedHash, ActualHash = actualHash });
         }
 
         var fcxResult = new FcxScanResult
@@ -135,7 +131,8 @@ public class FcxResultViewModelTests
         var viewModel = new FcxResultViewModel(fcxResult);
 
         // Assert
-        viewModel.Summary.Should().Be("2/3 file checks passed, 1/2 hash validations passed", "because summary should show passed/total counts");
+        viewModel.Summary.Should().Be("2/3 file checks passed, 1/2 hash validations passed",
+            "because summary should show passed/total counts");
     }
 
     [Theory]
@@ -202,7 +199,8 @@ public class FcxResultViewModelTests
         var viewModel = new FcxResultViewModel(fcxResult);
 
         // Assert
-        viewModel.OverallStatus.Should().Be(expectedStatus, "because overall status should match game integrity status");
+        viewModel.OverallStatus.Should()
+            .Be(expectedStatus, "because overall status should match game integrity status");
     }
 
     [Fact]
@@ -251,7 +249,8 @@ public class FcxResultViewModelTests
         var viewModel = new FcxResultViewModel(fcxResult);
 
         // Assert
-        viewModel.Summary.Should().Be("0/0 file checks passed, 0/0 hash validations passed", "because summary should handle empty collections");
+        viewModel.Summary.Should().Be("0/0 file checks passed, 0/0 hash validations passed",
+            "because summary should handle empty collections");
         viewModel.HasIssues.Should().BeFalse("because empty checks mean no issues");
     }
 }

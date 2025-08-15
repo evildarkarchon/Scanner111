@@ -1,19 +1,17 @@
 using FluentAssertions;
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
-using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
-using Xunit;
 
 namespace Scanner111.Tests.CLI;
 
 public class ConfigCommandTests : IDisposable
 {
+    private readonly ConfigCommand _command;
     private readonly TestMessageCapture _messageCapture;
     private readonly MockCliSettingsService _mockSettingsService;
-    private readonly ConfigCommand _command;
 
     public ConfigCommandTests()
     {
@@ -21,6 +19,11 @@ public class ConfigCommandTests : IDisposable
         MessageHandler.Initialize(_messageCapture);
         _mockSettingsService = new MockCliSettingsService();
         _command = new ConfigCommand(_mockSettingsService, _messageCapture);
+    }
+
+    public void Dispose()
+    {
+        MessageHandler.Initialize(new TestMessageHandler());
     }
 
     [Fact]
@@ -34,7 +37,7 @@ public class ConfigCommandTests : IDisposable
 
         // Assert
         result.Should().Be(0, "because the command should succeed");
-        _messageCapture.InfoMessages.Should().Contain(msg => msg.Contains("Unified Settings file:"), 
+        _messageCapture.InfoMessages.Should().Contain(msg => msg.Contains("Unified Settings file:"),
             "because the settings path should be displayed");
         _messageCapture.InfoMessages.Should().Contain(msg => msg.Contains("File exists:"),
             "because the file existence status should be shown");
@@ -165,8 +168,8 @@ public class ConfigCommandTests : IDisposable
     public async Task ExecuteAsync_WithMultipleOptions_ExecutesInOrder()
     {
         // Arrange
-        var options = new ConfigOptions 
-        { 
+        var options = new ConfigOptions
+        {
             ShowPath = true,
             List = true,
             Set = "FcxMode=true"
@@ -186,26 +189,16 @@ public class ConfigCommandTests : IDisposable
             "because setting should be applied");
     }
 
-    public void Dispose()
-    {
-        MessageHandler.Initialize(new TestMessageHandler());
-    }
-
     private class MockCliSettingsService : ICliSettingsService
     {
         private CliSettings _testSettings = new();
-        
+
         public bool SaveSettingsCalled { get; private set; }
         public ApplicationSettings? LastSavedSettings { get; private set; }
         public bool SaveSettingAsyncCalled { get; private set; }
         public string? LastSavedKey { get; private set; }
         public object? LastSavedValue { get; private set; }
         public bool ThrowOnInvalidKey { get; set; }
-
-        public void SetTestSettings(CliSettings settings)
-        {
-            _testSettings = settings;
-        }
 
         public Task<ApplicationSettings> LoadSettingsAsync()
         {
@@ -240,12 +233,9 @@ public class ConfigCommandTests : IDisposable
             SaveSettingAsyncCalled = true;
             LastSavedKey = key;
             LastSavedValue = value;
-            
-            if (ThrowOnInvalidKey && key == "InvalidKey")
-            {
-                throw new ArgumentException($"Unknown setting: {key}");
-            }
-            
+
+            if (ThrowOnInvalidKey && key == "InvalidKey") throw new ArgumentException($"Unknown setting: {key}");
+
             return Task.CompletedTask;
         }
 
@@ -262,6 +252,11 @@ public class ConfigCommandTests : IDisposable
         public Task SaveCliSettingsAsync(CliSettings settings)
         {
             return Task.CompletedTask;
+        }
+
+        public void SetTestSettings(CliSettings settings)
+        {
+            _testSettings = settings;
         }
     }
 }
