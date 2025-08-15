@@ -41,12 +41,19 @@ dotnet run --project Scanner111.CLI -- about
 # Run CLI FCX command (enhanced file checks)
 dotnet run --project Scanner111.CLI -- fcx
 
+# Run CLI stats command (view scan statistics)
+dotnet run --project Scanner111.CLI -- stats
+dotnet run --project Scanner111.CLI -- stats --period week --detailed
+
 # Run interactive TUI mode (launches if no args provided)
 dotnet run --project Scanner111.CLI
 
 # Run interactive mode explicitly
 dotnet run --project Scanner111.CLI -- interactive
+```
 
+### Testing
+```bash
 # Run all tests
 dotnet test
 
@@ -88,14 +95,14 @@ The core of the application uses `IAsyncEnumerable<T>` for streaming results wit
 ### Analyzer Factory Pattern
 - **IAnalyzer Interface**: All analyzers implement with Priority, CanRunInParallel, Name properties
 - **Priority Execution**: Lower priority values run first, parallel execution for independent analyzers
-- **Core Analyzers**: FormIdAnalyzer, PluginAnalyzer, RecordScanner, SettingsScanner, SuspectScanner, BuffoutVersionAnalyzer
+- **Core Analyzers**: FormIdAnalyzer, PluginAnalyzer, RecordScanner, SettingsScanner, SuspectScanner, BuffoutVersionAnalyzerV2
 - **FCX Analyzers**: FileIntegrityAnalyzer, ModConflictAnalyzer, VersionAnalyzer
 - All analyzers return `Task<AnalysisResult>`, not generic results
 
 ### Message Handler Abstraction
 UI-agnostic communication through `IMessageHandler`:
 - **GUI Implementation**: `MessageHandler` in Scanner111.GUI/Services/
-- **CLI Implementation**: `CliMessageHandler` in Scanner111.CLI/Services/
+- **CLI Implementation**: `EnhancedSpectreMessageHandler` (default) or `SpectreMessageHandler` (legacy) in Scanner111.CLI/Services/
 - Decouples business logic from presentation concerns
 
 ### Dependency Injection Architecture
@@ -103,6 +110,7 @@ UI-agnostic communication through `IMessageHandler`:
 - `IApplicationSettingsService` replaces removed GlobalRegistry
 - `IYamlSettingsProvider` for centralized YAML configuration access
 - Services registered in CLI Program.cs with proper lifetimes
+- Memory cache registered for `ICacheManager`
 
 ## Critical Implementation Requirements
 
@@ -129,6 +137,7 @@ UI-agnostic communication through `IMessageHandler`:
   - Pipeline/: IScanPipeline and decorators
   - FCX/: Enhanced file checking components
   - Services/: Application services
+  - ModManagers/: Mod manager detection and integration
 
 - **Scanner111.GUI**: Avalonia MVVM desktop application
   - ViewModels/: MVVM view models with INotifyPropertyChanged
@@ -174,6 +183,7 @@ UI-agnostic communication through `IMessageHandler`:
 - `config`: Manage Scanner111 configuration
 - `about`: Show version and about information
 - `fcx`: Run FCX file integrity checks
+- `stats`: View scan statistics and history
 - `interactive`: Launch interactive Terminal UI mode (also launches with no args)
 
 ### Scan Command Options
@@ -201,6 +211,15 @@ UI-agnostic communication through `IMessageHandler`:
 - `--auto-move`: Automatically move solved logs to 'Solved' folder
 - `--dashboard`: Show live dashboard with statistics
 - `--notifications`: Show notifications for new files (default: true)
+
+### Stats Command Options
+- `-p, --period`: Time period (today, week, month, year, all, or number of days)
+- `-t, --top-issues`: Number of top issues to display (default: 10)
+- `-r, --recent-scans`: Number of recent scans to show (default: 10)
+- `-g, --game-type`: Filter by game type (Fallout4 or Skyrim)
+- `-e, --export-path`: Export statistics to CSV file
+- `-c, --clear`: Clear all statistics
+- `-d, --detailed`: Show detailed statistics with charts
 
 ## Async I/O Best Practices
 
@@ -241,8 +260,8 @@ var console = SpectreTestHelper.CreateTestConsole();
 ## Spectre.Console TUI Components
 
 ### Message Handlers
-- **EnhancedSpectreMessageHandler**: Multi-panel progress display with live updates
-- **SpectreMessageHandler**: Legacy single-panel progress display  
+- **EnhancedSpectreMessageHandler**: Multi-panel progress display with live updates (default)
+- **SpectreMessageHandler**: Legacy single-panel progress display (use --legacy-progress flag)
 - **SpectreTerminalUIService**: Interactive menu system for TUI mode
 
 ### TUI Features
@@ -258,3 +277,4 @@ var console = SpectreTestHelper.CreateTestConsole();
 - All async operations must use `ConfigureAwait(false)` for library code
 - Use `IAsyncEnumerable<T>` for streaming - never accumulate results in memory
 - UTF-8 encoding is required for all file I/O operations
+- Test configuration uses parallel execution by default (see xunit.runner.json)

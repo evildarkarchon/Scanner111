@@ -1,121 +1,276 @@
-﻿# Scanner111 Development Guidelines
+﻿## Project Overview
 
-This document captures the key steps and tips for building, testing, and contributing to Scanner111. It is tailored for Windows/PowerShell and .NET 8.
+Scanner111 is a C# port of a Python crash log analyzer for Bethesda games (Fallout 4, Skyrim, etc.). The application analyzes crash logs to identify problematic game modifications. It provides both GUI (Avalonia) and CLI interfaces with an interactive TUI mode using Spectre.Console.
 
-## Prerequisites
-- .NET SDK 8.0 (or newer compatible with solution)
-- PowerShell (built-in on Windows)
-- Optional: Rider/Visual Studio 2022 for IDE support
+## Key Commands
 
-Verify your environment:
-- dotnet --info
+### Build & Run
+```bash
+# Build solution
+dotnet build
 
-## Project Structure (high-level)
-- Scanner111.sln — Solution file
-- Scanner111.Core — Core libraries and services
-- Scanner111.GUI — Avalonia UI (net8.0)
-- Scanner111.CLI — Command-line interface
-- Scanner111.Tests — xUnit-based test suite (references Core/GUI/CLI)
-- Code to Port — Legacy Python and assets (not required for building .NET projects)
+# Build in Release mode
+dotnet build -c Release
 
-## Build and Configuration
-Typical commands from the repository root (PowerShell):
-- Restore packages
-  - dotnet restore .\Scanner111.sln
-- Build Debug
-  - dotnet build .\Scanner111.sln -c Debug
-- Build Release
-  - dotnet build .\Scanner111.sln -c Release
+# Run GUI application
+dotnet run --project Scanner111.GUI
 
-Build a specific project (examples):
-- CLI
-  - dotnet build .\Scanner111.CLI\Scanner111.CLI.csproj -c Debug
-- GUI (Avalonia)
-  - dotnet build .\Scanner111.GUI\Scanner111.GUI.csproj -c Debug
+# Run CLI application (default scan verb)
+dotnet run --project Scanner111.CLI -- scan
 
-Run the CLI locally:
-- dotnet run --project .\Scanner111.CLI\Scanner111.CLI.csproj -- -h
+# Run CLI with specific log file
+dotnet run --project Scanner111.CLI -- scan -l "path/to/crash.log"
 
-Notes:
-- All paths use Windows backslashes.
-- If you change public APIs in Core/GUI/CLI, re-run dotnet restore if the project references or packages were updated.
+# Run CLI watch mode (monitors for new crash logs)
+dotnet run --project Scanner111.CLI -- watch
+dotnet run --project Scanner111.CLI -- watch --path "C:/path/to/logs" --auto-move --dashboard
 
-## Testing
-The solution uses xUnit with FluentAssertions and coverlet integration via Microsoft.NET.Test.Sdk and coverlet.collector.
+# Run CLI demo mode
+dotnet run --project Scanner111.CLI -- demo
 
-General test commands from repository root:
-- Run all tests
-  - dotnet test .\Scanner111.Tests\Scanner111.Tests.csproj -c Debug
-- Run tests with detailed logging
-  - dotnet test .\Scanner111.Tests\Scanner111.Tests.csproj -c Debug -v normal
-- Filter tests (by fully-qualified name, class, or trait)
-  - dotnet test .\Scanner111.Tests\Scanner111.Tests.csproj --filter "FullyQualifiedName~Scanner111.Tests.GUI.Converters.BooleanToFindingsTextConverterTests"
-  - dotnet test .\Scanner111.Tests\Scanner111.Tests.csproj --filter "ClassName=Scanner111.Tests.GUI.Converters.BooleanToFindingsTextConverterTests"
-  - dotnet test .\Scanner111.Tests\Scanner111.Tests.csproj --filter "TestCategory=Fast"  (only if traits are present)
+# Run CLI config command
+dotnet run --project Scanner111.CLI -- config
 
-Collect coverage (via coverlet collector):
-- dotnet test .\Scanner111.Tests\Scanner111.Tests.csproj -c Debug --collect:"XPlat Code Coverage"
-  - Results will be stored under TestResults/ and may be viewable with coverage tools.
+# Run CLI about command  
+dotnet run --project Scanner111.CLI -- about
 
-Watch mode (reruns on file changes):
-- dotnet watch --project .\Scanner111.Tests\Scanner111.Tests.csproj test
+# Run CLI FCX command (enhanced file checks)
+dotnet run --project Scanner111.CLI -- fcx
 
-Important: Some tests are known to be slow or hang (e.g., deep integration or IO-heavy tests). Prefer filtering down to a known-fast class or method when iterating locally.
+# Run CLI stats command (view scan statistics)
+dotnet run --project Scanner111.CLI -- stats
+dotnet run --project Scanner111.CLI -- stats --period week --detailed
 
-### Quick, Verified Test Example
-To quickly verify your setup, run a fast, stable test from the Converters suite:
-- dotnet test .\Scanner111.Tests\Scanner111.Tests.csproj --filter "FullyQualifiedName~Scanner111.Tests.GUI.Converters.BooleanToFindingsTextConverterTests.Convert_ValidBoolean_ReturnsCorrectText"
+# Run interactive TUI mode (launches if no args provided)
+dotnet run --project Scanner111.CLI
 
-This specific test has been executed successfully during guideline authoring to ensure the command works as shown.
+# Run interactive mode explicitly
+dotnet run --project Scanner111.CLI -- interactive
+```
 
-### How to Add and Run a New Test (Step-by-step)
-Below is a minimal example you can add temporarily to prove your test pipeline. You can add and then remove it after validation.
+### Testing
+```bash
+# Run all tests
+dotnet test
 
-1) Create a new file under the test project, for example:
-   - Path: .\Scanner111.Tests\Smoke\HelloWorldTests.cs
+# Run tests with detailed output
+dotnet test -v normal
 
-2) File contents:
-   using FluentAssertions;
-   using Xunit;
-   
-   namespace Scanner111.Tests.Smoke;
-   
-   public class HelloWorldTests
-   {
-       [Fact]
-       public void True_is_true()
-       {
-           true.Should().BeTrue();
-       }
-   }
+# Run specific test by name
+dotnet test --filter "FullyQualifiedName~TestName"
 
-3) Run just this test:
-- dotnet test .\Scanner111.Tests\Scanner111.Tests.csproj --filter "FullyQualifiedName~Scanner111.Tests.Smoke.HelloWorldTests.True_is_true"
+# Run tests for specific class
+dotnet test --filter "ClassName=FormIdAnalyzerTests"
 
-4) Remove the temporary test file once done to keep the repository clean.
+# Run tests with code coverage
+dotnet test --collect:"XPlat Code Coverage"
 
-## Code Style and Conventions
-- C# Language Version: from .NET 8 defaults + ImplicitUsings enabled (except in Scanner111.GUI), Nullable enabled in csproj
-- Testing: xUnit with FluentAssertions
-  - Arrange/Act/Assert structure is widely used.
-  - Prefer expressive assertions (result.Should().Be(...))
-- DI & Services: Microsoft.Extensions.DependencyInjection is used in tests; follow existing patterns in Core/CLI/GUI.
-- Namespaces: Follow folder-based namespaces under Scanner111.*
-- Async/Concurrency: Where applicable, prefer async/await and CancellationToken support; see existing services and tests for patterns (e.g., CancellationSupportTests).
+# Run specific test project
+dotnet test Scanner111.Tests
 
-## Troubleshooting
-- Restores fail
-  - Ensure internet connectivity and correct NuGet sources; re-run: dotnet nuget locals all --clear
-- Binding errors or missing types
-  - Clean and rebuild: dotnet clean .\Scanner111.sln; dotnet build .\Scanner111.sln -c Debug
-- Slow/hanging tests
-  - Use --filter to target only the fast unit tests (e.g., Converters tests).
-  - Avoid full-solution runs when iterating quickly.
-- Coverage report empty
-  - Check that --collect:"XPlat Code Coverage" is passed and that TestResults directory is created.
+# Run tests with FluentAssertions output
+dotnet test --logger:"console;verbosity=detailed"
 
-## Notes for AI/Tooling
-- Prefer Windows-style paths in commands.
-- Use project-specific filters when running tests to avoid long integration suites.
-- Do not commit temporary files created for testing demonstrations; remove them after verifying.
+# Run specific collection                                                                                                                                                                                                                                                                                         
+dotnet test --filter "Collection=\"IO Heavy Tests\""                                                                                                                                                                                                                                                              
 
+# Run uncollected tests (fastest)                                                                                                                                                                                                                                                                                 
+dotnet test --filter "Collection!=\"*\""
+```
+
+## High-Level Architecture
+
+### Async Streaming Pipeline Pattern
+The core of the application uses `IAsyncEnumerable<T>` for streaming results without memory accumulation:
+- **IScanPipeline**: Orchestrates analysis with batch processing capabilities
+- **Producer/Consumer**: Uses `System.Threading.Channels` for decoupled async processing
+- **Decorator Pattern**: `PerformanceMonitoringPipeline` wraps base pipeline for metrics
+- All I/O operations use async patterns with `ConfigureAwait(false)`
+- SemaphoreSlim guards concurrent file access
+
+### Analyzer Factory Pattern
+- **IAnalyzer Interface**: All analyzers implement with Priority, CanRunInParallel, Name properties
+- **Priority Execution**: Lower priority values run first, parallel execution for independent analyzers
+- **Core Analyzers**: FormIdAnalyzer, PluginAnalyzer, RecordScanner, SettingsScanner, SuspectScanner, BuffoutVersionAnalyzerV2
+- **FCX Analyzers**: FileIntegrityAnalyzer, ModConflictAnalyzer, VersionAnalyzer
+- All analyzers return `Task<AnalysisResult>`, not generic results
+
+### Message Handler Abstraction
+UI-agnostic communication through `IMessageHandler`:
+- **GUI Implementation**: `MessageHandler` in Scanner111.GUI/Services/
+- **CLI Implementation**: `EnhancedSpectreMessageHandler` (default) or `SpectreMessageHandler` (legacy) in Scanner111.CLI/Services/
+- Decouples business logic from presentation concerns
+
+### Dependency Injection Architecture
+- Constructor injection for all services (no static dependencies)
+- `IApplicationSettingsService` replaces removed GlobalRegistry
+- `IYamlSettingsProvider` for centralized YAML configuration access
+- Services registered in CLI Program.cs with proper lifetimes
+- Memory cache registered for `ICacheManager`
+
+## Critical Implementation Requirements
+
+### Output Format
+- Output format must match Python reference implementation exactly
+- Verify against `sample_logs/*-AUTOSCAN.md` expected outputs
+
+### File I/O Standards
+- Always use UTF-8 encoding with error handling: `Encoding.UTF8`
+- All operations must be async with proper cancellation support
+- Console encoding set explicitly in Program.cs for Windows compatibility
+
+### Resource Management
+- Use `using` statements for all IDisposable resources
+- Implement IAsyncDisposable where appropriate
+- Proper cancellation token propagation through all async methods
+
+## Solution Structure
+
+- **Scanner111.Core**: Business logic library with analyzers and pipeline
+    - Analyzers/: IAnalyzer implementations
+    - Infrastructure/: Cross-cutting services (CrashLogParser, ReportWriter, etc.)
+    - Models/: Domain models and YAML configurations
+    - Pipeline/: IScanPipeline and decorators
+    - FCX/: Enhanced file checking components
+    - Services/: Application services
+    - ModManagers/: Mod manager detection and integration
+
+- **Scanner111.GUI**: Avalonia MVVM desktop application
+    - ViewModels/: MVVM view models with INotifyPropertyChanged
+    - Views/: AXAML views with dark theme (#2d2d30 background, #0e639c primary)
+    - Services/: GUI-specific services
+
+- **Scanner111.CLI**: Console application using CommandLineParser
+    - Commands/: ICommand implementations (ScanCommand, WatchCommand, DemoCommand, etc.)
+    - Models/: CLI options classes with CommandLineParser attributes
+    - Services/: CLI-specific services including EnhancedSpectreMessageHandler
+
+- **Scanner111.Tests**: xUnit test project
+    - Integration/: End-to-end test scenarios
+    - TestImplementations.cs: Mock services and helpers
+
+## Development Workflow
+
+### Analysis Pipeline Flow
+1. **CrashLogParser** reads and parses crash log files (UTF-8, error-tolerant)
+2. **IScanPipeline** orchestrates the analysis process:
+    - Loads analyzers sorted by priority
+    - Executes analyzers in parallel groups where possible
+    - Streams results via IAsyncEnumerable (never accumulate)
+3. **Analyzers** examine different aspects of the crash
+4. **ReportWriter** formats results matching Python output exactly
+
+### Testing with Sample Data
+- Use `sample_logs/` directory for testing - each .log has expected `-AUTOSCAN.md` output
+- Verify analyzer output format matches expected files exactly
+- Test files use xUnit with proper async patterns
+
+### Reference Implementation
+- **Python source**: `Code to Port/` directory (read-only reference)
+- **YAML databases**: `Data/CLASSIC Main.yaml` and `Data/CLASSIC Fallout4.yaml`
+- **Sample logs**: `sample_logs/` with expected outputs
+
+## CLI Commands and Options
+
+### Commands (Verbs)
+- `scan` (default): Scan crash log files for issues
+- `watch`: Monitor directory for new crash logs with real-time analysis
+- `demo`: Demonstrate message handler features
+- `config`: Manage Scanner111 configuration
+- `about`: Show version and about information
+- `fcx`: Run FCX file integrity checks
+- `stats`: View scan statistics and history
+- `interactive`: Launch interactive Terminal UI mode (also launches with no args)
+
+### Scan Command Options
+- `-l, --log`: Path to specific crash log file
+- `-d, --scan-dir`: Directory to scan for crash logs
+- `-g, --game-path`: Path to game installation directory
+- `-v, --verbose`: Enable verbose output
+- `--fcx-mode`: Enable FCX mode for enhanced file checks
+- `--show-fid-values`: Show FormID values (slower scans)
+- `--simplify-logs`: Simplify logs (Warning: May remove important information)
+- `--move-unsolved`: Move unsolved logs to separate folder
+- `--crash-logs-dir`: Directory to store copied crash logs (with game subfolders)
+- `--skip-xse-copy`: Skip automatic XSE (F4SE/SKSE) crash log copying
+- `--disable-progress`: Disable progress bars in CLI mode
+- `--disable-colors`: Disable colored output
+- `-o, --output-format`: Output format (detailed or summary)
+- `--legacy-progress`: Use legacy progress display instead of enhanced multi-progress view
+
+### Watch Command Options
+- `-p, --path`: Directory path to monitor for crash logs
+- `-g, --game`: Game type (Fallout4 or Skyrim) for auto-detection of paths
+- `-r, --recursive`: Monitor subdirectories recursively
+- `--pattern`: File pattern to watch (default: *.txt)
+- `--scan-existing`: Scan existing files when starting
+- `--auto-move`: Automatically move solved logs to 'Solved' folder
+- `--dashboard`: Show live dashboard with statistics
+- `--notifications`: Show notifications for new files (default: true)
+
+### Stats Command Options
+- `-p, --period`: Time period (today, week, month, year, all, or number of days)
+- `-t, --top-issues`: Number of top issues to display (default: 10)
+- `-r, --recent-scans`: Number of recent scans to show (default: 10)
+- `-g, --game-type`: Filter by game type (Fallout4 or Skyrim)
+- `-e, --export-path`: Export statistics to CSV file
+- `-c, --clear`: Clear all statistics
+- `-d, --detailed`: Show detailed statistics with charts
+
+## Async I/O Best Practices
+
+- Use `SemaphoreSlim` for controlling concurrent file access
+- Implement thread-safe async read/write operations
+- Use `Channel<T>` for managing async I/O streams
+- Always pass CancellationToken to async operations
+- Use IProgress<T> for long-running operations
+
+## Testing Architecture
+
+### Test Framework
+- **xUnit**: Primary test framework with async test support
+- **FluentAssertions**: Enhanced assertion library for clearer test failures
+- **Moq**: Mocking framework for unit tests
+- **Spectre.Console.Testing**: Testing utilities for TUI components
+
+### Test Organization
+- **Unit Tests**: Individual analyzer and service tests
+- **Integration Tests**: End-to-end pipeline tests with sample logs
+- **Test Helpers**: `TestImplementations.cs` contains mock services
+- **Settings Tests**: Use `SettingsTestBase` and `SettingsTestCollection` for isolated settings
+
+### Key Test Patterns
+```csharp
+// Use TestMessageCapture for verifying message output
+var messageCapture = new TestMessageCapture();
+
+// Use SpectreTestHelper for TUI testing
+var console = SpectreTestHelper.CreateTestConsole();
+
+// Mock services in TestImplementations:
+// - TestApplicationSettingsService
+// - TestMessageHandler  
+// - TestYamlSettingsProvider
+```
+
+## Spectre.Console TUI Components
+
+### Message Handlers
+- **EnhancedSpectreMessageHandler**: Multi-panel progress display with live updates (default)
+- **SpectreMessageHandler**: Legacy single-panel progress display (use --legacy-progress flag)
+- **SpectreTerminalUIService**: Interactive menu system for TUI mode
+
+### TUI Features
+- Real-time progress tracking with multiple concurrent tasks
+- Live log viewer with colored message types
+- Memory usage and performance monitoring
+- Interactive menu navigation with keyboard controls
+
+## Important Notes
+
+- The files in `Code to Port/` are read-only Python reference implementation
+- Output format must match expected files in `sample_logs/*-AUTOSCAN.md` exactly
+- All async operations must use `ConfigureAwait(false)` for library code
+- Use `IAsyncEnumerable<T>` for streaming - never accumulate results in memory
+- UTF-8 encoding is required for all file I/O operations
+- Test configuration uses parallel execution by default (see xunit.runner.json)
