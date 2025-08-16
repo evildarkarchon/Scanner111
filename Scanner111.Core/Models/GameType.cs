@@ -33,5 +33,15 @@ public enum GameType
     /// <summary>
     ///     Fallout 3
     /// </summary>
-    Fallout3 = 5
+    Fallout3 = 5,
+
+    /// <summary>
+    ///     Fallout 4 VR
+    /// </summary>
+    Fallout4VR = 6,
+
+    /// <summary>
+    ///     The Elder Scrolls V: Skyrim VR
+    /// </summary>
+    SkyrimVR = 7
 }

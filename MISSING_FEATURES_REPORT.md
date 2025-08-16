@@ -25,7 +25,7 @@ After analyzing the Python reference implementation in `Code to Port/` and compa
 **C# Status:** Not implemented
 **Priority:** Medium - Useful for sharing crash logs
 
-### 3. Advanced TUI Features (Textual-based)
+### 3. Advanced TUI Features (Textual-based) ✅ Completed
 **Python Implementation:** `ClassicLib/TUI/` directory
 - Full-featured Terminal UI using Textual framework
 - Multiple screens (Main, Papyrus, Settings, Help)
@@ -38,7 +38,7 @@ After analyzing the Python reference implementation in `Code to Port/` and compa
 **C# Status:** Basic Spectre.Console implementation
 **Priority:** Medium - Current C# TUI is functional but less feature-rich
 
-### 4. Game Scanning Features
+### 4. Game Scanning Features ✅ Completed
 **Python Implementation:** `ClassicLib/ScanGame/`
 - **CheckCrashgen.py**: Crash generator detection
 - **CheckXsePlugins.py**: XSE plugin validation

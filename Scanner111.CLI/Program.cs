@@ -2,6 +2,7 @@ using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
 using Scanner111.Core.FCX;
+using Scanner111.Core.GameScanning;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.ModManagers;
 using Scanner111.Core.Pipeline;
@@ -38,7 +39,7 @@ var parser = new Parser(with => with.HelpWriter = Console.Error);
 var result =
     parser
         .ParseArguments<ScanOptions, DemoOptions, ConfigOptions, AboutOptions, FcxOptions, InteractiveOptions,
-            WatchOptions, StatsOptions, PapyrusOptions, PastebinOptions>(args);
+            WatchOptions, StatsOptions, PapyrusOptions, PastebinOptions, GameScanOptions>(args);
 
 return await result.MapResult(
     async (ScanOptions opts) => await serviceProvider.GetRequiredService<ScanCommand>().ExecuteAsync(opts),
@@ -52,6 +53,7 @@ return await result.MapResult(
     async (StatsOptions opts) => await serviceProvider.GetRequiredService<StatsCommand>().ExecuteAsync(opts),
     async (PapyrusOptions opts) => await serviceProvider.GetRequiredService<PapyrusCommand>().ExecuteAsync(opts),
     async (PastebinOptions opts) => await serviceProvider.GetRequiredService<PastebinCommand>().ExecuteAsync(opts),
+    async (GameScanOptions opts) => await serviceProvider.GetRequiredService<GameScanCommand>().ExecuteAsync(opts),
     async errs => await Task.FromResult(1));
 
 static void ConfigureServices(IServiceCollection services, bool useLegacyProgress = false)
@@ -110,6 +112,13 @@ static void ConfigureServices(IServiceCollection services, bool useLegacyProgres
     // Register Pastebin service
     services.AddSingleton<IPastebinService, PastebinService>();
 
+    // Register Game Scanning services
+    services.AddSingleton<ICrashGenChecker, CrashGenChecker>();
+    services.AddSingleton<IXsePluginValidator, XsePluginValidator>();
+    services.AddSingleton<IModIniScanner, ModIniScanner>();
+    services.AddSingleton<IWryeBashChecker, WryeBashChecker>();
+    services.AddSingleton<IGameScannerService, GameScannerService>();
+
     // Register commands
     services.AddTransient<ScanCommand>();
     services.AddTransient<DemoCommand>();
@@ -121,6 +130,7 @@ static void ConfigureServices(IServiceCollection services, bool useLegacyProgres
     services.AddTransient<StatsCommand>();
     services.AddTransient<PapyrusCommand>();
     services.AddTransient<PastebinCommand>();
+    services.AddTransient<GameScanCommand>();
 
     // Register ICommand interfaces for injection
     services.AddTransient<ICommand<ScanOptions>, ScanCommand>();
@@ -133,6 +143,7 @@ static void ConfigureServices(IServiceCollection services, bool useLegacyProgres
     services.AddTransient<ICommand<StatsOptions>, StatsCommand>();
     services.AddTransient<ICommand<PapyrusOptions>, PapyrusCommand>();
     services.AddTransient<ICommand<PastebinOptions>, PastebinCommand>();
+    services.AddTransient<ICommand<GameScanOptions>, GameScanCommand>();
 }
 
 static async Task PerformStartupUpdateCheckAsync(IServiceProvider serviceProvider)
