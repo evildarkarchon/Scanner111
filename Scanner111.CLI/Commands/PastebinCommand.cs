@@ -220,6 +220,20 @@ public class PastebinCommand : ICommand<PastebinOptions>
         catch (Exception ex)
         {
             AnsiConsole.WriteException(ex);
+            
+            // Play error sound for operation failure
+            if (_audioService != null && _audioService.IsEnabled)
+            {
+                try
+                {
+                    await _audioService.PlayErrorFoundAsync();
+                }
+                catch
+                {
+                    // Ignore audio playback errors
+                }
+            }
+            
             return 1;
         }
     }

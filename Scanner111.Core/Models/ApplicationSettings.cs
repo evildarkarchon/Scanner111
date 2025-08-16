@@ -139,6 +139,8 @@ public class ApplicationSettings
 
     [JsonPropertyName("disableProgress")] public bool DisableProgress { get; set; }
 
+    [JsonPropertyName("enableUnicodeDisplay")] public bool EnableUnicodeDisplay { get; set; } = true;
+
     // === GUI-Specific Settings ===
 
     [JsonPropertyName("rememberWindowSize")]

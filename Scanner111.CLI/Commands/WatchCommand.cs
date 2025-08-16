@@ -228,6 +228,19 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
         catch (Exception ex)
         {
             AnsiConsole.MarkupLine($"[red]Error processing {Path.GetFileName(filePath)}:[/] {ex.Message}");
+            
+            // Play error sound for operation failure
+            if (_audioService != null && _audioService.IsEnabled)
+            {
+                try
+                {
+                    await _audioService.PlayErrorFoundAsync();
+                }
+                catch
+                {
+                    // Ignore audio playback errors
+                }
+            }
         }
     }
 
@@ -297,16 +310,9 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
 
         try
         {
-            // Since AnalysisResult doesn't have severity levels, check for errors
-            var hasCriticalIssues = result.AnalysisResults.Any(r => r.Errors.Count > 0);
-            var hasAnyIssues = result.AnalysisResults.Any(r => r.HasFindings);
-
-            if (hasCriticalIssues)
-                await _audioService.PlayCriticalIssueAsync();
-            else if (hasAnyIssues)
-                await _audioService.PlayErrorFoundAsync();
-            else
-                await _audioService.PlayScanCompleteAsync();
+            // Play success sound - the scan completed successfully regardless of findings
+            // Finding issues in a crash log is actually a successful operation
+            await _audioService.PlayScanCompleteAsync();
         }
         catch (Exception ex)
         {

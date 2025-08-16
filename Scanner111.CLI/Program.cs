@@ -145,13 +145,13 @@ static async Task PerformStartupUpdateCheckAsync(IServiceProvider serviceProvide
         if (settings.EnableUpdateCheck)
         {
             var updateService = serviceProvider.GetRequiredService<IUpdateService>();
-            await updateService.IsLatestVersionAsync();
+            // Use quiet mode during startup to avoid display issues before UI is ready
+            await updateService.IsLatestVersionAsync(quiet: true);
         }
     }
-    catch (Exception ex)
+    catch
     {
-        var messageHandler = serviceProvider.GetRequiredService<IMessageHandler>();
-        messageHandler.ShowDebug($"Update check failed during startup: {ex.Message}");
-        // Don't fail the application if update check fails
+        // Silently ignore update check failures during startup
+        // The user can manually check for updates later if needed
     }
 }

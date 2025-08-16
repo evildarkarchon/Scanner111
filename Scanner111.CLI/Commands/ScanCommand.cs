@@ -113,6 +113,20 @@ public class ScanCommand : ICommand<CliScanOptions>
         {
             _messageHandler.ShowCritical($"Fatal error during scan: {ex.Message}");
             if (options.Verbose) _messageHandler.ShowDebug($"Stack trace: {ex.StackTrace}");
+            
+            // Play error sound for operation failure
+            if (_audioService != null && _audioService.IsEnabled)
+            {
+                try
+                {
+                    await _audioService.PlayErrorFoundAsync();
+                }
+                catch
+                {
+                    // Ignore audio playback errors
+                }
+            }
+            
             return 1;
         }
     }
@@ -363,16 +377,9 @@ public class ScanCommand : ICommand<CliScanOptions>
 
         try
         {
-            // Since AnalysisResult doesn't have severity levels, check for errors in report lines
-            var hasCriticalIssues = results.Any(r => r.AnalysisResults.Any(ar => ar.Errors.Count > 0));
-            var hasAnyIssues = results.Any(r => r.AnalysisResults.Any(ar => ar.HasFindings));
-
-            if (hasCriticalIssues)
-                await _audioService.PlayCriticalIssueAsync();
-            else if (hasAnyIssues)
-                await _audioService.PlayErrorFoundAsync();
-            else
-                await _audioService.PlayScanCompleteAsync();
+            // Play success sound - the scan completed successfully regardless of findings
+            // Finding issues in a crash log is actually a successful operation
+            await _audioService.PlayScanCompleteAsync();
         }
         catch (Exception ex)
         {

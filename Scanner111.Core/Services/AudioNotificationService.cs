@@ -69,16 +69,6 @@ public class AudioNotificationService : IAudioNotificationService, IDisposable
             PlaySystemSound(SystemSounds.Exclamation);
     }
 
-    public async Task PlayCriticalIssueAsync()
-    {
-        if (!IsEnabled) return;
-
-        if (_customSounds.TryGetValue(NotificationType.CriticalIssue, out var customSound))
-            await PlayCustomSoundAsync(customSound).ConfigureAwait(false);
-        else
-            // Play default system sound as fallback  
-            PlaySystemSound(SystemSounds.Hand);
-    }
 
     public async Task PlayCustomSoundAsync(string filePath)
     {

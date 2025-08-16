@@ -7,7 +7,6 @@ public interface IAudioNotificationService
 
     Task PlayScanCompleteAsync();
     Task PlayErrorFoundAsync();
-    Task PlayCriticalIssueAsync();
     Task PlayCustomSoundAsync(string filePath);
     void SetCustomSound(NotificationType type, string filePath);
 }
@@ -15,6 +14,5 @@ public interface IAudioNotificationService
 public enum NotificationType
 {
     ScanComplete,
-    ErrorFound,
-    CriticalIssue
+    ErrorFound
 }

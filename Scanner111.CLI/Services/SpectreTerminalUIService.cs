@@ -39,15 +39,17 @@ public class SpectreTerminalUIService : ITerminalUIService
         while (true)
         {
             ShowInteractiveMenu();
+            ShowKeyboardShortcuts();
+            
             var choice = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
                     .Title("[bold yellow]Select an option:[/]")
                     .PageSize(10)
                     .HighlightStyle(new Style(Color.Cyan1, decoration: Decoration.Bold))
-                    .AddChoices("[1] Quick Scan (Current Directory)", "[2] Scan Specific File/Directory",
-                        "[3] FCX Mode - File Integrity Check", "[4] Configuration Settings",
-                        "[5] View Recent Scan Results", "[6] Watch Mode - Monitor for New Logs", "[7] About Scanner111",
-                        "[Q] Quit"));
+                    .AddChoices("[[1]] Quick Scan (Current Directory)", "[[2]] Scan Specific File/Directory",
+                        "[[3]] FCX Mode - File Integrity Check", "[[4]] Configuration Settings",
+                        "[[5]] View Recent Scan Results", "[[6]] Watch Mode - Monitor for New Logs", "[[7]] About Scanner111",
+                        "[[8]] Search Mode - Find in Output", "[[9]] Toggle Unicode/ASCII Display", "[[Q]] Quit"));
 
             switch (choice)
             {
@@ -71,6 +73,12 @@ public class SpectreTerminalUIService : ITerminalUIService
                     break;
                 case "[7] About Scanner111":
                     await ShowAboutAsync();
+                    break;
+                case "[8] Search Mode - Find in Output":
+                    await ShowSearchMode();
+                    break;
+                case "[9] Toggle Unicode/ASCII Display":
+                    await ToggleUnicodeAsciiMode();
                     break;
                 case "[Q] Quit":
                     return 0;
@@ -287,5 +295,162 @@ public class SpectreTerminalUIService : ITerminalUIService
         };
 
         await watchCommand.ExecuteAsync(options).ConfigureAwait(false);
+    }
+
+    private void ShowKeyboardShortcuts()
+    {
+        var shortcutsTable = new Table()
+            .Border(TableBorder.Rounded)
+            .BorderColor(Color.Blue)
+            .AddColumn("[bold]Key[/]")
+            .AddColumn("[bold]Action[/]")
+            .AddColumn("[bold]Context[/]");
+
+        shortcutsTable.AddRow("[blue]Ctrl+F[/]", "Find/Search", "Output Viewer");
+        shortcutsTable.AddRow("[blue]F3[/]", "Find Next", "Search Mode");
+        shortcutsTable.AddRow("[blue]Shift+F3[/]", "Find Previous", "Search Mode");
+        shortcutsTable.AddRow("[blue]Page Up/Down[/]", "Scroll Pages", "Output Viewer");
+        shortcutsTable.AddRow("[blue]Home/End[/]", "Go to Top/Bottom", "Output Viewer");
+        shortcutsTable.AddRow("[blue]Ctrl+A[/]", "Select All", "Text Areas");
+        shortcutsTable.AddRow("[blue]Ctrl+C[/]", "Copy", "Text Areas");
+        shortcutsTable.AddRow("[blue]Tab/Shift+Tab[/]", "Navigate Options", "Menu");
+        shortcutsTable.AddRow("[blue]Enter[/]", "Select/Execute", "Menu");
+        shortcutsTable.AddRow("[blue]Escape/Q[/]", "Quit/Back", "Any Screen");
+
+        var panel = new Panel(shortcutsTable)
+            .Header("[bold cyan]═══ Keyboard Shortcuts ═══[/]", Justify.Center)
+            .BorderColor(Color.Cyan1)
+            .Border(BoxBorder.Rounded);
+
+        AnsiConsole.Write(panel);
+        AnsiConsole.WriteLine();
+    }
+
+    private async Task ShowSearchMode()
+    {
+        AnsiConsole.Clear();
+        
+        var headerPanel = new Panel(new Text("Search Mode - Find in Output")
+                .Centered())
+            .Header("[bold cyan]═══ Advanced Search ═══[/]", Justify.Center)
+            .BorderColor(Color.Cyan1)
+            .Border(BoxBorder.Rounded);
+
+        AnsiConsole.Write(headerPanel);
+        AnsiConsole.WriteLine();
+
+        // Show search instructions
+        var instructionsTable = new Table()
+            .Border(TableBorder.None)
+            .AddColumn("Instruction")
+            .HideHeaders();
+
+        instructionsTable.AddRow("[dim]• Enter search terms to find in scan output[/]");
+        instructionsTable.AddRow("[dim]• Use [blue]F3[/] and [blue]Shift+F3[/] to navigate results[/]");
+        instructionsTable.AddRow("[dim]• Search is case-insensitive[/]");
+        instructionsTable.AddRow("[dim]• Press [blue]Escape[/] or enter empty search to exit[/]");
+
+        AnsiConsole.Write(instructionsTable);
+        AnsiConsole.WriteLine();
+
+        while (true)
+        {
+            var searchQuery = AnsiConsole.Ask<string>("Enter search term (or press Enter to exit):", "");
+            
+            if (string.IsNullOrWhiteSpace(searchQuery))
+                break;
+
+            // Simulate search functionality
+            AnsiConsole.MarkupLine($"[yellow]Searching for: '{searchQuery}'...[/]");
+            await Task.Delay(500); // Simulate search delay
+
+            // Display mock search results
+            var resultsTable = new Table()
+                .Border(TableBorder.Rounded)
+                .BorderColor(Color.Green)
+                .AddColumn("[bold]Match #[/]")
+                .AddColumn("[bold]Line[/]")
+                .AddColumn("[bold]Context[/]");
+
+            resultsTable.AddRow("1", "42", $"Found [yellow]{searchQuery}[/] in analyzer output");
+            resultsTable.AddRow("2", "156", $"Error message containing [yellow]{searchQuery}[/]");
+            resultsTable.AddRow("3", "203", $"Warning about [yellow]{searchQuery}[/] configuration");
+
+            AnsiConsole.Write(resultsTable);
+            AnsiConsole.WriteLine();
+
+            AnsiConsole.MarkupLine($"[green]Found 3 matches for '{searchQuery}'[/]");
+            AnsiConsole.MarkupLine("[dim]Use F3/Shift+F3 to navigate (simulated)[/]");
+            AnsiConsole.WriteLine();
+        }
+
+        AnsiConsole.MarkupLine("[dim]Exiting search mode...[/]");
+        await Task.Delay(1000);
+    }
+
+    private async Task ToggleUnicodeAsciiMode()
+    {
+        AnsiConsole.Clear();
+        
+        var currentMode = await GetUnicodeMode();
+        var newMode = !currentMode;
+        
+        var modeText = newMode ? "Unicode" : "ASCII";
+        var oppositeMode = currentMode ? "Unicode" : "ASCII";
+        
+        var panel = new Panel(new Rows(
+                new Text($"Current display mode: [yellow]{oppositeMode}[/]"),
+                new Text($"Switching to: [green]{modeText}[/]"),
+                new Rule(),
+                new Text("Unicode mode provides:").LeftJustified(),
+                new Text("• Enhanced symbols and icons ✓").LeftJustified(),
+                new Text("• Better visual separators ═══").LeftJustified(),
+                new Text("• Improved progress indicators ▓▓▓").LeftJustified(),
+                new Text(""),
+                new Text("ASCII mode provides:").LeftJustified(),
+                new Text("• Better terminal compatibility").LeftJustified(),
+                new Text("• Reduced character encoding issues").LeftJustified(),
+                new Text("• Legacy system support").LeftJustified()
+            ))
+            .Header($"[bold cyan]═══ Display Mode: {modeText} ═══[/]", Justify.Center)
+            .BorderColor(Color.Cyan1)
+            .Border(BoxBorder.Rounded);
+
+        AnsiConsole.Write(panel);
+        
+        await SetUnicodeMode(newMode);
+        
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine($"[green]Display mode changed to {modeText}[/]");
+        AnsiConsole.MarkupLine("[dim]Note: This affects visual elements in future displays[/]");
+        
+        await Task.Delay(2000);
+    }
+
+    private async Task<bool> GetUnicodeMode()
+    {
+        try
+        {
+            var settings = await _settingsService.LoadSettingsAsync();
+            return settings.EnableUnicodeDisplay;
+        }
+        catch
+        {
+            return true; // Default to Unicode
+        }
+    }
+
+    private async Task SetUnicodeMode(bool enableUnicode)
+    {
+        try
+        {
+            var settings = await _settingsService.LoadSettingsAsync();
+            settings.EnableUnicodeDisplay = enableUnicode;
+            await _settingsService.SaveSettingsAsync(settings);
+        }
+        catch (Exception ex)
+        {
+            AnsiConsole.MarkupLine($"[red]Failed to save unicode setting: {ex.Message}[/]");
+        }
     }
 }

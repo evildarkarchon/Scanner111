@@ -430,10 +430,7 @@ public class PapyrusMonitorViewModel : INotifyPropertyChanged, IDisposable
             alerts.Add($"High dumps/stacks ratio: {stats.Ratio:F3}");
 
         if (stats.HasCriticalIssues)
-        {
             alerts.Add("CRITICAL ISSUES DETECTED");
-            _audioService?.PlayCriticalIssueAsync().ConfigureAwait(false);
-        }
 
         HasAlerts = alerts.Count > 0;
         AlertMessage = string.Join(", ", alerts);

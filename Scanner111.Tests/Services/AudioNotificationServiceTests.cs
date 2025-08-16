@@ -78,15 +78,6 @@ public class AudioNotificationServiceTests
     }
 
     [Fact]
-    public async Task PlayCriticalIssueAsync_WhenDisabled_DoesNotPlay()
-    {
-        _service.IsEnabled = false;
-
-        // Should complete without throwing
-        await _service.PlayCriticalIssueAsync();
-    }
-
-    [Fact]
     public async Task SetCustomSound_AddsToCustomSounds()
     {
         const string testPath = "C:\\test\\sound.wav";

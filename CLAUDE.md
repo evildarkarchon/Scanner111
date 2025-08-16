@@ -300,3 +300,4 @@ var console = SpectreTestHelper.CreateTestConsole();
 - Use `IAsyncEnumerable<T>` for streaming - never accumulate results in memory
 - UTF-8 encoding is required for all file I/O operations
 - Test configuration uses parallel execution by default (see xunit.runner.json)
+- For Audio Notifications, it's a pass/fail system. If an operation succeeds, it plays the success sound no matter if it found errors or not. The error sound is reserved only for operational failures.

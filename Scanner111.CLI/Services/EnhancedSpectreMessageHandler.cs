@@ -15,12 +15,14 @@ public class EnhancedSpectreMessageHandler : IMessageHandler, IAsyncDisposable
     private readonly ProgressManager _progressManager;
     private readonly Task _renderTask;
     private readonly CancellationTokenSource _shutdownCts;
+    private volatile bool _isLiveDisplayReady;
 
     public EnhancedSpectreMessageHandler()
     {
         _shutdownCts = new CancellationTokenSource();
         _progressManager = new ProgressManager();
         _messageLogger = new MessageLogger();
+        _isLiveDisplayReady = false;
 
         // Create split-screen layout
         _mainLayout = new Layout()
@@ -65,36 +67,72 @@ public class EnhancedSpectreMessageHandler : IMessageHandler, IAsyncDisposable
     {
         if (target == MessageTarget.GuiOnly) return;
         _messageLogger.AddMessage(MessageType.Info, message);
+        
+        // Fallback to simple console output if Live display isn't ready
+        if (!_isLiveDisplayReady)
+        {
+            AnsiConsole.MarkupLine($"[cyan]ℹ {Markup.Escape(message)}[/]");
+        }
     }
 
     public void ShowWarning(string message, MessageTarget target = MessageTarget.All)
     {
         if (target == MessageTarget.GuiOnly) return;
         _messageLogger.AddMessage(MessageType.Warning, message);
+        
+        // Fallback to simple console output if Live display isn't ready
+        if (!_isLiveDisplayReady)
+        {
+            AnsiConsole.MarkupLine($"[yellow]⚠ {Markup.Escape(message)}[/]");
+        }
     }
 
     public void ShowError(string message, MessageTarget target = MessageTarget.All)
     {
         if (target == MessageTarget.GuiOnly) return;
         _messageLogger.AddMessage(MessageType.Error, message);
+        
+        // Fallback to simple console output if Live display isn't ready
+        if (!_isLiveDisplayReady)
+        {
+            AnsiConsole.MarkupLine($"[red]✗ {Markup.Escape(message)}[/]");
+        }
     }
 
     public void ShowSuccess(string message, MessageTarget target = MessageTarget.All)
     {
         if (target == MessageTarget.GuiOnly) return;
         _messageLogger.AddMessage(MessageType.Success, message);
+        
+        // Fallback to simple console output if Live display isn't ready
+        if (!_isLiveDisplayReady)
+        {
+            AnsiConsole.MarkupLine($"[green]✓ {Markup.Escape(message)}[/]");
+        }
     }
 
     public void ShowDebug(string message, MessageTarget target = MessageTarget.All)
     {
         if (target == MessageTarget.GuiOnly) return;
         _messageLogger.AddMessage(MessageType.Debug, message);
+        
+        // Fallback to simple console output if Live display isn't ready
+        if (!_isLiveDisplayReady)
+        {
+            AnsiConsole.MarkupLine($"[dim]🐛 {Markup.Escape(message)}[/]");
+        }
     }
 
     public void ShowCritical(string message, MessageTarget target = MessageTarget.All)
     {
         if (target == MessageTarget.GuiOnly) return;
         _messageLogger.AddMessage(MessageType.Critical, message);
+        
+        // Fallback to simple console output if Live display isn't ready
+        if (!_isLiveDisplayReady)
+        {
+            AnsiConsole.MarkupLine($"[bold red]‼ {Markup.Escape(message)}[/]");
+        }
     }
 
     public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info,
@@ -104,6 +142,23 @@ public class EnhancedSpectreMessageHandler : IMessageHandler, IAsyncDisposable
 
         var fullMessage = details != null ? $"{message}\n{details}" : message;
         _messageLogger.AddMessage(messageType, fullMessage);
+        
+        // Fallback to simple console output if Live display isn't ready
+        if (!_isLiveDisplayReady)
+        {
+            var (prefix, color) = messageType switch
+            {
+                MessageType.Info => ("ℹ", "cyan"),
+                MessageType.Warning => ("⚠", "yellow"),
+                MessageType.Error => ("✗", "red"),
+                MessageType.Success => ("✓", "green"),
+                MessageType.Debug => ("🐛", "dim"),
+                MessageType.Critical => ("‼", "bold red"),
+                _ => ("•", "white")
+            };
+            
+            AnsiConsole.MarkupLine($"[{color}]{prefix} {Markup.Escape(fullMessage)}[/]");
+        }
     }
 
     public IProgress<ProgressInfo> ShowProgress(string title, int totalItems)
@@ -128,6 +183,9 @@ public class EnhancedSpectreMessageHandler : IMessageHandler, IAsyncDisposable
                 .AutoClear(false)
                 .StartAsync(async ctx =>
                 {
+                    // Mark Live display as ready once we're in the update loop
+                    _isLiveDisplayReady = true;
+                    
                     // Update loop
                     while (!_shutdownCts.Token.IsCancellationRequested)
                     {
@@ -139,6 +197,10 @@ public class EnhancedSpectreMessageHandler : IMessageHandler, IAsyncDisposable
         catch (OperationCanceledException)
         {
             // Expected during shutdown
+        }
+        finally
+        {
+            _isLiveDisplayReady = false;
         }
     }
 

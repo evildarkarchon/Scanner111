@@ -364,8 +364,6 @@ public class PapyrusCommand : ICommand<PapyrusOptions>, IDisposable
             _logMessages.Enqueue(alert);
 
             if (!options.ShowDashboard) AnsiConsole.MarkupLine(alert);
-
-            _audioService?.PlayErrorFoundAsync().ConfigureAwait(false);
         }
 
         if (e.Stats.Warnings > options.WarningThreshold)
@@ -375,9 +373,6 @@ public class PapyrusCommand : ICommand<PapyrusOptions>, IDisposable
             _logMessages.Enqueue(alert);
 
             if (!options.ShowDashboard) AnsiConsole.MarkupLine(alert);
-
-            // Play a warning sound - using error sound as there's no warning-specific method
-            _audioService?.PlayErrorFoundAsync().ConfigureAwait(false);
         }
     }
 
