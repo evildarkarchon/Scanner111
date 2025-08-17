@@ -183,8 +183,8 @@ public class ScanResultProcessorTests : IDisposable
         var result = CreateScanResult(false, logPath);
         result.Status = ScanStatus.Failed;
 
-        var options = new ScanOptions { MoveUnsolved = true, OutputFormat = "detailed" };
-        var settings = new ApplicationSettings { AutoSaveResults = true };
+        var options = new ScanOptions { OutputFormat = "detailed" };
+        var settings = new ApplicationSettings { AutoSaveResults = true, MoveUnsolvedLogs = true };
         var xseCopiedFiles = new HashSet<string>();
 
         _unsolvedLogsMoverMock.Setup(x =>
@@ -209,8 +209,8 @@ public class ScanResultProcessorTests : IDisposable
         var result = CreateScanResult(false, logPath);
         result.ErrorMessages.Add("Test error");
 
-        var options = new ScanOptions { MoveUnsolved = true, OutputFormat = "detailed" };
-        var settings = new ApplicationSettings { AutoSaveResults = true };
+        var options = new ScanOptions { OutputFormat = "detailed" };
+        var settings = new ApplicationSettings { AutoSaveResults = true, MoveUnsolvedLogs = true };
         var xseCopiedFiles = new HashSet<string>();
 
         _unsolvedLogsMoverMock.Setup(x =>
@@ -281,8 +281,8 @@ public class ScanResultProcessorTests : IDisposable
         var result = CreateScanResult(false);
         result.Status = ScanStatus.Failed;
 
-        var options = new ScanOptions { OutputFormat = "detailed", MoveUnsolved = true };
-        var settings = new ApplicationSettings { AutoSaveResults = true };
+        var options = new ScanOptions { OutputFormat = "detailed" };
+        var settings = new ApplicationSettings { AutoSaveResults = true, MoveUnsolvedLogs = true };
         var xseCopiedFiles = new HashSet<string>();
 
         _unsolvedLogsMoverMock.Setup(x =>

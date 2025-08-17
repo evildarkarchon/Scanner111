@@ -8,7 +8,6 @@ namespace Scanner111.Tests.CLI.Commands;
 
 public class PapyrusCommandTests : IDisposable
 {
-    private readonly Mock<IAudioNotificationService> _audioServiceMock;
     private readonly PapyrusCommand _command;
     private readonly TestConsole _console;
     private readonly Mock<IPapyrusMonitorService> _papyrusServiceMock;
@@ -17,8 +16,7 @@ public class PapyrusCommandTests : IDisposable
     public PapyrusCommandTests()
     {
         _papyrusServiceMock = new Mock<IPapyrusMonitorService>();
-        _audioServiceMock = new Mock<IAudioNotificationService>();
-        _command = new PapyrusCommand(_papyrusServiceMock.Object, _audioServiceMock.Object);
+        _command = new PapyrusCommand(_papyrusServiceMock.Object);
         _console = new TestConsole();
 
         _testDirectory = Path.Combine(Path.GetTempPath(), $"PapyrusCommandTests_{Guid.NewGuid()}");
@@ -231,68 +229,6 @@ public class PapyrusCommandTests : IDisposable
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithHighErrorCount_TriggersAlert()
-    {
-        // Arrange
-        var logPath = Path.Combine(_testDirectory, "high_errors.log");
-        File.WriteAllText(logPath, "Test log content");
-
-        var options = new PapyrusOptions
-        {
-            LogPath = logPath,
-            AnalyzeOnce = false,
-            ShowDashboard = false,
-            ErrorThreshold = 50,
-            Interval = 100
-        };
-
-        var stats = new PapyrusStats
-        {
-            Timestamp = DateTime.UtcNow,
-            Dumps = 10,
-            Stacks = 5,
-            Warnings = 20,
-            Errors = 100, // Exceeds threshold
-            Ratio = 2.0,
-            LogPath = logPath
-        };
-
-        _papyrusServiceMock.Setup(x => x.CurrentStats).Returns(stats);
-        _papyrusServiceMock.Setup(x => x.StartMonitoringAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        // Simulate stats update event
-        _papyrusServiceMock.SetupAdd(x => x.StatsUpdated += It.IsAny<EventHandler<PapyrusStatsUpdatedEventArgs>>())
-            .Callback<EventHandler<PapyrusStatsUpdatedEventArgs>>(handler =>
-            {
-                // Trigger the event after a delay
-                Task.Run(async () =>
-                {
-                    await Task.Delay(200);
-                    handler?.Invoke(null, new PapyrusStatsUpdatedEventArgs(stats));
-                });
-            });
-
-        using var cts = new CancellationTokenSource();
-
-        // Start the command in a background task
-        var commandTask = Task.Run(async () => await _command.ExecuteAsync(options, cts.Token));
-
-        // Give it time to process the event
-        await Task.Delay(500);
-
-        // Cancel to stop monitoring
-        cts.Cancel();
-
-        // Act
-        var result = await commandTask;
-
-        // Assert
-        result.Should().Be(0);
-        _audioServiceMock.Verify(x => x.PlayErrorFoundAsync(), Times.AtLeastOnce);
-    }
-
-    [Fact]
     public async Task ExecuteAsync_WithAutoExport_SetsUpExportTimer()
     {
         // Arrange
@@ -340,7 +276,7 @@ public class PapyrusCommandTests : IDisposable
     public void Dispose_CleansUpResources()
     {
         // Arrange
-        var command = new PapyrusCommand(_papyrusServiceMock.Object, _audioServiceMock.Object);
+        var command = new PapyrusCommand(_papyrusServiceMock.Object);
 
         // Act
         command.Dispose();

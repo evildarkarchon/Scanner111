@@ -11,6 +11,8 @@ public class CliSettingsServiceTests : IDisposable
     private readonly Mock<IApplicationSettingsService> _mockApplicationSettingsService;
     private readonly string _testSettingsDir;
 
+    private ApplicationSettings _currentSettings = null!;
+
     public CliSettingsServiceTests()
     {
         // Create a temporary directory for test settings
@@ -20,12 +22,19 @@ public class CliSettingsServiceTests : IDisposable
         // Override the settings directory for testing
         Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", _testSettingsDir);
 
+        // Initialize current settings with proper defaults
+        _currentSettings = GetProperDefaultSettings();
+
         // Initialize mock
         _mockApplicationSettingsService = new Mock<IApplicationSettingsService>();
         _mockApplicationSettingsService.Setup(x => x.LoadSettingsAsync())
-            .ReturnsAsync(new ApplicationSettings());
+            .ReturnsAsync(() => _currentSettings);
         _mockApplicationSettingsService.Setup(x => x.GetDefaultSettings())
-            .Returns(new ApplicationSettings());
+            .Returns(() => GetProperDefaultSettings());
+        _mockApplicationSettingsService.Setup(x => x.SaveSettingsAsync(It.IsAny<ApplicationSettings>()))
+            .Callback<ApplicationSettings>(settings => _currentSettings = settings);
+        _mockApplicationSettingsService.Setup(x => x.SaveSettingAsync(It.IsAny<string>(), It.IsAny<object>()))
+            .Callback<string, object>((key, value) => UpdateSetting(key, value));
 
         // Small delay to avoid race conditions during parallel test execution
         Thread.Sleep(Random.Shared.Next(50, 150));
@@ -45,6 +54,72 @@ public class CliSettingsServiceTests : IDisposable
             {
                 // Best effort - ignore cleanup failures
             }
+    }
+
+    private ApplicationSettings GetProperDefaultSettings()
+    {
+        return new ApplicationSettings
+        {
+            // Core Analysis Settings
+            FcxMode = false,
+            ShowFormIdValues = false,
+            SimplifyLogs = false,
+            MoveUnsolvedLogs = false,
+            VrMode = false,
+
+            // Path Settings
+            DefaultLogPath = "",
+            DefaultGamePath = "",
+            DefaultScanDirectory = "",
+            CrashLogsDirectory = "",
+
+            // Output Settings
+            DefaultOutputFormat = "detailed",
+            AutoSaveResults = true,
+
+            // XSE Settings
+            AutoLoadF4SeLogs = true,
+            SkipXseCopy = false,
+
+            // Performance Settings
+            MaxConcurrentScans = Environment.ProcessorCount * 2,
+            CacheEnabled = true,
+
+            // Debug/Logging Settings
+            EnableDebugLogging = false,
+            VerboseLogging = false,
+
+            // Notification Settings
+            AudioNotifications = false,
+            EnableProgressNotifications = true,
+
+            // CLI-Specific Display Settings
+            DisableColors = false,
+            DisableProgress = false,
+
+            // GUI-Specific Settings
+            RememberWindowSize = true,
+            WindowWidth = 1200,
+            WindowHeight = 800,
+            MaxLogMessages = 100,
+
+            // Recent Items
+            MaxRecentItems = 10
+        };
+    }
+
+    private void UpdateSetting(string key, object value)
+    {
+        // Update the specific setting using reflection (simplified version)
+        var property = typeof(ApplicationSettings).GetProperty(key)
+                       ?? typeof(ApplicationSettings).GetProperties()
+                           .FirstOrDefault(p => string.Equals(p.Name, key, StringComparison.OrdinalIgnoreCase));
+
+        if (property != null && property.CanWrite)
+        {
+            var convertedValue = Convert.ChangeType(value, property.PropertyType);
+            property.SetValue(_currentSettings, convertedValue);
+        }
     }
 
     [Fact]

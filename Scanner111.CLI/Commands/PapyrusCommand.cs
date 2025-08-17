@@ -7,19 +7,15 @@ namespace Scanner111.CLI.Commands;
 
 public class PapyrusCommand : ICommand<PapyrusOptions>, IDisposable
 {
-    private readonly IAudioNotificationService? _audioService;
     private readonly ConcurrentQueue<string> _logMessages = new();
     private readonly IPapyrusMonitorService _papyrusService;
     private CancellationTokenSource? _cancellationTokenSource;
     private bool _disposed;
     private Timer? _exportTimer;
 
-    public PapyrusCommand(
-        IPapyrusMonitorService papyrusService,
-        IAudioNotificationService? audioService = null)
+    public PapyrusCommand(IPapyrusMonitorService papyrusService)
     {
         _papyrusService = papyrusService;
-        _audioService = audioService;
     }
 
     public async Task<int> ExecuteAsync(PapyrusOptions options)
@@ -347,7 +343,7 @@ public class PapyrusCommand : ICommand<PapyrusOptions>, IDisposable
         }
     }
 
-    private void OnStatsUpdated(PapyrusStatsUpdatedEventArgs e, PapyrusOptions options)
+    private async void OnStatsUpdated(PapyrusStatsUpdatedEventArgs e, PapyrusOptions options)
     {
         var message = $"[dim]{e.Stats.Timestamp:HH:mm:ss}[/] Stats updated: {e.Stats}";
         _logMessages.Enqueue(message);

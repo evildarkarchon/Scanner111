@@ -39,7 +39,7 @@ public class ScanResultProcessor : IScanResultProcessor
 
         // Auto-save report to file (unless disabled by setting)
         var autoSaveReports = settings.AutoSaveResults;
-        if (autoSaveReports && !string.IsNullOrEmpty(result.ReportText))
+        if (autoSaveReports)
             try
             {
                 string outputPath;
@@ -61,6 +61,13 @@ public class ScanResultProcessor : IScanResultProcessor
 
         // Move unsolved logs if enabled and scan failed
         if (settings.MoveUnsolvedLogs && (result.Failed || result.Status == ScanStatus.Failed || result.HasErrors))
-            await _unsolvedLogsMover.MoveUnsolvedLogAsync(result.LogPath, settings).ConfigureAwait(false);
+            try
+            {
+                await _unsolvedLogsMover.MoveUnsolvedLogAsync(result.LogPath, settings).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                MessageHandler.MsgError($"Error moving unsolved log: {ex.Message}");
+            }
     }
 }

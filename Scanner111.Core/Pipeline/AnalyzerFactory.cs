@@ -24,7 +24,9 @@ public class AnalyzerFactory : IAnalyzerFactory
             ["Settings"] = typeof(SettingsScanner),
             ["Record"] = typeof(RecordScanner),
             ["FileIntegrity"] = typeof(FileIntegrityAnalyzer),
-            ["BuffoutVersion"] = typeof(BuffoutVersionAnalyzerV2)
+            ["BuffoutVersion"] = typeof(BuffoutVersionAnalyzerV2),
+            ["DocumentsValidation"] = typeof(DocumentsValidationAnalyzer),
+            ["GpuDetection"] = typeof(GpuDetectionAnalyzer)
         };
     }
 
