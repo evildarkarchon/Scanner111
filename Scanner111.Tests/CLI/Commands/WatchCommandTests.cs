@@ -239,8 +239,9 @@ public class WatchCommandTests : IDisposable
         // Arrange
         var options = new WatchOptions { Path = _testDirectory, ShowDashboard = false };
 
-        // Act
-        var result = await _command.ExecuteAsync(options, CancellationToken.None);
+        // Act with short timeout to prevent long-running file watcher
+        var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+        var result = await _command.ExecuteAsync(options, cts.Token);
 
         // Assert
         result.Should().Be(0);
