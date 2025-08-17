@@ -6,8 +6,8 @@ namespace Scanner111.Tests.Core.Services;
 
 public class PastebinServiceTests : IDisposable
 {
-    private readonly Mock<IApplicationSettingsService> _mockSettingsService;
     private readonly TestMessageCapture _messageCapture;
+    private readonly Mock<IApplicationSettingsService> _mockSettingsService;
     private readonly PastebinService _service;
     private readonly string _testDirectory;
 
@@ -15,14 +15,14 @@ public class PastebinServiceTests : IDisposable
     {
         _testDirectory = Path.Combine(Path.GetTempPath(), $"PastebinTests_{Guid.NewGuid()}");
         Directory.CreateDirectory(_testDirectory);
-        
+
         var logger = new NullLogger<PastebinService>();
         _mockSettingsService = new Mock<IApplicationSettingsService>();
         _messageCapture = new TestMessageCapture();
-        
+
         // Change working directory to test directory
         Directory.SetCurrentDirectory(_testDirectory);
-        
+
         _service = new PastebinService(logger, _mockSettingsService.Object, _messageCapture);
     }
 
@@ -30,7 +30,6 @@ public class PastebinServiceTests : IDisposable
     {
         // Clean up test directory
         if (Directory.Exists(_testDirectory))
-        {
             try
             {
                 Directory.Delete(_testDirectory, true);
@@ -39,7 +38,6 @@ public class PastebinServiceTests : IDisposable
             {
                 // Ignore cleanup errors
             }
-        }
     }
 
     [Fact]
@@ -56,9 +54,7 @@ public class PastebinServiceTests : IDisposable
 
         // Act & Assert
         foreach (var url in validUrls)
-        {
             _service.IsValidPastebinInput(url).Should().BeTrue($"URL '{url}' should be valid");
-        }
     }
 
     [Fact]
@@ -74,10 +70,7 @@ public class PastebinServiceTests : IDisposable
         };
 
         // Act & Assert
-        foreach (var id in validIds)
-        {
-            _service.IsValidPastebinInput(id).Should().BeTrue($"ID '{id}' should be valid");
-        }
+        foreach (var id in validIds) _service.IsValidPastebinInput(id).Should().BeTrue($"ID '{id}' should be valid");
     }
 
     [Fact]
@@ -97,9 +90,7 @@ public class PastebinServiceTests : IDisposable
 
         // Act & Assert
         foreach (var input in invalidInputs!)
-        {
             _service.IsValidPastebinInput(input).Should().BeFalse($"Input '{input}' should be invalid");
-        }
     }
 
     [Fact]
@@ -185,7 +176,7 @@ public class PastebinServiceTests : IDisposable
         results.Should().ContainKey("test1");
         results.Should().ContainKey("test2");
         results.Should().ContainKey("invalid!");
-        
+
         // Invalid input should have null result
         results["invalid!"].Should().BeNull();
     }

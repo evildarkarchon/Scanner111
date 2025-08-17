@@ -1,8 +1,10 @@
 using System.Reactive.Linq;
 using Avalonia.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Core.Analyzers;
+using Scanner111.Core.GameScanning;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.ModManagers;
@@ -30,20 +32,23 @@ public class MainWindowViewModel : ViewModelBase
     private readonly ICacheManager _cacheManager;
     private readonly GuiMessageHandlerService _messageHandlerService;
     private readonly IModManagerService? _modManagerService;
+    private readonly IPastebinService? _pastebinService;
     private readonly IRecentItemsService? _recentItemsService;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ISettingsService _settingsService;
     private readonly IStatisticsService? _statisticsService;
-    private readonly IPastebinService? _pastebinService;
     private readonly IThemeService? _themeService;
     private readonly IUnsolvedLogsMover? _unsolvedLogsMover;
     private readonly IUpdateService _updateService;
     private UserSettings _currentSettings;
     private ObservableCollection<ModInfo> _detectedMods = new();
     private FcxResultViewModel? _fcxResult;
+    private bool _isFetchingFromPastebin;
     private bool _isScanning;
     private IMessageHandler? _messageHandler;
     private bool _modManagerDetected;
     private string _modManagerStatus = "No mod manager detected";
+    private string _pastebinUrlOrId = "";
     private string _progressText = "";
     private double _progressValue;
     private bool _progressVisible;
@@ -57,10 +62,9 @@ public class MainWindowViewModel : ViewModelBase
     private ScanResultViewModel? _selectedResult;
     private string _selectedScanDirectory = "";
     private string _statusText = "Ready";
-    private string _pastebinUrlOrId = "";
-    private bool _isFetchingFromPastebin;
 
     public MainWindowViewModel(
+        IServiceProvider serviceProvider,
         ISettingsService settingsService,
         GuiMessageHandlerService messageHandlerService,
         IUpdateService updateService,
@@ -73,6 +77,7 @@ public class MainWindowViewModel : ViewModelBase
         IThemeService? themeService = null,
         IPastebinService? pastebinService = null)
     {
+        _serviceProvider = Guard.NotNull(serviceProvider, nameof(serviceProvider));
         _settingsService = Guard.NotNull(settingsService, nameof(settingsService));
         _messageHandlerService = Guard.NotNull(messageHandlerService, nameof(messageHandlerService));
         _updateService = Guard.NotNull(updateService, nameof(updateService));
@@ -120,6 +125,7 @@ public class MainWindowViewModel : ViewModelBase
         // View Commands
         ShowStatisticsCommand = ReactiveCommand.CreateFromTask(ShowStatistics);
         ShowPapyrusMonitorCommand = ReactiveCommand.CreateFromTask(ShowPapyrusMonitor);
+        ShowGameScanCommand = ReactiveCommand.CreateFromTask(ShowGameScan);
         ShowHelpCommand = ReactiveCommand.CreateFromTask(ShowHelp);
         ShowKeyboardShortcutsCommand = ReactiveCommand.CreateFromTask(ShowKeyboardShortcuts);
         ShowAboutCommand = ReactiveCommand.CreateFromTask(ShowAbout);
@@ -130,6 +136,34 @@ public class MainWindowViewModel : ViewModelBase
 
         // Load settings asynchronously and perform update check
         _ = InitializeAsync();
+    }
+
+    // Backward-compatible overload (without IServiceProvider) used in some tests and scenarios
+    public MainWindowViewModel(
+        ISettingsService settingsService,
+        GuiMessageHandlerService messageHandlerService,
+        IUpdateService updateService,
+        ICacheManager cacheManager,
+        IUnsolvedLogsMover unsolvedLogsMover,
+        IModManagerService? modManagerService = null,
+        IRecentItemsService? recentItemsService = null,
+        IAudioNotificationService? audioNotificationService = null,
+        IStatisticsService? statisticsService = null,
+        IThemeService? themeService = null,
+        IPastebinService? pastebinService = null)
+        : this(new ServiceCollection().BuildServiceProvider(),
+            settingsService,
+            messageHandlerService,
+            updateService,
+            cacheManager,
+            unsolvedLogsMover,
+            modManagerService,
+            recentItemsService,
+            audioNotificationService,
+            statisticsService,
+            themeService,
+            pastebinService)
+    {
     }
 
     /// <summary>
@@ -402,6 +436,7 @@ public class MainWindowViewModel : ViewModelBase
     // View Commands  
     public ReactiveCommand<Unit, Unit> ShowStatisticsCommand { get; }
     public ReactiveCommand<Unit, Unit> ShowPapyrusMonitorCommand { get; }
+    public ReactiveCommand<Unit, Unit> ShowGameScanCommand { get; }
     public ReactiveCommand<Unit, Unit> ShowHelpCommand { get; }
     public ReactiveCommand<Unit, Unit> ShowKeyboardShortcutsCommand { get; }
     public ReactiveCommand<Unit, Unit> ShowAboutCommand { get; }
@@ -589,23 +624,23 @@ public class MainWindowViewModel : ViewModelBase
             AddLogMessage($"Fetching from Pastebin: {PastebinUrlOrId}");
 
             var fetchedPath = await _pastebinService.FetchAndSaveAsync(PastebinUrlOrId);
-            
+
             if (!string.IsNullOrEmpty(fetchedPath))
             {
                 SelectedLogPath = fetchedPath;
                 StatusText = $"Fetched: {Path.GetFileName(fetchedPath)}";
                 AddLogMessage($"Successfully fetched log from Pastebin: {fetchedPath}");
-                
+
                 // Add to recent files
                 _recentItemsService?.AddRecentLogFile(fetchedPath);
                 UpdateRecentFiles();
-                
+
                 // Clear the input
                 PastebinUrlOrId = "";
-                
+
                 // Save the path to settings
                 _ = SaveCurrentPathsToSettings();
-                
+
                 // Play success sound if available
                 if (_audioNotificationService != null)
                     await _audioNotificationService.PlayScanCompleteAsync();
@@ -1787,6 +1822,22 @@ public class MainWindowViewModel : ViewModelBase
                 DataContext = viewModel
             };
             await papyrusWindow.ShowDialog(TopLevel);
+        }
+    }
+
+    private async Task ShowGameScan()
+    {
+        if (TopLevel != null)
+        {
+            // Use dependency injection to resolve services
+            var gameScannerService = _serviceProvider.GetRequiredService<IGameScannerService>();
+            var viewModel = _serviceProvider.GetRequiredService<GameScanViewModel>();
+
+            var gameScanWindow = new GameScanWindow
+            {
+                DataContext = viewModel
+            };
+            await gameScanWindow.ShowDialog(TopLevel);
         }
     }
 

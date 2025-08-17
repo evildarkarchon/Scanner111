@@ -1,6 +1,8 @@
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
+using Microsoft.Extensions.DependencyInjection;
 using Scanner111.Core.Infrastructure;
+using Scanner111.Core.Services;
 using Scanner111.GUI.Services;
 using Scanner111.GUI.ViewModels;
 
@@ -28,13 +30,22 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         // Create design-time services
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<ISettingsService, SettingsService>();
+        serviceCollection.AddSingleton<GuiMessageHandlerService>();
+        serviceCollection.AddSingleton<IUpdateService, DesignTimeUpdateService>();
+        serviceCollection.AddSingleton<ICacheManager, NullCacheManager>();
+        serviceCollection.AddSingleton<IUnsolvedLogsMover, NullUnsolvedLogsMover>();
+        var serviceProvider = serviceCollection.BuildServiceProvider();
+
         var settingsService = new SettingsService();
         var messageHandler = new GuiMessageHandlerService();
         var updateService = new DesignTimeUpdateService();
         var cacheManager = new NullCacheManager();
         var unsolvedLogsMover = new NullUnsolvedLogsMover();
 
-        _viewModel = new MainWindowViewModel(settingsService, messageHandler, updateService, cacheManager,
+        _viewModel = new MainWindowViewModel(serviceProvider, settingsService, messageHandler, updateService,
+            cacheManager,
             unsolvedLogsMover);
         InitializeComponent();
 

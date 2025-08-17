@@ -1,4 +1,5 @@
 using Scanner111.Core.Analyzers;
+using Scanner111.Core.GameScanning;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Services;
@@ -341,5 +342,268 @@ public class MockUnsolvedLogsMover : IUnsolvedLogsMover
         MovedLogs.Clear();
         ShouldFail = false;
         FailureMessage = null;
+    }
+}
+
+public class MockGameScannerService : IGameScannerService
+{
+    public GameScanResult? NextScanResult { get; set; }
+    public string NextCrashGenResult { get; set; } = "CrashGen: OK";
+    public string NextXseResult { get; set; } = "XSE Plugins: Valid";
+    public string NextModIniResult { get; set; } = "Mod INIs: No issues";
+    public string NextWryeBashResult { get; set; } = "Wrye Bash: Configured";
+    public Exception? SimulateException { get; set; }
+    public int ScanGameCallCount { get; private set; }
+    public int CheckCrashGenCallCount { get; private set; }
+    public int ValidateXsePluginsCallCount { get; private set; }
+    public int ScanModInisCallCount { get; private set; }
+    public int CheckWryeBashCallCount { get; private set; }
+    public List<CancellationToken> ReceivedCancellationTokens { get; } = new();
+
+    public Task<GameScanResult> ScanGameAsync(CancellationToken cancellationToken = default)
+    {
+        ScanGameCallCount++;
+        ReceivedCancellationTokens.Add(cancellationToken);
+
+        if (SimulateException != null)
+            throw SimulateException;
+
+        if (cancellationToken.IsCancellationRequested)
+            throw new OperationCanceledException();
+
+        return Task.FromResult(NextScanResult ?? new GameScanResult
+        {
+            CrashGenResults = NextCrashGenResult,
+            XsePluginResults = NextXseResult,
+            ModIniResults = NextModIniResult,
+            WryeBashResults = NextWryeBashResult,
+            HasIssues = false,
+            CriticalIssues = new List<string>(),
+            Warnings = new List<string>()
+        });
+    }
+
+    public Task<string> CheckCrashGenAsync(CancellationToken cancellationToken = default)
+    {
+        CheckCrashGenCallCount++;
+        ReceivedCancellationTokens.Add(cancellationToken);
+
+        if (SimulateException != null)
+            throw SimulateException;
+
+        if (cancellationToken.IsCancellationRequested)
+            throw new OperationCanceledException();
+
+        return Task.FromResult(NextCrashGenResult);
+    }
+
+    public Task<string> ValidateXsePluginsAsync(CancellationToken cancellationToken = default)
+    {
+        ValidateXsePluginsCallCount++;
+        ReceivedCancellationTokens.Add(cancellationToken);
+
+        if (SimulateException != null)
+            throw SimulateException;
+
+        if (cancellationToken.IsCancellationRequested)
+            throw new OperationCanceledException();
+
+        return Task.FromResult(NextXseResult);
+    }
+
+    public Task<string> ScanModInisAsync(CancellationToken cancellationToken = default)
+    {
+        ScanModInisCallCount++;
+        ReceivedCancellationTokens.Add(cancellationToken);
+
+        if (SimulateException != null)
+            throw SimulateException;
+
+        if (cancellationToken.IsCancellationRequested)
+            throw new OperationCanceledException();
+
+        return Task.FromResult(NextModIniResult);
+    }
+
+    public Task<string> CheckWryeBashAsync(CancellationToken cancellationToken = default)
+    {
+        CheckWryeBashCallCount++;
+        ReceivedCancellationTokens.Add(cancellationToken);
+
+        if (SimulateException != null)
+            throw SimulateException;
+
+        if (cancellationToken.IsCancellationRequested)
+            throw new OperationCanceledException();
+
+        return Task.FromResult(NextWryeBashResult);
+    }
+
+    public void Reset()
+    {
+        NextScanResult = null;
+        NextCrashGenResult = "CrashGen: OK";
+        NextXseResult = "XSE Plugins: Valid";
+        NextModIniResult = "Mod INIs: No issues";
+        NextWryeBashResult = "Wrye Bash: Configured";
+        SimulateException = null;
+        ScanGameCallCount = 0;
+        CheckCrashGenCallCount = 0;
+        ValidateXsePluginsCallCount = 0;
+        ScanModInisCallCount = 0;
+        CheckWryeBashCallCount = 0;
+        ReceivedCancellationTokens.Clear();
+    }
+}
+
+public class MockMessageHandler : IMessageHandler
+{
+    public List<string> InfoMessages { get; } = new();
+    public List<string> WarningMessages { get; } = new();
+    public List<string> ErrorMessages { get; } = new();
+    public List<string> SuccessMessages { get; } = new();
+    public List<string> DebugMessages { get; } = new();
+    public List<string> CriticalMessages { get; } = new();
+    public List<(double value, string text)> ProgressUpdates { get; } = new();
+    public List<string> ProgressTitles { get; } = new();
+
+    public void ShowInfo(string message, MessageTarget target = MessageTarget.All)
+    {
+        InfoMessages.Add(message);
+    }
+
+    public void ShowWarning(string message, MessageTarget target = MessageTarget.All)
+    {
+        WarningMessages.Add(message);
+    }
+
+    public void ShowError(string message, MessageTarget target = MessageTarget.All)
+    {
+        ErrorMessages.Add(message);
+    }
+
+    public void ShowSuccess(string message, MessageTarget target = MessageTarget.All)
+    {
+        SuccessMessages.Add(message);
+    }
+
+    public void ShowDebug(string message, MessageTarget target = MessageTarget.All)
+    {
+        DebugMessages.Add(message);
+    }
+
+    public void ShowCritical(string message, MessageTarget target = MessageTarget.All)
+    {
+        CriticalMessages.Add(message);
+    }
+
+    public void ShowMessage(string message, string? details = null, MessageType messageType = MessageType.Info,
+        MessageTarget target = MessageTarget.All)
+    {
+        switch (messageType)
+        {
+            case MessageType.Info:
+                ShowInfo(message, target);
+                break;
+            case MessageType.Warning:
+                ShowWarning(message, target);
+                break;
+            case MessageType.Error:
+                ShowError(message, target);
+                break;
+            case MessageType.Success:
+                ShowSuccess(message, target);
+                break;
+            case MessageType.Debug:
+                ShowDebug(message, target);
+                break;
+            case MessageType.Critical:
+                ShowCritical(message, target);
+                break;
+        }
+    }
+
+    public IProgress<ProgressInfo> ShowProgress(string title, int totalItems)
+    {
+        ProgressTitles.Add(title);
+        return new MockProgress(this, totalItems);
+    }
+
+    public IProgressContext CreateProgressContext(string title, int totalItems)
+    {
+        ProgressTitles.Add(title);
+        return new MockProgressContext(this, totalItems);
+    }
+
+    public void UpdateProgress(double value, string text)
+    {
+        ProgressUpdates.Add((value, text));
+    }
+
+    public void Reset()
+    {
+        InfoMessages.Clear();
+        WarningMessages.Clear();
+        ErrorMessages.Clear();
+        SuccessMessages.Clear();
+        DebugMessages.Clear();
+        CriticalMessages.Clear();
+        ProgressUpdates.Clear();
+        ProgressTitles.Clear();
+    }
+
+    private class MockProgress : IProgress<ProgressInfo>
+    {
+        private readonly MockMessageHandler _handler;
+        private readonly int _totalItems;
+
+        public MockProgress(MockMessageHandler handler, int totalItems)
+        {
+            _handler = handler;
+            _totalItems = totalItems;
+        }
+
+        public void Report(ProgressInfo value)
+        {
+            _handler.UpdateProgress(value.Percentage, value.Message);
+        }
+    }
+
+    private class MockProgressContext : IProgressContext
+    {
+        private readonly MockMessageHandler _handler;
+        private readonly int _totalItems;
+        private bool _disposed;
+
+        public MockProgressContext(MockMessageHandler handler, int totalItems)
+        {
+            _handler = handler;
+            _totalItems = totalItems;
+        }
+
+        public void Report(ProgressInfo value)
+        {
+            _handler.UpdateProgress(value.Percentage, value.Message);
+        }
+
+        public void Update(int current, string message)
+        {
+            var percentage = _totalItems > 0 ? current * 100.0 / _totalItems : 0;
+            _handler.UpdateProgress(percentage, message);
+        }
+
+        public void Complete()
+        {
+            _handler.UpdateProgress(100, "Complete");
+        }
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                Complete();
+                _disposed = true;
+            }
+        }
     }
 }

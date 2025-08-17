@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.FCX;
+using Scanner111.Core.GameScanning;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.ModManagers;
 using Scanner111.Core.Pipeline;
@@ -118,20 +119,31 @@ public class App : Application
         // Register Pastebin service
         services.AddSingleton<IPastebinService, PastebinService>();
 
+        // Register Game Scanning services
+        services.AddTransient<ICrashGenChecker, CrashGenChecker>();
+        services.AddTransient<IXsePluginValidator, XsePluginValidator>();
+        services.AddTransient<IModIniScanner, ModIniScanner>();
+        services.AddTransient<IWryeBashChecker, WryeBashChecker>();
+        services.AddTransient<IGameScannerService, GameScannerService>();
+
         // Register GUI services
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<GuiMessageHandlerService>();
         services.AddSingleton<IMessageHandler>(provider => provider.GetRequiredService<GuiMessageHandlerService>());
+        services.AddTransient<GuiApplicationSettingsAdapter>();
 
         // Register ViewModels
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<SettingsWindowViewModel>();
         services.AddTransient<PapyrusMonitorViewModel>();
+        services.AddTransient<GameScanViewModel>();
 
         // Register Views
         services.AddTransient<MainWindow>();
         services.AddTransient<SettingsWindow>();
         services.AddTransient<PapyrusMonitorWindow>();
         services.AddTransient<PapyrusMonitorView>();
+        services.AddTransient<GameScanWindow>();
+        services.AddTransient<GameScanView>();
     }
 }

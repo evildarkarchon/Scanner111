@@ -297,6 +297,7 @@ public class GuiMessageHandlerServiceTests
     private class TestMainWindowViewModel : MainWindowViewModel
     {
         public TestMainWindowViewModel() : base(
+            new Mock<IServiceProvider>().Object,
             new Mock<ISettingsService>().Object,
             new Mock<GuiMessageHandlerService>().Object,
             new Mock<IUpdateService>().Object,

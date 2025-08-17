@@ -1,0 +1,316 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Scanner111.GUI.ViewModels"
+             xmlns:models="using:Scanner111.Core.Models"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="Scanner111.GUI.Views.GameScanView"
+             x:DataType="vm:GameScanViewModel">
+
+    <Design.DataContext>
+        <vm:GameScanViewModel />
+    </Design.DataContext>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header Section -->
+        <Border Grid.Row="0" Background="#FF0e639c" Padding="20">
+            <StackPanel>
+                <TextBlock Text="Game Installation Scanner"
+                           FontSize="24"
+                           FontWeight="Bold"
+                           Foreground="White" />
+                <TextBlock
+                    Text="Comprehensive analysis of your game installation for issues and configuration problems"
+                    FontSize="14"
+                    Foreground="#E0E0E0"
+                    Margin="0,5,0,0" />
+            </StackPanel>
+        </Border>
+
+        <!-- Configuration Section -->
+        <Border Grid.Row="1" Background="#FF3c3c3c" Padding="15" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Game Type Selection -->
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Text="Game Type:"
+                           VerticalAlignment="Center"
+                           Margin="0,0,10,0" />
+                <ComboBox Grid.Row="0" Grid.Column="1"
+                          SelectedItem="{Binding SelectedGameType}"
+                          HorizontalAlignment="Left"
+                          Width="200"
+                          Margin="0,0,10,0">
+                    <ComboBox.Items>
+                        <x:Static Member="models:GameType.Fallout4" />
+                        <x:Static Member="models:GameType.Skyrim" />
+                    </ComboBox.Items>
+                </ComboBox>
+
+                <!-- Game Path -->
+                <TextBlock Grid.Row="1" Grid.Column="0"
+                           Text="Game Path:"
+                           VerticalAlignment="Center"
+                           Margin="0,10,10,0" />
+                <TextBox Grid.Row="1" Grid.Column="1"
+                         Text="{Binding GameInstallPath}"
+                         IsReadOnly="True"
+                         Margin="0,10,10,0" />
+                <Button Grid.Row="1" Grid.Column="2"
+                        Content="Browse..."
+                        Command="{Binding SelectGamePathCommand}"
+                        Margin="0,10,0,0"
+                        Width="100" />
+
+                <!-- Action Buttons -->
+                <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3"
+                            Orientation="Horizontal"
+                            Margin="0,15,0,0">
+                    <Button Content="🔍 Run Full Scan"
+                            Command="{Binding StartScanCommand}"
+                            IsEnabled="{Binding !IsScanning}"
+                            Classes="accent"
+                            Width="150"
+                            Height="35"
+                            FontWeight="Bold" />
+                    <Button Content="❌ Cancel"
+                            Command="{Binding CancelScanCommand}"
+                            IsVisible="{Binding IsScanning}"
+                            Classes="danger"
+                            Width="100"
+                            Height="35"
+                            Margin="10,0,0,0" />
+                    <Button Content="🗑️ Clear Results"
+                            Command="{Binding ClearResultsCommand}"
+                            IsEnabled="{Binding HasResults}"
+                            Width="120"
+                            Height="35"
+                            Margin="10,0,0,0" />
+                    <Button Content="💾 Export Report"
+                            Command="{Binding ExportReportCommand}"
+                            IsEnabled="{Binding HasResults}"
+                            Width="120"
+                            Height="35"
+                            Margin="10,0,0,0" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Progress Bar -->
+        <ProgressBar Grid.Row="1"
+                     IsVisible="{Binding ProgressVisible}"
+                     Value="{Binding ProgressValue}"
+                     Maximum="100"
+                     Height="25"
+                     Margin="15,0,15,10"
+                     VerticalAlignment="Bottom">
+            <ProgressBar.Foreground>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Color="#FF0e639c" Offset="0" />
+                    <GradientStop Color="#FF1e73ac" Offset="1" />
+                </LinearGradientBrush>
+            </ProgressBar.Foreground>
+        </ProgressBar>
+        <TextBlock Grid.Row="1"
+                   Text="{Binding ProgressText}"
+                   IsVisible="{Binding ProgressVisible}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Bottom"
+                   Margin="0,0,0,15"
+                   Foreground="White"
+                   FontWeight="SemiBold" />
+
+        <!-- Results Section -->
+        <ScrollViewer Grid.Row="2" Padding="15">
+            <StackPanel>
+                <!-- Individual Scanner Controls -->
+                <Border Background="#FF2d2d30"
+                        CornerRadius="5"
+                        Padding="15"
+                        Margin="0,0,0,10"
+                        IsVisible="{Binding HasGamePath}">
+                    <StackPanel>
+                        <TextBlock Text="Individual Scanners"
+                                   FontSize="16"
+                                   FontWeight="Bold"
+                                   Margin="0,0,0,10" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Button Grid.Row="0" Grid.Column="0"
+                                    Content="🔧 Check Crash Generator"
+                                    Command="{Binding RunIndividualScanCommand}"
+                                    CommandParameter="CrashGen"
+                                    Margin="0,0,5,5"
+                                    Height="35" />
+                            <Button Grid.Row="0" Grid.Column="1"
+                                    Content="🔌 Validate XSE Plugins"
+                                    Command="{Binding RunIndividualScanCommand}"
+                                    CommandParameter="XsePlugins"
+                                    Margin="5,0,0,5"
+                                    Height="35" />
+                            <Button Grid.Row="1" Grid.Column="0"
+                                    Content="📝 Scan Mod INIs"
+                                    Command="{Binding RunIndividualScanCommand}"
+                                    CommandParameter="ModInis"
+                                    Margin="0,5,5,0"
+                                    Height="35" />
+                            <Button Grid.Row="1" Grid.Column="1"
+                                    Content="📊 Check Wrye Bash"
+                                    Command="{Binding RunIndividualScanCommand}"
+                                    CommandParameter="WryeBash"
+                                    Margin="5,5,0,0"
+                                    Height="35" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Scan Results -->
+                <StackPanel IsVisible="{Binding HasResults}">
+                    <!-- Critical Issues -->
+                    <Border Background="#FF4c1919"
+                            CornerRadius="5"
+                            Padding="15"
+                            Margin="0,0,0,10"
+                            IsVisible="{Binding !!CriticalIssues.Count}">
+                        <StackPanel>
+                            <TextBlock Text="❌ Critical Issues"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="#FFff6b6b"
+                                       Margin="0,0,0,10" />
+                            <ItemsControl ItemsSource="{Binding CriticalIssues}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}"
+                                                   Foreground="#FFffcccc"
+                                                   TextWrapping="Wrap"
+                                                   Margin="20,2,0,2" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Warnings -->
+                    <Border Background="#FF4c4319"
+                            CornerRadius="5"
+                            Padding="15"
+                            Margin="0,0,0,10"
+                            IsVisible="{Binding !!Warnings.Count}">
+                        <StackPanel>
+                            <TextBlock Text="⚠️ Warnings"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="#FFffd93d"
+                                       Margin="0,0,0,10" />
+                            <ItemsControl ItemsSource="{Binding Warnings}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}"
+                                                   Foreground="#FFffe8a3"
+                                                   TextWrapping="Wrap"
+                                                   Margin="20,2,0,2" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Crash Generator Results -->
+                    <Expander Header="🔧 Crash Generator Results"
+                              IsExpanded="True"
+                              Margin="0,0,0,10"
+                              IsVisible="{Binding !!CrashGenStatus.Length}">
+                        <Border Background="#FF2d2d30"
+                                CornerRadius="5"
+                                Padding="15">
+                            <TextBlock Text="{Binding CrashGenStatus}"
+                                       TextWrapping="Wrap"
+                                       FontFamily="Consolas, monospace" />
+                        </Border>
+                    </Expander>
+
+                    <!-- XSE Plugin Results -->
+                    <Expander Header="🔌 XSE Plugin Validation Results"
+                              IsExpanded="True"
+                              Margin="0,0,0,10"
+                              IsVisible="{Binding !!XsePluginStatus.Length}">
+                        <Border Background="#FF2d2d30"
+                                CornerRadius="5"
+                                Padding="15">
+                            <TextBlock Text="{Binding XsePluginStatus}"
+                                       TextWrapping="Wrap"
+                                       FontFamily="Consolas, monospace" />
+                        </Border>
+                    </Expander>
+
+                    <!-- Mod INI Results -->
+                    <Expander Header="📝 Mod INI Scan Results"
+                              IsExpanded="True"
+                              Margin="0,0,0,10"
+                              IsVisible="{Binding !!ModIniStatus.Length}">
+                        <Border Background="#FF2d2d30"
+                                CornerRadius="5"
+                                Padding="15">
+                            <TextBlock Text="{Binding ModIniStatus}"
+                                       TextWrapping="Wrap"
+                                       FontFamily="Consolas, monospace" />
+                        </Border>
+                    </Expander>
+
+                    <!-- Wrye Bash Results -->
+                    <Expander Header="📊 Wrye Bash Analysis Results"
+                              IsExpanded="True"
+                              Margin="0,0,0,10"
+                              IsVisible="{Binding !!WryeBashStatus.Length}">
+                        <Border Background="#FF2d2d30"
+                                CornerRadius="5"
+                                Padding="15">
+                            <TextBlock Text="{Binding WryeBashStatus}"
+                                       TextWrapping="Wrap"
+                                       FontFamily="Consolas, monospace" />
+                        </Border>
+                    </Expander>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="3" Background="#FF1e1e1e" Padding="10,5">
+            <Grid>
+                <TextBlock Text="{Binding ProgressText, FallbackValue='Ready'}"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="{Binding ScanResult.Timestamp, StringFormat='Last scan: {0:yyyy-MM-dd HH:mm:ss}'}"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center"
+                           IsVisible="{Binding HasResults}" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

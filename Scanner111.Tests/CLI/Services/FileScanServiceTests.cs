@@ -23,7 +23,6 @@ public class FileScanServiceTests : IDisposable
     public void Dispose()
     {
         if (Directory.Exists(_testDirectory))
-        {
             try
             {
                 Directory.Delete(_testDirectory, true);
@@ -32,7 +31,6 @@ public class FileScanServiceTests : IDisposable
             {
                 // Ignore cleanup errors
             }
-        }
     }
 
     [Fact]
@@ -57,7 +55,8 @@ public class FileScanServiceTests : IDisposable
         result.Should().NotBeNull();
         result.FilesToScan.Should().HaveCount(1);
         result.FilesToScan.Should().Contain(logFile);
-        _messageHandlerMock.Verify(x => x.ShowInfo(It.Is<string>(s => s.Contains("Added log file")), It.IsAny<MessageTarget>()), Times.Once);
+        _messageHandlerMock.Verify(
+            x => x.ShowInfo(It.Is<string>(s => s.Contains("Added log file")), It.IsAny<MessageTarget>()), Times.Once);
     }
 
     [Fact]
@@ -78,7 +77,8 @@ public class FileScanServiceTests : IDisposable
         // Assert
         result.Should().NotBeNull();
         result.FilesToScan.Should().BeEmpty();
-        _messageHandlerMock.Verify(x => x.ShowInfo(It.Is<string>(s => s.Contains("Added log file")), It.IsAny<MessageTarget>()), Times.Never);
+        _messageHandlerMock.Verify(
+            x => x.ShowInfo(It.Is<string>(s => s.Contains("Added log file")), It.IsAny<MessageTarget>()), Times.Never);
     }
 
     [Fact]
@@ -113,7 +113,9 @@ public class FileScanServiceTests : IDisposable
         result.FilesToScan.Should().Contain(crashLog2);
         result.FilesToScan.Should().Contain(dumpLog);
         result.FilesToScan.Should().NotContain(normalLog);
-        _messageHandlerMock.Verify(x => x.ShowInfo(It.Is<string>(s => s.Contains("Found") && s.Contains("crash logs")), It.IsAny<MessageTarget>()), Times.Once);
+        _messageHandlerMock.Verify(
+            x => x.ShowInfo(It.Is<string>(s => s.Contains("Found") && s.Contains("crash logs")),
+                It.IsAny<MessageTarget>()), Times.Once);
     }
 
     [Fact]
@@ -137,7 +139,9 @@ public class FileScanServiceTests : IDisposable
         // Assert
         result.Should().NotBeNull();
         result.FilesToScan.Should().BeEmpty();
-        _messageHandlerMock.Verify(x => x.ShowInfo(It.Is<string>(s => s.Contains("Found 0 crash logs")), It.IsAny<MessageTarget>()), Times.Once);
+        _messageHandlerMock.Verify(
+            x => x.ShowInfo(It.Is<string>(s => s.Contains("Found 0 crash logs")), It.IsAny<MessageTarget>()),
+            Times.Once);
     }
 
     [Fact]
@@ -146,7 +150,7 @@ public class FileScanServiceTests : IDisposable
         // Arrange
         var currentDir = Directory.GetCurrentDirectory();
         var testCrashLog = Path.Combine(currentDir, "crash-test.log");
-        
+
         try
         {
             await File.WriteAllTextAsync(testCrashLog, "Test crash");
@@ -214,9 +218,9 @@ public class FileScanServiceTests : IDisposable
         };
 
         // Create mock F4SE directory structure
-        var f4seDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), 
+        var f4seDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "My Games", "Fallout4", "F4SE");
-        
+
         // Act
         var result = await _fileScanService.CollectFilesToScanAsync(options, settings);
 
@@ -332,10 +336,10 @@ public class FileScanServiceTests : IDisposable
         // Arrange
         var subDir = Path.Combine(_testDirectory, "subdir");
         Directory.CreateDirectory(subDir);
-        
+
         var topLevelCrash = Path.Combine(_testDirectory, "crash-top.log");
         var subDirCrash = Path.Combine(subDir, "crash-sub.log");
-        
+
         await File.WriteAllTextAsync(topLevelCrash, "Top level crash");
         await File.WriteAllTextAsync(subDirCrash, "Subdirectory crash");
 

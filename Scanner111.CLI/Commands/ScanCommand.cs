@@ -113,10 +113,9 @@ public class ScanCommand : ICommand<CliScanOptions>
         {
             _messageHandler.ShowCritical($"Fatal error during scan: {ex.Message}");
             if (options.Verbose) _messageHandler.ShowDebug($"Stack trace: {ex.StackTrace}");
-            
+
             // Play error sound for operation failure
             if (_audioService != null && _audioService.IsEnabled)
-            {
                 try
                 {
                     await _audioService.PlayErrorFoundAsync();
@@ -125,8 +124,7 @@ public class ScanCommand : ICommand<CliScanOptions>
                 {
                     // Ignore audio playback errors
                 }
-            }
-            
+
             return 1;
         }
     }

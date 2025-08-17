@@ -1,26 +1,24 @@
-using System.Text;
-using System.Text.RegularExpressions;
 using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Core.Services;
 
 /// <summary>
-/// Service implementation for fetching crash logs from Pastebin URLs and saving them locally.
+///     Service implementation for fetching crash logs from Pastebin URLs and saving them locally.
 /// </summary>
 public partial class PastebinService : IPastebinService
 {
     private const string PastebinDomain = "pastebin.com";
     private const string PastebinRawPath = "pastebin.com/raw";
     private const string LocalPastebinDirectory = "Crash Logs/Pastebin";
-    
+
     private static readonly HttpClient HttpClient = new();
     private static readonly Regex PastebinUrlRegex = PastebinUrlPattern();
     private static readonly Regex PastebinIdRegex = PastebinIdPattern();
-    
+    private readonly SemaphoreSlim _downloadSemaphore;
+
     private readonly ILogger<PastebinService> _logger;
     private readonly IMessageHandler _messageHandler;
     private readonly IApplicationSettingsService _settingsService;
-    private readonly SemaphoreSlim _downloadSemaphore;
 
     static PastebinService()
     {
@@ -62,7 +60,7 @@ public partial class PastebinService : IPastebinService
         try
         {
             using var response = await HttpClient.GetAsync(rawUrl, cancellationToken).ConfigureAwait(false);
-            
+
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogError("Failed to fetch from Pastebin. Status: {Status}", response.StatusCode);
@@ -71,7 +69,7 @@ public partial class PastebinService : IPastebinService
             }
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-            
+
             if (string.IsNullOrWhiteSpace(content))
             {
                 _logger.LogWarning("Pastebin returned empty content");
@@ -82,10 +80,10 @@ public partial class PastebinService : IPastebinService
             // Extract ID from URL for filename
             var pastebinId = ExtractPastebinId(urlOrId);
             var filePath = await SaveContentAsync(content, pastebinId, cancellationToken).ConfigureAwait(false);
-            
+
             _logger.LogInformation("Successfully saved Pastebin content to: {Path}", filePath);
             _messageHandler.ShowSuccess($"Log fetched from Pastebin and saved to: {Path.GetFileName(filePath)}");
-            
+
             return filePath;
         }
         catch (HttpRequestException ex)
@@ -114,23 +112,17 @@ public partial class PastebinService : IPastebinService
 
     /// <inheritdoc />
     public async Task<Dictionary<string, string?>> FetchMultipleAsync(
-        IEnumerable<string> urlsOrIds, 
+        IEnumerable<string> urlsOrIds,
         CancellationToken cancellationToken = default)
     {
         var results = new Dictionary<string, string?>();
         var tasks = new List<Task<(string Input, string? Path)>>();
 
-        foreach (var urlOrId in urlsOrIds)
-        {
-            tasks.Add(FetchSingleWithInputAsync(urlOrId, cancellationToken));
-        }
+        foreach (var urlOrId in urlsOrIds) tasks.Add(FetchSingleWithInputAsync(urlOrId, cancellationToken));
 
         var completedTasks = await Task.WhenAll(tasks).ConfigureAwait(false);
-        
-        foreach (var (input, path) in completedTasks)
-        {
-            results[input] = path;
-        }
+
+        foreach (var (input, path) in completedTasks) results[input] = path;
 
         return results;
     }
@@ -148,29 +140,20 @@ public partial class PastebinService : IPastebinService
     public string ConvertToRawUrl(string urlOrId)
     {
         // If it's just an ID, convert to full URL
-        if (PastebinIdRegex.IsMatch(urlOrId) && !urlOrId.Contains("://"))
-        {
-            return $"https://{PastebinRawPath}/{urlOrId}";
-        }
+        if (PastebinIdRegex.IsMatch(urlOrId) && !urlOrId.Contains("://")) return $"https://{PastebinRawPath}/{urlOrId}";
 
         // If it's already a raw URL, return as-is
-        if (urlOrId.Contains("/raw/") || urlOrId.Contains(PastebinRawPath))
-        {
-            return urlOrId;
-        }
+        if (urlOrId.Contains("/raw/") || urlOrId.Contains(PastebinRawPath)) return urlOrId;
 
         // Convert regular Pastebin URL to raw URL
-        if (urlOrId.Contains(PastebinDomain))
-        {
-            return urlOrId.Replace(PastebinDomain, PastebinRawPath);
-        }
+        if (urlOrId.Contains(PastebinDomain)) return urlOrId.Replace(PastebinDomain, PastebinRawPath);
 
         // Fallback: assume it's an ID
         return $"https://{PastebinRawPath}/{urlOrId}";
     }
 
     private async Task<(string Input, string? Path)> FetchSingleWithInputAsync(
-        string urlOrId, 
+        string urlOrId,
         CancellationToken cancellationToken)
     {
         var path = await FetchAndSaveAsync(urlOrId, cancellationToken).ConfigureAwait(false);
@@ -187,24 +170,18 @@ public partial class PastebinService : IPastebinService
 
         // Use async file operations
         await File.WriteAllTextAsync(filePath, content, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
-        
+
         return filePath;
     }
 
     private static string ExtractPastebinId(string urlOrId)
     {
         // If it's just an ID, return it
-        if (PastebinIdRegex.IsMatch(urlOrId) && !urlOrId.Contains("://"))
-        {
-            return urlOrId;
-        }
+        if (PastebinIdRegex.IsMatch(urlOrId) && !urlOrId.Contains("://")) return urlOrId;
 
         // Extract ID from URL
         var match = PastebinUrlRegex.Match(urlOrId);
-        if (match.Success && match.Groups.Count > 1)
-        {
-            return match.Groups[1].Value;
-        }
+        if (match.Success && match.Groups.Count > 1) return match.Groups[1].Value;
 
         // Try to extract from path
         var uri = new Uri(urlOrId, UriKind.RelativeOrAbsolute);
@@ -214,10 +191,7 @@ public partial class PastebinService : IPastebinService
             if (segments.Length > 0)
             {
                 var lastSegment = segments[^1].TrimEnd('/');
-                if (!string.IsNullOrEmpty(lastSegment) && lastSegment != "raw")
-                {
-                    return lastSegment;
-                }
+                if (!string.IsNullOrEmpty(lastSegment) && lastSegment != "raw") return lastSegment;
             }
         }
 

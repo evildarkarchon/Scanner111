@@ -21,7 +21,7 @@ public class ApplicationSettings
     [JsonPropertyName("vrMode")] public bool VrMode { get; set; }
 
     [JsonPropertyName("gameType")] public GameType GameType { get; set; } = GameType.Fallout4;
-    
+
     // Computed property for VR detection
     [JsonIgnore] public bool IsVRMode => GameType == GameType.Fallout4VR || GameType == GameType.SkyrimVR;
 
@@ -44,10 +44,11 @@ public class ApplicationSettings
     [JsonPropertyName("modsFolder")] public string ModsFolder { get; set; } = "";
 
     [JsonPropertyName("iniFolder")] public string IniFolder { get; set; } = "";
-    
+
     [JsonPropertyName("pluginsFolder")] public string PluginsFolder { get; set; } = "";
-    
-    [JsonPropertyName("gameExecutablePath")] public string GameExecutablePath { get; set; } = "";
+
+    [JsonPropertyName("gameExecutablePath")]
+    public string GameExecutablePath { get; set; } = "";
 
     // === Output Settings ===
 
@@ -148,7 +149,8 @@ public class ApplicationSettings
 
     [JsonPropertyName("disableProgress")] public bool DisableProgress { get; set; }
 
-    [JsonPropertyName("enableUnicodeDisplay")] public bool EnableUnicodeDisplay { get; set; } = true;
+    [JsonPropertyName("enableUnicodeDisplay")]
+    public bool EnableUnicodeDisplay { get; set; } = true;
 
     // === GUI-Specific Settings ===
 

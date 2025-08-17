@@ -1,209 +1,220 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
-using FluentAssertions;
-using Microsoft.Extensions.Logging;
-using Moq;
 using Scanner111.Core.GameScanning;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
-using Xunit;
 
-namespace Scanner111.Tests.GameScanning
+namespace Scanner111.Tests.GameScanning;
+
+/// <summary>
+///     Comprehensive tests for WryeBashChecker.
+/// </summary>
+[Collection("Settings Test Collection")]
+public class WryeBashCheckerTests : IDisposable
 {
-    /// <summary>
-    /// Comprehensive tests for WryeBashChecker.
-    /// </summary>
-    [Collection("Settings Test Collection")]
-    public class WryeBashCheckerTests : IDisposable
+    private readonly WryeBashChecker _checker;
+    private readonly Mock<ILogger<WryeBashChecker>> _mockLogger;
+    private readonly Mock<IApplicationSettingsService> _mockSettingsService;
+    private readonly Mock<IYamlSettingsProvider> _mockYamlProvider;
+    private readonly string _testDirectory;
+    private readonly string _testDocumentsPath;
+
+    public WryeBashCheckerTests()
     {
-        private readonly Mock<IApplicationSettingsService> _mockSettingsService;
-        private readonly Mock<IYamlSettingsProvider> _mockYamlProvider;
-        private readonly Mock<ILogger<WryeBashChecker>> _mockLogger;
-        private readonly WryeBashChecker _checker;
-        private readonly string _testDocumentsPath;
-        private readonly string _testDirectory;
+        _mockSettingsService = new Mock<IApplicationSettingsService>();
+        _mockYamlProvider = new Mock<IYamlSettingsProvider>();
+        _mockLogger = new Mock<ILogger<WryeBashChecker>>();
 
-        public WryeBashCheckerTests()
-        {
-            _mockSettingsService = new Mock<IApplicationSettingsService>();
-            _mockYamlProvider = new Mock<IYamlSettingsProvider>();
-            _mockLogger = new Mock<ILogger<WryeBashChecker>>();
+        _testDirectory = Path.Combine(Path.GetTempPath(), $"Scanner111Tests_{Guid.NewGuid()}");
+        Directory.CreateDirectory(_testDirectory);
 
-            _testDirectory = Path.Combine(Path.GetTempPath(), $"Scanner111Tests_{Guid.NewGuid()}");
-            Directory.CreateDirectory(_testDirectory);
-            
-            _testDocumentsPath = Path.Combine(_testDirectory, "TestDocuments");
-            
-            _checker = new WryeBashChecker(
-                _mockSettingsService.Object,
-                _mockYamlProvider.Object,
-                _mockLogger.Object);
+        _testDocumentsPath = Path.Combine(_testDirectory, "TestDocuments");
 
-            SetupDefaultMocks();
-        }
+        _checker = new WryeBashChecker(
+            _mockSettingsService.Object,
+            _mockYamlProvider.Object,
+            _mockLogger.Object);
 
-        public void Dispose()
-        {
-            if (Directory.Exists(_testDirectory))
+        SetupDefaultMocks();
+    }
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_testDirectory))
+            try
             {
-                try
-                {
-                    Directory.Delete(_testDirectory, true);
-                }
-                catch
-                {
-                    // Ignore cleanup errors
-                }
+                Directory.Delete(_testDirectory, true);
             }
-        }
-
-        private void SetupDefaultMocks()
-        {
-            var settings = new ApplicationSettings
+            catch
             {
-                GameType = GameType.Fallout4
-            };
+                // Ignore cleanup errors
+            }
+    }
 
-            _mockSettingsService.Setup(x => x.LoadSettingsAsync())
-                .ReturnsAsync(settings);
-        }
-
-        #region Basic Functionality Tests
-
-        [Fact]
-        public async Task AnalyzeAsync_NoReportFile_ReturnsHelpMessage()
+    private void SetupDefaultMocks()
+    {
+        var settings = new ApplicationSettings
         {
-            // Arrange
-            // Don't create any report file
+            GameType = GameType.Fallout4
+        };
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+        _mockSettingsService.Setup(x => x.LoadSettingsAsync())
+            .ReturnsAsync(settings);
+    }
 
-            // Assert
-            result.Should().Contain("Wrye Bash Plugin Checker Report");
-            result.Should().Contain("was not found");
-            result.Should().Contain("generate this report");
-            result.Should().Contain("Plugin Checker");
-        }
+    #region Helper Methods
 
-        [Fact]
-        public async Task AnalyzeAsync_ReportExists_ShowsFoundMessage()
-        {
-            // Arrange
-            var reportPath = CreateWryeBashReport("<html><body>Empty Report</body></html>");
+    private string CreateWryeBashReport(string htmlContent)
+    {
+        // Mock the Documents folder structure
+        var gameFolderPath = Path.Combine(_testDocumentsPath, "My Games", "Fallout4");
+        Directory.CreateDirectory(gameFolderPath);
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+        var reportPath = Path.Combine(gameFolderPath, "ModChecker.html");
+        File.WriteAllText(reportPath, htmlContent);
 
-            // Assert
-            result.Should().Contain("WRYE BASH PLUGIN CHECKER REPORT WAS FOUND");
-            result.Should().Contain("ANALYZING CONTENTS");
-            result.Should().Contain("This report is located in your Documents");
-            result.Should().Contain("To hide this report, remove *ModChecker.html*");
-        }
+        // Update the Environment.SpecialFolder.MyDocuments to point to our test directory
+        // Since we can't override Environment.GetFolderPath, we need to work around it
+        // In real implementation, this would need dependency injection for the path
 
-        [Fact]
-        public async Task AnalyzeAsync_AlwaysIncludesResourceLinks()
-        {
-            // Arrange
-            CreateWryeBashReport("<html><body>Test</body></html>");
+        return reportPath;
+    }
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+    #endregion
 
-            // Assert
-            result.Should().Contain("For more info about the above detected problems");
-            result.Should().Contain("Advanced Troubleshooting:");
-            result.Should().Contain("nexusmods.com/fallout4/articles/4141");
-            result.Should().Contain("Wrye Bash Advanced Readme Documentation:");
-            result.Should().Contain("wrye-bash.github.io/docs/");
-            result.Should().Contain("After resolving any problems, run Plugin Checker in Wrye Bash again");
-        }
+    #region Basic Functionality Tests
 
-        #endregion
+    [Fact]
+    public async Task AnalyzeAsync_NoReportFile_ReturnsHelpMessage()
+    {
+        // Arrange
+        // Don't create any report file
 
-        #region Game Type Specific Tests
+        // Act
+        var result = await _checker.AnalyzeAsync();
 
-        [Fact]
-        public async Task AnalyzeAsync_Fallout4_UsesCorrectPath()
-        {
-            // Arrange
-            var settings = new ApplicationSettings { GameType = GameType.Fallout4 };
-            _mockSettingsService.Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
+        // Assert
+        result.Should().Contain("Wrye Bash Plugin Checker Report");
+        result.Should().Contain("was not found");
+        result.Should().Contain("generate this report");
+        result.Should().Contain("Plugin Checker");
+    }
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+    [Fact]
+    public async Task AnalyzeAsync_ReportExists_ShowsFoundMessage()
+    {
+        // Arrange
+        var reportPath = CreateWryeBashReport("<html><body>Empty Report</body></html>");
 
-            // Assert
-            result.Should().Contain("Fallout4");
-        }
+        // Act
+        var result = await _checker.AnalyzeAsync();
 
-        [Fact]
-        public async Task AnalyzeAsync_Fallout4VR_UsesCorrectPath()
-        {
-            // Arrange
-            var settings = new ApplicationSettings { GameType = GameType.Fallout4VR };
-            _mockSettingsService.Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
+        // Assert
+        result.Should().Contain("WRYE BASH PLUGIN CHECKER REPORT WAS FOUND");
+        result.Should().Contain("ANALYZING CONTENTS");
+        result.Should().Contain("This report is located in your Documents");
+        result.Should().Contain("To hide this report, remove *ModChecker.html*");
+    }
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+    [Fact]
+    public async Task AnalyzeAsync_AlwaysIncludesResourceLinks()
+    {
+        // Arrange
+        CreateWryeBashReport("<html><body>Test</body></html>");
 
-            // Assert
-            result.Should().Contain("Fallout4"); // VR uses same folder as regular
-        }
+        // Act
+        var result = await _checker.AnalyzeAsync();
 
-        [Fact]
-        public async Task AnalyzeAsync_SkyrimSE_UsesCorrectPath()
-        {
-            // Arrange
-            var settings = new ApplicationSettings { GameType = GameType.SkyrimSE };
-            _mockSettingsService.Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
+        // Assert
+        result.Should().Contain("For more info about the above detected problems");
+        result.Should().Contain("Advanced Troubleshooting:");
+        result.Should().Contain("nexusmods.com/fallout4/articles/4141");
+        result.Should().Contain("Wrye Bash Advanced Readme Documentation:");
+        result.Should().Contain("wrye-bash.github.io/docs/");
+        result.Should().Contain("After resolving any problems, run Plugin Checker in Wrye Bash again");
+    }
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+    #endregion
 
-            // Assert
-            result.Should().Contain("Skyrim Special Edition");
-        }
+    #region Game Type Specific Tests
 
-        [Fact]
-        public async Task AnalyzeAsync_SkyrimVR_UsesCorrectPath()
-        {
-            // Arrange
-            var settings = new ApplicationSettings { GameType = GameType.SkyrimVR };
-            _mockSettingsService.Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
+    [Fact]
+    public async Task AnalyzeAsync_Fallout4_UsesCorrectPath()
+    {
+        // Arrange
+        var settings = new ApplicationSettings { GameType = GameType.Fallout4 };
+        _mockSettingsService.Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+        // Act
+        var result = await _checker.AnalyzeAsync();
 
-            // Assert
-            result.Should().Contain("Skyrim VR");
-        }
+        // Assert
+        result.Should().Contain("Fallout4");
+    }
 
-        [Fact]
-        public async Task AnalyzeAsync_UnknownGameType_ReturnsHelpMessage()
-        {
-            // Arrange
-            var settings = new ApplicationSettings { GameType = GameType.Unknown };
-            _mockSettingsService.Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
+    [Fact]
+    public async Task AnalyzeAsync_Fallout4VR_UsesCorrectPath()
+    {
+        // Arrange
+        var settings = new ApplicationSettings { GameType = GameType.Fallout4VR };
+        _mockSettingsService.Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+        // Act
+        var result = await _checker.AnalyzeAsync();
 
-            // Assert
-            result.Should().Contain("was not found");
-        }
+        // Assert
+        result.Should().Contain("Fallout4"); // VR uses same folder as regular
+    }
 
-        #endregion
+    [Fact]
+    public async Task AnalyzeAsync_SkyrimSE_UsesCorrectPath()
+    {
+        // Arrange
+        var settings = new ApplicationSettings { GameType = GameType.SkyrimSE };
+        _mockSettingsService.Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
 
-        #region HTML Report Parsing Tests
+        // Act
+        var result = await _checker.AnalyzeAsync();
 
-        [Fact]
-        public async Task AnalyzeAsync_ReportWithMissingMasters_DetectsIssue()
-        {
-            // Arrange
-            var htmlContent = @"
+        // Assert
+        result.Should().Contain("Skyrim Special Edition");
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_SkyrimVR_UsesCorrectPath()
+    {
+        // Arrange
+        var settings = new ApplicationSettings { GameType = GameType.SkyrimVR };
+        _mockSettingsService.Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
+
+        // Act
+        var result = await _checker.AnalyzeAsync();
+
+        // Assert
+        result.Should().Contain("Skyrim VR");
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_UnknownGameType_ReturnsHelpMessage()
+    {
+        // Arrange
+        var settings = new ApplicationSettings { GameType = GameType.Unknown };
+        _mockSettingsService.Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
+
+        // Act
+        var result = await _checker.AnalyzeAsync();
+
+        // Assert
+        result.Should().Contain("was not found");
+    }
+
+    #endregion
+
+    #region HTML Report Parsing Tests
+
+    [Fact]
+    public async Task AnalyzeAsync_ReportWithMissingMasters_DetectsIssue()
+    {
+        // Arrange
+        var htmlContent = @"
 <html>
 <body>
     <h2>Missing Masters</h2>
@@ -213,22 +224,22 @@ namespace Scanner111.Tests.GameScanning
     </ul>
 </body>
 </html>";
-            CreateWryeBashReport(htmlContent);
+        CreateWryeBashReport(htmlContent);
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+        // Act
+        var result = await _checker.AnalyzeAsync();
 
-            // Assert
-            result.Should().Contain("❌ CRITICAL: Missing Masters detected");
-            result.Should().Contain("MyMod.esp");
-            result.Should().Contain("DLC1.esm");
-        }
+        // Assert
+        result.Should().Contain("❌ CRITICAL: Missing Masters detected");
+        result.Should().Contain("MyMod.esp");
+        result.Should().Contain("DLC1.esm");
+    }
 
-        [Fact]
-        public async Task AnalyzeAsync_ReportWithDeactivatedPlugins_ShowsWarning()
-        {
-            // Arrange
-            var htmlContent = @"
+    [Fact]
+    public async Task AnalyzeAsync_ReportWithDeactivatedPlugins_ShowsWarning()
+    {
+        // Arrange
+        var htmlContent = @"
 <html>
 <body>
     <h2>Deactivated Plugins</h2>
@@ -238,22 +249,22 @@ namespace Scanner111.Tests.GameScanning
     </ul>
 </body>
 </html>";
-            CreateWryeBashReport(htmlContent);
+        CreateWryeBashReport(htmlContent);
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+        // Act
+        var result = await _checker.AnalyzeAsync();
 
-            // Assert
-            result.Should().Contain("⚠️ WARNING: Deactivated plugins found");
-            result.Should().Contain("DeactivatedMod.esp");
-            result.Should().Contain("UnusedPlugin.esm");
-        }
+        // Assert
+        result.Should().Contain("⚠️ WARNING: Deactivated plugins found");
+        result.Should().Contain("DeactivatedMod.esp");
+        result.Should().Contain("UnusedPlugin.esm");
+    }
 
-        [Fact]
-        public async Task AnalyzeAsync_ReportWithLoadOrderIssues_ShowsWarning()
-        {
-            // Arrange
-            var htmlContent = @"
+    [Fact]
+    public async Task AnalyzeAsync_ReportWithLoadOrderIssues_ShowsWarning()
+    {
+        // Arrange
+        var htmlContent = @"
 <html>
 <body>
     <h2>Load Order Issues</h2>
@@ -261,40 +272,40 @@ namespace Scanner111.Tests.GameScanning
     <p>Master.esm is out of order</p>
 </body>
 </html>";
-            CreateWryeBashReport(htmlContent);
+        CreateWryeBashReport(htmlContent);
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+        // Act
+        var result = await _checker.AnalyzeAsync();
 
-            // Assert
-            result.Should().Contain("⚠️ WARNING: Load order issues detected");
-        }
+        // Assert
+        result.Should().Contain("⚠️ WARNING: Load order issues detected");
+    }
 
-        [Fact]
-        public async Task AnalyzeAsync_CleanReport_ShowsNoIssues()
-        {
-            // Arrange
-            var htmlContent = @"
+    [Fact]
+    public async Task AnalyzeAsync_CleanReport_ShowsNoIssues()
+    {
+        // Arrange
+        var htmlContent = @"
 <html>
 <body>
     <h1>Plugin Checker Report</h1>
     <p>No issues found. All plugins are properly configured.</p>
 </body>
 </html>";
-            CreateWryeBashReport(htmlContent);
+        CreateWryeBashReport(htmlContent);
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+        // Act
+        var result = await _checker.AnalyzeAsync();
 
-            // Assert
-            result.Should().Contain("✔️ No issues detected in Wrye Bash report");
-        }
+        // Assert
+        result.Should().Contain("✔️ No issues detected in Wrye Bash report");
+    }
 
-        [Fact]
-        public async Task AnalyzeAsync_ReportWithDirtyPlugins_ShowsWarning()
-        {
-            // Arrange
-            var htmlContent = @"
+    [Fact]
+    public async Task AnalyzeAsync_ReportWithDirtyPlugins_ShowsWarning()
+    {
+        // Arrange
+        var htmlContent = @"
 <html>
 <body>
     <h2>Dirty Plugins</h2>
@@ -304,83 +315,80 @@ namespace Scanner111.Tests.GameScanning
     </table>
 </body>
 </html>";
-            CreateWryeBashReport(htmlContent);
+        CreateWryeBashReport(htmlContent);
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+        // Act
+        var result = await _checker.AnalyzeAsync();
 
-            // Assert
-            result.Should().Contain("⚠️ WARNING: Dirty plugins detected");
-            result.Should().Contain("Update.esm");
-            result.Should().Contain("123 ITMs");
-            result.Should().Contain("45 UDRs");
-        }
+        // Assert
+        result.Should().Contain("⚠️ WARNING: Dirty plugins detected");
+        result.Should().Contain("Update.esm");
+        result.Should().Contain("123 ITMs");
+        result.Should().Contain("45 UDRs");
+    }
 
-        #endregion
+    #endregion
 
-        #region Error Handling Tests
+    #region Error Handling Tests
 
-        [Fact]
-        public async Task AnalyzeAsync_CorruptedHtmlFile_HandlesGracefully()
-        {
-            // Arrange
-            CreateWryeBashReport("This is not valid HTML <<<<>>>>");
+    [Fact]
+    public async Task AnalyzeAsync_CorruptedHtmlFile_HandlesGracefully()
+    {
+        // Arrange
+        CreateWryeBashReport("This is not valid HTML <<<<>>>>");
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+        // Act
+        var result = await _checker.AnalyzeAsync();
 
-            // Assert
-            result.Should().NotBeNull();
-            result.Should().Contain("WRYE BASH PLUGIN CHECKER REPORT WAS FOUND");
-            // Should still include resource links even if parsing fails
-            result.Should().Contain("Advanced Troubleshooting:");
-        }
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().Contain("WRYE BASH PLUGIN CHECKER REPORT WAS FOUND");
+        // Should still include resource links even if parsing fails
+        result.Should().Contain("Advanced Troubleshooting:");
+    }
 
-        [Fact]
-        public async Task AnalyzeAsync_EmptyHtmlFile_HandlesGracefully()
-        {
-            // Arrange
-            CreateWryeBashReport("");
+    [Fact]
+    public async Task AnalyzeAsync_EmptyHtmlFile_HandlesGracefully()
+    {
+        // Arrange
+        CreateWryeBashReport("");
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+        // Act
+        var result = await _checker.AnalyzeAsync();
 
-            // Assert
-            result.Should().NotBeNull();
-            result.Should().Contain("WRYE BASH PLUGIN CHECKER REPORT WAS FOUND");
-        }
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().Contain("WRYE BASH PLUGIN CHECKER REPORT WAS FOUND");
+    }
 
-        [Fact]
-        public async Task AnalyzeAsync_VeryLargeReport_HandlesEfficiently()
-        {
-            // Arrange
-            var largeHtml = "<html><body>";
-            for (int i = 0; i < 1000; i++)
-            {
-                largeHtml += $"<p>Plugin_{i}.esp has some issue {i}</p>\n";
-            }
-            largeHtml += "</body></html>";
-            CreateWryeBashReport(largeHtml);
+    [Fact]
+    public async Task AnalyzeAsync_VeryLargeReport_HandlesEfficiently()
+    {
+        // Arrange
+        var largeHtml = "<html><body>";
+        for (var i = 0; i < 1000; i++) largeHtml += $"<p>Plugin_{i}.esp has some issue {i}</p>\n";
+        largeHtml += "</body></html>";
+        CreateWryeBashReport(largeHtml);
 
-            // Act
-            var startTime = DateTime.UtcNow;
-            var result = await _checker.AnalyzeAsync();
-            var elapsed = DateTime.UtcNow - startTime;
+        // Act
+        var startTime = DateTime.UtcNow;
+        var result = await _checker.AnalyzeAsync();
+        var elapsed = DateTime.UtcNow - startTime;
 
-            // Assert
-            result.Should().NotBeNull();
-            elapsed.TotalMilliseconds.Should().BeLessThan(2000); // Should complete within 2 seconds
-        }
+        // Assert
+        result.Should().NotBeNull();
+        elapsed.TotalMilliseconds.Should().BeLessThan(2000); // Should complete within 2 seconds
+    }
 
-        #endregion
+    #endregion
 
-        #region Complex Scenario Tests
+    #region Complex Scenario Tests
 
-        [Fact]
-        public async Task AnalyzeAsync_ComplexReport_ParsesAllSections()
-        {
-            // Arrange
-            var htmlContent = @"
+    [Fact]
+    public async Task AnalyzeAsync_ComplexReport_ParsesAllSections()
+    {
+        // Arrange
+        var htmlContent = @"
 <html>
 <head><title>Wrye Bash Plugin Checker Report</title></head>
 <body>
@@ -412,27 +420,27 @@ namespace Scanner111.Tests.GameScanning
     </ul>
 </body>
 </html>";
-            CreateWryeBashReport(htmlContent);
+        CreateWryeBashReport(htmlContent);
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+        // Act
+        var result = await _checker.AnalyzeAsync();
 
-            // Assert
-            result.Should().Contain("Missing Masters");
-            result.Should().Contain("Deactivated plugins");
-            result.Should().Contain("Load order issues");
-            result.Should().Contain("Dirty plugins");
-            result.Should().Contain("CustomWeapons.esp");
-            result.Should().Contain("WeaponBase.esm");
-            result.Should().Contain("Fallout4.esm");
-            result.Should().Contain("234 ITMs");
-        }
+        // Assert
+        result.Should().Contain("Missing Masters");
+        result.Should().Contain("Deactivated plugins");
+        result.Should().Contain("Load order issues");
+        result.Should().Contain("Dirty plugins");
+        result.Should().Contain("CustomWeapons.esp");
+        result.Should().Contain("WeaponBase.esm");
+        result.Should().Contain("Fallout4.esm");
+        result.Should().Contain("234 ITMs");
+    }
 
-        [Fact]
-        public async Task AnalyzeAsync_ReportWithEslFlagIssues_ShowsWarning()
-        {
-            // Arrange
-            var htmlContent = @"
+    [Fact]
+    public async Task AnalyzeAsync_ReportWithEslFlagIssues_ShowsWarning()
+    {
+        // Arrange
+        var htmlContent = @"
 <html>
 <body>
     <h2>ESL Flag Issues</h2>
@@ -443,37 +451,16 @@ namespace Scanner111.Tests.GameScanning
     </ul>
 </body>
 </html>";
-            CreateWryeBashReport(htmlContent);
+        CreateWryeBashReport(htmlContent);
 
-            // Act
-            var result = await _checker.AnalyzeAsync();
+        // Act
+        var result = await _checker.AnalyzeAsync();
 
-            // Assert
-            result.Should().Contain("ESL");
-            result.Should().Contain("SmallMod1.esp");
-            result.Should().Contain("SmallMod2.esp");
-        }
-
-        #endregion
-
-        #region Helper Methods
-
-        private string CreateWryeBashReport(string htmlContent)
-        {
-            // Mock the Documents folder structure
-            var gameFolderPath = Path.Combine(_testDocumentsPath, "My Games", "Fallout4");
-            Directory.CreateDirectory(gameFolderPath);
-            
-            var reportPath = Path.Combine(gameFolderPath, "ModChecker.html");
-            File.WriteAllText(reportPath, htmlContent);
-            
-            // Update the Environment.SpecialFolder.MyDocuments to point to our test directory
-            // Since we can't override Environment.GetFolderPath, we need to work around it
-            // In real implementation, this would need dependency injection for the path
-            
-            return reportPath;
-        }
-
-        #endregion
+        // Assert
+        result.Should().Contain("ESL");
+        result.Should().Contain("SmallMod1.esp");
+        result.Should().Contain("SmallMod2.esp");
     }
+
+    #endregion
 }

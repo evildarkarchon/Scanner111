@@ -1,9 +1,7 @@
 using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
 using Scanner111.Core.Infrastructure;
-using Scanner111.Core.Pipeline;
 using Scanner111.Core.Services;
-using CoreScanOptions = Scanner111.Core.Pipeline.ScanOptions;
 
 namespace Scanner111.CLI.Commands;
 
@@ -76,16 +74,16 @@ public class PastebinCommand : ICommand<PastebinOptions>
             // Fetch logs from Pastebin
             var fetchedFiles = new List<string>();
             var failedUrls = new List<string>();
-            
+
             if (urlsToFetch.Count == 1)
             {
                 // Single file - simple output
                 var url = urlsToFetch[0];
                 AnsiConsole.MarkupLine($"[cyan]Fetching:[/] {url}");
-                
+
                 var filePath = await _pastebinService.FetchAndSaveAsync(url, cancellationToken)
                     .ConfigureAwait(false);
-                
+
                 if (!string.IsNullOrEmpty(filePath))
                 {
                     fetchedFiles.Add(filePath);
@@ -114,7 +112,7 @@ public class PastebinCommand : ICommand<PastebinOptions>
                         // Use parallel downloads with limit
                         var parallelLimit = Math.Min(options.ParallelDownloads, 10);
                         parallelLimit = Math.Max(1, parallelLimit);
-                        
+
                         var semaphore = new SemaphoreSlim(parallelLimit, parallelLimit);
                         var tasks = urlsToFetch.Select(async url =>
                         {
@@ -123,22 +121,18 @@ public class PastebinCommand : ICommand<PastebinOptions>
                             {
                                 var filePath = await _pastebinService.FetchAndSaveAsync(url, cancellationToken)
                                     .ConfigureAwait(false);
-                                
+
                                 if (!string.IsNullOrEmpty(filePath))
-                                {
                                     lock (fetchedFiles)
                                     {
                                         fetchedFiles.Add(filePath);
                                     }
-                                }
                                 else
-                                {
                                     lock (failedUrls)
                                     {
                                         failedUrls.Add(url);
                                     }
-                                }
-                                
+
                                 task.Increment(1);
                             }
                             finally
@@ -156,28 +150,22 @@ public class PastebinCommand : ICommand<PastebinOptions>
             if (fetchedFiles.Any())
             {
                 AnsiConsole.MarkupLine($"[green]✓ Successfully fetched {fetchedFiles.Count} file(s)[/]");
-                
+
                 if (options.Verbose)
                 {
                     AnsiConsole.MarkupLine("\n[cyan]Downloaded files:[/]");
-                    foreach (var file in fetchedFiles)
-                    {
-                        AnsiConsole.MarkupLine($"  • {Path.GetFileName(file)}");
-                    }
+                    foreach (var file in fetchedFiles) AnsiConsole.MarkupLine($"  • {Path.GetFileName(file)}");
                 }
             }
-            
+
             if (failedUrls.Any())
             {
                 AnsiConsole.MarkupLine($"[red]✗ Failed to fetch {failedUrls.Count} file(s)[/]");
-                
+
                 if (options.Verbose)
                 {
                     AnsiConsole.MarkupLine("\n[red]Failed URLs:[/]");
-                    foreach (var url in failedUrls)
-                    {
-                        AnsiConsole.MarkupLine($"  • {url}");
-                    }
+                    foreach (var url in failedUrls) AnsiConsole.MarkupLine($"  • {url}");
                 }
             }
 
@@ -198,7 +186,7 @@ public class PastebinCommand : ICommand<PastebinOptions>
                 {
                     AnsiConsole.MarkupLine("\n[cyan]───────────────────────────────────────────────────────[/]");
                     AnsiConsole.MarkupLine("[cyan]Starting scan of fetched logs...[/]");
-                    
+
                     await ScanFetchedFilesAsync(fetchedFiles, options, cancellationToken);
                 }
             }
@@ -220,10 +208,9 @@ public class PastebinCommand : ICommand<PastebinOptions>
         catch (Exception ex)
         {
             AnsiConsole.WriteException(ex);
-            
+
             // Play error sound for operation failure
             if (_audioService != null && _audioService.IsEnabled)
-            {
                 try
                 {
                     await _audioService.PlayErrorFoundAsync();
@@ -232,8 +219,7 @@ public class PastebinCommand : ICommand<PastebinOptions>
                 {
                     // Ignore audio playback errors
                 }
-            }
-            
+
             return 1;
         }
     }
@@ -243,24 +229,16 @@ public class PastebinCommand : ICommand<PastebinOptions>
         var urls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // Single URL
-        if (!string.IsNullOrWhiteSpace(options.UrlOrId))
-        {
-            urls.Add(options.UrlOrId.Trim());
-        }
+        if (!string.IsNullOrWhiteSpace(options.UrlOrId)) urls.Add(options.UrlOrId.Trim());
 
         // Multiple URLs
         if (options.Multiple?.Any() == true)
-        {
             foreach (var url in options.Multiple)
-            {
                 if (!string.IsNullOrWhiteSpace(url))
                     urls.Add(url.Trim());
-            }
-        }
 
         // File input
         if (!string.IsNullOrWhiteSpace(options.InputFile) && File.Exists(options.InputFile))
-        {
             try
             {
                 var lines = await File.ReadAllLinesAsync(options.InputFile);
@@ -271,18 +249,15 @@ public class PastebinCommand : ICommand<PastebinOptions>
                     if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("#") && !trimmed.StartsWith("//"))
                         urls.Add(trimmed);
                 }
-                
+
                 AnsiConsole.MarkupLine($"[dim]Loaded {urls.Count} URL(s) from file: {options.InputFile}[/]");
             }
             catch (Exception ex)
             {
                 AnsiConsole.MarkupLine($"[yellow]Warning:[/] Could not read input file: {ex.Message}");
             }
-        }
         else if (!string.IsNullOrWhiteSpace(options.InputFile))
-        {
             AnsiConsole.MarkupLine($"[yellow]Warning:[/] Input file not found: {options.InputFile}");
-        }
 
         return urls.ToList();
     }
@@ -294,22 +269,19 @@ public class PastebinCommand : ICommand<PastebinOptions>
     {
         // For now, we'll just inform the user how to scan the files manually
         // Full integration requires refactoring the scan pipeline to accept individual files
-        
-        AnsiConsole.MarkupLine($"\n[cyan]To scan the fetched files, you can use:[/]");
+
+        AnsiConsole.MarkupLine("\n[cyan]To scan the fetched files, you can use:[/]");
         foreach (var file in fetchedFiles.Take(3)) // Show first 3 as examples
         {
             var fileName = Path.GetFileName(file);
             AnsiConsole.MarkupLine($"  scanner111 scan -l \"{file}\"");
         }
-        
-        if (fetchedFiles.Count > 3)
-        {
-            AnsiConsole.MarkupLine($"  [dim]... and {fetchedFiles.Count - 3} more files[/]");
-        }
-        
-        AnsiConsole.MarkupLine($"\n[dim]Or scan all files in the directory:[/]");
+
+        if (fetchedFiles.Count > 3) AnsiConsole.MarkupLine($"  [dim]... and {fetchedFiles.Count - 3} more files[/]");
+
+        AnsiConsole.MarkupLine("\n[dim]Or scan all files in the directory:[/]");
         AnsiConsole.MarkupLine($"  scanner111 scan -d \"{options.OutputDirectory ?? "Crash Logs/Pastebin"}\"");
-        
+
         await Task.CompletedTask; // Keep async signature
     }
 }

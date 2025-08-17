@@ -157,7 +157,7 @@ static async Task PerformStartupUpdateCheckAsync(IServiceProvider serviceProvide
         {
             var updateService = serviceProvider.GetRequiredService<IUpdateService>();
             // Use quiet mode during startup to avoid display issues before UI is ready
-            await updateService.IsLatestVersionAsync(quiet: true);
+            await updateService.IsLatestVersionAsync(true);
         }
     }
     catch

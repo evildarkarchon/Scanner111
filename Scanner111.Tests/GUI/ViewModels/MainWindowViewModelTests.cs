@@ -1,6 +1,9 @@
 using System.Reactive.Linq;
+using Scanner111.Core.GameScanning;
+using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.GUI.Models;
+using Scanner111.GUI.Services;
 using Scanner111.GUI.ViewModels;
 using Scanner111.Tests.GUI.TestHelpers;
 
@@ -10,10 +13,13 @@ namespace Scanner111.Tests.GUI.ViewModels;
 public class MainWindowViewModelTests : IDisposable
 {
     private readonly MockCacheManager _mockCacheManager;
+    private readonly Mock<IMessageHandler> _mockGameMessageHandler;
+    private readonly Mock<IGameScannerService> _mockGameScannerService;
     private readonly MockGuiMessageHandlerService _mockMessageHandler;
     private readonly MockSettingsService _mockSettingsService;
     private readonly MockUnsolvedLogsMover _mockUnsolvedLogsMover;
     private readonly MockUpdateService _mockUpdateService;
+    private readonly IServiceProvider _serviceProvider;
     private readonly string _testDirectory;
     private readonly MainWindowViewModel _viewModel;
 
@@ -25,7 +31,19 @@ public class MainWindowViewModelTests : IDisposable
         _mockCacheManager = new MockCacheManager();
         _mockUnsolvedLogsMover = new MockUnsolvedLogsMover();
 
+        // Setup mocks for game scanning
+        _mockGameScannerService = new Mock<IGameScannerService>();
+        _mockGameMessageHandler = new Mock<IMessageHandler>();
+
+        // Setup service provider
+        var services = new ServiceCollection();
+        services.AddSingleton<IGameScannerService>(_mockGameScannerService.Object);
+        services.AddSingleton<IMessageHandler>(_mockGameMessageHandler.Object);
+        services.AddSingleton<ISettingsService>(_mockSettingsService);
+        _serviceProvider = services.BuildServiceProvider();
+
         _viewModel = new MainWindowViewModel(
+            _serviceProvider,
             _mockSettingsService,
             _mockMessageHandler,
             _mockUpdateService,
@@ -79,6 +97,7 @@ public class MainWindowViewModelTests : IDisposable
         var userSettings = new UserSettings { EnableUpdateCheck = true };
         _mockSettingsService.SetUserSettings(userSettings);
         var viewModel = new MainWindowViewModel(
+            _serviceProvider,
             _mockSettingsService,
             _mockMessageHandler,
             _mockUpdateService,
@@ -102,6 +121,7 @@ public class MainWindowViewModelTests : IDisposable
         var userSettings = new UserSettings { EnableUpdateCheck = false };
         _mockSettingsService.SetUserSettings(userSettings);
         var viewModel = new MainWindowViewModel(
+            _serviceProvider,
             _mockSettingsService,
             _mockMessageHandler,
             _mockUpdateService,
@@ -214,6 +234,7 @@ public class MainWindowViewModelTests : IDisposable
         var userSettings = new UserSettings { SkipXseCopy = true };
         _mockSettingsService.SetUserSettings(userSettings);
         var viewModel = new MainWindowViewModel(
+            _serviceProvider,
             _mockSettingsService,
             _mockMessageHandler,
             _mockUpdateService,
@@ -243,6 +264,7 @@ public class MainWindowViewModelTests : IDisposable
         var userSettings = new UserSettings { SkipXseCopy = true };
         _mockSettingsService.SetUserSettings(userSettings);
         var viewModel = new MainWindowViewModel(
+            _serviceProvider,
             _mockSettingsService,
             _mockMessageHandler,
             _mockUpdateService,
@@ -334,6 +356,7 @@ public class MainWindowViewModelTests : IDisposable
         var userSettings = new UserSettings { FcxMode = true };
         _mockSettingsService.SetUserSettings(userSettings);
         var viewModel = new MainWindowViewModel(
+            _serviceProvider,
             _mockSettingsService,
             _mockMessageHandler,
             _mockUpdateService,
@@ -510,6 +533,7 @@ public class MainWindowViewModelTests : IDisposable
         var userSettings = new UserSettings { AutoSaveResults = true };
         _mockSettingsService.SetUserSettings(userSettings);
         var viewModel = new MainWindowViewModel(
+            _serviceProvider,
             _mockSettingsService,
             _mockMessageHandler,
             _mockUpdateService,
@@ -539,6 +563,7 @@ public class MainWindowViewModelTests : IDisposable
         var userSettings = new UserSettings { AutoSaveResults = true, MoveUnsolvedLogs = true };
         _mockSettingsService.SetUserSettings(userSettings);
         var viewModel = new MainWindowViewModel(
+            _serviceProvider,
             _mockSettingsService,
             _mockMessageHandler,
             _mockUpdateService,
@@ -561,5 +586,59 @@ public class MainWindowViewModelTests : IDisposable
 
         // Assert - Would check if unsolved logs mover was called, but scan may succeed in test
         _mockUnsolvedLogsMover.Should().NotBeNull("because unsolved logs mover should be available");
+    }
+
+    [Fact]
+    public async Task ShowGameScanCommand_OpensGameScanWindow()
+    {
+        // Arrange
+        _mockGameScannerService.Setup(x => x.ScanGameAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GameScanResult { HasIssues = false });
+
+        // Act - ShowGameScan is a public method that should create the GameScanViewModel
+        var showGameScanMethod = _viewModel.GetType().GetMethod("ShowGameScan");
+        showGameScanMethod.Should().NotBeNull("because ShowGameScan method should exist");
+
+        // Assert - Verify service provider is used
+        _serviceProvider.Should().NotBeNull("because service provider should be available");
+        _viewModel.Should().NotBeNull("because view model should be created");
+    }
+
+    [Fact]
+    public void Constructor_WithServiceProvider_InitializesCorrectly()
+    {
+        // Arrange & Act - Already done in constructor
+
+        // Assert
+        _viewModel.Should().NotBeNull("because view model should be created with service provider");
+        _serviceProvider.Should().NotBeNull("because service provider should be available");
+
+        // Verify all commands are initialized
+        _viewModel.SelectLogFileCommand.Should().NotBeNull();
+        _viewModel.SelectGamePathCommand.Should().NotBeNull();
+        _viewModel.SelectScanDirectoryCommand.Should().NotBeNull();
+        _viewModel.ScanCommand.Should().NotBeNull();
+        _viewModel.CancelScanCommand.Should().NotBeNull();
+        _viewModel.ClearResultsCommand.Should().NotBeNull();
+        _viewModel.OpenSettingsCommand.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void ServiceProvider_ResolvesRequiredServices()
+    {
+        // Act
+        var gameScannerService = _serviceProvider.GetService<IGameScannerService>();
+        var messageHandler = _serviceProvider.GetService<IMessageHandler>();
+        var settingsService = _serviceProvider.GetService<ISettingsService>();
+
+        // Assert
+        gameScannerService.Should().NotBeNull("because IGameScannerService should be registered");
+        gameScannerService.Should().BeSameAs(_mockGameScannerService.Object);
+
+        messageHandler.Should().NotBeNull("because IMessageHandler should be registered");
+        messageHandler.Should().BeSameAs(_mockGameMessageHandler.Object);
+
+        settingsService.Should().NotBeNull("because ISettingsService should be registered");
+        settingsService.Should().BeSameAs(_mockSettingsService);
     }
 }

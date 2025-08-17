@@ -20,6 +20,7 @@ public class ViewModelServiceIntegrationTests : IDisposable
     private readonly Mock<ICacheManager> _mockCacheManager;
     private readonly Mock<IUnsolvedLogsMover> _mockUnsolvedLogsMover;
     private readonly Mock<IUpdateService> _mockUpdateService;
+    private readonly Mock<IServiceProvider> _serviceProvider;
     private readonly SettingsService _settingsService;
     private readonly string _testDirectory;
 
@@ -36,6 +37,7 @@ public class ViewModelServiceIntegrationTests : IDisposable
         _mockUpdateService = new Mock<IUpdateService>();
         _mockCacheManager = new Mock<ICacheManager>();
         _mockUnsolvedLogsMover = new Mock<IUnsolvedLogsMover>();
+        _serviceProvider = new Mock<IServiceProvider>();
 
         // Set test environment
         Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH",
@@ -61,6 +63,7 @@ public class ViewModelServiceIntegrationTests : IDisposable
     {
         // Arrange
         var viewModel = new MainWindowViewModel(
+            _serviceProvider.Object,
             _settingsService,
             _messageHandler,
             _mockUpdateService.Object,
@@ -98,6 +101,7 @@ public class ViewModelServiceIntegrationTests : IDisposable
 
         // Act - Create view model which should load settings
         var viewModel = new MainWindowViewModel(
+            _serviceProvider.Object,
             _settingsService,
             _messageHandler,
             _mockUpdateService.Object,
@@ -152,6 +156,7 @@ public class ViewModelServiceIntegrationTests : IDisposable
     {
         // Arrange
         var viewModel = new MainWindowViewModel(
+            _serviceProvider.Object,
             _settingsService,
             _messageHandler,
             _mockUpdateService.Object,
@@ -293,6 +298,7 @@ public class ViewModelServiceIntegrationTests : IDisposable
         await _settingsService.SaveSettingsAsync(settings);
 
         var viewModel = new MainWindowViewModel(
+            _serviceProvider.Object,
             _settingsService,
             _messageHandler,
             _mockUpdateService.Object,
