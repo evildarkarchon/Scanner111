@@ -233,7 +233,7 @@ public class WatchCommandTests : IDisposable
 
     #region Path Determination Tests
 
-    [Fact]
+    [Fact(Timeout = 2000)]
     public async Task DetermineWatchPath_WithExplicitPath_UsesProvidedPath()
     {
         // Arrange
@@ -259,7 +259,7 @@ public class WatchCommandTests : IDisposable
         result.Should().Be(1);
     }
 
-    [Fact]
+    [Fact(Timeout = 2000)]
     public async Task DetermineWatchPath_WithGameFallout4_UsesCorrectPath()
     {
         // Arrange
@@ -272,14 +272,15 @@ public class WatchCommandTests : IDisposable
 
         var options = new WatchOptions { Game = "fallout4", ShowDashboard = false };
 
-        // Act
-        var result = await _command.ExecuteAsync(options, CancellationToken.None);
+        // Act with short timeout to prevent long-running file watcher
+        var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+        var result = await _command.ExecuteAsync(options, cts.Token);
 
         // Assert
         result.Should().Be(0);
     }
 
-    [Fact]
+    [Fact(Timeout = 2000)]
     public async Task DetermineWatchPath_WithGameSkyrim_UsesCorrectPath()
     {
         // Arrange
@@ -292,21 +293,23 @@ public class WatchCommandTests : IDisposable
 
         var options = new WatchOptions { Game = "skyrim", ShowDashboard = false };
 
-        // Act
-        var result = await _command.ExecuteAsync(options, CancellationToken.None);
+        // Act with short timeout to prevent long-running file watcher
+        var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+        var result = await _command.ExecuteAsync(options, cts.Token);
 
         // Assert
         result.Should().Be(0);
     }
 
-    [Fact]
+    [Fact(Timeout = 2000)]
     public async Task DetermineWatchPath_WithNoPathOrGame_UsesCurrentDirectory()
     {
         // Arrange
         var options = new WatchOptions { ShowDashboard = false };
 
-        // Act
-        var result = await _command.ExecuteAsync(options, CancellationToken.None);
+        // Act with short timeout to prevent long-running file watcher
+        var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+        var result = await _command.ExecuteAsync(options, cts.Token);
 
         // Assert
         result.Should().Be(0);
@@ -316,7 +319,7 @@ public class WatchCommandTests : IDisposable
 
     #region File Processing Tests
 
-    [Fact]
+    [Fact(Timeout = 5000)]
     public async Task ProcessNewFile_WithValidFile_ProcessesSuccessfully()
     {
         // Arrange
@@ -351,7 +354,8 @@ public class WatchCommandTests : IDisposable
         };
 
         // Act
-        var result = await _command.ExecuteAsync(options, CancellationToken.None);
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        var result = await _command.ExecuteAsync(options, cts.Token);
 
         // Assert
         result.Should().Be(0);

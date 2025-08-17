@@ -198,7 +198,7 @@ public class WatchCommandErrorHandlingTests : IDisposable
 
     #region Path Validation Error Tests
 
-    [Fact]
+    [Fact(Timeout = 2000)]
     public async Task ExecuteAsync_WithNullPath_ReturnsError()
     {
         // Arrange
@@ -211,7 +211,7 @@ public class WatchCommandErrorHandlingTests : IDisposable
         result.Should().Be(1);
     }
 
-    [Fact]
+    [Fact(Timeout = 2000)]
     public async Task ExecuteAsync_WithEmptyPath_ReturnsError()
     {
         // Arrange
@@ -224,7 +224,7 @@ public class WatchCommandErrorHandlingTests : IDisposable
         result.Should().Be(1);
     }
 
-    [Fact]
+    [Fact(Timeout = 2000)]
     public async Task ExecuteAsync_WithNonExistentPath_ReturnsError()
     {
         // Arrange
@@ -238,7 +238,7 @@ public class WatchCommandErrorHandlingTests : IDisposable
         result.Should().Be(1);
     }
 
-    [Fact]
+    [Fact(Timeout = 2000)]
     public async Task ExecuteAsync_WithFilePath_ReturnsError()
     {
         // Arrange
