@@ -1,5 +1,9 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text;
+using System.Text.Json;
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.FCX;
 using Scanner111.Core.Infrastructure;
@@ -472,13 +476,18 @@ public class TestProgressContext : IProgressContext
 /// </summary>
 public class TestApplicationSettingsService : IApplicationSettingsService
 {
-    public ApplicationSettings Settings { get; } = new()
+    public ApplicationSettings Settings { get; set; } = new()
     {
         ShowFormIdValues = true,
         FcxMode = false,
         SimplifyLogs = false,
         MoveUnsolvedLogs = true,
-        VrMode = false
+        VrMode = false,
+        DefaultOutputFormat = "text",
+        AutoLoadF4SeLogs = true,
+        MaxLogMessages = 100,
+        WindowWidth = 1200,
+        WindowHeight = 800
     };
 
     public Task<ApplicationSettings> LoadSettingsAsync()
@@ -488,31 +497,102 @@ public class TestApplicationSettingsService : IApplicationSettingsService
 
     public Task SaveSettingsAsync(ApplicationSettings settings)
     {
-        // Update all properties from the provided settings
-        Settings.FcxMode = settings.FcxMode;
-        Settings.ShowFormIdValues = settings.ShowFormIdValues;
-        Settings.SimplifyLogs = settings.SimplifyLogs;
-        Settings.MoveUnsolvedLogs = settings.MoveUnsolvedLogs;
-        Settings.VrMode = settings.VrMode;
-        Settings.DefaultGamePath = settings.DefaultGamePath;
-        Settings.ModsFolder = settings.ModsFolder;
-        Settings.DefaultLogPath = settings.DefaultLogPath;
-        Settings.GamePath = settings.GamePath;
-        Settings.DefaultScanDirectory = settings.DefaultScanDirectory;
-        Settings.CrashLogsDirectory = settings.CrashLogsDirectory;
-        Settings.BackupDirectory = settings.BackupDirectory;
-        Settings.IniFolder = settings.IniFolder;
+        // Deep copy all properties
+        Settings = new ApplicationSettings
+        {
+            FcxMode = settings.FcxMode,
+            ShowFormIdValues = settings.ShowFormIdValues,
+            SimplifyLogs = settings.SimplifyLogs,
+            MoveUnsolvedLogs = settings.MoveUnsolvedLogs,
+            VrMode = settings.VrMode,
+            DefaultGamePath = settings.DefaultGamePath,
+            ModsFolder = settings.ModsFolder,
+            DefaultLogPath = settings.DefaultLogPath,
+            GamePath = settings.GamePath,
+            DefaultScanDirectory = settings.DefaultScanDirectory,
+            CrashLogsDirectory = settings.CrashLogsDirectory,
+            BackupDirectory = settings.BackupDirectory,
+            IniFolder = settings.IniFolder,
+            AutoLoadF4SeLogs = settings.AutoLoadF4SeLogs,
+            MaxLogMessages = settings.MaxLogMessages,
+            EnableProgressNotifications = settings.EnableProgressNotifications,
+            RememberWindowSize = settings.RememberWindowSize,
+            WindowWidth = settings.WindowWidth,
+            WindowHeight = settings.WindowHeight,
+            EnableDebugLogging = settings.EnableDebugLogging,
+            MaxRecentItems = settings.MaxRecentItems,
+            AutoSaveResults = settings.AutoSaveResults,
+            DefaultOutputFormat = settings.DefaultOutputFormat,
+            GameType = settings.GameType,
+            SkipXseCopy = settings.SkipXseCopy,
+            DisableColors = settings.DisableColors,
+            DisableProgress = settings.DisableProgress,
+            VerboseLogging = settings.VerboseLogging,
+            EnableUpdateCheck = settings.EnableUpdateCheck,
+            UpdateSource = settings.UpdateSource,
+            AudioNotifications = settings.AudioNotifications,
+            EnableAudioNotifications = settings.EnableAudioNotifications,
+            AudioVolume = settings.AudioVolume,
+            CustomNotificationSounds = settings.CustomNotificationSounds,
+            EnablePapyrusMonitoring = settings.EnablePapyrusMonitoring,
+            PapyrusLogPath = settings.PapyrusLogPath,
+            PapyrusMonitorInterval = settings.PapyrusMonitorInterval,
+            PapyrusErrorThreshold = settings.PapyrusErrorThreshold,
+            PapyrusWarningThreshold = settings.PapyrusWarningThreshold,
+            PapyrusAutoExport = settings.PapyrusAutoExport,
+            PapyrusExportPath = settings.PapyrusExportPath,
+            PapyrusHistoryLimit = settings.PapyrusHistoryLimit,
+            AutoDetectModManagers = settings.AutoDetectModManagers,
+            DefaultModManager = settings.DefaultModManager,
+            MO2InstallPath = settings.MO2InstallPath,
+            MO2DefaultProfile = settings.MO2DefaultProfile,
+            VortexDataPath = settings.VortexDataPath,
+            ModManagerSettings = settings.ModManagerSettings,
+            EnableUnicodeDisplay = settings.EnableUnicodeDisplay,
+            RecentLogFiles = settings.RecentLogFiles ?? new List<string>(),
+            RecentGamePaths = settings.RecentGamePaths ?? new List<string>(),
+            RecentScanDirectories = settings.RecentScanDirectories ?? new List<string>(),
+            LastUsedAnalyzers = settings.LastUsedAnalyzers ?? new List<string>(),
+            MaxConcurrentScans = settings.MaxConcurrentScans,
+            CacheEnabled = settings.CacheEnabled,
+            PluginsFolder = settings.PluginsFolder,
+            GameExecutablePath = settings.GameExecutablePath
+        };
         return Task.CompletedTask;
     }
 
     public Task SaveSettingAsync(string key, object value)
     {
+        var property = typeof(ApplicationSettings).GetProperty(key);
+        if (property != null && property.CanWrite)
+        {
+            property.SetValue(Settings, value);
+        }
         return Task.CompletedTask;
     }
 
     public ApplicationSettings GetDefaultSettings()
     {
-        return new ApplicationSettings();
+        return new ApplicationSettings
+        {
+            DefaultLogPath = string.Empty,
+            AutoLoadF4SeLogs = true,
+            MaxLogMessages = 100,
+            EnableProgressNotifications = true,
+            RememberWindowSize = true,
+            WindowWidth = 1200,
+            WindowHeight = 800,
+            EnableDebugLogging = false,
+            MaxRecentItems = 10,
+            AutoSaveResults = true,
+            DefaultOutputFormat = "detailed",
+            ShowFormIdValues = false,
+            FcxMode = false,
+            SimplifyLogs = false,
+            MoveUnsolvedLogs = false,
+            VrMode = false,
+            SkipXseCopy = false
+        };
     }
 }
 
@@ -685,13 +765,13 @@ public class TestHashValidationService : IHashValidationService
         });
     }
 
-    public Task<Dictionary<string, HashValidation>> ValidateBatchAsync(Dictionary<string, string> fileHashMap,
+    public async Task<Dictionary<string, HashValidation>> ValidateBatchAsync(Dictionary<string, string> fileHashMap,
         CancellationToken cancellationToken = default)
     {
         var results = new Dictionary<string, HashValidation>();
         foreach (var kvp in fileHashMap)
-            results[kvp.Key] = ValidateFileAsync(kvp.Key, kvp.Value, cancellationToken).Result;
-        return Task.FromResult(results);
+            results[kvp.Key] = await ValidateFileAsync(kvp.Key, kvp.Value, cancellationToken);
+        return results;
     }
 
     public Task<string> CalculateFileHashWithProgressAsync(string filePath, IProgress<long>? progress,
@@ -709,5 +789,978 @@ public class TestHashValidationService : IHashValidationService
     public void SetValidationResult(string filePath, HashValidation result)
     {
         _validationResults[filePath] = result;
+    }
+}
+
+/// <summary>
+///     Test implementation of IFileSystem for unit testing
+/// </summary>
+public class TestFileSystem : IFileSystem
+{
+    private readonly Dictionary<string, string> _files = new();
+    private readonly HashSet<string> _directories = new();
+    private readonly Dictionary<string, DateTime> _lastWriteTimes = new();
+    private readonly Dictionary<string, long> _fileSizes = new();
+
+    public TestFileSystem()
+    {
+        // Add some default directories
+        _directories.Add(@"C:\");
+        _directories.Add(@"C:\Windows");
+        _directories.Add(@"C:\Program Files");
+    }
+
+    public bool FileExists(string path)
+    {
+        return _files.ContainsKey(NormalizePath(path));
+    }
+
+    public bool DirectoryExists(string path)
+    {
+        return _directories.Contains(NormalizePath(path));
+    }
+
+    public string[] GetFiles(string path, string searchPattern = "*", SearchOption searchOption = SearchOption.TopDirectoryOnly)
+    {
+        var normalizedPath = NormalizePath(path);
+        var files = _files.Keys
+            .Where(f => f.StartsWith(normalizedPath, StringComparison.OrdinalIgnoreCase))
+            .Where(f => MatchesPattern(Path.GetFileName(f), searchPattern));
+
+        if (searchOption == SearchOption.TopDirectoryOnly)
+        {
+            files = files.Where(f => Path.GetDirectoryName(f) == normalizedPath);
+        }
+
+        return files.ToArray();
+    }
+
+    public string[] GetDirectories(string path)
+    {
+        var normalizedPath = NormalizePath(path);
+        return _directories
+            .Where(d => d != normalizedPath && d.StartsWith(normalizedPath, StringComparison.OrdinalIgnoreCase))
+            .Where(d => d.Count(c => c == '\\') == normalizedPath.Count(c => c == '\\') + 1)
+            .ToArray();
+    }
+
+    public Stream OpenRead(string path)
+    {
+        if (!_files.TryGetValue(NormalizePath(path), out var content))
+            throw new FileNotFoundException($"File not found: {path}");
+        
+        return new MemoryStream(Encoding.UTF8.GetBytes(content));
+    }
+
+    public Stream OpenWrite(string path)
+    {
+        return new TestMemoryStream(this, NormalizePath(path));
+    }
+
+    public void CreateDirectory(string path)
+    {
+        _directories.Add(NormalizePath(path));
+    }
+
+    public void DeleteFile(string path)
+    {
+        var normalized = NormalizePath(path);
+        _files.Remove(normalized);
+        _lastWriteTimes.Remove(normalized);
+        _fileSizes.Remove(normalized);
+    }
+
+    public void DeleteDirectory(string path, bool recursive = false)
+    {
+        var normalized = NormalizePath(path);
+        _directories.Remove(normalized);
+        
+        if (recursive)
+        {
+            var toRemove = _directories.Where(d => d.StartsWith(normalized + "\\")).ToList();
+            foreach (var dir in toRemove)
+                _directories.Remove(dir);
+        }
+    }
+
+    public void CopyFile(string source, string destination, bool overwrite = false)
+    {
+        var normalizedSource = NormalizePath(source);
+        var normalizedDest = NormalizePath(destination);
+        
+        if (!_files.ContainsKey(normalizedSource))
+            throw new FileNotFoundException($"Source file not found: {source}");
+            
+        if (_files.ContainsKey(normalizedDest) && !overwrite)
+            throw new IOException($"Destination file already exists: {destination}");
+            
+        _files[normalizedDest] = _files[normalizedSource];
+        if (_lastWriteTimes.ContainsKey(normalizedSource))
+            _lastWriteTimes[normalizedDest] = DateTime.Now;
+        if (_fileSizes.ContainsKey(normalizedSource))
+            _fileSizes[normalizedDest] = _fileSizes[normalizedSource];
+    }
+
+    public void MoveFile(string source, string destination)
+    {
+        CopyFile(source, destination, true);
+        DeleteFile(source);
+    }
+
+    public DateTime GetLastWriteTime(string path)
+    {
+        var normalized = NormalizePath(path);
+        return _lastWriteTimes.TryGetValue(normalized, out var time) ? time : DateTime.Now;
+    }
+
+    public long GetFileSize(string path)
+    {
+        var normalized = NormalizePath(path);
+        if (_fileSizes.TryGetValue(normalized, out var size))
+            return size;
+        if (_files.TryGetValue(normalized, out var content))
+            return content.Length;
+        return 0;
+    }
+
+    public string ReadAllText(string path)
+    {
+        if (!_files.TryGetValue(NormalizePath(path), out var content))
+            throw new FileNotFoundException($"File not found: {path}");
+        return content;
+    }
+
+    public Task<string> ReadAllTextAsync(string path, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(ReadAllText(path));
+    }
+
+    public void WriteAllText(string path, string content)
+    {
+        var normalized = NormalizePath(path);
+        _files[normalized] = content;
+        _lastWriteTimes[normalized] = DateTime.Now;
+        _fileSizes[normalized] = content?.Length ?? 0;
+    }
+
+    public Task WriteAllTextAsync(string path, string content, CancellationToken cancellationToken = default)
+    {
+        WriteAllText(path, content);
+        return Task.CompletedTask;
+    }
+
+    // Helper methods for test setup
+    public void AddFile(string path, string content = "")
+    {
+        var normalized = NormalizePath(path);
+        _files[normalized] = content;
+        _lastWriteTimes[normalized] = DateTime.Now;
+        _fileSizes[normalized] = content.Length;
+    }
+
+    public void AddDirectory(string path)
+    {
+        _directories.Add(NormalizePath(path));
+    }
+
+    public void SetLastWriteTime(string path, DateTime time)
+    {
+        _lastWriteTimes[NormalizePath(path)] = time;
+    }
+
+    public void SetFileSize(string path, long size)
+    {
+        _fileSizes[NormalizePath(path)] = size;
+    }
+
+    private string NormalizePath(string path)
+    {
+        return path?.Replace('/', '\\').TrimEnd('\\') ?? string.Empty;
+    }
+
+    private bool MatchesPattern(string fileName, string pattern)
+    {
+        if (pattern == "*" || pattern == "*.*")
+            return true;
+            
+        if (pattern.StartsWith("*."))
+            return fileName.EndsWith(pattern.Substring(1), StringComparison.OrdinalIgnoreCase);
+            
+        return fileName.Equals(pattern, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private class TestMemoryStream : MemoryStream
+    {
+        private readonly TestFileSystem _fileSystem;
+        private readonly string _path;
+
+        public TestMemoryStream(TestFileSystem fileSystem, string path)
+        {
+            _fileSystem = fileSystem;
+            _path = path;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                var content = Encoding.UTF8.GetString(ToArray());
+                _fileSystem._files[_path] = content;
+                _fileSystem._lastWriteTimes[_path] = DateTime.Now;
+                _fileSystem._fileSizes[_path] = content.Length;
+            }
+            base.Dispose(disposing);
+        }
+    }
+}
+
+/// <summary>
+///     Test implementation of IPathService for unit testing
+/// </summary>
+public class TestPathService : IPathService
+{
+    public string Combine(params string[] paths)
+    {
+        return Path.Combine(paths);
+    }
+
+    public string? GetDirectoryName(string path)
+    {
+        return Path.GetDirectoryName(path);
+    }
+
+    public string GetFileName(string path)
+    {
+        return Path.GetFileName(path);
+    }
+
+    public string GetFileNameWithoutExtension(string path)
+    {
+        return Path.GetFileNameWithoutExtension(path);
+    }
+
+    public string GetExtension(string path)
+    {
+        return Path.GetExtension(path);
+    }
+
+    public string GetFullPath(string path)
+    {
+        // For testing, just return the path as-is
+        return path;
+    }
+
+    public string NormalizePath(string path)
+    {
+        return path?.Replace('/', '\\').TrimEnd('\\') ?? string.Empty;
+    }
+
+    public bool IsPathRooted(string path)
+    {
+        return Path.IsPathRooted(path);
+    }
+
+    public char DirectorySeparatorChar => '\\';
+}
+
+/// <summary>
+///     Test implementation of IEnvironmentPathProvider for unit testing
+/// </summary>
+public class TestEnvironmentPathProvider : IEnvironmentPathProvider
+{
+    private readonly Dictionary<string, string> _environmentVariables = new();
+    private readonly Dictionary<Environment.SpecialFolder, string> _specialFolders = new();
+
+    public TestEnvironmentPathProvider()
+    {
+        // Set up default paths
+        _specialFolders[Environment.SpecialFolder.MyDocuments] = @"C:\Users\TestUser\Documents";
+        _specialFolders[Environment.SpecialFolder.ApplicationData] = @"C:\Users\TestUser\AppData\Roaming";
+        _specialFolders[Environment.SpecialFolder.LocalApplicationData] = @"C:\Users\TestUser\AppData\Local";
+        _specialFolders[Environment.SpecialFolder.ProgramFiles] = @"C:\Program Files";
+        _specialFolders[Environment.SpecialFolder.ProgramFilesX86] = @"C:\Program Files (x86)";
+        
+        _environmentVariables["USERPROFILE"] = @"C:\Users\TestUser";
+        _environmentVariables["APPDATA"] = @"C:\Users\TestUser\AppData\Roaming";
+        _environmentVariables["LOCALAPPDATA"] = @"C:\Users\TestUser\AppData\Local";
+    }
+
+    public string GetFolderPath(Environment.SpecialFolder folder)
+    {
+        return _specialFolders.TryGetValue(folder, out var path) ? path : string.Empty;
+    }
+
+    public string? GetEnvironmentVariable(string variable)
+    {
+        return _environmentVariables.TryGetValue(variable, out var value) ? value : null;
+    }
+
+    public string ExpandEnvironmentVariables(string name)
+    {
+        var result = name;
+        foreach (var kvp in _environmentVariables)
+        {
+            result = result.Replace($"%{kvp.Key}%", kvp.Value);
+        }
+        return result;
+    }
+
+    public string CurrentDirectory => @"C:\Users\TestUser\Projects";
+    public string TempPath => @"C:\Users\TestUser\AppData\Local\Temp";
+    public string UserName => "TestUser";
+    public string MachineName => "TESTMACHINE";
+
+    // Helper methods for test setup
+    public void SetSpecialFolder(Environment.SpecialFolder folder, string path)
+    {
+        _specialFolders[folder] = path;
+    }
+
+    public void SetEnvironmentVariable(string variable, string value)
+    {
+        _environmentVariables[variable] = value;
+    }
+}
+
+/// <summary>
+///     Test implementation of IFileVersionInfoProvider for unit testing
+/// </summary>
+public class TestFileVersionInfoProvider : IFileVersionInfoProvider
+{
+    private readonly Dictionary<string, (string FileVersion, string ProductVersion)> _versionInfo = new();
+
+    public FileVersionInfo GetVersionInfo(string fileName)
+    {
+        // Since we can't create FileVersionInfo directly, we'll throw an exception
+        // Tests should use mocking frameworks for this interface when FileVersionInfo is needed
+        throw new NotImplementedException("Use a mocking framework to mock IFileVersionInfoProvider when FileVersionInfo is needed");
+    }
+
+    public bool TryGetVersionInfo(string fileName, out FileVersionInfo? versionInfo)
+    {
+        // For test purposes, we always return false
+        // Tests should use mocking frameworks when FileVersionInfo is needed
+        versionInfo = null;
+        return false;
+    }
+
+    // Helper methods for simple version string testing
+    public void SetVersionInfo(string fileName, string fileVersion, string productVersion)
+    {
+        _versionInfo[fileName] = (fileVersion, productVersion);
+    }
+
+    public string? GetFileVersion(string fileName)
+    {
+        return _versionInfo.TryGetValue(fileName, out var info) ? info.FileVersion : null;
+    }
+
+    public string? GetProductVersion(string fileName)
+    {
+        return _versionInfo.TryGetValue(fileName, out var info) ? info.ProductVersion : null;
+    }
+}
+
+/// <summary>
+///     Test implementation of IZipService for unit testing
+/// </summary>
+public class TestZipService : IZipService
+{
+    private readonly Dictionary<string, List<ZipEntry>> _zipFiles = new();
+    private readonly IFileSystem _fileSystem;
+    private readonly IPathService _pathService;
+
+    public class ZipEntry
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+        public long Size { get; set; }
+    }
+
+    public TestZipService(IFileSystem fileSystem, IPathService pathService)
+    {
+        _fileSystem = fileSystem;
+        _pathService = pathService;
+    }
+
+    public Task<bool> CreateZipAsync(string zipPath, Dictionary<string, string> files, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        
+        var entries = new List<ZipEntry>();
+
+        foreach (var file in files)
+        {
+            if (_fileSystem.FileExists(file.Key))
+            {
+                var content = _fileSystem.ReadAllText(file.Key);
+                    
+                entries.Add(new ZipEntry 
+                { 
+                    Name = file.Value,
+                    Content = content,
+                    Size = content.Length
+                });
+            }
+        }
+
+        if (entries.Count > 0)
+        {
+            _zipFiles[zipPath] = entries;
+            
+            // Also create a placeholder file in the file system
+            // This ensures BackupService can see the zip file exists
+            if (_fileSystem is TestFileSystem testFs)
+            {
+                testFs.AddFile(zipPath, $"ZIP archive with {entries.Count} entries");
+            }
+            else if (_fileSystem != null)
+            {
+                // For any IFileSystem, ensure the zip file exists
+                var dir = _pathService.GetDirectoryName(zipPath);
+                if (!string.IsNullOrEmpty(dir))
+                    _fileSystem.CreateDirectory(dir);
+                // Note: Real IFileSystem would need actual file creation
+            }
+            
+            return Task.FromResult(true);
+        }
+
+        return Task.FromResult(false);
+    }
+
+    public Task<bool> AddFileToZipAsync(string zipPath, string sourceFile, string entryName, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        
+        if (!_fileSystem.FileExists(sourceFile))
+            return Task.FromResult(false);
+
+        if (!_zipFiles.ContainsKey(zipPath))
+            _zipFiles[zipPath] = new List<ZipEntry>();
+
+        var content = _fileSystem.ReadAllText(sourceFile);
+            
+        _zipFiles[zipPath].Add(new ZipEntry 
+        { 
+            Name = entryName,
+            Content = content,
+            Size = content.Length
+        });
+
+        return Task.FromResult(true);
+    }
+
+    public Task<IEnumerable<string>> ExtractZipAsync(string zipPath, string targetDirectory, 
+        IEnumerable<string>? filesToExtract = null, bool overwrite = true, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        
+        var extractedFiles = new List<string>();
+
+        if (!_zipFiles.TryGetValue(zipPath, out var entries))
+            return Task.FromResult<IEnumerable<string>>(extractedFiles);
+
+        _fileSystem.CreateDirectory(targetDirectory);
+
+        foreach (var entry in entries)
+        {
+            if (filesToExtract != null && !filesToExtract.Contains(entry.Name))
+                continue;
+
+            var targetPath = _pathService.Combine(targetDirectory, entry.Name.Replace('/', '\\'));
+            
+            // Ensure target directory exists
+            var targetDir = _pathService.GetDirectoryName(targetPath);
+            if (!string.IsNullOrEmpty(targetDir))
+                _fileSystem.CreateDirectory(targetDir);
+
+            // "Extract" the file
+            if (_fileSystem is TestFileSystem testFs)
+            {
+                testFs.AddFile(targetPath, entry.Content);
+            }
+
+            extractedFiles.Add(targetPath);
+        }
+
+        return Task.FromResult<IEnumerable<string>>(extractedFiles);
+    }
+
+    public Task<bool> ExtractFileFromZipAsync(string zipPath, string entryName, string targetPath, 
+        bool overwrite = true, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        
+        if (!_zipFiles.TryGetValue(zipPath, out var entries))
+            return Task.FromResult(false);
+
+        var entry = entries.FirstOrDefault(e => e.Name.Replace('/', '\\') == entryName.Replace('/', '\\'));
+        if (entry == null)
+            return Task.FromResult(false);
+
+        // Ensure target directory exists
+        var targetDir = _pathService.GetDirectoryName(targetPath);
+        if (!string.IsNullOrEmpty(targetDir))
+            _fileSystem.CreateDirectory(targetDir);
+
+        // "Extract" the file
+        if (_fileSystem is TestFileSystem testFs)
+        {
+            testFs.AddFile(targetPath, entry.Content);
+        }
+
+        return Task.FromResult(true);
+    }
+
+    public Task<IEnumerable<string>> ListZipEntriesAsync(string zipPath)
+    {
+        if (!_zipFiles.TryGetValue(zipPath, out var entries))
+            return Task.FromResult<IEnumerable<string>>(new List<string>());
+
+        return Task.FromResult<IEnumerable<string>>(entries.Select(e => e.Name));
+    }
+
+    public Task<int> GetZipEntryCountAsync(string zipPath)
+    {
+        if (!_zipFiles.TryGetValue(zipPath, out var entries))
+            return Task.FromResult(0);
+
+        return Task.FromResult(entries.Count);
+    }
+
+    public Task<bool> IsValidZipAsync(string zipPath)
+    {
+        return Task.FromResult(_zipFiles.ContainsKey(zipPath));
+    }
+
+    // Helper method for tests to verify zip contents
+    public List<ZipEntry>? GetZipContents(string zipPath)
+    {
+        return _zipFiles.TryGetValue(zipPath, out var entries) ? entries : null;
+    }
+
+    // Helper method for tests to add mock zip
+    public void AddMockZip(string zipPath, List<ZipEntry> entries)
+    {
+        _zipFiles[zipPath] = entries;
+        
+        if (_fileSystem is TestFileSystem testFs)
+        {
+            testFs.AddFile(zipPath, $"ZIP archive with {entries.Count} entries");
+        }
+    }
+}
+
+/// <summary>
+/// Test implementation of IFileWatcher for unit testing
+/// </summary>
+public class TestFileWatcher : IFileWatcher
+{
+    private bool _disposed;
+    private Timer? _simulationTimer;
+    
+    public string Path { get; set; }
+    public string Filter { get; set; }
+    public NotifyFilters NotifyFilter { get; set; }
+    public bool EnableRaisingEvents { get; set; }
+    
+    public event FileSystemEventHandler? Changed;
+    public event ErrorEventHandler? Error;
+    
+    public TestFileWatcher(string path, string filter)
+    {
+        Path = path;
+        Filter = filter;
+        NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size;
+        EnableRaisingEvents = false;
+    }
+    
+    /// <summary>
+    /// Simulates a file change event for testing
+    /// </summary>
+    public void SimulateFileChange(string fullPath)
+    {
+        if (EnableRaisingEvents)
+        {
+            var args = new FileSystemEventArgs(WatcherChangeTypes.Changed, System.IO.Path.GetDirectoryName(fullPath)!, System.IO.Path.GetFileName(fullPath));
+            Changed?.Invoke(this, args);
+        }
+    }
+    
+    /// <summary>
+    /// Simulates an error event for testing
+    /// </summary>
+    public void SimulateError(Exception exception)
+    {
+        if (EnableRaisingEvents)
+        {
+            var args = new ErrorEventArgs(exception);
+            Error?.Invoke(this, args);
+        }
+    }
+    
+    /// <summary>
+    /// Starts automatic file change simulation for testing
+    /// </summary>
+    public void StartSimulation(int intervalMs = 1000)
+    {
+        _simulationTimer = new Timer(_ =>
+        {
+            if (EnableRaisingEvents)
+            {
+                SimulateFileChange(System.IO.Path.Combine(Path, Filter));
+            }
+        }, null, intervalMs, intervalMs);
+    }
+    
+    /// <summary>
+    /// Stops automatic file change simulation
+    /// </summary>
+    public void StopSimulation()
+    {
+        _simulationTimer?.Dispose();
+        _simulationTimer = null;
+    }
+    
+    public void Dispose()
+    {
+        if (_disposed) return;
+        
+        StopSimulation();
+        _disposed = true;
+    }
+}
+
+/// <summary>
+/// Test implementation of IFileWatcherFactory for unit testing
+/// </summary>
+public class TestFileWatcherFactory : IFileWatcherFactory
+{
+    private readonly List<TestFileWatcher> _createdWatchers = new();
+    
+    public IFileWatcher CreateWatcher(string path, string filter)
+    {
+        var watcher = new TestFileWatcher(path, filter);
+        _createdWatchers.Add(watcher);
+        return watcher;
+    }
+    
+    /// <summary>
+    /// Gets all watchers created by this factory (for testing)
+    /// </summary>
+    public IReadOnlyList<TestFileWatcher> CreatedWatchers => _createdWatchers;
+    
+    /// <summary>
+    /// Simulates a change in all active watchers
+    /// </summary>
+    public void SimulateChangeInAllWatchers()
+    {
+        foreach (var watcher in _createdWatchers.Where(w => w.EnableRaisingEvents))
+        {
+            watcher.SimulateFileChange(System.IO.Path.Combine(watcher.Path, watcher.Filter));
+        }
+    }
+}
+
+/// <summary>
+///     Test implementation of IGamePathDetection for unit testing
+/// </summary>
+public class TestSettingsHelper : ISettingsHelper
+{
+    private readonly IFileSystem _fileSystem;
+    private readonly IPathService _pathService;
+    private readonly IEnvironmentPathProvider _environmentProvider;
+    private readonly Dictionary<string, object> _settings = new();
+
+    public TestSettingsHelper()
+    {
+        _fileSystem = new TestFileSystem();
+        _pathService = new TestPathService();
+        _environmentProvider = new TestEnvironmentPathProvider();
+    }
+
+    public TestSettingsHelper(IFileSystem fileSystem, IPathService pathService, IEnvironmentPathProvider environmentProvider)
+    {
+        _fileSystem = fileSystem;
+        _pathService = pathService;
+        _environmentProvider = environmentProvider;
+    }
+
+    public string GetSettingsDirectory()
+    {
+        return _pathService.Combine(
+            _environmentProvider.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Scanner111");
+    }
+
+    public void EnsureSettingsDirectoryExists()
+    {
+        var directory = GetSettingsDirectory();
+        _fileSystem.CreateDirectory(directory);
+    }
+
+    public async Task<T> LoadSettingsAsync<T>(string filePath, Func<T> defaultFactory) where T : class
+    {
+        try
+        {
+            if (!_fileSystem.FileExists(filePath))
+            {
+                var defaultSettings = defaultFactory();
+                await SaveSettingsAsync(filePath, defaultSettings).ConfigureAwait(false);
+                return defaultSettings;
+            }
+
+            var json = await _fileSystem.ReadAllTextAsync(filePath).ConfigureAwait(false);
+            var settings = JsonSerializer.Deserialize<T>(json, SettingsHelper.JsonOptions);
+            return settings ?? defaultFactory();
+        }
+        catch
+        {
+            return defaultFactory();
+        }
+    }
+
+    public async Task SaveSettingsAsync<T>(string filePath, T settings) where T : class
+    {
+        var directory = _pathService.GetDirectoryName(filePath);
+        if (!string.IsNullOrEmpty(directory)) 
+            _fileSystem.CreateDirectory(directory);
+
+        var json = JsonSerializer.Serialize(settings, SettingsHelper.JsonOptions);
+        await _fileSystem.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
+    }
+
+    public object ConvertValue(object value, Type targetType)
+    {
+        if (value == null) return null!;
+        if (value.GetType() == targetType) return value;
+        
+        try
+        {
+            return Convert.ChangeType(value, targetType);
+        }
+        catch
+        {
+            return value;
+        }
+    }
+
+    public string ToPascalCase(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return input;
+
+        var words = input.Split(new[] { '-', '_', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        return string.Join("", words.Select(w =>
+            char.ToUpperInvariant(w[0]) + w.Substring(1).ToLowerInvariant()));
+    }
+}
+
+public class TestGamePathDetection : IGamePathDetection
+{
+    private readonly Dictionary<string, string> _gamePaths = new();
+    private readonly Dictionary<string, bool> _validPaths = new();
+    private string? _xseLogPath;
+
+    public TestGamePathDetection()
+    {
+        // Set default test paths
+        _gamePaths["Fallout4"] = @"C:\Program Files (x86)\Steam\steamapps\common\Fallout 4";
+        _gamePaths["Skyrim"] = @"C:\Program Files (x86)\Steam\steamapps\common\Skyrim Special Edition";
+        _validPaths[@"C:\Program Files (x86)\Steam\steamapps\common\Fallout 4"] = true;
+        _validPaths[@"C:\Program Files (x86)\Steam\steamapps\common\Skyrim Special Edition"] = true;
+    }
+
+    public string TryDetectGamePath()
+    {
+        // Return the first available game path (default behavior)
+        return _gamePaths.Values.FirstOrDefault() ?? string.Empty;
+    }
+
+    public string TryDetectGamePath(string gameType)
+    {
+        if (string.IsNullOrEmpty(gameType))
+            return _gamePaths.Values.FirstOrDefault() ?? string.Empty;
+        
+        return _gamePaths.TryGetValue(gameType, out var path) ? path : string.Empty;
+    }
+
+    public bool ValidateGamePath(string path)
+    {
+        return _validPaths.TryGetValue(path, out var valid) && valid;
+    }
+
+    public string GetGameDocumentsPath(string gameType)
+    {
+        if (gameType.Contains("Fallout"))
+            return @"C:\Users\TestUser\Documents\My Games\Fallout4";
+        if (gameType.Contains("Skyrim"))
+            return @"C:\Users\TestUser\Documents\My Games\Skyrim Special Edition";
+        return string.Empty;
+    }
+
+    public GameConfiguration? DetectGameConfiguration(string gameType = "Fallout4")
+    {
+        var gamePath = TryDetectGamePath(gameType);
+        if (string.IsNullOrEmpty(gamePath) || !ValidateGamePath(gamePath))
+            return null;
+
+        return new GameConfiguration
+        {
+            RootPath = gamePath,
+            GameName = gameType.Contains("Fallout") ? "Fallout 4" : "Skyrim Special Edition",
+            ExecutablePath = Path.Combine(gamePath, gameType.Contains("Fallout") ? "Fallout4.exe" : "SkyrimSE.exe"),
+            DocumentsPath = GetGameDocumentsPath(gameType)
+            // IsValid and DataPath are computed properties, not settable
+        };
+    }
+
+    public string TryGetGamePathFromXseLog()
+    {
+        return _xseLogPath ?? string.Empty;
+    }
+
+    public string TryGetGamePathFromRegistry()
+    {
+        // Return first available game path as if from registry
+        return _gamePaths.Values.FirstOrDefault() ?? string.Empty;
+    }
+
+    // Helper methods for test setup
+    public void SetGamePath(string gameType, string path)
+    {
+        _gamePaths[gameType] = path;
+        _validPaths[path] = true;
+    }
+
+    public void SetValidPath(string path, bool isValid)
+    {
+        _validPaths[path] = isValid;
+    }
+
+    public void SetXseLogPath(string path)
+    {
+        _xseLogPath = path;
+    }
+}
+
+/// <summary>
+///     Test implementation of ICrashLogParser for unit testing
+/// </summary>
+public class TestCrashLogParser : ICrashLogParser
+{
+    private readonly Dictionary<string, CrashLog> _crashLogs = new();
+    private readonly HashSet<string> _invalidPaths = new();
+    private CrashLog? _defaultCrashLog;
+    private bool _returnNullForUnknownFiles;
+
+    public Task<CrashLog?> ParseAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        // Properly handle cancellation
+        cancellationToken.ThrowIfCancellationRequested();
+        
+        // Check if this path was marked as invalid
+        if (_invalidPaths.Contains(filePath))
+            return Task.FromResult<CrashLog?>(null);
+            
+        // Check for specific test patterns that should return null
+        if (filePath == "nonexistent.log" || filePath.StartsWith("/nonexistent"))
+            return Task.FromResult<CrashLog?>(null);
+            
+        if (_crashLogs.TryGetValue(filePath, out var crashLog))
+            return Task.FromResult<CrashLog?>(crashLog);
+        
+        // If configured to return null for unknown files
+        if (_returnNullForUnknownFiles)
+            return Task.FromResult<CrashLog?>(null);
+        
+        // Otherwise return a valid crash log for testing
+        var result = _defaultCrashLog ?? new CrashLog
+        {
+            FilePath = filePath,
+            GameType = "Fallout4",
+            GameVersion = "1.10.163",
+            Plugins = new Dictionary<string, string>
+            {
+                ["00:000"] = "Fallout4.esm"
+            },
+            XseModules = new HashSet<string>(),
+            OriginalLines = new List<string>()
+        };
+        
+        // Create a new instance with the correct FilePath
+        return Task.FromResult<CrashLog?>(new CrashLog
+        {
+            FilePath = filePath,
+            GameType = result.GameType,
+            GameVersion = result.GameVersion,
+            Plugins = result.Plugins ?? new Dictionary<string, string>(),
+            XseModules = result.XseModules ?? new HashSet<string>(),
+            OriginalLines = result.OriginalLines ?? new List<string>(),
+            MainError = result.MainError,
+            CallStack = result.CallStack,
+            CrashgenSettings = result.CrashgenSettings,
+            CrashGenVersion = result.CrashGenVersion,
+            CrashTime = result.CrashTime,
+            IsIncomplete = result.IsIncomplete,
+            GamePath = result.GamePath
+        });
+    }
+
+    public Task<CrashLog?> ParseFromContentAsync(string content, string filePath = "", CancellationToken cancellationToken = default)
+    {
+        // For testing, return a new crash log with the specified file path
+        // We can't modify _defaultCrashLog.FilePath since it's init-only
+        if (_defaultCrashLog != null)
+        {
+            // Create a new CrashLog with the same data but different FilePath
+            return Task.FromResult<CrashLog?>(new CrashLog
+            {
+                FilePath = filePath,
+                GameType = _defaultCrashLog.GameType,
+                OriginalLines = _defaultCrashLog.OriginalLines,
+                MainError = _defaultCrashLog.MainError,
+                CallStack = _defaultCrashLog.CallStack,
+                Plugins = _defaultCrashLog.Plugins,
+                XseModules = _defaultCrashLog.XseModules,
+                CrashgenSettings = _defaultCrashLog.CrashgenSettings,
+                CrashGenVersion = _defaultCrashLog.CrashGenVersion,
+                CrashTime = _defaultCrashLog.CrashTime,
+                GameVersion = _defaultCrashLog.GameVersion,
+                IsIncomplete = _defaultCrashLog.IsIncomplete,
+                GamePath = _defaultCrashLog.GamePath
+            });
+        }
+
+        return Task.FromResult<CrashLog?>(new CrashLog
+        {
+            FilePath = filePath,
+            GameType = "Fallout4",
+            Plugins = new Dictionary<string, string>(),
+            XseModules = new HashSet<string>()
+        });
+    }
+
+    // Helper methods for test setup
+    public void SetCrashLog(string filePath, CrashLog crashLog)
+    {
+        _crashLogs[filePath] = crashLog;
+    }
+
+    public void SetDefaultCrashLog(CrashLog crashLog)
+    {
+        _defaultCrashLog = crashLog;
+    }
+    
+    public void SetInvalidPath(string filePath)
+    {
+        _invalidPaths.Add(filePath);
+    }
+    
+    public void SetReturnNullForUnknownFiles(bool value)
+    {
+        _returnNullForUnknownFiles = value;
     }
 }

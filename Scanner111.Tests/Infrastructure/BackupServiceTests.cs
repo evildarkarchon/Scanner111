@@ -1,4 +1,3 @@
-using System.IO.Compression;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Tests.TestHelpers;
@@ -9,20 +8,33 @@ namespace Scanner111.Tests.Infrastructure;
 ///     Unit tests for the <see cref="BackupService" /> class
 /// </summary>
 [Collection("Backup Tests")]
-public class BackupServiceTests : IDisposable
+public class BackupServiceTests : IAsyncLifetime, IDisposable
 {
-    private readonly BackupService _backupService;
-    private readonly TestApplicationSettingsService _settingsService;
-    private readonly List<string> _tempDirectories;
-    private readonly string _testBackupPath;
-    private readonly string _testGamePath;
+    private BackupService _backupService = null!;
+    private TestApplicationSettingsService _settingsService = null!;
+    private List<string> _tempDirectories = null!;
+    private string _testBackupPath = null!;
+    private string _testGamePath = null!;
+    private TestFileSystem _fileSystem = null!;
+    private TestPathService _pathService = null!;
+    private TestEnvironmentPathProvider _environmentProvider = null!;
+    private TestZipService _zipService = null!;
 
-    public BackupServiceTests()
+    public async Task InitializeAsync()
     {
         _settingsService = new TestApplicationSettingsService();
+        _fileSystem = new TestFileSystem();
+        _pathService = new TestPathService();
+        _environmentProvider = new TestEnvironmentPathProvider();
+        _zipService = new TestZipService(_fileSystem, _pathService);
+        
         _backupService = new BackupService(
             NullLogger<BackupService>.Instance,
-            _settingsService);
+            _settingsService,
+            _fileSystem,
+            _pathService,
+            _environmentProvider,
+            _zipService);
 
         _tempDirectories = new List<string>();
 
@@ -30,25 +42,29 @@ public class BackupServiceTests : IDisposable
         _testGamePath = CreateTempDirectory();
         _testBackupPath = CreateTempDirectory();
 
-        // Update settings with backup directory using async initialization
-        InitializeAsync().GetAwaiter().GetResult();
+        // Update settings with backup directory
+        var settings = await _settingsService.LoadSettingsAsync();
+        settings.BackupDirectory = _testBackupPath;
+        await _settingsService.SaveSettingsAsync(settings);
+    }
+
+    public Task DisposeAsync()
+    {
+        Dispose();
+        return Task.CompletedTask;
     }
 
     public void Dispose()
     {
         // Clean up temporary directories
-        foreach (var dir in _tempDirectories)
-            if (Directory.Exists(dir))
-                Directory.Delete(dir, true);
+        if (_tempDirectories != null)
+        {
+            foreach (var dir in _tempDirectories)
+                if (Directory.Exists(dir))
+                    Directory.Delete(dir, true);
+        }
 
         GC.SuppressFinalize(this);
-    }
-
-    private async Task InitializeAsync()
-    {
-        var settings = await _settingsService.LoadSettingsAsync();
-        settings.BackupDirectory = _testBackupPath;
-        await _settingsService.SaveSettingsAsync(settings);
     }
 
     [Fact]
@@ -67,7 +83,7 @@ public class BackupServiceTests : IDisposable
         // Assert
         result.Success.Should().BeTrue("backup operation should succeed");
         result.BackupPath.Should().NotBeNull("backup path should be generated");
-        File.Exists(result.BackupPath).Should().BeTrue("backup file should exist");
+        _fileSystem.FileExists(result.BackupPath).Should().BeTrue("backup file should exist");
         result.BackedUpFiles.Should().HaveCount(3, "all three files should be backed up");
         result.BackedUpFiles.Should().Contain("Fallout4.exe", "executable should be backed up");
         result.BackedUpFiles.Should().Contain("f4se_loader.exe", "F4SE loader should be backed up");
@@ -178,23 +194,23 @@ public class BackupServiceTests : IDisposable
         var backupResult = await _backupService.CreateBackupAsync(_testGamePath, filesToBackup);
 
         // Modify files after backup
-        File.WriteAllText(Path.Combine(_testGamePath, "Fallout4.exe"), "Modified content");
-        File.WriteAllText(Path.Combine(_testGamePath, "f4se_loader.exe"), "Modified F4SE");
+        _fileSystem.AddFile(_pathService.Combine(_testGamePath, "Fallout4.exe"), "Modified content");
+        _fileSystem.AddFile(_pathService.Combine(_testGamePath, "f4se_loader.exe"), "Modified F4SE");
 
         // Act
         var restoreSuccess = await _backupService.RestoreBackupAsync(backupResult.BackupPath, _testGamePath);
 
         // Assert
         restoreSuccess.Should().BeTrue("restore should succeed");
-        (await File.ReadAllTextAsync(Path.Combine(_testGamePath, "Fallout4.exe")))
+        _fileSystem.ReadAllText(_pathService.Combine(_testGamePath, "Fallout4.exe"))
             .Should().Be("Original content", "original executable content should be restored");
-        (await File.ReadAllTextAsync(Path.Combine(_testGamePath, "f4se_loader.exe")))
+        _fileSystem.ReadAllText(_pathService.Combine(_testGamePath, "f4se_loader.exe"))
             .Should().Be("Original F4SE", "original F4SE content should be restored");
 
         // Check that .bak files were created
-        File.Exists(Path.Combine(_testGamePath, "Fallout4.exe.bak"))
+        _fileSystem.FileExists(_pathService.Combine(_testGamePath, "Fallout4.exe.bak"))
             .Should().BeTrue("backup of modified executable should be created");
-        File.Exists(Path.Combine(_testGamePath, "f4se_loader.exe.bak"))
+        _fileSystem.FileExists(_pathService.Combine(_testGamePath, "f4se_loader.exe.bak"))
             .Should().BeTrue("backup of modified F4SE should be created");
     }
 
@@ -223,9 +239,9 @@ public class BackupServiceTests : IDisposable
         var backupResult = await _backupService.CreateBackupAsync(_testGamePath, filesToBackup);
 
         // Modify all files
-        File.WriteAllText(Path.Combine(_testGamePath, "file1.txt"), "Modified 1");
-        File.WriteAllText(Path.Combine(_testGamePath, "file2.txt"), "Modified 2");
-        File.WriteAllText(Path.Combine(_testGamePath, "file3.txt"), "Modified 3");
+        _fileSystem.AddFile(_pathService.Combine(_testGamePath, "file1.txt"), "Modified 1");
+        _fileSystem.AddFile(_pathService.Combine(_testGamePath, "file2.txt"), "Modified 2");
+        _fileSystem.AddFile(_pathService.Combine(_testGamePath, "file3.txt"), "Modified 3");
 
         // Act - Restore only file1.txt and file3.txt
         var filesToRestore = new[] { "file1.txt", "file3.txt" };
@@ -234,11 +250,11 @@ public class BackupServiceTests : IDisposable
 
         // Assert
         restoreSuccess.Should().BeTrue("selective restore should succeed");
-        (await File.ReadAllTextAsync(Path.Combine(_testGamePath, "file1.txt")))
+        _fileSystem.ReadAllText(_pathService.Combine(_testGamePath, "file1.txt"))
             .Should().Be("Original 1", "file1 should be restored");
-        (await File.ReadAllTextAsync(Path.Combine(_testGamePath, "file2.txt")))
+        _fileSystem.ReadAllText(_pathService.Combine(_testGamePath, "file2.txt"))
             .Should().Be("Modified 2", "file2 should remain modified (not in restore list)");
-        (await File.ReadAllTextAsync(Path.Combine(_testGamePath, "file3.txt")))
+        _fileSystem.ReadAllText(_pathService.Combine(_testGamePath, "file3.txt"))
             .Should().Be("Original 3", "file3 should be restored");
     }
 
@@ -296,14 +312,14 @@ public class BackupServiceTests : IDisposable
         var backup = await _backupService.CreateBackupAsync(_testGamePath, new[] { "test.txt" });
 
         // Verify backup exists
-        File.Exists(backup.BackupPath).Should().BeTrue("backup file should exist before deletion");
+        _fileSystem.FileExists(backup.BackupPath).Should().BeTrue("backup file should exist before deletion");
 
         // Act
         var deleteResult = await _backupService.DeleteBackupAsync(backup.BackupPath);
 
         // Assert
         deleteResult.Should().BeTrue("deletion should succeed");
-        File.Exists(backup.BackupPath).Should().BeFalse("backup file should be deleted");
+        _fileSystem.FileExists(backup.BackupPath).Should().BeFalse("backup file should be deleted");
     }
 
     [Fact]
@@ -342,15 +358,15 @@ public class BackupServiceTests : IDisposable
         result.BackedUpFiles.Should().HaveCount(3, "all files should be backed up");
 
         // Verify zip structure
-        using (var zip = ZipFile.OpenRead(result.BackupPath))
-        {
-            zip.Entries.Should().Contain(e => e.FullName == "Data/Scripts/test.pex",
-                "script file should preserve directory structure");
-            zip.Entries.Should().Contain(e => e.FullName == "Data/F4SE/Plugins/test.dll",
-                "plugin file should preserve directory structure");
-            zip.Entries.Should().Contain(e => e.FullName == "Data/Meshes/test.nif",
-                "mesh file should preserve directory structure");
-        }
+        var entries = await _zipService.ListZipEntriesAsync(result.BackupPath);
+        var entryList = entries.ToList();
+        
+        entryList.Should().Contain("Data/Scripts/test.pex",
+            "script file should preserve directory structure");
+        entryList.Should().Contain("Data/F4SE/Plugins/test.dll",
+            "plugin file should preserve directory structure");
+        entryList.Should().Contain("Data/Meshes/test.nif",
+            "mesh file should preserve directory structure");
     }
 
     [Fact]
@@ -393,19 +409,20 @@ public class BackupServiceTests : IDisposable
 
     private string CreateTempDirectory()
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        Directory.CreateDirectory(tempDir);
+        var tempDir = _pathService.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        _fileSystem.CreateDirectory(tempDir);
         _tempDirectories.Add(tempDir);
         return tempDir;
     }
 
     private void CreateTestFile(string basePath, string relativePath, string content)
     {
-        var fullPath = Path.Combine(basePath, relativePath);
-        var directory = Path.GetDirectoryName(fullPath);
+        var fullPath = _pathService.Combine(basePath, relativePath);
+        var directory = _pathService.GetDirectoryName(fullPath);
 
-        if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+        if (!string.IsNullOrEmpty(directory)) 
+            _fileSystem.CreateDirectory(directory);
 
-        File.WriteAllText(fullPath, content, Encoding.UTF8);
+        _fileSystem.AddFile(fullPath, content);
     }
 }

@@ -35,10 +35,6 @@ public class SettingsWindowViewModel : ViewModelBase
     private double _windowHeight = 800;
     private double _windowWidth = 1200;
 
-    public SettingsWindowViewModel() : this(new SettingsService())
-    {
-    }
-
     public SettingsWindowViewModel(ISettingsService settingsService)
     {
         _settingsService = settingsService;

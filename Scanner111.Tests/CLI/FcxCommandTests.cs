@@ -16,6 +16,7 @@ public class FcxCommandTests : IDisposable
     private readonly TestMessageCapture _messageCapture;
     private readonly ICliSettingsService _settingsService;
     private readonly IYamlSettingsProvider _yamlSettings;
+    private readonly IGamePathDetection _gamePathDetection;
 
     public FcxCommandTests()
     {
@@ -34,6 +35,8 @@ public class FcxCommandTests : IDisposable
         _yamlSettings = yamlSettingsMock.Object;
         var loggerMock = new Mock<ILogger<FcxCommand>>();
         _logger = loggerMock.Object;
+        var gamePathDetectionMock = new Mock<IGamePathDetection>();
+        _gamePathDetection = gamePathDetectionMock.Object;
 
         _command = new FcxCommand(
             _settingsService,
@@ -42,7 +45,8 @@ public class FcxCommandTests : IDisposable
             _appSettingsService,
             _yamlSettings,
             _logger,
-            _messageCapture);
+            _messageCapture,
+            _gamePathDetection);
     }
 
     public void Dispose()

@@ -690,8 +690,8 @@ internal class ProgressContextAdapter : IProgressContext
     {
         if (!_disposed)
         {
-            _disposed = true;
             if (!_completed) Complete();
+            _disposed = true;
         }
     }
 }

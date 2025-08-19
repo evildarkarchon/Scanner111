@@ -1,9 +1,11 @@
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.FCX;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Services;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.CLI;
 
@@ -212,6 +214,17 @@ public class ProgramServiceConfigurationTests
 
         // Add memory cache
         services.AddMemoryCache();
+
+        // Register infrastructure dependencies for ApplicationSettingsService
+        services.AddSingleton<IFileSystem, TestFileSystem>();
+        services.AddSingleton<IEnvironmentPathProvider, TestEnvironmentPathProvider>();
+        services.AddSingleton<IPathService, TestPathService>();
+        services.AddSingleton<ISettingsHelper, SettingsHelper>();
+        services.AddSingleton<IGamePathDetection, TestGamePathDetection>();
+        services.AddSingleton<IFileVersionInfoProvider, TestFileVersionInfoProvider>();
+        services.AddSingleton<IZipService, TestZipService>();
+        services.AddSingleton<IFileWatcherFactory, TestFileWatcherFactory>();
+        services.AddSingleton<ICrashLogParser, TestCrashLogParser>();
 
         // Register Core services
         services.AddSingleton<IApplicationSettingsService, ApplicationSettingsService>();

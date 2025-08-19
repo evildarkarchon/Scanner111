@@ -1,4 +1,4 @@
-using System.IO.Compression;
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Models;
 
 namespace Scanner111.Core.Infrastructure;
@@ -11,15 +11,29 @@ public class BackupService : IBackupService
     private readonly string _defaultBackupDirectory;
     private readonly ILogger<BackupService> _logger;
     private readonly IApplicationSettingsService _settingsService;
+    private readonly IFileSystem _fileSystem;
+    private readonly IPathService _pathService;
+    private readonly IEnvironmentPathProvider _environment;
+    private readonly IZipService _zipService;
 
-    public BackupService(ILogger<BackupService> logger, IApplicationSettingsService settingsService)
+    public BackupService(
+        ILogger<BackupService> logger,
+        IApplicationSettingsService settingsService,
+        IFileSystem fileSystem,
+        IPathService pathService,
+        IEnvironmentPathProvider environment,
+        IZipService zipService)
     {
         _logger = logger;
         _settingsService = settingsService;
+        _fileSystem = fileSystem;
+        _pathService = pathService;
+        _environment = environment;
+        _zipService = zipService;
 
         // Default backup directory in user's Documents
-        _defaultBackupDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+        _defaultBackupDirectory = _pathService.Combine(
+            _environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "Scanner111",
             "Backups");
     }
@@ -37,7 +51,7 @@ public class BackupService : IBackupService
 
         try
         {
-            if (!Directory.Exists(gamePath))
+            if (!_fileSystem.DirectoryExists(gamePath))
             {
                 result.Success = false;
                 result.ErrorMessage = "Game path does not exist";
@@ -46,12 +60,12 @@ public class BackupService : IBackupService
 
             // Ensure backup directory exists
             var backupDir = await GetBackupDirectoryAsync().ConfigureAwait(false);
-            Directory.CreateDirectory(backupDir);
+            _fileSystem.CreateDirectory(backupDir);
 
             // Create backup filename with timestamp including milliseconds
             var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss-fff");
             var backupName = $"Fallout4_Backup_{timestamp}.zip";
-            var backupPath = Path.Combine(backupDir, backupName);
+            var backupPath = _pathService.Combine(backupDir, backupName);
 
             result.BackupPath = backupPath;
             result.Timestamp = DateTime.UtcNow;
@@ -60,43 +74,51 @@ public class BackupService : IBackupService
             var totalFiles = fileList.Count;
             var processedFiles = 0;
 
-            using (var zipArchive = ZipFile.Open(backupPath, ZipArchiveMode.Create))
+            // Build dictionary of files to add to zip
+            var filesToAdd = new Dictionary<string, string>();
+            
+            foreach (var file in fileList)
             {
-                foreach (var file in fileList)
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var sourceFile = _pathService.Combine(gamePath, file);
+
+                progress?.Report(new BackupProgress
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    CurrentFile = file,
+                    TotalFiles = totalFiles,
+                    ProcessedFiles = processedFiles
+                });
 
-                    var sourceFile = Path.Combine(gamePath, file);
+                if (_fileSystem.FileExists(sourceFile))
+                {
+                    // Add file to collection with relative path
+                    var entryName = file.Replace('\\', '/');
+                    filesToAdd[sourceFile] = entryName;
+                    result.BackedUpFiles.Add(file);
+                    var fileSize = _fileSystem.GetFileSize(sourceFile);
+                    result.TotalSize += fileSize;
+                    _logger.LogDebug("Preparing to backup file: {File}", file);
+                }
+                else
+                {
+                    _logger.LogWarning("File not found for backup: {File}", sourceFile);
+                }
 
-                    progress?.Report(new BackupProgress
-                    {
-                        CurrentFile = file,
-                        TotalFiles = totalFiles,
-                        ProcessedFiles = processedFiles
-                    });
+                processedFiles++;
+            }
 
-                    if (File.Exists(sourceFile))
-                        try
-                        {
-                            // Add file to zip with relative path
-                            var entryName = file.Replace(Path.DirectorySeparatorChar, '/');
-                            await Task.Run(() => zipArchive.CreateEntryFromFile(sourceFile, entryName),
-                                cancellationToken).ConfigureAwait(false);
-
-                            result.BackedUpFiles.Add(file);
-                            var fileInfo = new FileInfo(sourceFile);
-                            result.TotalSize += fileInfo.Length;
-
-                            _logger.LogDebug("Backed up file: {File}", file);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "Failed to backup file: {File}", file);
-                        }
-                    else
-                        _logger.LogWarning("File not found for backup: {File}", sourceFile);
-
-                    processedFiles++;
+            // Create the zip with all files
+            if (filesToAdd.Any())
+            {
+                var success = await _zipService.CreateZipAsync(backupPath, filesToAdd, cancellationToken)
+                    .ConfigureAwait(false);
+                
+                if (!success)
+                {
+                    result.Success = false;
+                    result.ErrorMessage = "Failed to create backup archive";
+                    return result;
                 }
             }
 
@@ -110,17 +132,17 @@ public class BackupService : IBackupService
             else
             {
                 // Delete empty backup file
-                if (File.Exists(backupPath)) File.Delete(backupPath);
+                if (_fileSystem.FileExists(backupPath)) _fileSystem.DeleteFile(backupPath);
                 result.ErrorMessage = "No files were backed up";
             }
         }
         catch (OperationCanceledException)
         {
             // Clean up partial backup
-            if (File.Exists(result.BackupPath))
+            if (_fileSystem.FileExists(result.BackupPath))
                 try
                 {
-                    File.Delete(result.BackupPath);
+                    _fileSystem.DeleteFile(result.BackupPath);
                 }
                 catch
                 {
@@ -174,11 +196,11 @@ public class BackupService : IBackupService
         };
 
         // Also backup F4SE plugins directory if it exists
-        var f4sePluginsPath = Path.Combine(gamePath, @"Data\F4SE\Plugins");
-        if (Directory.Exists(f4sePluginsPath))
+        var f4sePluginsPath = _pathService.Combine(gamePath, "Data", "F4SE", "Plugins");
+        if (_fileSystem.DirectoryExists(f4sePluginsPath))
         {
-            var pluginFiles = Directory.GetFiles(f4sePluginsPath, "*.*", SearchOption.TopDirectoryOnly)
-                .Select(f => Path.GetRelativePath(gamePath, f))
+            var pluginFiles = _fileSystem.GetFiles(f4sePluginsPath, "*.*", SearchOption.TopDirectoryOnly)
+                .Select(f => _pathService.NormalizePath(f.Replace(gamePath + "\\", "").Replace(gamePath + "/", "")))
                 .ToList();
             criticalFiles.AddRange(pluginFiles);
         }
@@ -198,69 +220,75 @@ public class BackupService : IBackupService
     {
         try
         {
-            if (!File.Exists(backupPath))
+            if (!_fileSystem.FileExists(backupPath))
             {
                 _logger.LogError("Backup file not found: {BackupPath}", backupPath);
                 return false;
             }
 
-            if (!Directory.Exists(gamePath))
+            if (!_fileSystem.DirectoryExists(gamePath))
             {
                 _logger.LogError("Game path not found: {GamePath}", gamePath);
                 return false;
             }
 
-            using (var zipArchive = ZipFile.OpenRead(backupPath))
+            // Get list of entries in the zip
+            var allEntries = await _zipService.ListZipEntriesAsync(backupPath).ConfigureAwait(false);
+            
+            var entriesToRestore = filesToRestore != null
+                ? allEntries.Where(e => filesToRestore.Contains(e.Replace('/', '\\')))
+                : allEntries;
+
+            var entryList = entriesToRestore.ToList();
+            var totalFiles = entryList.Count;
+            var processedFiles = 0;
+
+            foreach (var entry in entryList)
             {
-                var entries = filesToRestore != null
-                    ? zipArchive.Entries.Where(e =>
-                        filesToRestore.Contains(e.FullName.Replace('/', Path.DirectorySeparatorChar)))
-                    : zipArchive.Entries;
+                cancellationToken.ThrowIfCancellationRequested();
 
-                var entryList = entries.ToList();
-                var totalFiles = entryList.Count;
-                var processedFiles = 0;
+                var targetPath = _pathService.Combine(gamePath, entry.Replace('/', '\\'));
 
-                foreach (var entry in entryList)
+                progress?.Report(new BackupProgress
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    CurrentFile = entry,
+                    TotalFiles = totalFiles,
+                    ProcessedFiles = processedFiles
+                });
 
-                    var targetPath = Path.Combine(gamePath, entry.FullName.Replace('/', Path.DirectorySeparatorChar));
+                try
+                {
+                    // Ensure target directory exists
+                    var targetDir = _pathService.GetDirectoryName(targetPath);
+                    if (!string.IsNullOrEmpty(targetDir)) _fileSystem.CreateDirectory(targetDir);
 
-                    progress?.Report(new BackupProgress
+                    // Create backup of existing file if it exists
+                    if (_fileSystem.FileExists(targetPath))
                     {
-                        CurrentFile = entry.FullName,
-                        TotalFiles = totalFiles,
-                        ProcessedFiles = processedFiles
-                    });
-
-                    try
-                    {
-                        // Ensure target directory exists
-                        var targetDir = Path.GetDirectoryName(targetPath);
-                        if (!string.IsNullOrEmpty(targetDir)) Directory.CreateDirectory(targetDir);
-
-                        // Create backup of existing file if it exists
-                        if (File.Exists(targetPath))
-                        {
-                            var backupFile = targetPath + ".bak";
-                            File.Move(targetPath, backupFile, true);
-                        }
-
-                        // Extract file
-                        await Task.Run(() => entry.ExtractToFile(targetPath, true), cancellationToken)
-                            .ConfigureAwait(false);
-
-                        _logger.LogDebug("Restored file: {File}", entry.FullName);
+                        var backupFile = targetPath + ".bak";
+                        _fileSystem.MoveFile(targetPath, backupFile);
                     }
-                    catch (Exception ex)
+
+                    // Extract file
+                    var extracted = await _zipService.ExtractFileFromZipAsync(
+                        backupPath, entry, targetPath, true, cancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (!extracted)
                     {
-                        _logger.LogError(ex, "Failed to restore file: {File}", entry.FullName);
+                        _logger.LogError("Failed to extract file: {File}", entry);
                         return false;
                     }
 
-                    processedFiles++;
+                    _logger.LogDebug("Restored file: {File}", entry);
                 }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to restore file: {File}", entry);
+                    return false;
+                }
+
+                processedFiles++;
             }
 
             _logger.LogInformation("Backup restored successfully from: {BackupPath}", backupPath);
@@ -284,30 +312,27 @@ public class BackupService : IBackupService
         {
             var backupDir = backupDirectory ?? await GetBackupDirectoryAsync().ConfigureAwait(false);
 
-            if (!Directory.Exists(backupDir)) return backups;
+            if (!_fileSystem.DirectoryExists(backupDir)) return backups;
 
-            var backupFiles = Directory.GetFiles(backupDir, "*.zip", SearchOption.TopDirectoryOnly)
-                .OrderByDescending(f => File.GetCreationTime(f));
+            var backupFiles = _fileSystem.GetFiles(backupDir, "*.zip", SearchOption.TopDirectoryOnly)
+                .OrderByDescending(f => _fileSystem.GetLastWriteTime(f));
 
             foreach (var backupFile in backupFiles)
                 try
                 {
-                    var fileInfo = new FileInfo(backupFile);
                     var backupInfo = new BackupInfo
                     {
                         BackupPath = backupFile,
-                        Name = Path.GetFileNameWithoutExtension(backupFile),
-                        CreatedDate = fileInfo.CreationTime,
-                        Size = fileInfo.Length
+                        Name = _pathService.GetFileNameWithoutExtension(backupFile),
+                        CreatedDate = _fileSystem.GetLastWriteTime(backupFile),
+                        Size = _fileSystem.GetFileSize(backupFile)
                     };
 
                     // Try to get file count from zip
                     try
                     {
-                        using (var zip = ZipFile.OpenRead(backupFile))
-                        {
-                            backupInfo.FileCount = zip.Entries.Count;
-                        }
+                        backupInfo.FileCount = await _zipService.GetZipEntryCountAsync(backupFile)
+                            .ConfigureAwait(false);
                     }
                     catch
                     {
@@ -336,9 +361,9 @@ public class BackupService : IBackupService
     {
         try
         {
-            if (File.Exists(backupPath))
+            if (_fileSystem.FileExists(backupPath))
             {
-                await Task.Run(() => File.Delete(backupPath)).ConfigureAwait(false);
+                await Task.Run(() => _fileSystem.DeleteFile(backupPath)).ConfigureAwait(false);
                 _logger.LogInformation("Deleted backup: {BackupPath}", backupPath);
                 return true;
             }

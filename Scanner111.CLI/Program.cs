@@ -1,6 +1,7 @@
 using Scanner111.CLI.Commands;
 using Scanner111.CLI.Models;
 using Scanner111.CLI.Services;
+using Scanner111.Core.DependencyInjection;
 using Scanner111.Core.FCX;
 using Scanner111.Core.GameScanning;
 using Scanner111.Core.Infrastructure;
@@ -58,66 +59,30 @@ return await result.MapResult(
 
 static void ConfigureServices(IServiceCollection services, bool useLegacyProgress = false)
 {
-    // Configure logging
-    services.AddLogging(builder =>
+    // Add all core Scanner111 services using the centralized registration
+    services.AddScanner111Core();
+    
+    // Override logging configuration for CLI
+    services.AddScanner111Logging(builder =>
     {
-        builder.AddConsole();
         builder.SetMinimumLevel(LogLevel.Information);
     });
 
-    // Add memory cache for CacheManager
-    services.AddMemoryCache();
-
-    // Register Core services
-    services.AddSingleton<IApplicationSettingsService, ApplicationSettingsService>();
-    services.AddSingleton<IUpdateService, UpdateService>();
-    services.AddSingleton<ICacheManager, CacheManager>();
-    services.AddSingleton<IUnsolvedLogsMover, UnsolvedLogsMover>();
-    services.AddSingleton<IAudioNotificationService, AudioNotificationService>();
-    services.AddSingleton<IStatisticsService, StatisticsService>();
-    services.AddSingleton<IRecentItemsService, RecentItemsService>();
-
-    // Register Core infrastructure
-    services.AddSingleton<IReportWriter, ReportWriter>();
+    // Register IScanPipeline (not included in core registration as it needs customization)
     services.AddSingleton<IScanPipeline, ScanPipeline>();
 
-    // Register CLI services
+    // Register CLI-specific services
     services.AddSingleton<ICliSettingsService, CliSettingsService>();
     services.AddSingleton<IFileScanService, FileScanService>();
     services.AddSingleton<IScanResultProcessor, ScanResultProcessor>();
 
-    // Use enhanced message handler by default, legacy if specified
+    // Override message handler for CLI - use enhanced by default, legacy if specified
     if (useLegacyProgress)
         services.AddSingleton<IMessageHandler, SpectreMessageHandler>();
     else
         services.AddSingleton<IMessageHandler, EnhancedSpectreMessageHandler>();
 
     services.AddSingleton<ITerminalUIService, SpectreTerminalUIService>();
-
-    // Register FCX services
-    services.AddSingleton<IHashValidationService, HashValidationService>();
-    services.AddSingleton<IBackupService, BackupService>();
-    services.AddSingleton<IYamlSettingsProvider, YamlSettingsService>();
-    services.AddSingleton<IModScanner, ModScanner>();
-    services.AddSingleton<IModCompatibilityService, ModCompatibilityService>();
-    services.AddSingleton<IConsoleService, ConsoleService>();
-
-    // Register Mod Manager services
-    services.AddSingleton<IModManagerDetector, ModManagerDetector>();
-    services.AddSingleton<IModManagerService, ModManagerService>();
-
-    // Register Papyrus Monitoring service
-    services.AddSingleton<IPapyrusMonitorService, PapyrusMonitorService>();
-
-    // Register Pastebin service
-    services.AddSingleton<IPastebinService, PastebinService>();
-
-    // Register Game Scanning services
-    services.AddSingleton<ICrashGenChecker, CrashGenChecker>();
-    services.AddSingleton<IXsePluginValidator, XsePluginValidator>();
-    services.AddSingleton<IModIniScanner, ModIniScanner>();
-    services.AddSingleton<IWryeBashChecker, WryeBashChecker>();
-    services.AddSingleton<IGameScannerService, GameScannerService>();
 
     // Register commands
     services.AddTransient<ScanCommand>();

@@ -32,7 +32,7 @@ public class SpectreMessageHandlerTests
         // Act - Use reflection to call the appropriate method
         var method = _handler.GetType().GetMethod(methodName);
         method.Should().NotBeNull($"because {methodName} method should exist");
-        method!.Invoke(_handler, new object[] { message });
+        method!.Invoke(_handler, new object[] { message, MessageTarget.All });
 
         // Assert
         var output = _console.Output;

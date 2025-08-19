@@ -1,25 +1,43 @@
 using Scanner111.Core.Services;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Services;
 
 [Collection("Database Tests")]
-public class StatisticsServiceTests : IDisposable
+public class StatisticsServiceTests : IAsyncLifetime, IDisposable
 {
-    private readonly StatisticsService _service;
-    private readonly string _testDbPath;
+    private StatisticsService _service = null!;
+    private string _testDbPath = null!;
+    private TestFileSystem _fileSystem = null!;
+    private TestEnvironmentPathProvider _environment = null!;
+    private TestPathService _pathService = null!;
 
-    public StatisticsServiceTests()
+    public async Task InitializeAsync()
     {
         // Use a unique test database for each test run
         var tempPath = Path.Combine(Path.GetTempPath(), $"Scanner111_Test_{Guid.NewGuid()}");
         Directory.CreateDirectory(tempPath);
         _testDbPath = Path.Combine(tempPath, "statistics.db");
+        
+        // Create test dependencies
+        _fileSystem = new TestFileSystem();
+        _environment = new TestEnvironmentPathProvider();
+        _pathService = new TestPathService();
+        
+        // Add the temp directory to the test file system
+        _fileSystem.CreateDirectory(tempPath);
 
         // Create the service with test-specific database path
-        _service = new StatisticsService(_testDbPath);
+        _service = new StatisticsService(_fileSystem, _environment, _pathService, _testDbPath);
 
-        // Give the database time to initialize using async initialization
-        InitializeAsync().GetAwaiter().GetResult();
+        // Give the database time to initialize
+        await Task.Delay(100);
+    }
+
+    public Task DisposeAsync()
+    {
+        Dispose();
+        return Task.CompletedTask;
     }
 
     public void Dispose()
@@ -38,11 +56,6 @@ public class StatisticsServiceTests : IDisposable
         {
             // Ignore cleanup errors
         }
-    }
-
-    private async Task InitializeAsync()
-    {
-        await Task.Delay(100);
     }
 
     [Fact]
@@ -310,7 +323,10 @@ public class StatisticsServiceTests : IDisposable
     [Fact]
     public void Dispose_HandlesMultipleCalls()
     {
-        var service = new StatisticsService();
+        var service = new StatisticsService(
+            new TestFileSystem(), 
+            new TestEnvironmentPathProvider(), 
+            new TestPathService());
 
         // Should not throw
         service.Dispose();

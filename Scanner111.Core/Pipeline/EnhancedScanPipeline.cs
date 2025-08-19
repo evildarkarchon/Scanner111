@@ -20,6 +20,7 @@ public class EnhancedScanPipeline : IScanPipeline
     private readonly ResilientExecutor _resilientExecutor;
     private readonly SemaphoreSlim _semaphore;
     private readonly IYamlSettingsProvider _settingsProvider;
+    private readonly ICrashLogParser _crashLogParser;
     private bool _disposed;
 
     public EnhancedScanPipeline(
@@ -28,7 +29,8 @@ public class EnhancedScanPipeline : IScanPipeline
         IMessageHandler messageHandler,
         IYamlSettingsProvider settingsProvider,
         ICacheManager cacheManager,
-        ResilientExecutor resilientExecutor)
+        ResilientExecutor resilientExecutor,
+        ICrashLogParser crashLogParser)
     {
         _analyzers = analyzers.OrderBy(a => a.Priority).ToList();
         _logger = logger;
@@ -36,6 +38,7 @@ public class EnhancedScanPipeline : IScanPipeline
         _settingsProvider = settingsProvider;
         _cacheManager = cacheManager;
         _resilientExecutor = resilientExecutor;
+        _crashLogParser = crashLogParser;
         _semaphore = new SemaphoreSlim(Environment.ProcessorCount);
     }
 
@@ -267,7 +270,7 @@ public class EnhancedScanPipeline : IScanPipeline
                     // For now, just parse normally but with resilient execution
                 }
 
-                return await CrashLog.ParseAsync(logPath, ct).ConfigureAwait(false);
+                return await _crashLogParser.ParseAsync(logPath, ct).ConfigureAwait(false);
             }, $"ParseCrashLog:{logPath}", cancellationToken);
     }
 

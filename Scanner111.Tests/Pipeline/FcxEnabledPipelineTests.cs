@@ -19,6 +19,7 @@ public class FcxEnabledPipelineTests : IAsyncDisposable
     private readonly FcxEnabledPipeline _pipeline;
     private readonly TestApplicationSettingsService _settingsService;
     private readonly IYamlSettingsProvider _yamlSettings;
+    private readonly IGamePathDetection _gamePathDetection;
 
     public FcxEnabledPipelineTests()
     {
@@ -28,6 +29,7 @@ public class FcxEnabledPipelineTests : IAsyncDisposable
         _settingsService = new TestApplicationSettingsService();
         _hashService = new TestHashValidationService();
         _innerPipeline = new TestScanPipeline();
+        _gamePathDetection = new TestGamePathDetection();
 
         _pipeline = new FcxEnabledPipeline(
             _innerPipeline,
@@ -35,7 +37,8 @@ public class FcxEnabledPipelineTests : IAsyncDisposable
             _hashService,
             _logger,
             _messageHandler,
-            _yamlSettings);
+            _yamlSettings,
+            _gamePathDetection);
     }
 
     /// <summary>

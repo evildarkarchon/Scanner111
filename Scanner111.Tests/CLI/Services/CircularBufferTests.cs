@@ -200,7 +200,7 @@ public class CircularBufferTests
     }
 
     [Fact]
-    public void GetItems_DuringConcurrentAdds_ReturnsConsistentSnapshot()
+    public async Task GetItems_DuringConcurrentAdds_ReturnsConsistentSnapshot()
     {
         // Arrange
         var buffer = new CircularBuffer<int>(1000);
@@ -213,15 +213,15 @@ public class CircularBufferTests
             for (var i = 0; i < 1000; i++) buffer.Add(i);
         });
 
-        var getTask = Task.Run(() =>
+        var getTask = Task.Run(async () =>
         {
             barrier.SignalAndWait();
-            Thread.Sleep(10); // Let some adds happen
+            await Task.Delay(10); // Let some adds happen
             return buffer.GetItems().ToList();
         });
 
-        Task.WaitAll(addTask, getTask);
-        var snapshot = getTask.Result;
+        await Task.WhenAll(addTask, getTask);
+        var snapshot = await getTask;
 
         // Assert - Snapshot should be consistent (all items in sequence)
         for (var i = 1; i < snapshot.Count; i++)

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Models;
 
 namespace Scanner111.Core.Infrastructure;
@@ -12,10 +13,17 @@ public class HashValidationService : IHashValidationService
     private const int BufferSize = 1024 * 1024; // 1MB buffer for reading files
     private readonly ConcurrentDictionary<string, (string hash, DateTime lastModified, long size)> _hashCache = new();
     private readonly ILogger<HashValidationService> _logger;
+    private readonly IFileSystem _fileSystem;
+    private readonly IFileVersionInfoProvider _fileVersionInfo;
 
-    public HashValidationService(ILogger<HashValidationService> logger)
+    public HashValidationService(
+        ILogger<HashValidationService> logger,
+        IFileSystem fileSystem,
+        IFileVersionInfoProvider fileVersionInfo)
     {
         _logger = logger;
+        _fileSystem = fileSystem;
+        _fileVersionInfo = fileVersionInfo;
     }
 
     /// <summary>
@@ -32,14 +40,15 @@ public class HashValidationService : IHashValidationService
     public async Task<string> CalculateFileHashWithProgressAsync(string filePath, IProgress<long>? progress,
         CancellationToken cancellationToken = default)
     {
-        if (!File.Exists(filePath)) throw new FileNotFoundException($"File not found: {filePath}");
+        if (!_fileSystem.FileExists(filePath)) throw new FileNotFoundException($"File not found: {filePath}");
 
         // Check cache first
-        var fileInfo = new FileInfo(filePath);
+        var lastModified = _fileSystem.GetLastWriteTime(filePath);
+        var fileSize = _fileSystem.GetFileSize(filePath);
 
         if (_hashCache.TryGetValue(filePath, out var cached))
             // Check if file hasn't been modified
-            if (cached.lastModified == fileInfo.LastWriteTimeUtc && cached.size == fileInfo.Length)
+            if (cached.lastModified == lastModified && cached.size == fileSize)
             {
                 _logger.LogDebug("Using cached hash for {FilePath}", filePath);
                 return cached.hash;
@@ -48,7 +57,7 @@ public class HashValidationService : IHashValidationService
         _logger.LogDebug("Calculating hash for {FilePath}", filePath);
 
         using var sha256 = SHA256.Create();
-        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, true);
+        using var stream = _fileSystem.OpenRead(filePath);
 
         var buffer = new byte[BufferSize];
         long totalBytesRead = 0;
@@ -69,7 +78,7 @@ public class HashValidationService : IHashValidationService
         var hash = BitConverter.ToString(sha256.Hash!).Replace("-", "").ToUpperInvariant();
 
         // Cache the result
-        _hashCache[filePath] = (hash, fileInfo.LastWriteTimeUtc, fileInfo.Length);
+        _hashCache[filePath] = (hash, lastModified, fileSize);
 
         return hash;
     }
@@ -89,7 +98,7 @@ public class HashValidationService : IHashValidationService
 
         try
         {
-            if (!File.Exists(filePath))
+            if (!_fileSystem.FileExists(filePath))
             {
                 validation.ActualHash = string.Empty;
                 _logger.LogWarning("File not found for validation: {FilePath}", filePath);

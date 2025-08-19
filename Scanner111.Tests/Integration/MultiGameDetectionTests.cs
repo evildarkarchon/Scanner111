@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Integration;
 
@@ -12,11 +13,18 @@ public class MultiGameDetectionTests : IDisposable
 {
     private readonly ILogger<object> _logger;
     private readonly List<string> _tempDirectories;
+    private readonly GamePathDetection _gamePathDetection;
 
     public MultiGameDetectionTests()
     {
         _tempDirectories = new List<string>();
         _logger = NullLogger<object>.Instance;
+        
+        // Create GamePathDetection instance with test dependencies
+        var fileSystem = new TestFileSystem();
+        var environment = new TestEnvironmentPathProvider();
+        var pathService = new TestPathService();
+        _gamePathDetection = new GamePathDetection(fileSystem, environment, pathService);
     }
 
     public void Dispose()
@@ -357,7 +365,7 @@ gameName=Fallout 4
             GameName = gameName,
             RootPath = gamePath,
             ExecutablePath = executablePath,
-            DocumentsPath = GamePathDetection.GetGameDocumentsPath(gameName),
+            DocumentsPath = _gamePathDetection.GetGameDocumentsPath(gameName),
             Platform = DetectPlatformFromPath(gamePath)
         };
 

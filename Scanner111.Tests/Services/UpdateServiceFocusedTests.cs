@@ -208,7 +208,7 @@ public class UpdateServiceFocusedTests
     }
 
     [Fact]
-    public async Task GetUpdateInfoAsync_WithNullSettings_ThrowsNullReferenceException()
+    public async Task GetUpdateInfoAsync_WithNullSettings_ReturnsErrorResult()
     {
         // Arrange
         _settingsServiceMock
@@ -216,14 +216,16 @@ public class UpdateServiceFocusedTests
             .ReturnsAsync((ApplicationSettings)null!);
 
         // Act
-        var action = async () => await _service.GetUpdateInfoAsync();
+        var result = await _service.GetUpdateInfoAsync();
 
         // Assert
-        await action.Should().ThrowAsync<NullReferenceException>();
+        result.Should().NotBeNull();
+        result.CheckSuccessful.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Unable to load application settings");
     }
 
     [Fact]
-    public async Task GetUpdateInfoAsync_WhenSettingsThrows_PropagatesException()
+    public async Task GetUpdateInfoAsync_WhenSettingsThrows_ReturnsErrorResult()
     {
         // Arrange
         var expectedException = new InvalidOperationException("Settings error");
@@ -232,11 +234,12 @@ public class UpdateServiceFocusedTests
             .ThrowsAsync(expectedException);
 
         // Act
-        var action = async () => await _service.GetUpdateInfoAsync();
+        var result = await _service.GetUpdateInfoAsync();
 
         // Assert
-        await action.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Settings error");
+        result.Should().NotBeNull();
+        result.CheckSuccessful.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Settings error");
     }
 
     #endregion

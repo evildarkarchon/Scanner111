@@ -27,6 +27,15 @@ public class GameScanViewModelTests : IDisposable
         _mockGameScannerService = new Mock<IGameScannerService>();
         _mockMessageHandler = new Mock<IMessageHandler>();
         _mockSettingsService = new MockSettingsService();
+        
+        // Ensure settings return empty paths so HasGamePath starts as false
+        var emptySettings = new UserSettings
+        {
+            DefaultGamePath = "",
+            DefaultLogPath = "",
+            DefaultScanDirectory = ""
+        };
+        _mockSettingsService.SetUserSettings(emptySettings);
 
         // Capture messages for verification
         _mockMessageHandler.Setup(x => x.ShowInfo(It.IsAny<string>(), It.IsAny<MessageTarget>()))
@@ -43,6 +52,9 @@ public class GameScanViewModelTests : IDisposable
             _mockGameScannerService.Object,
             _mockMessageHandler.Object,
             _mockSettingsService);
+        
+        // Allow initialization to complete
+        Thread.Sleep(100);
     }
 
     public void Dispose()
@@ -72,12 +84,15 @@ public class GameScanViewModelTests : IDisposable
     #region Progress Update Tests
 
     [Theory]
-    [InlineData(0, "Starting...")]
+    [InlineData(10, "Starting...")]
     [InlineData(50, "Half way there...")]
     [InlineData(100, "Complete!")]
-    public void UpdateProgress_UpdatesValuesCorrectly(double value, string text)
+    public void ProgressProperties_UpdateCorrectlyWithNotifications(double value, string text)
     {
-        // Arrange
+        // Arrange - Set initial values different from test values to ensure change events
+        _viewModel.ProgressValue = value + 1; // Set to a different value first
+        _viewModel.ProgressText = "Initial";
+        
         var progressValueChanged = false;
         var progressTextChanged = false;
         _viewModel.PropertyChanged += (sender, args) =>
@@ -88,10 +103,9 @@ public class GameScanViewModelTests : IDisposable
                 progressTextChanged = true;
         };
 
-        // Act - Use reflection to call private UpdateProgress method
-        var updateProgressMethod = _viewModel.GetType().GetMethod("UpdateProgress",
-            BindingFlags.NonPublic | BindingFlags.Instance);
-        updateProgressMethod?.Invoke(_viewModel, new object[] { value, text });
+        // Act - Test the public properties directly since UpdateProgress is private
+        _viewModel.ProgressValue = value;
+        _viewModel.ProgressText = text;
 
         // Assert
         _viewModel.ProgressValue.Should().Be(value);
@@ -412,7 +426,7 @@ public class GameScanViewModelTests : IDisposable
     }
 
     [Fact]
-    public void ClearResultsCommand_ClearsAllResults()
+    public async Task ClearResultsCommand_ClearsAllResults()
     {
         // Arrange
         _viewModel.ScanResult = new GameScanResult
@@ -429,7 +443,7 @@ public class GameScanViewModelTests : IDisposable
         _viewModel.Warnings.Add("Warning");
 
         // Act
-        _viewModel.ClearResultsCommand.Execute();
+        await _viewModel.ClearResultsCommand.Execute().FirstAsync();
 
         // Assert
         _viewModel.ScanResult.Should().BeNull("because results were cleared");

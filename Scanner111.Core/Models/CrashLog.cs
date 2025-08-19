@@ -130,11 +130,6 @@ public class CrashLog
         OriginalLines = null!; // Allow GC to collect the list
     }
 
-    /// <summary>
-    ///     Parse a crash log from file asynchronously
-    /// </summary>
-    public static async Task<CrashLog?> ParseAsync(string filePath, CancellationToken cancellationToken = default)
-    {
-        return await CrashLogParser.ParseAsync(filePath, cancellationToken);
-    }
+    // Note: Parsing functionality has been moved to ICrashLogParser service
+    // Use dependency injection to access ICrashLogParser instead of this static method
 }

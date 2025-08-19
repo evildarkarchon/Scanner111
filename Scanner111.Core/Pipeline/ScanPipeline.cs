@@ -17,18 +17,21 @@ public class ScanPipeline : IScanPipeline
     private readonly IMessageHandler _messageHandler;
     private readonly SemaphoreSlim _semaphore;
     private readonly IYamlSettingsProvider _settingsProvider;
+    private readonly ICrashLogParser _crashLogParser;
     private bool _disposed;
 
     public ScanPipeline(
         IEnumerable<IAnalyzer> analyzers,
         ILogger<ScanPipeline> logger,
         IMessageHandler messageHandler,
-        IYamlSettingsProvider settingsProvider)
+        IYamlSettingsProvider settingsProvider,
+        ICrashLogParser crashLogParser)
     {
         _analyzers = analyzers; // Store IEnumerable without materializing
         _logger = logger;
         _messageHandler = messageHandler;
         _settingsProvider = settingsProvider;
+        _crashLogParser = crashLogParser;
         _semaphore = new SemaphoreSlim(Environment.ProcessorCount);
     }
 
@@ -52,7 +55,7 @@ public class ScanPipeline : IScanPipeline
             _logger.LogInformation("Starting scan of {LogPath}", logPath);
 
             // Parse crash log
-            var crashLog = await CrashLog.ParseAsync(logPath, cancellationToken).ConfigureAwait(false);
+            var crashLog = await _crashLogParser.ParseAsync(logPath, cancellationToken).ConfigureAwait(false);
             if (crashLog == null)
             {
                 result.Status = ScanStatus.Failed;

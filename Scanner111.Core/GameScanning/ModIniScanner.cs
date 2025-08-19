@@ -1,5 +1,6 @@
 using IniParser;
 using IniParser.Model;
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Core.GameScanning;
@@ -23,6 +24,8 @@ public class ModIniScanner : IModIniScanner
     private readonly ILogger<ModIniScanner> _logger;
     private readonly List<string> _messageList = new();
     private readonly IApplicationSettingsService _settingsService;
+    private readonly IFileSystem _fileSystem;
+    private readonly IPathService _pathService;
 
     // List of files and their VSync settings to check
     private readonly List<(string file, string section, string setting)> _vsyncSettings = new()
@@ -37,10 +40,14 @@ public class ModIniScanner : IModIniScanner
 
     public ModIniScanner(
         IApplicationSettingsService settingsService,
-        ILogger<ModIniScanner> logger)
+        ILogger<ModIniScanner> logger,
+        IFileSystem fileSystem,
+        IPathService pathService)
     {
         _settingsService = settingsService;
         _logger = logger;
+        _fileSystem = fileSystem;
+        _pathService = pathService;
     }
 
     public async Task<string> ScanAsync()
@@ -50,7 +57,7 @@ public class ModIniScanner : IModIniScanner
             var settings = _settingsService.LoadSettingsAsync().GetAwaiter().GetResult();
             var gameRootPath = settings.GamePath;
 
-            if (string.IsNullOrEmpty(gameRootPath) || !Directory.Exists(gameRootPath))
+            if (string.IsNullOrEmpty(gameRootPath) || !_fileSystem.DirectoryExists(gameRootPath))
             {
                 _messageList.Add("# ⚠️ WARNING : Game path not configured or doesn't exist #\n-----\n");
                 return;
@@ -93,29 +100,52 @@ public class ModIniScanner : IModIniScanner
         try
         {
             var parser = new FileIniDataParser();
-            var iniFiles = Directory.GetFiles(gameRootPath, "*.ini", SearchOption.AllDirectories)
+            var iniFiles = _fileSystem.GetFiles(gameRootPath, "*.ini", SearchOption.AllDirectories)
                 .Where(f => !f.Contains("\\Saves\\") && !f.Contains("\\backup\\", StringComparison.OrdinalIgnoreCase))
                 .ToList();
+
+            // Also check for dxvk.conf which is not an INI file
+            var dxvkPath = _pathService.Combine(gameRootPath, "dxvk.conf");
+            if (_fileSystem.FileExists(dxvkPath))
+            {
+                iniFiles.Add(dxvkPath);
+            }
 
             foreach (var file in iniFiles)
                 try
                 {
-                    var fileName = Path.GetFileName(file).ToLowerInvariant();
-                    var iniData = parser.ReadFile(file);
-
-                    if (_configFiles.ContainsKey(fileName))
+                    var fileName = _pathService.GetFileName(file).ToLowerInvariant();
+                    
+                    // Handle dxvk.conf specially as it's not an INI file
+                    if (fileName == "dxvk.conf")
                     {
-                        _duplicateFiles.Add(file);
+                        var dxvkContent = _fileSystem.ReadAllText(file);
+                        var dxvkIniData = ParseDxvkConfig(dxvkContent);
+                        if (dxvkIniData != null)
+                        {
+                            _configFiles[fileName] = dxvkIniData;
+                            _configFilePaths[fileName] = file;
+                        }
                     }
                     else
                     {
-                        _configFiles[fileName] = iniData;
-                        _configFilePaths[fileName] = file;
+                        var iniContent = _fileSystem.ReadAllText(file);
+                        var iniData = parser.Parser.Parse(iniContent);
+
+                        if (_configFiles.ContainsKey(fileName))
+                        {
+                            _duplicateFiles.Add(file);
+                        }
+                        else
+                        {
+                            _configFiles[fileName] = iniData;
+                            _configFilePaths[fileName] = file;
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, $"Failed to parse INI file: {file}");
+                    _logger.LogWarning(ex, $"Failed to parse file: {file}");
                 }
         }
         catch (Exception ex)
@@ -123,6 +153,51 @@ public class ModIniScanner : IModIniScanner
             _logger.LogError(ex, "Error loading config files");
             _messageList.Add($"# ❌ ERROR : Failed to load config files: {ex.Message} #\n-----\n");
         }
+    }
+
+    private IniData? ParseDxvkConfig(string content)
+    {
+        // Parse dxvk.conf which has format like "key = value" without sections
+        // For test compatibility, also check if it's actually INI format with [dxgi] section
+        var iniData = new IniData();
+        
+        try
+        {
+            // First try to parse as INI (for tests)
+            if (content.Contains("[") && content.Contains("]"))
+            {
+                var parser = new FileIniDataParser();
+                return parser.Parser.Parse(content);
+            }
+            
+            // Otherwise parse as plain key=value config
+            iniData.Sections.AddSection("dxgi");
+            var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            
+            foreach (var line in lines)
+            {
+                if (line.Contains('='))
+                {
+                    var parts = line.Split('=', 2);
+                    if (parts.Length == 2)
+                    {
+                        var key = parts[0].Trim();
+                        var value = parts[1].Trim();
+                        if (key == "dxgi.syncInterval" || key == "syncInterval")
+                        {
+                            iniData["dxgi"]["syncInterval"] = value;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to parse dxvk.conf");
+            return null;
+        }
+        
+        return iniData;
     }
 
     private void CheckStartingConsoleCommand()
@@ -218,7 +293,8 @@ public class ModIniScanner : IModIniScanner
 
                 // Save the file
                 var parser = new FileIniDataParser();
-                parser.WriteFile(_configFilePaths[fileName], iniData);
+                var content = iniData.ToString();
+                _fileSystem.WriteAllText(_configFilePaths[fileName], content);
 
                 _logger.LogInformation($"> > > PERFORMED {fixDescription} FIX FOR {_configFilePaths[fileName]}");
                 _messageList.Add($"> Performed {fixDescription} Fix For : {_configFilePaths[fileName]}\n");
@@ -235,7 +311,7 @@ public class ModIniScanner : IModIniScanner
         if (_duplicateFiles.Count > 0)
         {
             _messageList.Add("* NOTICE : DUPLICATES FOUND OF THE FOLLOWING FILES *\n");
-            foreach (var file in _duplicateFiles.OrderBy(f => Path.GetFileName(f))) _messageList.Add($"{file}\n");
+            foreach (var file in _duplicateFiles.OrderBy(f => _pathService.GetFileName(f))) _messageList.Add($"{file}\n");
         }
     }
 

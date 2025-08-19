@@ -19,6 +19,7 @@ public class FcxReportGenerationTests : IDisposable
     private readonly TestApplicationSettingsService _settingsService;
     private readonly List<string> _tempDirectories;
     private readonly TestYamlSettingsProvider _yamlSettings;
+    private readonly TestGamePathDetection _gamePathDetection;
 
     public FcxReportGenerationTests()
     {
@@ -27,12 +28,14 @@ public class FcxReportGenerationTests : IDisposable
         _hashService = new TestHashValidationService();
         _yamlSettings = new TestYamlSettingsProvider();
         _messageHandler = new TestMessageHandler();
+        _gamePathDetection = new TestGamePathDetection();
 
         _fcxAnalyzer = new FileIntegrityAnalyzer(
             _hashService,
             _settingsService,
             _yamlSettings,
-            _messageHandler);
+            _messageHandler,
+            _gamePathDetection);
     }
 
     public void Dispose()
@@ -341,7 +344,8 @@ public class FcxReportGenerationTests : IDisposable
             _hashService,
             NullLogger<FcxEnabledPipeline>.Instance,
             _messageHandler,
-            _yamlSettings);
+            _yamlSettings,
+            _gamePathDetection);
 
         var crashLogPath = CreateMockCrashLog();
         var scanResult = new ScanResult

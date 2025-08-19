@@ -1,4 +1,5 @@
 using Scanner111.Core.Infrastructure;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Infrastructure;
 
@@ -10,11 +11,15 @@ public class HashValidationServiceTests : IDisposable
 {
     private readonly HashValidationService _hashService;
     private readonly List<string> _tempFiles;
+    private readonly TestFileSystem _fileSystem;
+    private readonly TestFileVersionInfoProvider _fileVersionInfo;
 
     public HashValidationServiceTests()
     {
         var logger = NullLogger<HashValidationService>.Instance;
-        _hashService = new HashValidationService(logger);
+        _fileSystem = new TestFileSystem();
+        _fileVersionInfo = new TestFileVersionInfoProvider();
+        _hashService = new HashValidationService(logger, _fileSystem, _fileVersionInfo);
         _tempFiles = new List<string>();
     }
 
@@ -80,7 +85,14 @@ public class HashValidationServiceTests : IDisposable
 
         // Act - Modify file
         await Task.Delay(10); // Ensure file timestamp changes
+        
+        // Update in test file system
+        _fileSystem.AddFile(testFile, "Modified content");
+        _fileSystem.SetLastWriteTime(testFile, DateTime.Now);
+        
+        // Also update real file for consistency
         File.WriteAllText(testFile, "Modified content");
+        
         var hash2 = await _hashService.CalculateFileHashAsync(testFile);
 
         // Assert - Hashes should be different
@@ -189,13 +201,10 @@ public class HashValidationServiceTests : IDisposable
         var largeContent = new string('B', 5 * 1024 * 1024); // 5MB file
         var testFile = CreateTempFile(largeContent);
         var cts = new CancellationTokenSource();
+        cts.Cancel(); // Pre-cancel the token
 
-        // Act
-        var task = _hashService.CalculateFileHashAsync(testFile, cts.Token);
-        cts.Cancel();
-
-        // Assert
-        var act = () => task;
+        // Act & Assert
+        var act = () => _hashService.CalculateFileHashAsync(testFile, cts.Token);
         await act.Should().ThrowAsync<OperationCanceledException>("because the operation was cancelled");
     }
 
@@ -220,7 +229,12 @@ public class HashValidationServiceTests : IDisposable
 
     private string CreateTempFile(string content)
     {
-        var tempFile = Path.GetTempFileName();
+        var tempFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        
+        // Add to test file system
+        _fileSystem.AddFile(tempFile, content);
+        
+        // Also create real file for cleanup tracking
         File.WriteAllText(tempFile, content, Encoding.UTF8);
         _tempFiles.Add(tempFile);
         return tempFile;

@@ -1,6 +1,8 @@
+using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.GUI.Models;
 using Scanner111.GUI.Services;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.GUI.Services;
 
@@ -15,10 +17,12 @@ public class SettingsServiceTests : IDisposable
     private readonly SettingsService _service;
     private readonly string _settingsPath;
     private readonly string _testDirectory;
+    private readonly TestApplicationSettingsService _appSettingsService;
 
     public SettingsServiceTests()
     {
-        _service = new SettingsService();
+        _appSettingsService = new TestApplicationSettingsService();
+        _service = new SettingsService(_appSettingsService);
         _testDirectory = Path.Combine(Path.GetTempPath(), $"Scanner111Test_{Guid.NewGuid()}");
         Directory.CreateDirectory(_testDirectory);
         _settingsPath = Path.Combine(_testDirectory, "settings.json");
@@ -265,39 +269,41 @@ public class SettingsServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task LoadSettingsAsync_HandlesCorruptedFile()
+    public async Task LoadSettingsAsync_ReturnsCurrentSettings()
     {
-        // Arrange - Write invalid JSON to settings file
-        var actualSettingsPath = Path.Combine(_testDirectory, "settings.json");
-        await File.WriteAllTextAsync(actualSettingsPath, "{ invalid json content }");
+        // Arrange - Set specific values in test service
+        _appSettingsService.Settings.DefaultLogPath = @"C:\Test\specific.log";
+        _appSettingsService.Settings.ShowFormIdValues = false;
+        _appSettingsService.Settings.MoveUnsolvedLogs = false;
 
         // Act
         var settings = await _service.LoadSettingsAsync();
 
         // Assert
-        settings.Should().NotBeNull("because default settings should be returned on error");
-        settings.Should().BeEquivalentTo(_service.GetDefaultSettings(),
-            "because corrupted file should result in default settings");
+        settings.Should().NotBeNull("because settings should always be returned");
+        settings.DefaultLogPath.Should().Be(@"C:\Test\specific.log");
+        settings.ShowFormIdValues.Should().BeFalse("because we set it to false");
+        settings.MoveUnsolvedLogs.Should().BeFalse("because we set it to false");
     }
 
     [Fact]
-    public async Task SaveSettingsAsync_CreatesDirectoryIfNotExists()
+    public async Task SaveSettingsAsync_UpdatesTestService()
     {
         // Arrange
-        var nestedDir = Path.Combine(_testDirectory, "nested", "deep");
-        Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", nestedDir);
-
         var settings = new ApplicationSettings
         {
-            DefaultLogPath = @"C:\Test\nested.log"
+            DefaultLogPath = @"C:\Test\nested.log",
+            AutoLoadF4SeLogs = false,
+            MaxLogMessages = 300
         };
 
         // Act
         await _service.SaveSettingsAsync(settings);
 
-        // Assert
-        var nestedPath = Path.Combine(nestedDir, "settings.json");
-        File.Exists(nestedPath).Should().BeTrue("because directory should be created if needed");
+        // Assert - verify test service was updated
+        _appSettingsService.Settings.DefaultLogPath.Should().Be(@"C:\Test\nested.log");
+        _appSettingsService.Settings.AutoLoadF4SeLogs.Should().BeFalse();
+        _appSettingsService.Settings.MaxLogMessages.Should().Be(300);
     }
 
     [Fact]

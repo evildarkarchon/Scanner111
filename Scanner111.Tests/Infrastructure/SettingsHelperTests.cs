@@ -1,5 +1,7 @@
 using System.Text.Json;
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Infrastructure;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Infrastructure;
 
@@ -8,6 +10,10 @@ public class SettingsHelperTests : IDisposable
 {
     private readonly string _originalAppData;
     private readonly string _testDirectory;
+    private readonly ISettingsHelper _settingsHelper;
+    private readonly IFileSystem _fileSystem;
+    private readonly IPathService _pathService;
+    private readonly IEnvironmentPathProvider _environmentProvider;
 
     public SettingsHelperTests()
     {
@@ -17,6 +23,12 @@ public class SettingsHelperTests : IDisposable
         // Store original APPDATA and set test directory
         _originalAppData = Environment.GetEnvironmentVariable("APPDATA") ?? "";
         Environment.SetEnvironmentVariable("APPDATA", _testDirectory);
+
+        // Create test dependencies
+        _fileSystem = new FileSystem();
+        _pathService = new PathService();
+        _environmentProvider = new EnvironmentPathProvider();
+        _settingsHelper = new SettingsHelper(_fileSystem, _pathService, _environmentProvider);
     }
 
     public void Dispose()
@@ -31,7 +43,7 @@ public class SettingsHelperTests : IDisposable
     public void GetSettingsDirectory_ReturnsCorrectPath()
     {
         // Act
-        var directory = SettingsHelper.GetSettingsDirectory();
+        var directory = _settingsHelper.GetSettingsDirectory();
 
         // Assert
         directory.Should().EndWith(Path.Combine("Scanner111"));
@@ -41,10 +53,10 @@ public class SettingsHelperTests : IDisposable
     public void EnsureSettingsDirectoryExists_CreatesDirectory()
     {
         // Arrange
-        var settingsDir = SettingsHelper.GetSettingsDirectory();
+        var settingsDir = _settingsHelper.GetSettingsDirectory();
 
         // Act
-        SettingsHelper.EnsureSettingsDirectoryExists();
+        _settingsHelper.EnsureSettingsDirectoryExists();
 
         // Assert
         Directory.Exists(settingsDir).Should().BeTrue();
@@ -54,9 +66,9 @@ public class SettingsHelperTests : IDisposable
     public void EnsureSettingsDirectoryExists_MultipleCalls_DoesNotThrow()
     {
         // Act & Assert - Should not throw even if directory already exists
-        SettingsHelper.EnsureSettingsDirectoryExists();
-        SettingsHelper.EnsureSettingsDirectoryExists();
-        SettingsHelper.EnsureSettingsDirectoryExists();
+        _settingsHelper.EnsureSettingsDirectoryExists();
+        _settingsHelper.EnsureSettingsDirectoryExists();
+        _settingsHelper.EnsureSettingsDirectoryExists();
     }
 
     [Fact]
@@ -67,7 +79,7 @@ public class SettingsHelperTests : IDisposable
         var defaultSettings = new TestSettings { Value = "Default", Number = 42 };
 
         // Act
-        var loaded = await SettingsHelper.LoadSettingsAsync(filePath, () => defaultSettings);
+        var loaded = await _settingsHelper.LoadSettingsAsync(filePath, () => defaultSettings);
 
         // Assert
         loaded.Should().NotBeNull();
@@ -97,7 +109,7 @@ public class SettingsHelperTests : IDisposable
         await File.WriteAllTextAsync(filePath, json);
 
         // Act
-        var loaded = await SettingsHelper.LoadSettingsAsync(filePath, () => new TestSettings());
+        var loaded = await _settingsHelper.LoadSettingsAsync(filePath, () => new TestSettings());
 
         // Assert
         loaded.Should().NotBeNull();
@@ -116,7 +128,7 @@ public class SettingsHelperTests : IDisposable
         var defaultSettings = new TestSettings { Value = "Default", Number = 99 };
 
         // Act
-        var loaded = await SettingsHelper.LoadSettingsAsync(filePath, () => defaultSettings);
+        var loaded = await _settingsHelper.LoadSettingsAsync(filePath, () => defaultSettings);
 
         // Assert
         loaded.Should().NotBeNull();
@@ -135,7 +147,7 @@ public class SettingsHelperTests : IDisposable
         var defaultSettings = new TestSettings { Value = "Default", Number = 77 };
 
         // Act
-        var loaded = await SettingsHelper.LoadSettingsAsync(filePath, () => defaultSettings);
+        var loaded = await _settingsHelper.LoadSettingsAsync(filePath, () => defaultSettings);
 
         // Assert
         loaded.Should().NotBeNull();
@@ -147,11 +159,11 @@ public class SettingsHelperTests : IDisposable
     public async Task SaveSettingsAsync_SavesWithCorrectFormat()
     {
         // Arrange
-        var filePath = Path.Combine(SettingsHelper.GetSettingsDirectory(), "settings.json");
+        var filePath = Path.Combine(_settingsHelper.GetSettingsDirectory(), "settings.json");
         var settings = new TestSettings { Value = "Test", Number = 456 };
 
         // Act
-        await SettingsHelper.SaveSettingsAsync(filePath, settings);
+        await _settingsHelper.SaveSettingsAsync(filePath, settings);
 
         // Assert
         File.Exists(filePath).Should().BeTrue();
@@ -175,15 +187,15 @@ public class SettingsHelperTests : IDisposable
         var newAppData = Path.Combine(_testDirectory, "NewAppData");
         Environment.SetEnvironmentVariable("APPDATA", newAppData);
 
-        var settingsPath = Path.Combine(SettingsHelper.GetSettingsDirectory(), "settings.json");
+        var settingsPath = Path.Combine(_settingsHelper.GetSettingsDirectory(), "settings.json");
         var settings = new TestSettings { Value = "Test", Number = 789 };
 
         // Act
-        await SettingsHelper.SaveSettingsAsync(settingsPath, settings);
+        await _settingsHelper.SaveSettingsAsync(settingsPath, settings);
 
         // Assert
         File.Exists(settingsPath).Should().BeTrue();
-        Directory.Exists(SettingsHelper.GetSettingsDirectory()).Should().BeTrue();
+        Directory.Exists(_settingsHelper.GetSettingsDirectory()).Should().BeTrue();
 
         // Restore original APPDATA
         Environment.SetEnvironmentVariable("APPDATA", _originalAppData);
@@ -205,7 +217,7 @@ public class SettingsHelperTests : IDisposable
         try
         {
             // Act & Assert
-            var act = () => SettingsHelper.SaveSettingsAsync(filePath, settings);
+            var act = () => _settingsHelper.SaveSettingsAsync(filePath, settings);
             await act.Should().ThrowAsync<UnauthorizedAccessException>();
         }
         finally
@@ -235,7 +247,7 @@ public class SettingsHelperTests : IDisposable
     public void ConvertValue_StringToBool_ConvertsCorrectly(string input, Type targetType, object expected)
     {
         // Act
-        var result = SettingsHelper.ConvertValue(input, targetType);
+        var result = _settingsHelper.ConvertValue(input, targetType);
 
         // Assert
         result.Should().Be(expected);
@@ -245,7 +257,7 @@ public class SettingsHelperTests : IDisposable
     public void ConvertValue_InvalidBoolString_ThrowsArgumentException()
     {
         // Act & Assert
-        var act = () => SettingsHelper.ConvertValue("maybe", typeof(bool));
+        var act = () => _settingsHelper.ConvertValue("maybe", typeof(bool));
         act.Should().Throw<ArgumentException>()
             .WithMessage("*Invalid boolean value*");
     }
@@ -257,7 +269,7 @@ public class SettingsHelperTests : IDisposable
     public void ConvertValue_StringToInt_ConvertsCorrectly(string input, Type targetType, object expected)
     {
         // Act
-        var result = SettingsHelper.ConvertValue(input, targetType);
+        var result = _settingsHelper.ConvertValue(input, targetType);
 
         // Assert
         result.Should().Be(expected);
@@ -267,7 +279,7 @@ public class SettingsHelperTests : IDisposable
     public void ConvertValue_InvalidIntString_ThrowsFormatException()
     {
         // Act & Assert
-        var act = () => SettingsHelper.ConvertValue("not-a-number", typeof(int));
+        var act = () => _settingsHelper.ConvertValue("not-a-number", typeof(int));
         act.Should().Throw<FormatException>();
     }
 
@@ -275,7 +287,7 @@ public class SettingsHelperTests : IDisposable
     public void ConvertValue_NullValue_ReturnsNull()
     {
         // Act
-        var result = SettingsHelper.ConvertValue(null!, typeof(string));
+        var result = _settingsHelper.ConvertValue(null!, typeof(string));
 
         // Assert
         result.Should().BeNull();
@@ -288,7 +300,7 @@ public class SettingsHelperTests : IDisposable
     public void ConvertValue_OtherConversions_UsesChangeType(object input, Type targetType, object expected)
     {
         // Act
-        var result = SettingsHelper.ConvertValue(input, targetType);
+        var result = _settingsHelper.ConvertValue(input, targetType);
 
         // Assert
         result.Should().Be(expected);
@@ -310,7 +322,7 @@ public class SettingsHelperTests : IDisposable
     public void ToPascalCase_VariousInputs_ConvertsCorrectly(string? input, string? expected)
     {
         // Act
-        var result = SettingsHelper.ToPascalCase(input);
+        var result = _settingsHelper.ToPascalCase(input);
 
         // Assert
         result.Should().Be(expected);

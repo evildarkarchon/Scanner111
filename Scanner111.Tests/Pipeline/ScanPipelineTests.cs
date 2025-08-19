@@ -31,12 +31,16 @@ public class ScanPipelineTests : IDisposable
     private readonly ScanPipeline _pipeline;
     private readonly IYamlSettingsProvider _settingsProvider;
     private readonly List<TestAnalyzer> _testAnalyzers;
+    private readonly TestCrashLogParser _crashLogParser;
+    private readonly TestFileSystem _fileSystem;
 
     public ScanPipelineTests()
     {
         _logger = new TestLogger<ScanPipeline>();
         _messageHandler = new TestMessageHandler();
         _settingsProvider = new TestYamlSettingsProvider();
+        _crashLogParser = new TestCrashLogParser();
+        _fileSystem = new TestFileSystem();
 
         // Create test analyzers with different priorities and capabilities
         _testAnalyzers =
@@ -47,7 +51,7 @@ public class ScanPipelineTests : IDisposable
             new TestAnalyzer("FailingAnalyzer", 3, true, false)
         ];
 
-        _pipeline = new ScanPipeline(_testAnalyzers, _logger, _messageHandler, _settingsProvider);
+        _pipeline = new ScanPipeline(_testAnalyzers, _logger, _messageHandler, _settingsProvider, _crashLogParser);
     }
 
     /// <summary>
@@ -353,7 +357,7 @@ public class ScanPipelineTests : IDisposable
     public async Task DisposeAsync_ShouldDisposeResourcesProperly()
     {
         // Arrange
-        var pipeline = new ScanPipeline(_testAnalyzers, _logger, _messageHandler, _settingsProvider);
+        var pipeline = new ScanPipeline(_testAnalyzers, _logger, _messageHandler, _settingsProvider, _crashLogParser);
 
         // Act
         await pipeline.DisposeAsync();
@@ -438,10 +442,73 @@ public class ScanPipelineTests : IDisposable
     /// <returns>The full path to the created crash log file.</returns>
     private string SetupTestCrashLog(string fileName, string content)
     {
-        // Create actual temp files since CrashLog.ParseAsync uses real file system
-        var tempPath = Path.GetTempFileName();
-        File.WriteAllText(tempPath, content);
-        return tempPath;
+        // Create a virtual path for the test
+        var logPath = Path.Combine("C:\\Temp", fileName);
+        
+        // Add the file to the test file system
+        _fileSystem.AddFile(logPath, content);
+        
+        // Configure the TestCrashLogParser to return a proper CrashLog for this path
+        var crashLog = ParseCrashLogFromContent(content);
+        _crashLogParser.SetCrashLog(logPath, crashLog);
+        
+        return logPath;
+    }
+    
+    private CrashLog ParseCrashLogFromContent(string content)
+    {
+        // Parse the test content to create a CrashLog object
+        var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var crashLog = new CrashLog
+        {
+            GameType = "Fallout4",
+            GameVersion = "1.10.163",
+            Plugins = new Dictionary<string, string>(),
+            XseModules = new HashSet<string>(),
+            OriginalLines = lines.ToList()
+        };
+        
+        // Parse plugins from content
+        bool inPlugins = false;
+        foreach (var line in lines)
+        {
+            if (line.Contains("PLUGINS:"))
+            {
+                inPlugins = true;
+                continue;
+            }
+            
+            if (inPlugins && line.StartsWith("\t["))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(line, @"\[(\d+:\d+)\] (.+)");
+                if (match.Success)
+                {
+                    crashLog.Plugins[match.Groups[1].Value] = match.Groups[2].Value;
+                }
+            }
+            else if (inPlugins && !line.StartsWith("\t"))
+            {
+                inPlugins = false;
+            }
+            
+            // Parse XSE plugins
+            if (line.EndsWith(".dll") && line.Contains("v"))
+            {
+                var parts = line.Trim().Split(' ');
+                if (parts.Length > 0)
+                {
+                    crashLog.XseModules.Add(parts[0]);
+                }
+            }
+            
+            // Parse main error
+            if (line.Contains("EXCEPTION_ACCESS_VIOLATION"))
+            {
+                crashLog.MainError = line;
+            }
+        }
+        
+        return crashLog;
     }
 
     private static string GenerateValidCrashLog()

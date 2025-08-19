@@ -5,6 +5,7 @@ using Scanner111.Core.Services;
 using Scanner111.GUI.Models;
 using Scanner111.GUI.Services;
 using Scanner111.GUI.ViewModels;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.GUI.Integration;
 
@@ -30,7 +31,8 @@ public class ViewModelServiceIntegrationTests : IDisposable
         Directory.CreateDirectory(_testDirectory);
 
         // Use real services where possible
-        _settingsService = new SettingsService();
+        var appSettingsService = new TestApplicationSettingsService();
+        _settingsService = new SettingsService(appSettingsService);
         _messageHandler = new GuiMessageHandlerService();
 
         // Mock services that have external dependencies
@@ -202,6 +204,7 @@ public class ViewModelServiceIntegrationTests : IDisposable
 
         // Act - Create multiple view models that use the same settings
         var mainViewModel = new MainWindowViewModel(
+            _serviceProvider.Object,
             _settingsService,
             _messageHandler,
             _mockUpdateService.Object,
@@ -339,6 +342,7 @@ public class ViewModelServiceIntegrationTests : IDisposable
 
         // Act & Assert - ViewModels should handle the error gracefully
         var mainViewModel = new MainWindowViewModel(
+            _serviceProvider.Object,
             failingSettingsService.Object,
             _messageHandler,
             _mockUpdateService.Object,

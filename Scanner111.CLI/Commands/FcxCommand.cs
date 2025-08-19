@@ -17,6 +17,7 @@ public class FcxCommand : ICommand<FcxOptions>
     private readonly IMessageHandler _messageHandler;
     private readonly ICliSettingsService _settingsService;
     private readonly IYamlSettingsProvider _yamlSettings;
+    private readonly IGamePathDetection _gamePathDetection;
 
     public FcxCommand(
         ICliSettingsService settingsService,
@@ -25,7 +26,8 @@ public class FcxCommand : ICommand<FcxOptions>
         IApplicationSettingsService appSettingsService,
         IYamlSettingsProvider yamlSettings,
         ILogger<FcxCommand> logger,
-        IMessageHandler messageHandler)
+        IMessageHandler messageHandler,
+        IGamePathDetection gamePathDetection)
     {
         _settingsService = Guard.NotNull(settingsService, nameof(settingsService));
         _hashService = Guard.NotNull(hashService, nameof(hashService));
@@ -34,6 +36,7 @@ public class FcxCommand : ICommand<FcxOptions>
         _yamlSettings = Guard.NotNull(yamlSettings, nameof(yamlSettings));
         _logger = Guard.NotNull(logger, nameof(logger));
         _messageHandler = Guard.NotNull(messageHandler, nameof(messageHandler));
+        _gamePathDetection = Guard.NotNull(gamePathDetection, nameof(gamePathDetection));
     }
 
     public async Task<int> ExecuteAsync(FcxOptions options)
@@ -73,7 +76,7 @@ public class FcxCommand : ICommand<FcxOptions>
         var gamePath = settings.GamePath;
         if (string.IsNullOrEmpty(gamePath))
         {
-            gamePath = GamePathDetection.TryDetectGamePath("Fallout4");
+            gamePath = _gamePathDetection.TryDetectGamePath("Fallout4");
 
             if (string.IsNullOrEmpty(gamePath))
             {
@@ -103,7 +106,8 @@ public class FcxCommand : ICommand<FcxOptions>
             _hashService,
             _appSettingsService,
             _yamlSettings,
-            MessageHandler.IsInitialized ? new CliMessageHandler(!options.DisableColors) : null!);
+            _messageHandler,
+            _gamePathDetection);
 
         var cancellationToken = CancellationToken.None;
 
@@ -169,7 +173,7 @@ public class FcxCommand : ICommand<FcxOptions>
         var gamePath = settings.GamePath;
         if (string.IsNullOrEmpty(gamePath))
         {
-            gamePath = GamePathDetection.TryDetectGamePath("Fallout4");
+            gamePath = _gamePathDetection.TryDetectGamePath("Fallout4");
 
             if (string.IsNullOrEmpty(gamePath))
             {

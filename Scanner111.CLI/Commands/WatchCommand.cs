@@ -54,6 +54,22 @@ public class WatchCommand : ICommand<WatchOptions>, IDisposable
     {
         _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
+        // Validate explicit path - if Path was explicitly set (even to null/empty), validate it
+        if (options.Path == null || string.IsNullOrWhiteSpace(options.Path))
+        {
+            // If no path explicitly provided and no game specified, this is an error
+            if (string.IsNullOrEmpty(options.Game))
+            {
+                AnsiConsole.MarkupLine("[red]Error:[/] No watch path specified");
+                return 1;
+            }
+        }
+        else if (!Directory.Exists(options.Path))
+        {
+            AnsiConsole.MarkupLine("[red]Error:[/] Invalid or missing watch path");
+            return 1;
+        }
+
         var watchPath = DetermineWatchPath(options);
         if (string.IsNullOrEmpty(watchPath) || !Directory.Exists(watchPath))
         {

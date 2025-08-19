@@ -1,6 +1,7 @@
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Microsoft.Extensions.DependencyInjection;
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Services;
 using Scanner111.GUI.Services;
@@ -38,11 +39,21 @@ public partial class MainWindow : Window
         serviceCollection.AddSingleton<IUnsolvedLogsMover, NullUnsolvedLogsMover>();
         var serviceProvider = serviceCollection.BuildServiceProvider();
 
-        var settingsService = new SettingsService();
-        var messageHandler = new GuiMessageHandlerService();
-        var updateService = new DesignTimeUpdateService();
-        var cacheManager = new NullCacheManager();
-        var unsolvedLogsMover = new NullUnsolvedLogsMover();
+        // Add missing registrations for design time
+        serviceCollection.AddSingleton<ISettingsService, SettingsService>();
+        serviceCollection.AddSingleton<IApplicationSettingsService, ApplicationSettingsService>();
+        serviceCollection.AddSingleton<IGamePathDetection, GamePathDetection>();
+        serviceCollection.AddSingleton<IFileSystem, FileSystem>();
+        serviceCollection.AddSingleton<IEnvironmentPathProvider, EnvironmentPathProvider>();
+        serviceCollection.AddSingleton<IPathService, PathService>();
+        
+        serviceProvider = serviceCollection.BuildServiceProvider();
+        
+        var settingsService = serviceProvider.GetRequiredService<ISettingsService>();
+        var messageHandler = serviceProvider.GetRequiredService<GuiMessageHandlerService>();
+        var updateService = serviceProvider.GetRequiredService<IUpdateService>();
+        var cacheManager = serviceProvider.GetRequiredService<ICacheManager>();
+        var unsolvedLogsMover = serviceProvider.GetRequiredService<IUnsolvedLogsMover>();
 
         _viewModel = new MainWindowViewModel(serviceProvider, settingsService, messageHandler, updateService,
             cacheManager,

@@ -1,4 +1,6 @@
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Infrastructure;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Infrastructure;
 
@@ -27,11 +29,19 @@ namespace Scanner111.Tests.Infrastructure;
 public class CrashLogParserTests : IDisposable
 {
     private readonly string _testDirectory;
+    private readonly CrashLogParser _parser;
+    private readonly TestFileSystem _fileSystem;
 
     public CrashLogParserTests()
     {
         _testDirectory = Path.Combine(Path.GetTempPath(), $"Scanner111Tests_{Guid.NewGuid()}");
         Directory.CreateDirectory(_testDirectory);
+        
+        // Initialize test dependencies
+        _fileSystem = new TestFileSystem();
+        
+        // Create instance of CrashLogParser with test dependencies
+        _parser = new CrashLogParser(_fileSystem);
     }
 
     /// Releases the resources used by the CrashLogParserTests class.
@@ -71,7 +81,7 @@ public class CrashLogParserTests : IDisposable
         var crashLogPath = CreateTestCrashLog("valid_crash.log", GenerateValidCrashLog());
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().NotBeNull();
@@ -94,7 +104,7 @@ public class CrashLogParserTests : IDisposable
             string.Join("\n", Enumerable.Range(1, 10).Select(i => $"Line {i}")));
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().BeNull();
@@ -110,7 +120,7 @@ public class CrashLogParserTests : IDisposable
         var crashLogPath = Path.Combine(_testDirectory, "nonexistent.log");
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().BeNull();
@@ -127,7 +137,7 @@ public class CrashLogParserTests : IDisposable
         var crashLogPath = CreateTestCrashLog("game_version.log", GenerateValidCrashLog());
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().NotBeNull();
@@ -147,7 +157,7 @@ public class CrashLogParserTests : IDisposable
         var crashLogPath = CreateTestCrashLog("crashgen_version.log", GenerateValidCrashLog());
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().NotBeNull();
@@ -172,7 +182,7 @@ public class CrashLogParserTests : IDisposable
         var crashLogPath = CreateTestCrashLog("main_error.log", GenerateValidCrashLog());
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().NotBeNull();
@@ -191,7 +201,7 @@ public class CrashLogParserTests : IDisposable
         var crashLogPath = CreateTestCrashLog("plugins.log", GenerateValidCrashLog());
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().NotBeNull();
@@ -218,7 +228,7 @@ public class CrashLogParserTests : IDisposable
         var crashLogPath = CreateTestCrashLog("xse_modules.log", GenerateValidCrashLog());
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().NotBeNull();
@@ -243,7 +253,7 @@ public class CrashLogParserTests : IDisposable
         var crashLogPath = CreateTestCrashLog("settings.log", GenerateValidCrashLog());
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().NotBeNull();
@@ -285,7 +295,7 @@ public class CrashLogParserTests : IDisposable
         var crashLogPath = CreateTestCrashLog("incomplete.log", incompleteLog);
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().NotBeNull();
@@ -308,7 +318,7 @@ public class CrashLogParserTests : IDisposable
         var crashLogPath = CreateTestCrashLog("callstack.log", GenerateValidCrashLog());
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().NotBeNull();
@@ -328,7 +338,7 @@ public class CrashLogParserTests : IDisposable
         var crashLogPath = CreateTestCrashLog("skyrim.log", skyrimLog);
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().NotBeNull();
@@ -358,7 +368,7 @@ public class CrashLogParserTests : IDisposable
         var crashLogPath = CreateTestCrashLog("pipe_error.log", content);
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().NotBeNull();
@@ -405,7 +415,7 @@ PLUGINS:
         var crashLogPath = CreateTestCrashLog("empty_segments.log", string.Join("\n", lines));
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().NotBeNull();
@@ -433,7 +443,7 @@ PLUGINS:
         var crashLogPath = CreateTestCrashLog("mixed_settings.log", crashLog);
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().NotBeNull();
@@ -461,7 +471,7 @@ PLUGINS:
         var crashLogPath = CreateTestCrashLog("xse_no_version.log", crashLog);
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().NotBeNull();
@@ -488,7 +498,7 @@ PLUGINS:
         await cts.CancelAsync();
 
         // Act & Assert
-        Func<Task> act = async () => await CrashLogParser.ParseAsync(crashLogPath, cts.Token);
+        Func<Task> act = async () => await _parser.ParseAsync(crashLogPath, cts.Token);
         await act.Should().ThrowAsync<OperationCanceledException>();
     }
 
@@ -515,10 +525,14 @@ PLUGINS:
         invalidBytes[102] = 0xFD; // Invalid UTF-8 sequence
         Array.Copy(bytes, 100, invalidBytes, 103, bytes.Length - 100);
 
+        // Add file to test file system with UTF-8 fallback for invalid bytes
+        var utf8WithFallback = new UTF8Encoding(false, false); // Don't throw on invalid bytes
+        var contentWithErrors = utf8WithFallback.GetString(invalidBytes);
+        _fileSystem.AddFile(crashLogPath, contentWithErrors);
         await File.WriteAllBytesAsync(crashLogPath, invalidBytes);
 
         // Act
-        var result = await CrashLogParser.ParseAsync(crashLogPath);
+        var result = await _parser.ParseAsync(crashLogPath);
 
         // Assert
         result.Should().NotBeNull();
@@ -539,6 +553,9 @@ PLUGINS:
     private string CreateTestCrashLog(string filename, string content)
     {
         var filePath = Path.Combine(_testDirectory, filename);
+        // Add file to the test file system instead of writing to disk
+        _fileSystem.AddFile(filePath, content);
+        // Also write to disk for any tests that might still need real files
         File.WriteAllText(filePath, content);
         return filePath;
     }

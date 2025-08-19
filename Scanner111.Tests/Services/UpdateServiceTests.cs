@@ -183,10 +183,13 @@ public class UpdateServiceTests
         _settingsServiceMock.Setup(x => x.LoadSettingsAsync())
             .ThrowsAsync(new Exception("Test exception"));
 
-        // Act & Assert - The method lets the exception propagate
-        var act = async () => await _service.GetUpdateInfoAsync();
-        await act.Should().ThrowAsync<Exception>()
-            .WithMessage("Test exception");
+        // Act
+        var result = await _service.GetUpdateInfoAsync();
+        
+        // Assert
+        result.Should().NotBeNull();
+        result.CheckSuccessful.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Test exception");
     }
 
     [Fact]
@@ -229,10 +232,13 @@ public class UpdateServiceTests
         _settingsServiceMock.Setup(x => x.LoadSettingsAsync())
             .ReturnsAsync((ApplicationSettings)null!);
 
-        // Act & Assert - should not throw
-        var act = () => _service.GetUpdateInfoAsync();
-        await act.Should().ThrowAsync<NullReferenceException>()
-            .WithMessage("*", "because null settings should cause a NullReferenceException");
+        // Act
+        var result = await _service.GetUpdateInfoAsync();
+        
+        // Assert
+        result.Should().NotBeNull();
+        result.CheckSuccessful.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Unable to load application settings");
     }
 
     [Fact]

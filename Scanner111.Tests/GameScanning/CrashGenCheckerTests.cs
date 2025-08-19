@@ -396,14 +396,14 @@ public class CrashGenCheckerTests : IDisposable
     #region HasPlugin Method Tests
 
     [Fact]
-    public void HasPlugin_SinglePluginExists_ReturnsTrue()
+    public async Task HasPlugin_SinglePluginExists_ReturnsTrue()
     {
         // Arrange
         CreateTestPluginsDirectory();
         CreatePluginFile("x-cell-og.dll");
 
         // Force initialization
-        _ = _checker.CheckAsync().Result;
+        _ = await _checker.CheckAsync();
 
         // Act
         var result = _checker.HasPlugin(new List<string> { "x-cell-og.dll" });
@@ -413,14 +413,14 @@ public class CrashGenCheckerTests : IDisposable
     }
 
     [Fact]
-    public void HasPlugin_MultiplePluginsOneExists_ReturnsTrue()
+    public async Task HasPlugin_MultiplePluginsOneExists_ReturnsTrue()
     {
         // Arrange
         CreateTestPluginsDirectory();
         CreatePluginFile("achievements.dll");
 
         // Force initialization
-        _ = _checker.CheckAsync().Result;
+        _ = await _checker.CheckAsync();
 
         // Act
         var result = _checker.HasPlugin(new List<string>
@@ -435,13 +435,13 @@ public class CrashGenCheckerTests : IDisposable
     }
 
     [Fact]
-    public void HasPlugin_NoPluginsExist_ReturnsFalse()
+    public async Task HasPlugin_NoPluginsExist_ReturnsFalse()
     {
         // Arrange
         CreateTestPluginsDirectory();
 
         // Force initialization
-        _ = _checker.CheckAsync().Result;
+        _ = await _checker.CheckAsync();
 
         // Act
         var result = _checker.HasPlugin(new List<string> { "nonexistent.dll" });
@@ -451,14 +451,14 @@ public class CrashGenCheckerTests : IDisposable
     }
 
     [Fact]
-    public void HasPlugin_CaseInsensitive_ReturnsTrue()
+    public async Task HasPlugin_CaseInsensitive_ReturnsTrue()
     {
         // Arrange
         CreateTestPluginsDirectory();
         CreatePluginFile("X-Cell-OG.dll");
 
         // Force initialization
-        _ = _checker.CheckAsync().Result;
+        _ = await _checker.CheckAsync();
 
         // Act
         var result = _checker.HasPlugin(new List<string> { "x-cell-og.dll" });

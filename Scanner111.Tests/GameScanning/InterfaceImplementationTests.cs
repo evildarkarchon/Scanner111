@@ -1,3 +1,4 @@
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.GameScanning;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
@@ -79,11 +80,15 @@ public class InterfaceImplementationTests
         // Arrange
         var mockSettings = new Mock<IApplicationSettingsService>();
         var mockLogger = new Mock<ILogger<ModIniScanner>>();
+        var mockFileSystem = new Mock<IFileSystem>();
+        var mockPathService = new Mock<IPathService>();
 
         // Act
         IModIniScanner scanner = new ModIniScanner(
             mockSettings.Object,
-            mockLogger.Object);
+            mockLogger.Object,
+            mockFileSystem.Object,
+            mockPathService.Object);
 
         // Assert
         scanner.Should().NotBeNull();
@@ -97,12 +102,18 @@ public class InterfaceImplementationTests
         var mockSettings = new Mock<IApplicationSettingsService>();
         var mockYaml = new Mock<IYamlSettingsProvider>();
         var mockLogger = new Mock<ILogger<WryeBashChecker>>();
+        var mockFileSystem = new Mock<IFileSystem>();
+        var mockEnvironment = new Mock<IEnvironmentPathProvider>();
+        var mockPathService = new Mock<IPathService>();
 
         // Act
         IWryeBashChecker checker = new WryeBashChecker(
             mockSettings.Object,
             mockYaml.Object,
-            mockLogger.Object);
+            mockLogger.Object,
+            mockFileSystem.Object,
+            mockEnvironment.Object,
+            mockPathService.Object);
 
         // Assert
         checker.Should().NotBeNull();
@@ -119,6 +130,9 @@ public class InterfaceImplementationTests
         services.AddSingleton(Mock.Of<IApplicationSettingsService>());
         services.AddSingleton<IYamlSettingsProvider>(Mock.Of<IYamlSettingsProvider>());
         services.AddSingleton<IMessageHandler>(Mock.Of<IMessageHandler>());
+        services.AddSingleton<IFileSystem>(Mock.Of<IFileSystem>());
+        services.AddSingleton<IEnvironmentPathProvider>(Mock.Of<IEnvironmentPathProvider>());
+        services.AddSingleton<IPathService>(Mock.Of<IPathService>());
         services.AddLogging();
 
         // Register GameScanning services

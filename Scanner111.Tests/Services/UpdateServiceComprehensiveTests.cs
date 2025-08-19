@@ -87,32 +87,82 @@ public class UpdateServiceComprehensiveTests : IDisposable
     /// <summary>
     ///     Testable version of UpdateService that allows controlling the update check result
     /// </summary>
-    private class TestableUpdateService : UpdateService
+    private class TestableUpdateService : IUpdateService
     {
         private readonly UpdateCheckResult? _overrideResult;
         private readonly IApplicationSettingsService _settingsService;
+        private readonly IMessageHandler _messageHandler;
+        private readonly ILogger<UpdateService> _logger;
 
         public TestableUpdateService(
             ILogger<UpdateService> logger,
             IApplicationSettingsService settingsService,
             IMessageHandler messageHandler,
             UpdateCheckResult? overrideResult = null)
-            : base(logger, settingsService, messageHandler)
         {
+            _logger = logger;
             _overrideResult = overrideResult;
             _settingsService = settingsService;
+            _messageHandler = messageHandler;
         }
 
         public bool GitHubCalled { get; private set; }
         public bool NexusCalled { get; private set; }
         public bool GitHubShouldFail { get; set; }
         public bool NexusShouldFail { get; set; }
-        public Version? GitHubVersion { get; } = new(1, 0, 0);
+        public Version? GitHubVersion { get; set; } = new(1, 0, 0);
         public Version? NexusVersion { get; set; } = new(1, 0, 0);
         public bool SimulateDelay { get; set; }
         public CancellationToken LastCancellationToken { get; private set; }
 
-        public new async Task<UpdateCheckResult> GetUpdateInfoAsync(CancellationToken cancellationToken = default)
+        public async Task<bool> IsLatestVersionAsync(bool quiet = false, CancellationToken cancellationToken = default)
+        {
+            var result = await GetUpdateInfoAsync(cancellationToken).ConfigureAwait(false);
+
+            if (!result.CheckSuccessful)
+            {
+                if (!quiet) _messageHandler.ShowError($"Update check failed: {result.ErrorMessage}");
+                return false;
+            }
+
+            if (result.IsUpdateAvailable)
+            {
+                if (!quiet)
+                {
+                    var message = "A new version is available!\n" +
+                                  $"Current Version: {result.CurrentVersion}\n";
+
+                    if (result.LatestGitHubVersion != null)
+                        message += $"Latest GitHub Version: {result.LatestGitHubVersion}\n";
+
+                    if (result.LatestNexusVersion != null)
+                        message += $"Latest Nexus Version: {result.LatestNexusVersion}\n";
+
+                    _messageHandler.ShowWarning(message);
+                }
+
+                return false;
+            }
+
+            if (!quiet)
+            {
+                var message = $"Your Scanner 111 Version: {result.CurrentVersion}\n";
+
+                if (result.LatestGitHubVersion != null) 
+                    message += $"Latest GitHub Version: {result.LatestGitHubVersion}\n";
+
+                if (result.LatestNexusVersion != null) 
+                    message += $"Latest Nexus Version: {result.LatestNexusVersion}\n";
+
+                message += "\n✔️ You have the latest version of Scanner 111!";
+
+                _messageHandler.ShowSuccess(message);
+            }
+
+            return true;
+        }
+
+        public async Task<UpdateCheckResult> GetUpdateInfoAsync(CancellationToken cancellationToken = default)
         {
             LastCancellationToken = cancellationToken;
 
@@ -134,20 +184,30 @@ public class UpdateServiceComprehensiveTests : IDisposable
                 UpdateSource = appSettings.UpdateSource
             };
 
-            // Simulate version fetching behavior
+            // Simulate version fetching behavior concurrently like the real service
+            var tasks = new List<Task>();
+            
             if (appSettings.UpdateSource is "Both" or "GitHub")
             {
                 GitHubCalled = true;
-                if (SimulateDelay) await Task.Delay(100, cancellationToken);
-                result.LatestGitHubVersion = GitHubShouldFail ? null : GitHubVersion;
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (SimulateDelay) await Task.Delay(100, cancellationToken);
+                    result.LatestGitHubVersion = GitHubShouldFail ? null : GitHubVersion;
+                }, cancellationToken));
             }
 
             if (appSettings.UpdateSource is "Both" or "Nexus")
             {
                 NexusCalled = true;
-                if (SimulateDelay) await Task.Delay(100, cancellationToken);
-                result.LatestNexusVersion = NexusShouldFail ? null : NexusVersion;
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (SimulateDelay) await Task.Delay(100, cancellationToken);
+                    result.LatestNexusVersion = NexusShouldFail ? null : NexusVersion;
+                }, cancellationToken));
             }
+            
+            await Task.WhenAll(tasks).ConfigureAwait(false);
 
             // Check for failures
             var gitHubFailed = appSettings.UpdateSource is "Both" or "GitHub" && result.LatestGitHubVersion == null;
@@ -694,11 +754,12 @@ public class UpdateServiceComprehensiveTests : IDisposable
             .ThrowsAsync(new InvalidOperationException("Test exception"));
 
         // Act
-        var action = async () => await _service.GetUpdateInfoAsync();
+        var result = await _service.GetUpdateInfoAsync();
 
         // Assert
-        await action.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Test exception");
+        result.Should().NotBeNull();
+        result.CheckSuccessful.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Test exception");
 
         _loggerMock.Verify(x => x.Log(
                 LogLevel.Error,
@@ -924,7 +985,7 @@ public class UpdateServiceComprehensiveTests : IDisposable
     #region Edge Cases
 
     [Fact]
-    public async Task GetUpdateInfoAsync_WithNullSettings_ThrowsNullReferenceException()
+    public async Task GetUpdateInfoAsync_WithNullSettings_ReturnsErrorResult()
     {
         // Arrange
         _settingsServiceMock
@@ -932,10 +993,12 @@ public class UpdateServiceComprehensiveTests : IDisposable
             .ReturnsAsync((ApplicationSettings)null!);
 
         // Act
-        var action = async () => await _service.GetUpdateInfoAsync();
+        var result = await _service.GetUpdateInfoAsync();
 
         // Assert
-        await action.Should().ThrowAsync<NullReferenceException>();
+        result.Should().NotBeNull();
+        result.CheckSuccessful.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Unable to load application settings");
     }
 
     [Theory]
@@ -953,8 +1016,14 @@ public class UpdateServiceComprehensiveTests : IDisposable
                 UpdateSource = "Both"
             });
 
+        // Use TestableUpdateService instead of real UpdateService to avoid HTTP calls
+        var service = new TestableUpdateService(
+            _loggerMock.Object,
+            _settingsServiceMock.Object,
+            _messageHandlerMock.Object);
+
         // Act
-        var result = await _service.GetUpdateInfoAsync();
+        var result = await service.GetUpdateInfoAsync();
 
         // Assert
         result.Should().NotBeNull();

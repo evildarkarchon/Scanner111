@@ -2,13 +2,9 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Scanner111.Core.Analyzers;
-using Scanner111.Core.FCX;
-using Scanner111.Core.GameScanning;
+using Scanner111.Core.DependencyInjection;
 using Scanner111.Core.Infrastructure;
-using Scanner111.Core.ModManagers;
 using Scanner111.Core.Pipeline;
-using Scanner111.Core.Services;
 using Scanner111.GUI.Services;
 using Scanner111.GUI.ViewModels;
 using Scanner111.GUI.Views;
@@ -68,63 +64,18 @@ public class App : Application
     /// <param name="services">The service collection to configure.</param>
     private static void ConfigureServices(IServiceCollection services)
     {
-        // Configure logging
-        services.AddLogging(builder =>
+        // Add all core Scanner111 services using the centralized registration
+        services.AddScanner111Core();
+        
+        // Override logging configuration for GUI
+        services.AddScanner111Logging(builder =>
         {
-            builder.AddConsole();
             builder.SetMinimumLevel(LogLevel.Information);
         });
 
-        // Add memory cache for CacheManager
-        services.AddMemoryCache();
-
-        // Register Core services
-        services.AddSingleton<IApplicationSettingsService, ApplicationSettingsService>();
-        services.AddSingleton<IUpdateService, UpdateService>();
-        services.AddSingleton<FormIdDatabaseService>();
-        services.AddTransient<IReportWriter, ReportWriter>();
-        services.AddSingleton<IYamlSettingsProvider, YamlSettingsService>();
-        services.AddSingleton<ICacheManager, CacheManager>();
-        services.AddSingleton<IHashValidationService, HashValidationService>();
-        services.AddSingleton<IUnsolvedLogsMover, UnsolvedLogsMover>();
-        services.AddSingleton<IAudioNotificationService, AudioNotificationService>();
-        services.AddSingleton<IStatisticsService, StatisticsService>();
-        services.AddSingleton<IRecentItemsService, RecentItemsService>();
-
-        // Register Pipeline services
+        // Register IScanPipeline and builder (not included in core registration as they need customization)
         services.AddTransient<IScanPipeline, ScanPipeline>();
         services.AddTransient<ScanPipelineBuilder>();
-
-        // Register Analyzers
-        services.AddTransient<FormIdAnalyzer>();
-        services.AddTransient<PluginAnalyzer>();
-        services.AddTransient<RecordScanner>();
-        services.AddTransient<SettingsScanner>();
-        services.AddTransient<SuspectScanner>();
-        services.AddTransient<FileIntegrityAnalyzer>();
-        services.AddTransient<BuffoutVersionAnalyzerV2>();
-
-        // Register FCX services
-        services.AddSingleton<IModScanner, ModScanner>();
-        services.AddSingleton<IModCompatibilityService, ModCompatibilityService>();
-        services.AddSingleton<IBackupService, BackupService>();
-
-        // Register Mod Manager services
-        services.AddSingleton<IModManagerDetector, ModManagerDetector>();
-        services.AddSingleton<IModManagerService, ModManagerService>();
-
-        // Register Papyrus Monitoring services
-        services.AddSingleton<IPapyrusMonitorService, PapyrusMonitorService>();
-
-        // Register Pastebin service
-        services.AddSingleton<IPastebinService, PastebinService>();
-
-        // Register Game Scanning services
-        services.AddTransient<ICrashGenChecker, CrashGenChecker>();
-        services.AddTransient<IXsePluginValidator, XsePluginValidator>();
-        services.AddTransient<IModIniScanner, ModIniScanner>();
-        services.AddTransient<IWryeBashChecker, WryeBashChecker>();
-        services.AddTransient<IGameScannerService, GameScannerService>();
 
         // Register GUI services
         services.AddSingleton<ISettingsService, SettingsService>();

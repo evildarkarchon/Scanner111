@@ -15,6 +15,7 @@ public class FileIntegrityAnalyzerModManagerTests
     private readonly Mock<IModManagerService> _mockModManagerService;
     private readonly Mock<IApplicationSettingsService> _mockSettingsService;
     private readonly Mock<IYamlSettingsProvider> _mockYamlSettings;
+    private readonly Mock<IGamePathDetection> _mockGamePathDetection;
 
     public FileIntegrityAnalyzerModManagerTests()
     {
@@ -23,12 +24,14 @@ public class FileIntegrityAnalyzerModManagerTests
         _mockYamlSettings = new Mock<IYamlSettingsProvider>();
         _mockMessageHandler = new Mock<IMessageHandler>();
         _mockModManagerService = new Mock<IModManagerService>();
+        _mockGamePathDetection = new Mock<IGamePathDetection>();
 
         _analyzer = new FileIntegrityAnalyzer(
             _mockHashService.Object,
             _mockSettingsService.Object,
             _mockYamlSettings.Object,
             _mockMessageHandler.Object,
+            _mockGamePathDetection.Object,
             _mockModManagerService.Object
         );
     }
@@ -157,7 +160,8 @@ public class FileIntegrityAnalyzerModManagerTests
             _mockHashService.Object,
             _mockSettingsService.Object,
             _mockYamlSettings.Object,
-            _mockMessageHandler.Object // No mod manager service
+            _mockMessageHandler.Object,
+            _mockGamePathDetection.Object // No mod manager service - optional parameter
         );
 
         var settings = new ApplicationSettings

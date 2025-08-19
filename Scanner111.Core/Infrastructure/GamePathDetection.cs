@@ -1,6 +1,7 @@
 using System.Data.SQLite;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Models;
 
 namespace Scanner111.Core.Infrastructure;
@@ -9,13 +10,27 @@ namespace Scanner111.Core.Infrastructure;
 ///     Provides functionality to detect the installation path of a game using various approaches,
 ///     including registry checks, log file parsing, and common installation path scanning.
 /// </summary>
-public static class GamePathDetection
+public class GamePathDetection : IGamePathDetection
 {
+    private readonly IFileSystem _fileSystem;
+    private readonly IEnvironmentPathProvider _environment;
+    private readonly IPathService _pathService;
+    
+    public GamePathDetection(
+        IFileSystem fileSystem,
+        IEnvironmentPathProvider environment,
+        IPathService pathService)
+    {
+        _fileSystem = fileSystem;
+        _environment = environment;
+        _pathService = pathService;
+    }
+    
     /// <summary>
     ///     Attempts to detect the game installation path using various detection methods.
     /// </summary>
     /// <returns>The detected game installation path or an empty string if detection fails.</returns>
-    public static string TryDetectGamePath()
+    public string TryDetectGamePath()
     {
         return TryDetectGamePath("Fallout4");
     }
@@ -25,7 +40,7 @@ public static class GamePathDetection
     /// </summary>
     /// <param name="gameType">The game type to detect (e.g., "Fallout4", "Skyrim")</param>
     /// <returns>The detected game installation path or an empty string if detection fails.</returns>
-    public static string TryDetectGamePath(string gameType)
+    public string TryDetectGamePath(string gameType)
     {
         // Try registry detection first (Windows only)
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -64,7 +79,7 @@ public static class GamePathDetection
             @"D:\Steam\steamapps\common\Fallout 4",
             @"C:\GOG Games\Fallout 4",
             @"C:\Games\Fallout 4",
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Bethesda.net Launcher",
+            _pathService.Combine(_environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Bethesda.net Launcher",
                 "games", "Fallout4")
         };
 
@@ -82,7 +97,7 @@ public static class GamePathDetection
     ///     The detected game installation path from the registry or an empty string if no registry entry is found or
     ///     valid.
     /// </returns>
-    public static string TryGetGamePathFromRegistry()
+    public string TryGetGamePathFromRegistry()
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return "";
@@ -113,21 +128,21 @@ public static class GamePathDetection
     ///     The detected game installation path from the XSE log files or an empty string if the path cannot be
     ///     determined.
     /// </returns>
-    public static string TryGetGamePathFromXseLog()
+    public string TryGetGamePathFromXseLog()
     {
         try
         {
             // Check for F4SE/SKSE log files in Documents
-            var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            var documentsPath = _environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             var xsePaths = new[]
             {
-                Path.Combine(documentsPath, "My Games", "Fallout4", "F4SE", "f4se.log")
+                _pathService.Combine(documentsPath, "My Games", "Fallout4", "F4SE", "f4se.log")
             };
 
             foreach (var logPath in xsePaths)
-                if (File.Exists(logPath))
+                if (_fileSystem.FileExists(logPath))
                 {
-                    var lines = File.ReadAllLines(logPath);
+                    var lines = _fileSystem.ReadAllText(logPath).Split('\n', StringSplitOptions.RemoveEmptyEntries);
                     foreach (var line in lines)
                         if (line.StartsWith("plugin directory"))
                         {
@@ -158,20 +173,20 @@ public static class GamePathDetection
     /// </summary>
     /// <param name="path">The directory path to validate.</param>
     /// <returns>True if the directory contains necessary game files; otherwise, false.</returns>
-    public static bool ValidateGamePath(string path)
+    public bool ValidateGamePath(string path)
     {
-        if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+        if (string.IsNullOrEmpty(path) || !_fileSystem.DirectoryExists(path))
             return false;
 
         // Check for game executables - Fallout 4 only
         var executables = new[] { "Fallout4.exe" };
-        return executables.Any(exe => File.Exists(Path.Combine(path, exe)));
+        return executables.Any(exe => _fileSystem.FileExists(_pathService.Combine(path, exe)));
     }
 
     /// <summary>
     ///     Attempts to detect game installation from Steam
     /// </summary>
-    private static string TryGetGamePathFromSteam(string gameType)
+    private string TryGetGamePathFromSteam(string gameType)
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return "";
@@ -185,16 +200,16 @@ public static class GamePathDetection
             if (steamKey?.GetValue("InstallPath") is string steamPath)
             {
                 // Check libraryfolders.vdf for all Steam library locations
-                var libraryFoldersPath = Path.Combine(steamPath, "steamapps", "libraryfolders.vdf");
-                if (File.Exists(libraryFoldersPath))
+                var libraryFoldersPath = _pathService.Combine(steamPath, "steamapps", "libraryfolders.vdf");
+                if (_fileSystem.FileExists(libraryFoldersPath))
                 {
-                    var content = File.ReadAllText(libraryFoldersPath);
+                    var content = _fileSystem.ReadAllText(libraryFoldersPath);
                     var paths = ExtractSteamLibraryPaths(content);
                     paths.Insert(0, steamPath); // Add main Steam path
 
                     foreach (var libPath in paths)
                     {
-                        var gamePath = Path.Combine(libPath, "steamapps", "common", "Fallout 4");
+                        var gamePath = _pathService.Combine(libPath, "steamapps", "common", "Fallout 4");
                         if (ValidateGamePath(gamePath))
                             return gamePath;
                     }
@@ -212,7 +227,7 @@ public static class GamePathDetection
     /// <summary>
     ///     Attempts to detect game installation from GOG Galaxy
     /// </summary>
-    private static string TryGetGamePathFromGOG(string gameType)
+    private string TryGetGamePathFromGOG(string gameType)
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return "";
@@ -225,12 +240,12 @@ public static class GamePathDetection
                 return gogRegPath;
 
             // Check GOG Galaxy 2.0 database
-            var gogDbPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            var gogDbPath = _pathService.Combine(
+                _environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 "GOG.com", "Galaxy", "storage", "galaxy-2.0.db"
             );
 
-            if (File.Exists(gogDbPath))
+            if (_fileSystem.FileExists(gogDbPath))
             {
                 using var connection = new SQLiteConnection($"Data Source={gogDbPath};Version=3;Read Only=True;");
                 connection.Open();
@@ -277,23 +292,23 @@ public static class GamePathDetection
     /// <summary>
     ///     Attempts to detect game installation from Epic Games Launcher
     /// </summary>
-    private static string TryGetGamePathFromEpic(string gameType)
+    private string TryGetGamePathFromEpic(string gameType)
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return "";
 
         try
         {
-            var epicManifestsPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            var epicManifestsPath = _pathService.Combine(
+                _environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 "Epic", "EpicGamesLauncher", "Data", "Manifests"
             );
 
-            if (Directory.Exists(epicManifestsPath))
+            if (_fileSystem.DirectoryExists(epicManifestsPath))
                 // Epic stores game info in JSON manifest files
-                foreach (var manifestFile in Directory.GetFiles(epicManifestsPath, "*.item"))
+                foreach (var manifestFile in _fileSystem.GetFiles(epicManifestsPath, "*.item"))
                 {
-                    var content = File.ReadAllText(manifestFile);
+                    var content = _fileSystem.ReadAllText(manifestFile);
                     if (content.Contains("Fallout 4") || content.Contains("Fallout4"))
                     {
                         // Parse JSON to extract InstallLocation
@@ -322,7 +337,7 @@ public static class GamePathDetection
     /// <summary>
     ///     Extracts Steam library paths from libraryfolders.vdf content
     /// </summary>
-    private static List<string> ExtractSteamLibraryPaths(string vdfContent)
+    private List<string> ExtractSteamLibraryPaths(string vdfContent)
     {
         var paths = new List<string>();
 
@@ -338,7 +353,7 @@ public static class GamePathDetection
                 if (match.Success)
                 {
                     var path = match.Groups[1].Value.Replace(@"\\", @"\");
-                    if (Directory.Exists(path))
+                    if (_fileSystem.DirectoryExists(path))
                         paths.Add(path);
                 }
         }
@@ -353,14 +368,14 @@ public static class GamePathDetection
     /// <summary>
     ///     Gets the Documents folder path for game INI files
     /// </summary>
-    public static string GetGameDocumentsPath(string gameType)
+    public string GetGameDocumentsPath(string gameType)
     {
-        var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var documentsPath = _environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
         return gameType switch
         {
-            "Fallout4" => Path.Combine(documentsPath, "My Games", "Fallout4"),
-            "Skyrim" => Path.Combine(documentsPath, "My Games", "Skyrim Special Edition"),
+            "Fallout4" => _pathService.Combine(documentsPath, "My Games", "Fallout4"),
+            "Skyrim" => _pathService.Combine(documentsPath, "My Games", "Skyrim Special Edition"),
             _ => ""
         };
     }
@@ -368,7 +383,7 @@ public static class GamePathDetection
     /// <summary>
     ///     Detects game configuration including paths and version info
     /// </summary>
-    public static GameConfiguration? DetectGameConfiguration(string gameType = "Fallout4")
+    public GameConfiguration? DetectGameConfiguration(string gameType = "Fallout4")
     {
         var gamePath = TryDetectGamePath(gameType);
         if (string.IsNullOrEmpty(gamePath))
@@ -378,15 +393,15 @@ public static class GamePathDetection
         {
             GameName = gameType,
             RootPath = gamePath,
-            ExecutablePath = Path.Combine(gamePath, gameType + ".exe"),
+            ExecutablePath = _pathService.Combine(gamePath, gameType + ".exe"),
             DocumentsPath = GetGameDocumentsPath(gameType),
             Platform = DetectPlatform(gamePath)
         };
 
         // Detect XSE
         var xseExe = gameType == "Fallout4" ? "f4se_loader.exe" : "skse64_loader.exe";
-        var xsePath = Path.Combine(gamePath, xseExe);
-        if (File.Exists(xsePath)) config.XsePath = xsePath;
+        var xsePath = _pathService.Combine(gamePath, xseExe);
+        if (_fileSystem.FileExists(xsePath)) config.XsePath = xsePath;
 
         return config;
     }
@@ -394,7 +409,7 @@ public static class GamePathDetection
     /// <summary>
     ///     Detects the platform (Steam, GOG, etc.) from the game path
     /// </summary>
-    private static string DetectPlatform(string gamePath)
+    private string DetectPlatform(string gamePath)
     {
         if (gamePath.Contains("steamapps", StringComparison.OrdinalIgnoreCase))
             return "Steam";

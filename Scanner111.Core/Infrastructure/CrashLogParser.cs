@@ -1,3 +1,4 @@
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Models;
 
 namespace Scanner111.Core.Infrastructure;
@@ -5,8 +6,15 @@ namespace Scanner111.Core.Infrastructure;
 /// <summary>
 ///     Utility class for parsing Bethesda game crash logs, specifically in Buffout 4/Crash Logger format.
 /// </summary>
-public static partial class CrashLogParser
+public partial class CrashLogParser : ICrashLogParser
 {
+    private readonly IFileSystem _fileSystem;
+    
+    public CrashLogParser(IFileSystem fileSystem)
+    {
+        _fileSystem = fileSystem;
+    }
+    
     /// <summary>
     ///     Parses a crash log from the specified file path.
     /// </summary>
@@ -20,12 +28,13 @@ public static partial class CrashLogParser
     ///     A <see cref="CrashLog" /> instance containing the parsed crash log data, or null if the file is not a valid crash
     ///     log.
     /// </returns>
-    public static async Task<CrashLog?> ParseAsync(string filePath, CancellationToken cancellationToken = default)
+    public async Task<CrashLog?> ParseAsync(string filePath, CancellationToken cancellationToken = default)
     {
         try
         {
             // Read file with UTF-8 encoding and ignore errors (matching Python implementation)
-            var lines = await File.ReadAllLinesAsync(filePath, cancellationToken).ConfigureAwait(false);
+            var content = await _fileSystem.ReadAllTextAsync(filePath, cancellationToken).ConfigureAwait(false);
+            var lines = content.Split('\n', StringSplitOptions.None);
 
             if (lines.Length < 20) // Too short to be a valid crash log
                 return null;
@@ -85,7 +94,7 @@ public static partial class CrashLogParser
     /// <param name="crashLog">
     ///     The <see cref="CrashLog" /> instance to populate with extracted header information.
     /// </param>
-    private static void ParseHeader(string[] lines, CrashLog crashLog)
+    private void ParseHeader(string[] lines, CrashLog crashLog)
     {
         foreach (var line in lines)
         {
@@ -115,7 +124,7 @@ public static partial class CrashLogParser
     ///     A list of segments, where each segment is represented as a list of strings.
     ///     Returns an empty list if no segments were found or the log data is invalid.
     /// </returns>
-    private static List<List<string>> ExtractSegments(string[] crashData)
+    private List<List<string>> ExtractSegments(string[] crashData)
     {
         var segments = new List<List<string>>();
         var segmentBoundaries = new List<(string start, string end)>
@@ -229,7 +238,7 @@ public static partial class CrashLogParser
     /// <param name="crashLog">
     ///     The <see cref="CrashLog" /> instance where the parsed plugin data will be stored.
     /// </param>
-    private static void ParsePluginsSection(List<string> pluginLines, CrashLog crashLog)
+    private void ParsePluginsSection(List<string> pluginLines, CrashLog crashLog)
     {
         // Plugin format: [FE:001]   LoadOrder.esp
         var pluginRegex = PluginRegex();
@@ -256,7 +265,7 @@ public static partial class CrashLogParser
     /// <param name="crashLog">
     ///     The <see cref="CrashLog" /> instance to populate with the parsed crashgen settings data.
     /// </param>
-    private static void ParseCrashgenSettings(List<string> settingsLines, CrashLog crashLog)
+    private void ParseCrashgenSettings(List<string> settingsLines, CrashLog crashLog)
     {
         // Parse crashgen configuration settings like [Compatibility], [Patches], etc.
         foreach (var line in settingsLines)
@@ -295,7 +304,7 @@ public static partial class CrashLogParser
     /// <param name="crashLog">
     ///     The crash log instance to update with the parsed XSE modules data.
     /// </param>
-    private static void ParseXseModules(List<string> xseLines, CrashLog crashLog)
+    private void ParseXseModules(List<string> xseLines, CrashLog crashLog)
     {
         // Extract module names from XSE plugins section
         // Format: "ModuleName.dll v1.2.3" or just "ModuleName.dll"
@@ -322,8 +331,8 @@ public static partial class CrashLogParser
     }
 
     [GeneratedRegex(@"\[([A-F0-9]{2}):([A-F0-9]{3})\]\s+(.+)")]
-    private static partial Regex PluginRegex();
+    private partial Regex PluginRegex();
 
     [GeneratedRegex(@"^(.+?\.dll)\s*(?:v.*)?$", RegexOptions.IgnoreCase, "en-US")]
-    private static partial Regex ModulePattern();
+    private partial Regex ModulePattern();
 }

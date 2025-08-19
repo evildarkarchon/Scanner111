@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Scanner111.Core.Abstractions;
 
 namespace Scanner111.Core.Infrastructure;
 
@@ -7,8 +8,12 @@ namespace Scanner111.Core.Infrastructure;
 ///     including loading, saving, and directory management for
 ///     settings files.
 /// </summary>
-public static class SettingsHelper
+public class SettingsHelper : ISettingsHelper
 {
+    private readonly IFileSystem _fileSystem;
+    private readonly IPathService _pathService;
+    private readonly IEnvironmentPathProvider _environmentProvider;
+
     /// <summary>
     ///     Common JsonSerializerOptions for all settings serialization
     /// </summary>
@@ -18,26 +23,33 @@ public static class SettingsHelper
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
+    public SettingsHelper(IFileSystem fileSystem, IPathService pathService, IEnvironmentPathProvider environmentProvider)
+    {
+        _fileSystem = fileSystem;
+        _pathService = pathService;
+        _environmentProvider = environmentProvider;
+    }
+
     /// <summary>
     ///     Gets the Scanner111 settings directory in the AppData folder.
     /// </summary>
     /// <returns>
     ///     The path to the Scanner111 settings directory.
     /// </returns>
-    public static string GetSettingsDirectory()
+    public string GetSettingsDirectory()
     {
-        return Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        return _pathService.Combine(
+            _environmentProvider.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Scanner111");
     }
 
     /// <summary>
     ///     Ensures that the settings directory for the application exists.
     /// </summary>
-    public static void EnsureSettingsDirectoryExists()
+    public void EnsureSettingsDirectoryExists()
     {
         var directory = GetSettingsDirectory();
-        Directory.CreateDirectory(directory);
+        _fileSystem.CreateDirectory(directory);
     }
 
     /// <summary>
@@ -51,19 +63,19 @@ public static class SettingsHelper
     ///     A task representing the asynchronous operation. The result contains the loaded settings,
     ///     or the default settings if the file does not exist or fails to load.
     /// </returns>
-    public static async Task<T> LoadSettingsAsync<T>(string filePath, Func<T> defaultFactory)
+    public async Task<T> LoadSettingsAsync<T>(string filePath, Func<T> defaultFactory)
         where T : class
     {
         try
         {
-            if (!File.Exists(filePath))
+            if (!_fileSystem.FileExists(filePath))
             {
                 var defaultSettings = defaultFactory();
                 await SaveSettingsAsync(filePath, defaultSettings).ConfigureAwait(false);
                 return defaultSettings;
             }
 
-            var json = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
+            var json = await _fileSystem.ReadAllTextAsync(filePath).ConfigureAwait(false);
             var settings = JsonSerializer.Deserialize<T>(json, JsonOptions);
 
             return settings ?? defaultFactory();
@@ -84,15 +96,15 @@ public static class SettingsHelper
     /// <returns>
     ///     A task that represents the asynchronous save operation.
     /// </returns>
-    public static async Task SaveSettingsAsync<T>(string filePath, T settings)
+    public async Task SaveSettingsAsync<T>(string filePath, T settings)
         where T : class
     {
         // Ensure the directory exists for the specific file path
-        var directory = Path.GetDirectoryName(filePath);
-        if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+        var directory = _pathService.GetDirectoryName(filePath);
+        if (!string.IsNullOrEmpty(directory)) _fileSystem.CreateDirectory(directory);
 
         var json = JsonSerializer.Serialize(settings, JsonOptions);
-        await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
+        await _fileSystem.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -101,7 +113,7 @@ public static class SettingsHelper
     /// <param name="value">The value to be converted.</param>
     /// <param name="targetType">The type to which the value should be converted.</param>
     /// <returns>The converted value of the specified target type.</returns>
-    public static object ConvertValue(object value, Type targetType)
+    public object ConvertValue(object value, Type targetType)
     {
         return value switch
         {
@@ -123,7 +135,7 @@ public static class SettingsHelper
     /// </summary>
     /// <param name="input">The input string to be converted.</param>
     /// <returns>The input string converted to PascalCase format.</returns>
-    public static string ToPascalCase(string input)
+    public string ToPascalCase(string input)
     {
         if (string.IsNullOrEmpty(input))
             return input;

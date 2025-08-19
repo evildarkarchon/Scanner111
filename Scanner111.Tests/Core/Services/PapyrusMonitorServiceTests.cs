@@ -1,25 +1,42 @@
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Services;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Core.Services;
 
 public class PapyrusMonitorServiceTests : IDisposable
 {
     private readonly PapyrusMonitorService _service;
-    private readonly Mock<IApplicationSettingsService> _settingsServiceMock;
+    private readonly TestApplicationSettingsService _settingsService;
     private readonly List<string> _tempFiles;
     private readonly string _testDirectory;
-    private readonly Mock<IYamlSettingsProvider> _yamlSettingsProviderMock;
+    private readonly TestYamlSettingsProvider _yamlSettingsProvider;
+    private readonly TestFileSystem _fileSystem;
+    private readonly TestEnvironmentPathProvider _environment;
+    private readonly TestPathService _pathService;
+    private readonly TestFileWatcherFactory _fileWatcherFactory;
 
     public PapyrusMonitorServiceTests()
     {
-        _settingsServiceMock = new Mock<IApplicationSettingsService>();
-        _yamlSettingsProviderMock = new Mock<IYamlSettingsProvider>();
-        _service = new PapyrusMonitorService(_settingsServiceMock.Object, _yamlSettingsProviderMock.Object);
+        _settingsService = new TestApplicationSettingsService();
+        _yamlSettingsProvider = new TestYamlSettingsProvider();
+        _fileSystem = new TestFileSystem();
+        _environment = new TestEnvironmentPathProvider();
+        _pathService = new TestPathService();
+        _fileWatcherFactory = new TestFileWatcherFactory();
+        
+        _service = new PapyrusMonitorService(
+            _settingsService, 
+            _yamlSettingsProvider,
+            _fileSystem,
+            _environment,
+            _pathService,
+            _fileWatcherFactory);
 
         _testDirectory = Path.Combine(Path.GetTempPath(), $"PapyrusTests_{Guid.NewGuid()}");
-        Directory.CreateDirectory(_testDirectory);
+        _fileSystem.CreateDirectory(_testDirectory);
         _tempFiles = new List<string>();
     }
 
@@ -27,27 +44,8 @@ public class PapyrusMonitorServiceTests : IDisposable
     {
         _service?.Dispose();
 
-        // Clean up temp files
-        foreach (var file in _tempFiles.Where(File.Exists))
-            try
-            {
-                File.Delete(file);
-            }
-            catch
-            {
-                // Ignore cleanup errors
-            }
-
-        // Clean up test directory
-        if (Directory.Exists(_testDirectory))
-            try
-            {
-                Directory.Delete(_testDirectory, true);
-            }
-            catch
-            {
-                // Ignore cleanup errors
-            }
+        // Clean up temp files (in TestFileSystem, cleanup is automatic)
+        // No need to delete files from TestFileSystem as it's in-memory
     }
 
     [Fact]
@@ -145,7 +143,9 @@ public class PapyrusMonitorServiceTests : IDisposable
     public async Task StartMonitoringAsync_CreatesFileWatcher_AndRaisesEvents()
     {
         // Arrange
-        var logPath = CreateTempFile("monitor_test.log", "Initial content");
+        var initialContent = @"[08/15/2025 - 12:00:00PM] Papyrus log opened
+[08/15/2025 - 12:00:01PM] warning: Initial warning";
+        var logPath = CreateTempFile("monitor_test.log", initialContent);
         var eventRaised = false;
         PapyrusStats? capturedStats = null;
 
@@ -160,15 +160,24 @@ public class PapyrusMonitorServiceTests : IDisposable
         // Act
         await _service.StartMonitoringAsync(logPath, cts.Token);
 
-        // Append content to trigger file change
+        // Simulate file change using the test watcher
         await Task.Delay(500); // Give watcher time to initialize
-        await File.AppendAllTextAsync(logPath, "\n[08/15/2025 - 12:00:00PM] error: New error added");
+        
+        // Update the file content in the test file system with new errors
+        var updatedContent = initialContent + @"
+[08/15/2025 - 12:00:05PM] error: New error added
+[08/15/2025 - 12:00:06PM] error: Another error
+[08/15/2025 - 12:00:07PM] Dumping stack 1:";
+        _fileSystem.AddFile(logPath, updatedContent);
+        
+        // Trigger the file watcher
+        _fileWatcherFactory.SimulateChangeInAllWatchers();
         await Task.Delay(1500); // Wait for monitoring interval
 
         // Assert
         eventRaised.Should().BeTrue("StatsUpdated event should be raised");
         capturedStats.Should().NotBeNull();
-        capturedStats!.Errors.Should().BeGreaterThan(0);
+        capturedStats!.Errors.Should().BeGreaterThan(0, "errors should be detected from the updated content");
 
         // Cleanup
         await _service.StopMonitoringAsync();
@@ -195,14 +204,14 @@ public class PapyrusMonitorServiceTests : IDisposable
     public async Task DetectLogPathAsync_ForFallout4_ReturnsCorrectPath()
     {
         // Arrange
-        var expectedPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+        var expectedPath = _pathService.Combine(
+            _environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "My Games", "Fallout4", "Logs", "Script", "Papyrus.0.log");
 
         // Create test directory and file
         var testDir = Path.GetDirectoryName(expectedPath)!;
-        Directory.CreateDirectory(testDir);
-        await File.WriteAllTextAsync(expectedPath, "Test log");
+        _fileSystem.CreateDirectory(testDir);
+        _fileSystem.AddFile(expectedPath, "Test log");
         _tempFiles.Add(expectedPath);
 
         // Act
@@ -216,14 +225,14 @@ public class PapyrusMonitorServiceTests : IDisposable
     public async Task DetectLogPathAsync_ForSkyrim_ReturnsCorrectPath()
     {
         // Arrange
-        var expectedPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+        var expectedPath = _pathService.Combine(
+            _environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "My Games", "Skyrim Special Edition", "Logs", "Script", "Papyrus.0.log");
 
         // Create test directory and file
         var testDir = Path.GetDirectoryName(expectedPath)!;
-        Directory.CreateDirectory(testDir);
-        await File.WriteAllTextAsync(expectedPath, "Test log");
+        _fileSystem.CreateDirectory(testDir);
+        _fileSystem.AddFile(expectedPath, "Test log");
         _tempFiles.Add(expectedPath);
 
         // Act
@@ -251,8 +260,8 @@ public class PapyrusMonitorServiceTests : IDisposable
         await _service.ExportStatsAsync(exportPath);
 
         // Assert
-        File.Exists(exportPath).Should().BeTrue();
-        var csvContent = await File.ReadAllTextAsync(exportPath);
+        _fileSystem.FileExists(exportPath).Should().BeTrue();
+        var csvContent = await _fileSystem.ReadAllTextAsync(exportPath);
         csvContent.Should().Contain("Timestamp");
         csvContent.Should().Contain("Dumps");
         csvContent.Should().Contain("Stacks");
@@ -279,8 +288,8 @@ public class PapyrusMonitorServiceTests : IDisposable
         await _service.ExportStatsAsync(exportPath, "json");
 
         // Assert
-        File.Exists(exportPath).Should().BeTrue();
-        var jsonContent = await File.ReadAllTextAsync(exportPath);
+        _fileSystem.FileExists(exportPath).Should().BeTrue();
+        var jsonContent = await _fileSystem.ReadAllTextAsync(exportPath);
         jsonContent.Should().Contain("\"timestamp\"");
         jsonContent.Should().Contain("\"dumps\"");
         jsonContent.Should().Contain("\"stacks\"");
@@ -352,12 +361,17 @@ public class PapyrusMonitorServiceTests : IDisposable
         using var cts = new CancellationTokenSource();
         await _service.StartMonitoringAsync(logPath, cts.Token);
 
-        // Act - Lock the file
-        using (var stream = new FileStream(logPath, FileMode.Open, FileAccess.Read, FileShare.None))
+        // Act - Simulate an error in the file watcher
+        await Task.Delay(500); // Give watcher time to initialize
+        
+        // Get the created watcher and simulate an error
+        var watchers = _fileWatcherFactory.CreatedWatchers;
+        if (watchers.Any())
         {
-            // Try to trigger monitoring while file is locked
-            await Task.Delay(1500);
+            watchers.First().SimulateError(new IOException("File is locked"));
         }
+        
+        await Task.Delay(1000); // Wait for error handling
 
         // Assert
         // Error event may or may not be raised depending on timing
@@ -444,7 +458,7 @@ public class PapyrusMonitorServiceTests : IDisposable
     private string CreateTempFile(string fileName, string content)
     {
         var filePath = Path.Combine(_testDirectory, fileName);
-        File.WriteAllText(filePath, content, Encoding.UTF8);
+        _fileSystem.AddFile(filePath, content);
         _tempFiles.Add(filePath);
         return filePath;
     }

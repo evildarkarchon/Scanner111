@@ -61,7 +61,7 @@ public class PapyrusMonitorViewModelTests : IDisposable
     }
 
     [Fact]
-    public void StartMonitoringCommand_WithValidPath_StartsMonitoring()
+    public async Task StartMonitoringCommand_WithValidPath_StartsMonitoring()
     {
         // Arrange
         _viewModel.MonitoredPath = "C:\\test\\papyrus.log";
@@ -70,7 +70,7 @@ public class PapyrusMonitorViewModelTests : IDisposable
 
         // Act
         ((RelayCommand)_viewModel.StartMonitoringCommand).Execute(null);
-        Task.Delay(100).Wait(); // Let async operations complete
+        await Task.Delay(100); // Let async operations complete
 
         // Assert
         _viewModel.IsMonitoring.Should().BeTrue();
@@ -80,7 +80,7 @@ public class PapyrusMonitorViewModelTests : IDisposable
     }
 
     [Fact]
-    public void StartMonitoringCommand_WithAutoDetection_DetectsPath()
+    public async Task StartMonitoringCommand_WithAutoDetection_DetectsPath()
     {
         // Arrange
         _viewModel.MonitoredPath = null;
@@ -93,7 +93,7 @@ public class PapyrusMonitorViewModelTests : IDisposable
 
         // Act
         ((RelayCommand)_viewModel.StartMonitoringCommand).Execute(null);
-        Task.Delay(100).Wait(); // Let async operations complete
+        await Task.Delay(100); // Let async operations complete
 
         // Assert
         _viewModel.MonitoredPath.Should().Be("C:\\auto\\detected\\papyrus.log");
@@ -102,7 +102,7 @@ public class PapyrusMonitorViewModelTests : IDisposable
     }
 
     [Fact]
-    public void StartMonitoringCommand_WithNoPathAndNoDetection_ShowsError()
+    public async Task StartMonitoringCommand_WithNoPathAndNoDetection_ShowsError()
     {
         // Arrange
         _viewModel.MonitoredPath = null;
@@ -111,7 +111,7 @@ public class PapyrusMonitorViewModelTests : IDisposable
 
         // Act
         ((RelayCommand)_viewModel.StartMonitoringCommand).Execute(null);
-        Task.Delay(100).Wait(); // Let async operations complete
+        await Task.Delay(100); // Let async operations complete
 
         // Assert
         _viewModel.IsMonitoring.Should().BeFalse();
@@ -119,7 +119,7 @@ public class PapyrusMonitorViewModelTests : IDisposable
     }
 
     [Fact]
-    public void StopMonitoringCommand_StopsMonitoring()
+    public async Task StopMonitoringCommand_StopsMonitoring()
     {
         // Arrange
         _viewModel.MonitoredPath = "C:\\test\\papyrus.log";
@@ -130,12 +130,12 @@ public class PapyrusMonitorViewModelTests : IDisposable
 
         // Start monitoring first
         ((RelayCommand)_viewModel.StartMonitoringCommand).Execute(null);
-        Task.Delay(100).Wait();
+        await Task.Delay(100);
         _viewModel.IsMonitoring.Should().BeTrue();
 
         // Act
         ((RelayCommand)_viewModel.StopMonitoringCommand).Execute(null);
-        Task.Delay(100).Wait();
+        await Task.Delay(100);
 
         // Assert
         _viewModel.IsMonitoring.Should().BeFalse();
@@ -144,7 +144,7 @@ public class PapyrusMonitorViewModelTests : IDisposable
     }
 
     [Fact]
-    public void RefreshCommand_UpdatesStats()
+    public async Task RefreshCommand_UpdatesStats()
     {
         // Arrange
         _viewModel.MonitoredPath = "C:\\test\\papyrus.log";
@@ -165,11 +165,11 @@ public class PapyrusMonitorViewModelTests : IDisposable
 
         // Start monitoring first
         ((RelayCommand)_viewModel.StartMonitoringCommand).Execute(null);
-        Task.Delay(100).Wait();
+        await Task.Delay(100);
 
         // Act
         ((RelayCommand)_viewModel.RefreshCommand).Execute(null);
-        Task.Delay(100).Wait();
+        await Task.Delay(100);
 
         // Assert
         _viewModel.CurrentStats.Should().Be(stats);
@@ -194,7 +194,7 @@ public class PapyrusMonitorViewModelTests : IDisposable
     }
 
     [Fact]
-    public void ExportStatsCommand_ExportsToFile()
+    public async Task ExportStatsCommand_ExportsToFile()
     {
         // Arrange
         _viewModel.History.Add(new PapyrusStats { Dumps = 1 });
@@ -204,7 +204,7 @@ public class PapyrusMonitorViewModelTests : IDisposable
 
         // Act
         ((RelayCommand)_viewModel.ExportStatsCommand).Execute(null);
-        Task.Delay(100).Wait();
+        await Task.Delay(100);
 
         // Assert
         _papyrusServiceMock.Verify(x => x.ExportStatsAsync(It.IsAny<string>(), "csv", It.IsAny<CancellationToken>()),

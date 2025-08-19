@@ -22,7 +22,12 @@ public interface ISettingsService
 /// </summary>
 public class SettingsService : ISettingsService
 {
-    private readonly ApplicationSettingsService _applicationSettingsService = new();
+    private readonly IApplicationSettingsService _applicationSettingsService;
+    
+    public SettingsService(IApplicationSettingsService applicationSettingsService)
+    {
+        _applicationSettingsService = applicationSettingsService;
+    }
 
     // New unified settings methods
     /// <summary>

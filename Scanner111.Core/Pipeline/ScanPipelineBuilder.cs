@@ -148,9 +148,10 @@ public class ScanPipelineBuilder
             var settingsProvider = serviceProvider.GetRequiredService<IYamlSettingsProvider>();
             var cacheManager = serviceProvider.GetRequiredService<ICacheManager>();
             var resilientExecutor = serviceProvider.GetRequiredService<ResilientExecutor>();
+            var crashLogParser = serviceProvider.GetRequiredService<ICrashLogParser>();
 
             pipeline = new EnhancedScanPipeline(analyzers, enhancedLogger, messageHandler,
-                settingsProvider, cacheManager, resilientExecutor);
+                settingsProvider, cacheManager, resilientExecutor, crashLogParser);
         }
         else
         {
@@ -158,8 +159,9 @@ public class ScanPipelineBuilder
             var logger = serviceProvider.GetRequiredService<ILogger<ScanPipeline>>();
             var messageHandler = serviceProvider.GetRequiredService<IMessageHandler>();
             var settingsProvider = serviceProvider.GetRequiredService<IYamlSettingsProvider>();
+            var crashLogParser = serviceProvider.GetRequiredService<ICrashLogParser>();
 
-            pipeline = new ScanPipeline(analyzers, logger, messageHandler, settingsProvider);
+            pipeline = new ScanPipeline(analyzers, logger, messageHandler, settingsProvider, crashLogParser);
         }
 
         // Wrap with FCX pipeline if enabled
@@ -170,6 +172,7 @@ public class ScanPipelineBuilder
             var settingsService = serviceProvider.GetRequiredService<IApplicationSettingsService>();
             var yamlSettings = serviceProvider.GetRequiredService<IYamlSettingsProvider>();
             var messageHandler = serviceProvider.GetRequiredService<IMessageHandler>();
+            var gamePathDetection = serviceProvider.GetRequiredService<IGamePathDetection>();
 
             pipeline = new FcxEnabledPipeline(
                 pipeline,
@@ -177,7 +180,8 @@ public class ScanPipelineBuilder
                 hashService,
                 fcxLogger,
                 messageHandler,
-                yamlSettings);
+                yamlSettings,
+                gamePathDetection);
         }
 
         // Wrap with performance monitoring if enabled

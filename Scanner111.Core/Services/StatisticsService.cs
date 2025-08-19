@@ -1,6 +1,7 @@
 using System.Data;
 using System.Data.SQLite;
 using System.Text.Json;
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Infrastructure;
 
 namespace Scanner111.Core.Services;
@@ -9,17 +10,33 @@ public class StatisticsService : IStatisticsService, IDisposable
 {
     private readonly string _connectionString;
     private readonly SemaphoreSlim _dbSemaphore = new(1, 1);
+    private readonly IFileSystem _fileSystem;
+    private readonly IEnvironmentPathProvider _environment;
+    private readonly IPathService _pathService;
     private bool _isInitialized;
 
-    public StatisticsService(IApplicationSettingsService? settingsService = null)
-        : this(GetDefaultDatabasePath())
+    public StatisticsService(
+        IFileSystem fileSystem,
+        IEnvironmentPathProvider environment,
+        IPathService pathService,
+        IApplicationSettingsService? settingsService = null)
+        : this(fileSystem, environment, pathService, GetDefaultDatabasePath(fileSystem, environment, pathService))
     {
     }
 
-    public StatisticsService(string databasePath)
+    public StatisticsService(
+        IFileSystem fileSystem,
+        IEnvironmentPathProvider environment,
+        IPathService pathService,
+        string databasePath)
     {
-        var directory = Path.GetDirectoryName(databasePath);
-        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory)) Directory.CreateDirectory(directory);
+        _fileSystem = fileSystem;
+        _environment = environment;
+        _pathService = pathService;
+        
+        var directory = _pathService.GetDirectoryName(databasePath);
+        if (!string.IsNullOrEmpty(directory) && !_fileSystem.DirectoryExists(directory)) 
+            _fileSystem.CreateDirectory(directory);
 
         _connectionString = $"Data Source={databasePath};Version=3;";
 
@@ -453,16 +470,20 @@ public class StatisticsService : IStatisticsService, IDisposable
         }
     }
 
-    private static string GetDefaultDatabasePath()
+    private static string GetDefaultDatabasePath(
+        IFileSystem fileSystem,
+        IEnvironmentPathProvider environment,
+        IPathService pathService)
     {
-        var appDataPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        var appDataPath = pathService.Combine(
+            environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Scanner111"
         );
 
-        if (!Directory.Exists(appDataPath)) Directory.CreateDirectory(appDataPath);
+        if (!fileSystem.DirectoryExists(appDataPath)) 
+            fileSystem.CreateDirectory(appDataPath);
 
-        return Path.Combine(appDataPath, "statistics.db");
+        return pathService.Combine(appDataPath, "statistics.db");
     }
 
     private async Task InitializeDatabaseAsync()

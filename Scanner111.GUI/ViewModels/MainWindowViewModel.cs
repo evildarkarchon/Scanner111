@@ -1386,17 +1386,17 @@ public class MainWindowViewModel : ViewModelBase
             _scanCancellationTokenSource = new CancellationTokenSource();
 
             // Create a FileIntegrityAnalyzer for FCX scanning
-            var hashService = new HashValidationService(NullLogger<HashValidationService>.Instance);
-            var yamlSettings = new YamlSettingsService(_cacheManager, NullLogger<YamlSettingsService>.Instance);
-
-            // Create an adapter for settings service
-            var appSettingsService = new GuiApplicationSettingsAdapter(_settingsService);
+            var hashService = _serviceProvider.GetRequiredService<IHashValidationService>();
+            var yamlSettings = _serviceProvider.GetRequiredService<IYamlSettingsProvider>();
+            var appSettingsService = _serviceProvider.GetRequiredService<IApplicationSettingsService>();
+            var gamePathDetection = _serviceProvider.GetRequiredService<IGamePathDetection>();
 
             var fileIntegrityAnalyzer = new FileIntegrityAnalyzer(
                 hashService,
                 appSettingsService,
                 yamlSettings,
-                _messageHandler ?? _messageHandlerService);
+                _messageHandler ?? _messageHandlerService,
+                gamePathDetection);
 
             // Create a synthetic crash log with the game path
             var crashLog = new CrashLog
@@ -1503,8 +1503,7 @@ public class MainWindowViewModel : ViewModelBase
             _scanCancellationTokenSource = new CancellationTokenSource();
 
             // Create backup service
-            var appSettingsService = new GuiApplicationSettingsAdapter(_settingsService);
-            var backupService = new BackupService(NullLogger<BackupService>.Instance, appSettingsService);
+            var backupService = _serviceProvider.GetRequiredService<IBackupService>();
 
             // Create progress reporter
             var progress = new Progress<BackupProgress>(p =>
@@ -1602,7 +1601,7 @@ public class MainWindowViewModel : ViewModelBase
 
             _scanCancellationTokenSource = new CancellationTokenSource();
 
-            var hashService = new HashValidationService(NullLogger<HashValidationService>.Instance);
+            var hashService = _serviceProvider.GetRequiredService<IHashValidationService>();
 
             // Define critical game files to validate
             var criticalFiles = new Dictionary<string, string>
@@ -1805,12 +1804,8 @@ public class MainWindowViewModel : ViewModelBase
     {
         if (TopLevel != null)
         {
-            // For now, create services manually since we don't have access to DI container here
-            // In a future refactor, we could pass IServiceProvider to MainWindowViewModel
-            var yamlSettings = new YamlSettingsService(_cacheManager, NullLogger<YamlSettingsService>.Instance);
-            var papyrusService = new PapyrusMonitorService(
-                new GuiApplicationSettingsAdapter(_settingsService),
-                yamlSettings);
+            // Use service provider to resolve dependencies
+            var papyrusService = _serviceProvider.GetRequiredService<IPapyrusMonitorService>();
             var viewModel = new PapyrusMonitorViewModel(
                 papyrusService,
                 new GuiApplicationSettingsAdapter(_settingsService),

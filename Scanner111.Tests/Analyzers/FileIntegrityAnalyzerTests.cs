@@ -16,6 +16,7 @@ public class FileIntegrityAnalyzerTests : IDisposable
     private readonly TestApplicationSettingsService _settingsService;
     private readonly List<string> _tempDirectories;
     private readonly TestYamlSettingsProvider _yamlSettings;
+    private readonly TestGamePathDetection _gamePathDetection;
 
     public FileIntegrityAnalyzerTests()
     {
@@ -23,13 +24,15 @@ public class FileIntegrityAnalyzerTests : IDisposable
         _settingsService = new TestApplicationSettingsService();
         _yamlSettings = new TestYamlSettingsProvider();
         _messageHandler = new TestMessageHandler();
+        _gamePathDetection = new TestGamePathDetection();
         _tempDirectories = new List<string>();
 
         _analyzer = new FileIntegrityAnalyzer(
             _hashService,
             _settingsService,
             _yamlSettings,
-            _messageHandler);
+            _messageHandler,
+            _gamePathDetection);
     }
 
     public void Dispose()
@@ -309,26 +312,26 @@ public class TestHashValidationService : IHashValidationService
         return Task.FromResult("DUMMY" + Guid.NewGuid().ToString().Replace("-", "").ToUpper());
     }
 
-    public Task<HashValidation> ValidateFileAsync(string filePath, string expectedHash,
+    public async Task<HashValidation> ValidateFileAsync(string filePath, string expectedHash,
         CancellationToken cancellationToken = default)
     {
-        var actualHash = CalculateFileHashAsync(filePath, cancellationToken).Result;
-        return Task.FromResult(new HashValidation
+        var actualHash = await CalculateFileHashAsync(filePath, cancellationToken);
+        return new HashValidation
         {
             FilePath = filePath,
             ExpectedHash = expectedHash,
             ActualHash = actualHash,
             HashType = "SHA256"
-        });
+        };
     }
 
-    public Task<Dictionary<string, HashValidation>> ValidateBatchAsync(Dictionary<string, string> fileHashMap,
+    public async Task<Dictionary<string, HashValidation>> ValidateBatchAsync(Dictionary<string, string> fileHashMap,
         CancellationToken cancellationToken = default)
     {
         var results = new Dictionary<string, HashValidation>();
         foreach (var kvp in fileHashMap)
-            results[kvp.Key] = ValidateFileAsync(kvp.Key, kvp.Value, cancellationToken).Result;
-        return Task.FromResult(results);
+            results[kvp.Key] = await ValidateFileAsync(kvp.Key, kvp.Value, cancellationToken);
+        return results;
     }
 
     public Task<string> CalculateFileHashWithProgressAsync(string filePath, IProgress<long>? progress,

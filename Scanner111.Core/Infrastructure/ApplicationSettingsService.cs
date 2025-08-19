@@ -1,10 +1,30 @@
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Models;
 
 namespace Scanner111.Core.Infrastructure;
 
 public class ApplicationSettingsService : IApplicationSettingsService
 {
+    private readonly IGamePathDetection _gamePathDetection;
+    private readonly IFileSystem _fileSystem;
+    private readonly IEnvironmentPathProvider _environment;
+    private readonly IPathService _pathService;
+    private readonly ISettingsHelper _settingsHelper;
     private ApplicationSettings? _cachedSettings;
+    
+    public ApplicationSettingsService(
+        IGamePathDetection gamePathDetection,
+        IFileSystem fileSystem,
+        IEnvironmentPathProvider environment,
+        IPathService pathService,
+        ISettingsHelper settingsHelper)
+    {
+        _gamePathDetection = gamePathDetection;
+        _fileSystem = fileSystem;
+        _environment = environment;
+        _pathService = pathService;
+        _settingsHelper = settingsHelper;
+    }
 
     /// Asynchronously loads application settings from a predefined file path.
     /// If the settings file does not exist or is invalid, default settings are loaded and returned.
@@ -12,7 +32,7 @@ public class ApplicationSettingsService : IApplicationSettingsService
     /// <returns>An instance of ApplicationSettings containing the current configuration.</returns>
     public async Task<ApplicationSettings> LoadSettingsAsync()
     {
-        var settings = await SettingsHelper.LoadSettingsAsync(GetSettingsFilePath(), GetDefaultSettings)
+        var settings = await _settingsHelper.LoadSettingsAsync(GetSettingsFilePath(), GetDefaultSettings)
             .ConfigureAwait(false);
         _cachedSettings = settings;
         return settings;
@@ -24,7 +44,7 @@ public class ApplicationSettingsService : IApplicationSettingsService
     /// <returns>A Task representing the asynchronous save operation.</returns>
     public async Task SaveSettingsAsync(ApplicationSettings settings)
     {
-        await SettingsHelper.SaveSettingsAsync(GetSettingsFilePath(), settings).ConfigureAwait(false);
+        await _settingsHelper.SaveSettingsAsync(GetSettingsFilePath(), settings).ConfigureAwait(false);
         _cachedSettings = settings;
     }
 
@@ -47,13 +67,13 @@ public class ApplicationSettingsService : IApplicationSettingsService
         var property = typeof(ApplicationSettings).GetProperty(key)
                        ?? typeof(ApplicationSettings).GetProperties()
                            .FirstOrDefault(p => string.Equals(p.Name, key, StringComparison.OrdinalIgnoreCase))
-                       ?? typeof(ApplicationSettings).GetProperty(SettingsHelper.ToPascalCase(key));
+                       ?? typeof(ApplicationSettings).GetProperty(_settingsHelper.ToPascalCase(key));
 
         if (property != null && property.CanWrite)
             try
             {
                 // Convert value to appropriate type
-                var convertedValue = SettingsHelper.ConvertValue(value, property.PropertyType);
+                var convertedValue = _settingsHelper.ConvertValue(value, property.PropertyType);
                 property.SetValue(settings, convertedValue);
                 await SaveSettingsAsync(settings).ConfigureAwait(false);
             }
@@ -83,7 +103,7 @@ public class ApplicationSettingsService : IApplicationSettingsService
 
             // Path Settings
             DefaultLogPath = "",
-            DefaultGamePath = GamePathDetection.TryDetectGamePath(),
+            DefaultGamePath = _gamePathDetection.TryDetectGamePath(),
             DefaultScanDirectory = "",
             CrashLogsDirectory = "",
 
@@ -124,8 +144,18 @@ public class ApplicationSettingsService : IApplicationSettingsService
 
     private string GetSettingsFilePath()
     {
-        var settingsPath = Environment.GetEnvironmentVariable("SCANNER111_SETTINGS_PATH");
-        if (!string.IsNullOrEmpty(settingsPath)) return Path.Combine(settingsPath, "settings.json");
-        return Path.Combine(SettingsHelper.GetSettingsDirectory(), "settings.json");
+        var settingsPath = _environment.GetEnvironmentVariable("SCANNER111_SETTINGS_PATH");
+        if (!string.IsNullOrEmpty(settingsPath)) 
+            return _pathService.Combine(settingsPath, "settings.json");
+        
+        var appDataPath = _pathService.Combine(
+            _environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Scanner111"
+        );
+        
+        if (!_fileSystem.DirectoryExists(appDataPath))
+            _fileSystem.CreateDirectory(appDataPath);
+            
+        return _pathService.Combine(appDataPath, "settings.json");
     }
 }

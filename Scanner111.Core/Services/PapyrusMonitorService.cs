@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 
@@ -14,19 +15,31 @@ public class PapyrusMonitorService : IPapyrusMonitorService
     private readonly SemaphoreSlim _monitoringSemaphore = new(1, 1);
     private readonly IApplicationSettingsService _settingsService;
     private readonly IYamlSettingsProvider _yamlSettings;
+    private readonly IFileSystem _fileSystem;
+    private readonly IEnvironmentPathProvider _environment;
+    private readonly IPathService _pathService;
     private bool _disposed;
     private long _lastFilePosition;
     private CancellationTokenSource? _monitoringCts;
     private Timer? _pollingTimer;
 
-    private FileSystemWatcher? _watcher;
+    private IFileWatcher? _watcher;
+    private readonly IFileWatcherFactory _fileWatcherFactory;
 
     public PapyrusMonitorService(
         IApplicationSettingsService settingsService,
-        IYamlSettingsProvider yamlSettings)
+        IYamlSettingsProvider yamlSettings,
+        IFileSystem fileSystem,
+        IEnvironmentPathProvider environment,
+        IPathService pathService,
+        IFileWatcherFactory fileWatcherFactory)
     {
         _settingsService = settingsService;
         _yamlSettings = yamlSettings;
+        _fileSystem = fileSystem;
+        _environment = environment;
+        _pathService = pathService;
+        _fileWatcherFactory = fileWatcherFactory;
         MonitoringInterval = 1000; // Default 1 second
     }
 
@@ -46,7 +59,7 @@ public class PapyrusMonitorService : IPapyrusMonitorService
         await _monitoringSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (!File.Exists(logPath)) throw new FileNotFoundException($"Papyrus log file not found: {logPath}");
+            if (!_fileSystem.FileExists(logPath)) throw new FileNotFoundException($"Papyrus log file not found: {logPath}");
 
             MonitoredPath = logPath;
             _monitoringCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -111,7 +124,7 @@ public class PapyrusMonitorService : IPapyrusMonitorService
 
     public async Task<PapyrusStats> AnalyzeLogAsync(string logPath, CancellationToken cancellationToken = default)
     {
-        if (!File.Exists(logPath)) throw new FileNotFoundException($"Papyrus log file not found: {logPath}");
+        if (!_fileSystem.FileExists(logPath)) throw new FileNotFoundException($"Papyrus log file not found: {logPath}");
 
         var stats = await AnalyzeLogInternalAsync(logPath, cancellationToken).ConfigureAwait(false);
         _historicalStats.Add(stats);
@@ -133,14 +146,14 @@ public class PapyrusMonitorService : IPapyrusMonitorService
         var settings = await _settingsService.LoadSettingsAsync().ConfigureAwait(false);
 
         // First check if we have a configured path
-        if (settings != null && !string.IsNullOrEmpty(settings.PapyrusLogPath) && File.Exists(settings.PapyrusLogPath))
+        if (settings != null && !string.IsNullOrEmpty(settings.PapyrusLogPath) && _fileSystem.FileExists(settings.PapyrusLogPath))
             return settings.PapyrusLogPath;
 
         // Try to detect based on game type
         var possiblePaths = GetPossibleLogPaths(gameType);
 
         foreach (var path in possiblePaths)
-            if (File.Exists(path))
+            if (_fileSystem.FileExists(path))
                 return path;
 
         return null;
@@ -174,7 +187,7 @@ public class PapyrusMonitorService : IPapyrusMonitorService
 
         int dumps = 0, stacks = 0, warnings = 0, errors = 0;
 
-        using var fileStream = new FileStream(logPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var fileStream = _fileSystem.OpenRead(logPath);
         using var reader = new StreamReader(fileStream, encoding);
 
         string? line;
@@ -222,11 +235,15 @@ public class PapyrusMonitorService : IPapyrusMonitorService
 
         try
         {
-            var fileInfo = new FileInfo(MonitoredPath);
-            if (!fileInfo.Exists) return;
+            if (!_fileSystem.FileExists(MonitoredPath)) return;
 
+            // Get file size using FileSystem abstraction
+            using var fileStream = _fileSystem.OpenRead(MonitoredPath);
+            var fileLength = fileStream.Length;
+            fileStream.Close(); // Close immediately to avoid keeping file locked
+            
             // Check if file has grown
-            if (fileInfo.Length > _lastFilePosition)
+            if (fileLength > _lastFilePosition)
             {
                 var newStats = await AnalyzeLogInternalAsync(MonitoredPath, _monitoringCts.Token).ConfigureAwait(false);
 
@@ -249,17 +266,15 @@ public class PapyrusMonitorService : IPapyrusMonitorService
 
     private void SetupFileWatcher(string logPath)
     {
-        var directory = Path.GetDirectoryName(logPath);
-        var fileName = Path.GetFileName(logPath);
+        var directory = _pathService.GetDirectoryName(logPath);
+        var fileName = _pathService.GetFileName(logPath);
 
         if (string.IsNullOrEmpty(directory) || string.IsNullOrEmpty(fileName))
             return;
 
-        _watcher = new FileSystemWatcher(directory, fileName)
-        {
-            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
-            EnableRaisingEvents = true
-        };
+        _watcher = _fileWatcherFactory.CreateWatcher(directory, fileName);
+        _watcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size;
+        _watcher.EnableRaisingEvents = true;
 
         _watcher.Changed += async (sender, e) => await CheckForUpdatesAsync().ConfigureAwait(false);
         _watcher.Error += (sender, e) => OnError(e);
@@ -268,19 +283,19 @@ public class PapyrusMonitorService : IPapyrusMonitorService
     private List<string> GetPossibleLogPaths(GameType gameType)
     {
         var paths = new List<string>();
-        var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var documentsPath = _environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
         switch (gameType)
         {
             case GameType.Fallout4:
-                paths.Add(Path.Combine(documentsPath, "My Games", "Fallout4", "Logs", "Script", "Papyrus.0.log"));
-                paths.Add(Path.Combine(documentsPath, "My Games", "Fallout4VR", "Logs", "Script", "Papyrus.0.log"));
+                paths.Add(_pathService.Combine(documentsPath, "My Games", "Fallout4", "Logs", "Script", "Papyrus.0.log"));
+                paths.Add(_pathService.Combine(documentsPath, "My Games", "Fallout4VR", "Logs", "Script", "Papyrus.0.log"));
                 break;
             case GameType.Skyrim:
-                paths.Add(Path.Combine(documentsPath, "My Games", "Skyrim Special Edition", "Logs", "Script",
+                paths.Add(_pathService.Combine(documentsPath, "My Games", "Skyrim Special Edition", "Logs", "Script",
                     "Papyrus.0.log"));
-                paths.Add(Path.Combine(documentsPath, "My Games", "SkyrimVR", "Logs", "Script", "Papyrus.0.log"));
-                paths.Add(Path.Combine(documentsPath, "My Games", "Skyrim", "Logs", "Script", "Papyrus.0.log"));
+                paths.Add(_pathService.Combine(documentsPath, "My Games", "SkyrimVR", "Logs", "Script", "Papyrus.0.log"));
+                paths.Add(_pathService.Combine(documentsPath, "My Games", "Skyrim", "Logs", "Script", "Papyrus.0.log"));
                 break;
         }
 
@@ -291,7 +306,7 @@ public class PapyrusMonitorService : IPapyrusMonitorService
     {
         // Simple encoding detection - can be enhanced with a library like CharsetDetector
         var buffer = new byte[4096];
-        using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var fileStream = _fileSystem.OpenRead(filePath);
         var bytesRead = await fileStream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
 
         // Check for BOM
@@ -316,7 +331,7 @@ public class PapyrusMonitorService : IPapyrusMonitorService
             csv.AppendLine(
                 $"{stat.Timestamp:yyyy-MM-dd HH:mm:ss},{stat.Dumps},{stat.Stacks},{stat.Ratio:F3},{stat.Warnings},{stat.Errors},{stat.TotalIssues}");
 
-        await File.WriteAllTextAsync(filePath, csv.ToString(), cancellationToken).ConfigureAwait(false);
+        await _fileSystem.WriteAllTextAsync(filePath, csv.ToString(), cancellationToken).ConfigureAwait(false);
     }
 
     private async Task ExportToJsonAsync(string filePath, IReadOnlyList<PapyrusStats> stats,
@@ -327,7 +342,7 @@ public class PapyrusMonitorService : IPapyrusMonitorService
             WriteIndented = true
         });
 
-        await File.WriteAllTextAsync(filePath, json, cancellationToken).ConfigureAwait(false);
+        await _fileSystem.WriteAllTextAsync(filePath, json, cancellationToken).ConfigureAwait(false);
     }
 
     private void OnStatsUpdated(PapyrusStatsUpdatedEventArgs e)

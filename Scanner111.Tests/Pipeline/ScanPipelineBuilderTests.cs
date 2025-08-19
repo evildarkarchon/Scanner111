@@ -1,7 +1,10 @@
+using Microsoft.Extensions.DependencyInjection;
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Pipeline;
 
@@ -13,8 +16,8 @@ public class ScanPipelineBuilderTests
 
     public ScanPipelineBuilderTests()
     {
-        _builder = new ScanPipelineBuilder();
-        _messageHandler = new Mock<IMessageHandler>().Object;
+        _builder = new TestableScanPipelineBuilder();
+        _messageHandler = new TestMessageHandler();
     }
 
     [Fact]
@@ -313,6 +316,39 @@ public class ScanPipelineBuilderTests
         public Task<AnalysisResult> AnalyzeAsync(CrashLog crashLog, CancellationToken cancellationToken = default)
         {
             return Task.FromResult<AnalysisResult>(new GenericAnalysisResult { AnalyzerName = Name });
+        }
+    }
+    
+    // Testable version of ScanPipelineBuilder that properly configures test services
+    private class TestableScanPipelineBuilder : ScanPipelineBuilder
+    {
+        public TestableScanPipelineBuilder() : base()
+        {
+            // The base constructor calls ConfigureDefaultServices() which registers ApplicationSettingsService
+            // We need to override those registrations with test implementations
+            
+            // Get the internal services collection via reflection or provide test implementations
+            var servicesField = typeof(ScanPipelineBuilder).GetField("_services", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            
+            if (servicesField != null)
+            {
+                var services = (IServiceCollection)servicesField.GetValue(this)!;
+                
+                // Replace ApplicationSettingsService with test implementation
+                services.AddSingleton<IApplicationSettingsService, TestApplicationSettingsService>();
+                
+                // Add missing infrastructure dependencies
+                services.AddSingleton<IFileSystem, TestFileSystem>();
+                services.AddSingleton<IEnvironmentPathProvider, TestEnvironmentPathProvider>();
+                services.AddSingleton<IPathService, TestPathService>();
+                services.AddSingleton<ISettingsHelper, SettingsHelper>();
+                services.AddSingleton<IGamePathDetection, TestGamePathDetection>();
+                services.AddSingleton<IFileVersionInfoProvider, TestFileVersionInfoProvider>();
+                services.AddSingleton<IZipService, TestZipService>();
+                services.AddSingleton<IFileWatcherFactory, TestFileWatcherFactory>();
+                services.AddSingleton<ICrashLogParser, TestCrashLogParser>();
+            }
         }
     }
 }

@@ -1,3 +1,4 @@
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Analyzers;
 using Scanner111.Core.FCX;
 using Scanner111.Core.GameScanning;
@@ -7,6 +8,7 @@ using Scanner111.Core.Pipeline;
 using Scanner111.Core.Services;
 using Scanner111.GUI.Services;
 using Scanner111.GUI.ViewModels;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.GUI.Integration;
 
@@ -32,6 +34,27 @@ public class DependencyInjectionTests
     /// </summary>
     private void ConfigureServices(IServiceCollection services)
     {
+        // Add logging - required for many services
+        services.AddLogging(builder =>
+        {
+            // In tests, we don't need console logging
+            builder.SetMinimumLevel(LogLevel.Information);
+        });
+
+        // Add memory cache
+        services.AddMemoryCache();
+        
+        // Infrastructure dependencies for ApplicationSettingsService
+        services.AddSingleton<IFileSystem, TestFileSystem>();
+        services.AddSingleton<IEnvironmentPathProvider, TestEnvironmentPathProvider>();
+        services.AddSingleton<IPathService, TestPathService>();
+        services.AddSingleton<ISettingsHelper, SettingsHelper>();
+        services.AddSingleton<IGamePathDetection, TestGamePathDetection>();
+        services.AddSingleton<IFileVersionInfoProvider, TestFileVersionInfoProvider>();
+        services.AddSingleton<IZipService, TestZipService>();
+        services.AddSingleton<IFileWatcherFactory, TestFileWatcherFactory>();
+        services.AddSingleton<ICrashLogParser, TestCrashLogParser>();
+        
         // Core services
         services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<IUpdateService, UpdateService>();
@@ -66,8 +89,13 @@ public class DependencyInjectionTests
         services.AddTransient<IModScanner, ModScanner>();
         services.AddTransient<IModCompatibilityService, ModCompatibilityService>();
         services.AddTransient<IHashValidationService, HashValidationService>();
+        services.AddTransient<IBackupService, BackupService>();
 
-        // Game scanning services
+        // Game scanning services and their dependencies
+        services.AddTransient<ICrashGenChecker, CrashGenChecker>();
+        services.AddTransient<IXsePluginValidator, XsePluginValidator>();
+        services.AddTransient<IModIniScanner, ModIniScanner>();
+        services.AddTransient<IWryeBashChecker, WryeBashChecker>();
         services.AddTransient<IGameScannerService, GameScannerService>();
         // Note: IMessageHandler should be registered with GuiMessageHandlerService implementation
         services.AddTransient<IMessageHandler, GuiMessageHandlerService>();

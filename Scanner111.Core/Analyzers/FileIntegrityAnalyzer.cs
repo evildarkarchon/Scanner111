@@ -14,18 +14,21 @@ public class FileIntegrityAnalyzer : IAnalyzer
     private readonly IModManagerService? _modManagerService;
     private readonly IApplicationSettingsService _settingsService;
     private readonly IYamlSettingsProvider _yamlSettings;
+    private readonly IGamePathDetection _gamePathDetection;
 
     public FileIntegrityAnalyzer(
         IHashValidationService hashValidationService,
         IApplicationSettingsService settingsService,
         IYamlSettingsProvider yamlSettings,
         IMessageHandler messageHandler,
+        IGamePathDetection gamePathDetection,
         IModManagerService? modManagerService = null)
     {
         _hashValidationService = hashValidationService;
         _settingsService = settingsService;
         _yamlSettings = yamlSettings;
         _messageHandler = messageHandler;
+        _gamePathDetection = gamePathDetection;
         _modManagerService = modManagerService;
     }
 
@@ -155,7 +158,7 @@ public class FileIntegrityAnalyzer : IAnalyzer
         if (string.IsNullOrEmpty(config.RootPath))
         {
             // Try to detect from settings or default paths
-            var detectedPath = GamePathDetection.TryDetectGamePath();
+            var detectedPath = _gamePathDetection.TryDetectGamePath();
             if (!string.IsNullOrEmpty(detectedPath)) config.RootPath = detectedPath;
         }
 

@@ -25,7 +25,8 @@ public class FcxEnabledPipeline : IScanPipeline
         IHashValidationService hashService,
         ILogger<FcxEnabledPipeline> logger,
         IMessageHandler messageHandler,
-        IYamlSettingsProvider yamlSettings)
+        IYamlSettingsProvider yamlSettings,
+        IGamePathDetection gamePathDetection)
     {
         _innerPipeline = Guard.NotNull(innerPipeline, nameof(innerPipeline));
         _settingsService = Guard.NotNull(settingsService, nameof(settingsService));
@@ -39,7 +40,8 @@ public class FcxEnabledPipeline : IScanPipeline
             _hashService,
             _settingsService,
             _yamlSettings,
-            _messageHandler);
+            _messageHandler,
+            gamePathDetection);
     }
 
     /// <summary>

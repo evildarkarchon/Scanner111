@@ -1,4 +1,5 @@
 using Scanner111.Core.Infrastructure;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Infrastructure;
 
@@ -12,6 +13,14 @@ namespace Scanner111.Tests.Infrastructure;
 [Collection("Parser Tests")]
 public class CrashLogParserAdditionalTests
 {
+    private readonly CrashLogParser _parser;
+    private readonly TestFileSystem _fileSystem;
+
+    public CrashLogParserAdditionalTests()
+    {
+        _fileSystem = new TestFileSystem();
+        _parser = new CrashLogParser(_fileSystem);
+    }
 	/// <summary>
 	///     Verifies that the crash log parser correctly identifies a log with no plugins
 	///     and marks the result as incomplete.
@@ -57,11 +66,14 @@ PLUGINS:
 ";
         var tempFile = Path.GetTempFileName();
         await File.WriteAllTextAsync(tempFile, emptyPluginsLog);
+        
+        // Add file to test file system
+        _fileSystem.AddFile(tempFile, emptyPluginsLog);
 
         try
         {
             // Act
-            var result = await CrashLogParser.ParseAsync(tempFile);
+            var result = await _parser.ParseAsync(tempFile);
 
             // Assert
             result.Should().NotBeNull();
@@ -121,11 +133,14 @@ PLUGINS:
 ";
         var tempFile = Path.GetTempFileName();
         await File.WriteAllTextAsync(tempFile, logWithEmptyLines);
+        
+        // Add file to test file system
+        _fileSystem.AddFile(tempFile, logWithEmptyLines);
 
         try
         {
             // Act
-            var result = await CrashLogParser.ParseAsync(tempFile);
+            var result = await _parser.ParseAsync(tempFile);
 
             // Assert
             result.Should().NotBeNull();

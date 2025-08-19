@@ -3,6 +3,7 @@ using Scanner111.Core.Analyzers;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 using Scanner111.Core.Pipeline;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Pipeline;
 
@@ -51,13 +52,15 @@ public class EnhancedScanPipelineTests : IDisposable
             new TestAnalyzer("TestAnalyzer3", 30, true)
         };
 
+        var crashLogParser = new TestCrashLogParser();
         _pipeline = new EnhancedScanPipeline(
             analyzers,
             NullLogger<EnhancedScanPipeline>.Instance,
             messageHandler,
             settingsProvider,
             cacheManager,
-            resilientExecutor);
+            resilientExecutor,
+            crashLogParser);
 
         // Note: EnhancedScanPipeline implements IAsyncDisposable, not IDisposable
     }
@@ -405,13 +408,15 @@ public class EnhancedScanPipelineTests : IDisposable
             new OrderTrackingAnalyzer("Low", 15, false, executionOrder)
         };
 
+        var crashLogParser = new TestCrashLogParser();
         await using var testPipeline = new EnhancedScanPipeline(
             orderedAnalyzers,
             NullLogger<EnhancedScanPipeline>.Instance,
             new TestMessageHandler(),
             new TestYamlSettingsProvider(),
             new NullCacheManager(),
-            new ResilientExecutor(new NoRetryErrorPolicy(), NullLogger<ResilientExecutor>.Instance));
+            new ResilientExecutor(new NoRetryErrorPolicy(), NullLogger<ResilientExecutor>.Instance),
+            crashLogParser);
 
         // Act
         await testPipeline.ProcessSingleAsync(_testLogPath);

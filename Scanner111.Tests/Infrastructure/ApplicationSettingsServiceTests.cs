@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Infrastructure;
 
@@ -13,18 +14,38 @@ public class ApplicationSettingsServiceTests : IDisposable
     private readonly ApplicationSettingsService _service;
     private readonly string _testSettingsDir;
     private readonly string _testSettingsPath;
+    private readonly TestGamePathDetection _gamePathDetection;
+    private readonly TestFileSystem _fileSystem;
+    private readonly TestEnvironmentPathProvider _environmentProvider;
+    private readonly TestPathService _pathService;
+    private readonly TestSettingsHelper _settingsHelper;
 
     public ApplicationSettingsServiceTests()
     {
-        _service = new ApplicationSettingsService();
+        // Create test dependencies
+        _gamePathDetection = new TestGamePathDetection();
+        _fileSystem = new TestFileSystem();
+        _environmentProvider = new TestEnvironmentPathProvider();
+        _pathService = new TestPathService();
+        _settingsHelper = new TestSettingsHelper(_fileSystem, _pathService, _environmentProvider);
+        
+        _service = new ApplicationSettingsService(
+            _gamePathDetection,
+            _fileSystem,
+            _environmentProvider,
+            _pathService,
+            _settingsHelper);
 
         // Create a temporary directory for test settings
         _testSettingsDir = Path.Combine(Path.GetTempPath(), $"Scanner111Tests_{Guid.NewGuid()}");
         Directory.CreateDirectory(_testSettingsDir);
         _testSettingsPath = Path.Combine(_testSettingsDir, "settings.json");
+        
+        // Also add to test file system
+        _fileSystem.CreateDirectory(_testSettingsDir);
 
         // Override the settings directory for testing
-        Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", _testSettingsDir);
+        _environmentProvider.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", _testSettingsDir);
 
         // Small delay to avoid race conditions during parallel test execution
         Thread.Sleep(Random.Shared.Next(50, 150));
@@ -94,9 +115,10 @@ public class ApplicationSettingsServiceTests : IDisposable
         // Act
         await _service.SaveSettingsAsync(settings);
 
-        // Read the file directly to verify
-        var json = await File.ReadAllTextAsync(_testSettingsPath);
-        var loadedSettings = JsonSerializer.Deserialize<ApplicationSettings>(json);
+        // Read the file from the test file system to verify
+        var expectedPath = Path.Combine(_testSettingsDir, "settings.json");
+        var json = await _fileSystem.ReadAllTextAsync(expectedPath);
+        var loadedSettings = JsonSerializer.Deserialize<ApplicationSettings>(json, SettingsHelper.JsonOptions);
 
         // Assert
         loadedSettings.Should().NotBeNull();
@@ -116,7 +138,7 @@ public class ApplicationSettingsServiceTests : IDisposable
     public async Task LoadSettingsAsync_WithCorruptedFile_ReturnsDefaults()
     {
         // Arrange
-        await File.WriteAllTextAsync(_testSettingsPath, "{ invalid json }");
+        await _fileSystem.WriteAllTextAsync(_testSettingsPath, "{ invalid json }");
 
         // Act
         var settings = await _service.LoadSettingsAsync();
@@ -140,7 +162,15 @@ public class ApplicationSettingsServiceTests : IDisposable
         var task2 = Task.Run(async () =>
         {
             await Task.Delay(10); // Small delay to ensure overlap
-            var service2 = new ApplicationSettingsService();
+            var fileSystem = new TestFileSystem();
+            var pathService = new TestPathService();
+            var environmentProvider = new TestEnvironmentPathProvider();
+            var service2 = new ApplicationSettingsService(
+                new TestGamePathDetection(),
+                fileSystem,
+                environmentProvider,
+                pathService,
+                new TestSettingsHelper(fileSystem, pathService, environmentProvider));
             await service2.SaveSettingsAsync(settings2);
         });
 
@@ -233,7 +263,15 @@ public class ApplicationSettingsServiceTests : IDisposable
         await _service.SaveSettingsAsync(settings);
 
         // Act - Create a new service instance to test loading
-        var newService = new ApplicationSettingsService();
+        // Use the same test dependencies to ensure data persistence
+        var newEnvironmentProvider = new TestEnvironmentPathProvider();
+        newEnvironmentProvider.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", _testSettingsDir);
+        var newService = new ApplicationSettingsService(
+            new TestGamePathDetection(),
+            _fileSystem, // Use the same file system that has the saved data
+            newEnvironmentProvider,
+            _pathService,
+            new TestSettingsHelper(_fileSystem, _pathService, newEnvironmentProvider));
         var loaded = await newService.LoadSettingsAsync();
 
         // Assert
@@ -248,14 +286,22 @@ public class ApplicationSettingsServiceTests : IDisposable
     {
         // Arrange
         var newDir = Path.Combine(_testSettingsDir, "subdir");
-        Environment.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", newDir);
-        var service = new ApplicationSettingsService();
+        var fileSystem = new TestFileSystem();
+        var pathService = new TestPathService();
+        var environmentProvider = new TestEnvironmentPathProvider();
+        environmentProvider.SetEnvironmentVariable("SCANNER111_SETTINGS_PATH", newDir);
+        var service = new ApplicationSettingsService(
+            new TestGamePathDetection(),
+            fileSystem,
+            environmentProvider,
+            pathService,
+            new TestSettingsHelper(fileSystem, pathService, environmentProvider));
 
         // Act
         await service.SaveSettingsAsync(new ApplicationSettings());
 
         // Assert
-        Directory.Exists(newDir).Should().BeTrue("directory should be created");
-        File.Exists(Path.Combine(newDir, "settings.json")).Should().BeTrue("settings file should be created");
+        fileSystem.DirectoryExists(newDir).Should().BeTrue("directory should be created");
+        fileSystem.FileExists(Path.Combine(newDir, "settings.json")).Should().BeTrue("settings file should be created");
     }
 }

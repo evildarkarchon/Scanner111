@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.Infrastructure;
 
@@ -11,10 +13,22 @@ namespace Scanner111.Tests.Infrastructure;
 public class GamePathDetectionTests : IDisposable
 {
     private readonly List<string> _tempDirectories;
+    private readonly GamePathDetection _gamePathDetection;
+    private readonly TestFileSystem _fileSystem;
+    private readonly TestEnvironmentPathProvider _environment;
+    private readonly TestPathService _pathService;
 
     public GamePathDetectionTests()
     {
         _tempDirectories = new List<string>();
+        
+        // Initialize test dependencies
+        _fileSystem = new TestFileSystem();
+        _environment = new TestEnvironmentPathProvider();
+        _pathService = new TestPathService();
+        
+        // Create instance of GamePathDetection with test dependencies
+        _gamePathDetection = new GamePathDetection(_fileSystem, _environment, _pathService);
     }
 
     public void Dispose()
@@ -34,7 +48,7 @@ public class GamePathDetectionTests : IDisposable
         var gamePath = CreateTempGameDirectory(true);
 
         // Act
-        var result = GamePathDetection.ValidateGamePath(gamePath);
+        var result = _gamePathDetection.ValidateGamePath(gamePath);
 
         // Assert
         result.Should().BeTrue();
@@ -47,7 +61,7 @@ public class GamePathDetectionTests : IDisposable
         var gamePath = CreateTempGameDirectory(false);
 
         // Act
-        var result = GamePathDetection.ValidateGamePath(gamePath);
+        var result = _gamePathDetection.ValidateGamePath(gamePath);
 
         // Assert
         result.Should().BeFalse();
@@ -57,7 +71,7 @@ public class GamePathDetectionTests : IDisposable
     public void ValidateGamePath_WithNullPath_ReturnsFalse()
     {
         // Act
-        var result = GamePathDetection.ValidateGamePath(null!);
+        var result = _gamePathDetection.ValidateGamePath(null!);
 
         // Assert
         result.Should().BeFalse();
@@ -67,7 +81,7 @@ public class GamePathDetectionTests : IDisposable
     public void ValidateGamePath_WithEmptyPath_ReturnsFalse()
     {
         // Act
-        var result = GamePathDetection.ValidateGamePath("");
+        var result = _gamePathDetection.ValidateGamePath("");
 
         // Assert
         result.Should().BeFalse();
@@ -80,7 +94,7 @@ public class GamePathDetectionTests : IDisposable
         var nonExistentPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 
         // Act
-        var result = GamePathDetection.ValidateGamePath(nonExistentPath);
+        var result = _gamePathDetection.ValidateGamePath(nonExistentPath);
 
         // Assert
         result.Should().BeFalse();
@@ -90,11 +104,11 @@ public class GamePathDetectionTests : IDisposable
     public void GetGameDocumentsPath_ForFallout4_ReturnsCorrectPath()
     {
         // Act
-        var result = GamePathDetection.GetGameDocumentsPath("Fallout4");
+        var result = _gamePathDetection.GetGameDocumentsPath("Fallout4");
 
         // Assert
         var expectedPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            _environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "My Games", "Fallout4");
         result.Should().Be(expectedPath);
     }
@@ -103,11 +117,11 @@ public class GamePathDetectionTests : IDisposable
     public void GetGameDocumentsPath_ForSkyrim_ReturnsCorrectPath()
     {
         // Act
-        var result = GamePathDetection.GetGameDocumentsPath("Skyrim");
+        var result = _gamePathDetection.GetGameDocumentsPath("Skyrim");
 
         // Assert
         var expectedPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            _environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "My Games", "Skyrim Special Edition");
         result.Should().Be(expectedPath);
     }
@@ -116,7 +130,7 @@ public class GamePathDetectionTests : IDisposable
     public void GetGameDocumentsPath_ForUnknownGame_ReturnsEmptyString()
     {
         // Act
-        var result = GamePathDetection.GetGameDocumentsPath("UnknownGame");
+        var result = _gamePathDetection.GetGameDocumentsPath("UnknownGame");
 
         // Assert
         result.Should().Be("");
@@ -147,7 +161,7 @@ public class GamePathDetectionTests : IDisposable
         try
         {
             // Act
-            var result = GamePathDetection.TryGetGamePathFromXseLog();
+            var result = _gamePathDetection.TryGetGamePathFromXseLog();
 
             // Assert
             // We can't validate against the exact path since it needs to exist
@@ -173,7 +187,7 @@ public class GamePathDetectionTests : IDisposable
             File.Delete(f4seLogPath);
 
         // Act
-        var result = GamePathDetection.TryGetGamePathFromXseLog();
+        var result = _gamePathDetection.TryGetGamePathFromXseLog();
 
         // Assert
         result.Should().Be("");
@@ -186,7 +200,7 @@ public class GamePathDetectionTests : IDisposable
         // We're testing the method logic rather than actual detection
 
         // Act
-        var config = GamePathDetection.DetectGameConfiguration();
+        var config = _gamePathDetection.DetectGameConfiguration();
 
         // Assert
         // Config might be null if no game is installed, which is fine for unit tests
@@ -206,7 +220,7 @@ public class GamePathDetectionTests : IDisposable
         Skip.IfNot(RuntimeInformation.IsOSPlatform(OSPlatform.Windows), "Registry test requires Windows");
 
         // Act
-        var result = GamePathDetection.TryGetGamePathFromRegistry();
+        var result = _gamePathDetection.TryGetGamePathFromRegistry();
 
         // Assert
         // Result depends on whether game is actually installed
@@ -220,7 +234,7 @@ public class GamePathDetectionTests : IDisposable
         Skip.If(RuntimeInformation.IsOSPlatform(OSPlatform.Windows), "Test for non-Windows platforms");
 
         // Act
-        var result = GamePathDetection.TryGetGamePathFromRegistry();
+        var result = _gamePathDetection.TryGetGamePathFromRegistry();
 
         // Assert
         result.Should().Be("");
@@ -230,7 +244,7 @@ public class GamePathDetectionTests : IDisposable
     public void TryDetectGamePath_WithSpecificGameType_AttemptsDetection()
     {
         // Act
-        var result = GamePathDetection.TryDetectGamePath("Fallout4");
+        var result = _gamePathDetection.TryDetectGamePath("Fallout4");
 
         // Assert
         // Result depends on system configuration
@@ -242,7 +256,7 @@ public class GamePathDetectionTests : IDisposable
     public void TryDetectGamePath_WithoutParameter_DefaultsToFallout4()
     {
         // Act
-        var result = GamePathDetection.TryDetectGamePath();
+        var result = _gamePathDetection.TryDetectGamePath();
 
         // Assert
         // Result depends on system configuration
@@ -291,11 +305,18 @@ public class GamePathDetectionTests : IDisposable
         // Arrange
         var specialPath = CreateTempDirectory();
         var subPath = Path.Combine(specialPath, "Game's & Path (2024)");
+        var exePath = Path.Combine(subPath, "Fallout4.exe");
+        
+        // Add to test file system
+        _fileSystem.CreateDirectory(subPath);
+        _fileSystem.AddFile(exePath, "dummy");
+        
+        // Also create real directories for cleanup
         Directory.CreateDirectory(subPath);
-        File.WriteAllText(Path.Combine(subPath, "Fallout4.exe"), "dummy");
+        File.WriteAllText(exePath, "dummy");
 
         // Act
-        var result = GamePathDetection.ValidateGamePath(subPath);
+        var result = _gamePathDetection.ValidateGamePath(subPath);
 
         // Assert
         result.Should().BeTrue();
@@ -308,14 +329,20 @@ public class GamePathDetectionTests : IDisposable
         var basePath = CreateTempDirectory();
         var longDirName = new string('a', 50);
         var longPath = Path.Combine(basePath, longDirName, longDirName);
+        var exePath = Path.Combine(longPath, "Fallout4.exe");
 
         try
         {
+            // Add to test file system
+            _fileSystem.CreateDirectory(longPath);
+            _fileSystem.AddFile(exePath, "dummy");
+            
+            // Also create real directories for cleanup
             Directory.CreateDirectory(longPath);
-            File.WriteAllText(Path.Combine(longPath, "Fallout4.exe"), "dummy");
+            File.WriteAllText(exePath, "dummy");
 
             // Act
-            var result = GamePathDetection.ValidateGamePath(longPath);
+            var result = _gamePathDetection.ValidateGamePath(longPath);
 
             // Assert
             result.Should().BeTrue();
@@ -341,7 +368,7 @@ public class GamePathDetectionTests : IDisposable
             GameName = "Fallout4",
             RootPath = gamePath,
             ExecutablePath = Path.Combine(gamePath, "Fallout4.exe"),
-            DocumentsPath = GamePathDetection.GetGameDocumentsPath("Fallout4"),
+            DocumentsPath = _gamePathDetection.GetGameDocumentsPath("Fallout4"),
             Platform = "Test"
         };
 
@@ -380,7 +407,7 @@ public class GamePathDetectionTests : IDisposable
         try
         {
             // Act
-            var result = GamePathDetection.TryGetGamePathFromXseLog();
+            var result = _gamePathDetection.TryGetGamePathFromXseLog();
 
             // Assert
             result.Should().Be("");
@@ -411,7 +438,7 @@ public class GamePathDetectionTests : IDisposable
             lockedFile = new FileStream(f4seLogPath, FileMode.Create, FileAccess.Write, FileShare.None);
 
             // Act - should handle exception gracefully
-            var result = GamePathDetection.TryGetGamePathFromXseLog();
+            var result = _gamePathDetection.TryGetGamePathFromXseLog();
 
             // Assert
             result.Should().Be("");
@@ -455,7 +482,7 @@ public class GamePathDetectionTests : IDisposable
         try
         {
             // Act
-            var result = GamePathDetection.TryGetGamePathFromXseLog();
+            var result = _gamePathDetection.TryGetGamePathFromXseLog();
 
             // Assert - Since the extracted path won't exist, it will return empty
             // But we're testing the extraction logic
@@ -478,7 +505,7 @@ public class GamePathDetectionTests : IDisposable
         try
         {
             // Act
-            var result = GamePathDetection.ValidateGamePath(tempFile);
+            var result = _gamePathDetection.ValidateGamePath(tempFile);
 
             // Assert
             result.Should().BeFalse();
@@ -498,7 +525,7 @@ public class GamePathDetectionTests : IDisposable
     public void ValidateGamePath_WithWhitespaceOnly_ReturnsFalse(string path)
     {
         // Act
-        var result = GamePathDetection.ValidateGamePath(path);
+        var result = _gamePathDetection.ValidateGamePath(path);
 
         // Assert
         result.Should().BeFalse();
@@ -521,7 +548,7 @@ public class GamePathDetectionTests : IDisposable
         // Act & Assert
         foreach (var path in invalidPaths)
         {
-            var result = GamePathDetection.ValidateGamePath(path);
+            var result = _gamePathDetection.ValidateGamePath(path);
             result.Should().BeFalse();
         }
     }
@@ -535,7 +562,7 @@ public class GamePathDetectionTests : IDisposable
     public void GetGameDocumentsPath_WithUnsupportedGame_ReturnsEmpty(string gameType)
     {
         // Act
-        var result = GamePathDetection.GetGameDocumentsPath(gameType);
+        var result = _gamePathDetection.GetGameDocumentsPath(gameType);
 
         // Assert
         result.Should().Be("");
@@ -545,7 +572,7 @@ public class GamePathDetectionTests : IDisposable
     public void DetectGameConfiguration_WithNonExistentGame_ReturnsNullOrHasCorrectName()
     {
         // Act
-        var result = GamePathDetection.DetectGameConfiguration("NonExistentGame12345");
+        var result = _gamePathDetection.DetectGameConfiguration("NonExistentGame12345");
 
         // Assert
         // The method might still find a Fallout 4 installation even when searching for a non-existent game
@@ -582,7 +609,7 @@ public class GamePathDetectionTests : IDisposable
     public void TryDetectGamePath_WithInvalidGameType_HandlesGracefully()
     {
         // Act
-        var result = GamePathDetection.TryDetectGamePath("InvalidGame123!@#");
+        var result = _gamePathDetection.TryDetectGamePath("InvalidGame123!@#");
 
         // Assert
         result.Should().NotBeNull(); // Should return empty string, not throw
@@ -597,7 +624,7 @@ public class GamePathDetectionTests : IDisposable
         // We can't easily corrupt the registry, but we can verify it handles exceptions
 
         // Act
-        var result = GamePathDetection.TryGetGamePathFromRegistry();
+        var result = _gamePathDetection.TryGetGamePathFromRegistry();
 
         // Assert
         result.Should().NotBeNull(); // Should return string (empty or path), not throw
@@ -606,6 +633,9 @@ public class GamePathDetectionTests : IDisposable
     private string CreateTempDirectory()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        // Add to test file system
+        _fileSystem.CreateDirectory(tempDir);
+        // Also create real directory for tests that might need it
         Directory.CreateDirectory(tempDir);
         _tempDirectories.Add(tempDir);
         return tempDir;
@@ -615,11 +645,22 @@ public class GamePathDetectionTests : IDisposable
     {
         var tempDir = CreateTempDirectory();
 
-        if (includeExecutable) File.WriteAllText(Path.Combine(tempDir, "Fallout4.exe"), "dummy executable");
+        if (includeExecutable) 
+        {
+            var exePath = Path.Combine(tempDir, "Fallout4.exe");
+            _fileSystem.AddFile(exePath, "dummy executable");
+            File.WriteAllText(exePath, "dummy executable");
+        }
 
         // Create some typical game directories
-        Directory.CreateDirectory(Path.Combine(tempDir, "Data"));
-        Directory.CreateDirectory(Path.Combine(tempDir, "Data", "Scripts"));
+        var dataPath = Path.Combine(tempDir, "Data");
+        var scriptsPath = Path.Combine(tempDir, "Data", "Scripts");
+        
+        _fileSystem.CreateDirectory(dataPath);
+        _fileSystem.CreateDirectory(scriptsPath);
+        
+        Directory.CreateDirectory(dataPath);
+        Directory.CreateDirectory(scriptsPath);
 
         return tempDir;
     }

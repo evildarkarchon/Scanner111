@@ -1,4 +1,5 @@
 using HtmlAgilityPack;
+using Scanner111.Core.Abstractions;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
 
@@ -22,15 +23,24 @@ public class WryeBashChecker : IWryeBashChecker
 
     private readonly IApplicationSettingsService _settingsService;
     private readonly IYamlSettingsProvider _yamlProvider;
+    private readonly IFileSystem _fileSystem;
+    private readonly IEnvironmentPathProvider _environment;
+    private readonly IPathService _pathService;
 
     public WryeBashChecker(
         IApplicationSettingsService settingsService,
         IYamlSettingsProvider yamlProvider,
-        ILogger<WryeBashChecker> logger)
+        ILogger<WryeBashChecker> logger,
+        IFileSystem fileSystem,
+        IEnvironmentPathProvider environment,
+        IPathService pathService)
     {
         _settingsService = settingsService;
         _yamlProvider = yamlProvider;
         _logger = logger;
+        _fileSystem = fileSystem;
+        _environment = environment;
+        _pathService = pathService;
     }
 
     public async Task<string> AnalyzeAsync()
@@ -43,13 +53,14 @@ public class WryeBashChecker : IWryeBashChecker
             // Determine the path to the Wrye Bash plugin checker report
             var reportPath = GetPluginCheckerReportPath(gameType);
 
-            if (string.IsNullOrEmpty(reportPath) || !File.Exists(reportPath)) return GetMissingReportMessage(gameType);
+            if (string.IsNullOrEmpty(reportPath) || !_fileSystem.FileExists(reportPath)) return GetMissingReportMessage(gameType);
 
             // Build the analysis message
+            var gameFolderName = GetGameFolderName(gameType);
             _messageList.AddRange(new[]
             {
                 "\n✔️ WRYE BASH PLUGIN CHECKER REPORT WAS FOUND! ANALYZING CONTENTS...\n",
-                $"  [This report is located in your Documents/My Games/{GetGameFolderName(gameType)} folder.]\n",
+                $"  [This report is located in your Documents/My Games/{gameFolderName} folder.]\n",
                 "  [To hide this report, remove *ModChecker.html* from the same folder.]\n"
             });
 
@@ -73,13 +84,13 @@ public class WryeBashChecker : IWryeBashChecker
 
     private string GetPluginCheckerReportPath(GameType gameType)
     {
-        var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var documentsPath = _environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         var gameFolderName = GetGameFolderName(gameType);
 
         if (string.IsNullOrEmpty(gameFolderName))
             return string.Empty;
 
-        return Path.Combine(documentsPath, "My Games", gameFolderName, "ModChecker.html");
+        return _pathService.Combine(documentsPath, "My Games", gameFolderName, "ModChecker.html");
     }
 
     private string GetGameFolderName(GameType gameType)
@@ -100,8 +111,10 @@ public class WryeBashChecker : IWryeBashChecker
     {
         // TODO: Load warning message from YAML configuration when structure is defined
         // For now, use default message
+        var gameFolderName = GetGameFolderName(gameType);
+        var gameDisplayName = string.IsNullOrEmpty(gameFolderName) ? gameType.ToString() : gameFolderName;
 
-        return $"ℹ️ Wrye Bash Plugin Checker report not found for {gameType}.\n" +
+        return $"ℹ️ Wrye Bash Plugin Checker Report for {gameDisplayName} was not found.\n" +
                "  Run Plugin Checker in Wrye Bash to generate this report.\n" +
                "  The report helps identify plugin conflicts and load order issues.\n-----\n";
     }
@@ -109,47 +122,101 @@ public class WryeBashChecker : IWryeBashChecker
     private List<string> ParseWryeReport(string reportPath)
     {
         var messageParts = new List<string>();
+        var hasIssues = false;
 
         try
         {
-            var htmlContent = File.ReadAllText(reportPath);
+            var htmlContent = _fileSystem.ReadAllText(reportPath);
             var doc = new HtmlDocument();
             doc.LoadHtml(htmlContent);
 
-            // Get Wrye warnings from YAML settings
-            // TODO: Load warnings from YAML configuration when structure is defined
-            var wryeWarnings = new Dictionary<string, string>();
+            // Check for Missing Masters
+            var missingMastersSection = doc.DocumentNode.SelectSingleNode("//h2[contains(text(), 'Missing Masters')]");
+            if (missingMastersSection != null)
+            {
+                hasIssues = true;
+                messageParts.Add("\n❌ CRITICAL: Missing Masters detected\n");
+                var items = ExtractItemsFromSection(missingMastersSection);
+                foreach (var item in items)
+                    messageParts.Add($"  - {item}\n");
+            }
 
-            // Process each section (h3 element)
-            var sections = doc.DocumentNode.SelectNodes("//h3");
-            if (sections != null)
-                foreach (var section in sections)
+            // Check for Deactivated Plugins
+            var deactivatedSection = doc.DocumentNode.SelectSingleNode("//h2[contains(text(), 'Deactivated Plugins')]");
+            if (deactivatedSection != null)
+            {
+                hasIssues = true;
+                messageParts.Add("\n⚠️ WARNING: Deactivated plugins found\n");
+                var items = ExtractItemsFromSection(deactivatedSection);
+                foreach (var item in items)
+                    messageParts.Add($"  - {item}\n");
+            }
+
+            // Check for Load Order Issues
+            var loadOrderSection = doc.DocumentNode.SelectSingleNode("//h2[contains(text(), 'Load Order Issues')]");
+            if (loadOrderSection != null)
+            {
+                hasIssues = true;
+                messageParts.Add("\n⚠️ WARNING: Load order issues detected\n");
+                var items = ExtractTextFromSection(loadOrderSection);
+                foreach (var item in items)
+                    messageParts.Add($"  - {item}\n");
+            }
+
+            // Check for Dirty Plugins
+            var dirtyPluginsSection = doc.DocumentNode.SelectSingleNode("//h2[contains(text(), 'Dirty Plugins')]");
+            if (dirtyPluginsSection != null)
+            {
+                hasIssues = true;
+                messageParts.Add("\n⚠️ WARNING: Dirty plugins detected\n");
+                var tableRows = ExtractTableRows(dirtyPluginsSection);
+                foreach (var row in tableRows)
+                    messageParts.Add($"  - {row}\n");
+            }
+
+            // Check for ESL Flag Issues
+            var eslSection = doc.DocumentNode.SelectSingleNode("//h2[contains(text(), 'ESL Flag Issues')] | //h2[contains(text(), 'ESL Capable')]");
+            if (eslSection != null)
+            {
+                messageParts.Add("\n⚠️ WARNING: ESL flag optimization available\n");
+                var items = ExtractItemsFromSection(eslSection);
+                foreach (var item in items)
+                    messageParts.Add($"  - {item}\n");
+            }
+
+            // Check for Bash Tag Suggestions
+            var bashTagSection = doc.DocumentNode.SelectSingleNode("//h2[contains(text(), 'Bash Tag')]");
+            if (bashTagSection != null)
+            {
+                messageParts.Add("\nℹ️ INFO: Bash Tag suggestions\n");
+                var items = ExtractItemsFromSection(bashTagSection);
+                foreach (var item in items)
+                    messageParts.Add($"  - {item}\n");
+            }
+
+            // If no issues were found
+            if (!hasIssues && messageParts.Count == 0)
+            {
+                messageParts.Add("\n✔️ No issues detected in Wrye Bash report\n");
+            }
+
+            // Also check for h3 sections (fallback for different HTML structure)
+            var h3Sections = doc.DocumentNode.SelectNodes("//h3");
+            if (h3Sections != null && messageParts.Count == 1 && messageParts[0].Contains("No issues"))
+            {
+                messageParts.Clear();
+                foreach (var section in h3Sections)
                 {
                     var title = section.InnerText.Trim();
-                    var plugins = ExtractPluginsFromSection(section);
-
-                    // Format section header (skip Active Plugins section)
-                    if (title != "Active Plugins:") messageParts.Add(FormatSectionHeader(title));
-
-                    // Handle special ESL Capable section
-                    if (title == "ESL Capable")
-                        messageParts.AddRange(new[]
-                        {
-                            $"❓ There are {plugins.Count} plugins that can be given the ESL flag. This can be done with\n",
-                            "  the SimpleESLify script to avoid reaching the plugin limit (254 esm/esp).\n",
-                            $"  SimpleESLify: {_resourceLinks["simple_eslify"]}\n  -----\n"
-                        });
-
-                    // Add any matching warnings from settings
-                    foreach (var (warningName, warningText) in wryeWarnings)
-                        if (title.Contains(warningName, StringComparison.OrdinalIgnoreCase))
-                            messageParts.Add(warningText);
-
-                    // List plugins (except for special sections)
-                    if (title != "ESL Capable" && title != "Active Plugins:")
+                    if (title != "Active Plugins:")
+                    {
+                        messageParts.Add(FormatSectionHeader(title));
+                        var plugins = ExtractPluginsFromSection(section);
                         foreach (var plugin in plugins)
                             messageParts.Add($"    > {plugin}\n");
+                    }
                 }
+            }
         }
         catch (Exception ex)
         {
@@ -196,6 +263,140 @@ public class WryeBashChecker : IWryeBashChecker
         }
 
         return plugins;
+    }
+
+    private List<string> ExtractItemsFromSection(HtmlNode section)
+    {
+        var items = new List<string>();
+
+        try
+        {
+            // Find the next sibling that contains list items
+            var currentNode = section.NextSibling;
+
+            while (currentNode != null)
+            {
+                // Stop if we hit another h2 or h3 section
+                if (currentNode.Name == "h2" || currentNode.Name == "h3")
+                    break;
+
+                // Process ul/ol nodes
+                if (currentNode.Name == "ul" || currentNode.Name == "ol")
+                {
+                    var listItems = currentNode.SelectNodes(".//li");
+                    if (listItems != null)
+                    {
+                        foreach (var li in listItems)
+                        {
+                            var text = li.InnerText.Trim();
+                            if (!string.IsNullOrWhiteSpace(text))
+                                items.Add(text);
+                        }
+                    }
+                }
+                // Process paragraph nodes
+                else if (currentNode.Name == "p")
+                {
+                    var text = currentNode.InnerText.Trim();
+                    if (!string.IsNullOrWhiteSpace(text) && text.Length > 2)
+                        items.Add(text);
+                }
+
+                currentNode = currentNode.NextSibling;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error extracting items from section");
+        }
+
+        return items;
+    }
+
+    private List<string> ExtractTextFromSection(HtmlNode section)
+    {
+        var items = new List<string>();
+
+        try
+        {
+            var currentNode = section.NextSibling;
+
+            while (currentNode != null)
+            {
+                // Stop if we hit another h2 or h3 section
+                if (currentNode.Name == "h2" || currentNode.Name == "h3")
+                    break;
+
+                // Process paragraph nodes
+                if (currentNode.Name == "p")
+                {
+                    var text = currentNode.InnerText.Trim();
+                    if (!string.IsNullOrWhiteSpace(text))
+                        items.Add(text);
+                }
+
+                currentNode = currentNode.NextSibling;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error extracting text from section");
+        }
+
+        return items;
+    }
+
+    private List<string> ExtractTableRows(HtmlNode section)
+    {
+        var rows = new List<string>();
+
+        try
+        {
+            var currentNode = section.NextSibling;
+
+            while (currentNode != null)
+            {
+                // Stop if we hit another h2 or h3 section
+                if (currentNode.Name == "h2" || currentNode.Name == "h3")
+                    break;
+
+                // Process table nodes
+                if (currentNode.Name == "table")
+                {
+                    var tableRows = currentNode.SelectNodes(".//tr");
+                    if (tableRows != null)
+                    {
+                        var skipFirst = true;
+                        foreach (var tr in tableRows)
+                        {
+                            // Skip header row if it has th elements
+                            if (skipFirst && tr.SelectNodes(".//th") != null)
+                            {
+                                skipFirst = false;
+                                continue;
+                            }
+                            
+                            var cells = tr.SelectNodes(".//td");
+                            if (cells != null && cells.Count >= 2)
+                            {
+                                var plugin = cells[0].InnerText.Trim();
+                                var issues = cells[1].InnerText.Trim();
+                                rows.Add($"{plugin}: {issues}");
+                            }
+                        }
+                    }
+                    break; // We found and processed the table, stop looking
+                }
+
+                currentNode = currentNode.NextSibling;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error extracting table rows from section");
+        }
+
+        return rows;
     }
 
     private string FormatSectionHeader(string title)

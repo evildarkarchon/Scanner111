@@ -572,7 +572,8 @@ public class ConcurrencyAndResourceTests : IDisposable
             new("TestAnalyzer2", 2)
         };
 
-        var pipeline = new ScanPipeline(analyzers, logger, messageHandler, settingsProvider);
+        var crashLogParser = new TestCrashLogParser();
+        var pipeline = new ScanPipeline(analyzers, logger, messageHandler, settingsProvider, crashLogParser);
 
         // Track disposable dependencies (use object collection for mixed types)
         _disposables.Add(logger);
@@ -593,7 +594,8 @@ public class ConcurrencyAndResourceTests : IDisposable
             new("TestAnalyzer2", 2)
         };
 
-        var pipeline = new ScanPipeline(analyzers, logger, messageHandler, settingsProvider);
+        var crashLogParser = new TestCrashLogParser();
+        var pipeline = new ScanPipeline(analyzers, logger, messageHandler, settingsProvider, crashLogParser);
 
         // Don't add any dependencies to disposables list since most test classes don't implement IDisposable
         // The pipeline itself will dispose of its internal semaphore
@@ -629,8 +631,9 @@ public class ConcurrencyAndResourceTests : IDisposable
             new("EnhancedAnalyzer2", 2)
         };
 
+        var crashLogParser = new TestCrashLogParser();
         var pipeline = new EnhancedScanPipeline(analyzers, logger, messageHandler, settingsProvider, cacheManager,
-            resilientExecutor);
+            resilientExecutor, crashLogParser);
 
         // Track disposable dependencies (use object collection for mixed types)
         _disposables.Add(logger);

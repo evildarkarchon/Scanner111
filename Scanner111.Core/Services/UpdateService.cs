@@ -85,28 +85,35 @@ public class UpdateService : IUpdateService
 
     public async Task<UpdateCheckResult> GetUpdateInfoAsync(CancellationToken cancellationToken = default)
     {
-        var settings = await _settingsService.LoadSettingsAsync().ConfigureAwait(false);
-
-        if (!settings.EnableUpdateCheck)
-            return new UpdateCheckResult
-            {
-                CheckSuccessful = false,
-                ErrorMessage = "Update checking is disabled in settings"
-            };
-
-        _logger.LogDebug("Starting update check");
-
-        var result = new UpdateCheckResult
-        {
-            CurrentVersion = GetCurrentVersion(),
-            UpdateSource = settings.UpdateSource
-        };
-
-        var useGitHub = settings.UpdateSource is "Both" or "GitHub";
-        var useNexus = settings.UpdateSource is "Both" or "Nexus";
-
         try
         {
+            var settings = await _settingsService.LoadSettingsAsync().ConfigureAwait(false);
+
+            if (settings == null)
+                return new UpdateCheckResult
+                {
+                    CheckSuccessful = false,
+                    ErrorMessage = "Unable to load application settings"
+                };
+
+            if (!settings.EnableUpdateCheck)
+                return new UpdateCheckResult
+                {
+                    CheckSuccessful = false,
+                    ErrorMessage = "Update checking is disabled in settings"
+                };
+
+            _logger.LogDebug("Starting update check");
+
+            var result = new UpdateCheckResult
+            {
+                CurrentVersion = GetCurrentVersion(),
+                UpdateSource = settings.UpdateSource
+            };
+
+            var useGitHub = settings.UpdateSource is "Both" or "GitHub";
+            var useNexus = settings.UpdateSource is "Both" or "Nexus";
+            
             var tasks = new List<Task>();
 
             if (useGitHub)
@@ -158,8 +165,12 @@ public class UpdateService : IUpdateService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error during update check");
-            result.ErrorMessage = $"Unexpected error: {ex.Message}";
-            return result;
+            return new UpdateCheckResult
+            {
+                CheckSuccessful = false,
+                ErrorMessage = $"Unexpected error: {ex.Message}",
+                CurrentVersion = GetCurrentVersion()
+            };
         }
     }
 

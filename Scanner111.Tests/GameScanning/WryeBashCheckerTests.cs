@@ -1,6 +1,7 @@
 using Scanner111.Core.GameScanning;
 using Scanner111.Core.Infrastructure;
 using Scanner111.Core.Models;
+using Scanner111.Tests.TestHelpers;
 
 namespace Scanner111.Tests.GameScanning;
 
@@ -12,68 +13,57 @@ public class WryeBashCheckerTests : IDisposable
 {
     private readonly WryeBashChecker _checker;
     private readonly Mock<ILogger<WryeBashChecker>> _mockLogger;
-    private readonly Mock<IApplicationSettingsService> _mockSettingsService;
-    private readonly Mock<IYamlSettingsProvider> _mockYamlProvider;
-    private readonly string _testDirectory;
+    private readonly TestApplicationSettingsService _settingsService;
+    private readonly TestYamlSettingsProvider _yamlProvider;
+    private readonly TestFileSystem _fileSystem;
+    private readonly TestEnvironmentPathProvider _environment;
+    private readonly TestPathService _pathService;
     private readonly string _testDocumentsPath;
 
     public WryeBashCheckerTests()
     {
-        _mockSettingsService = new Mock<IApplicationSettingsService>();
-        _mockYamlProvider = new Mock<IYamlSettingsProvider>();
+        _settingsService = new TestApplicationSettingsService();
+        _yamlProvider = new TestYamlSettingsProvider();
         _mockLogger = new Mock<ILogger<WryeBashChecker>>();
+        _fileSystem = new TestFileSystem();
+        _environment = new TestEnvironmentPathProvider();
+        _pathService = new TestPathService();
 
-        _testDirectory = Path.Combine(Path.GetTempPath(), $"Scanner111Tests_{Guid.NewGuid()}");
-        Directory.CreateDirectory(_testDirectory);
-
-        _testDocumentsPath = Path.Combine(_testDirectory, "TestDocuments");
+        _testDocumentsPath = @"C:\Users\TestUser\Documents";
+        _environment.SetSpecialFolder(Environment.SpecialFolder.MyDocuments, _testDocumentsPath);
 
         _checker = new WryeBashChecker(
-            _mockSettingsService.Object,
-            _mockYamlProvider.Object,
-            _mockLogger.Object);
+            _settingsService,
+            _yamlProvider,
+            _mockLogger.Object,
+            _fileSystem,
+            _environment,
+            _pathService);
 
         SetupDefaultMocks();
     }
 
     public void Dispose()
     {
-        if (Directory.Exists(_testDirectory))
-            try
-            {
-                Directory.Delete(_testDirectory, true);
-            }
-            catch
-            {
-                // Ignore cleanup errors
-            }
+        // No cleanup needed for test implementations
     }
 
     private void SetupDefaultMocks()
     {
-        var settings = new ApplicationSettings
-        {
-            GameType = GameType.Fallout4
-        };
-
-        _mockSettingsService.Setup(x => x.LoadSettingsAsync())
-            .ReturnsAsync(settings);
+        // Directly modify the Settings property of TestApplicationSettingsService
+        _settingsService.Settings.GameType = GameType.Fallout4;
     }
 
     #region Helper Methods
 
     private string CreateWryeBashReport(string htmlContent)
     {
-        // Mock the Documents folder structure
-        var gameFolderPath = Path.Combine(_testDocumentsPath, "My Games", "Fallout4");
-        Directory.CreateDirectory(gameFolderPath);
+        // Create the report in the test file system
+        var gameFolderPath = _pathService.Combine(_testDocumentsPath, "My Games", "Fallout4");
+        _fileSystem.CreateDirectory(gameFolderPath);
 
-        var reportPath = Path.Combine(gameFolderPath, "ModChecker.html");
-        File.WriteAllText(reportPath, htmlContent);
-
-        // Update the Environment.SpecialFolder.MyDocuments to point to our test directory
-        // Since we can't override Environment.GetFolderPath, we need to work around it
-        // In real implementation, this would need dependency injection for the path
+        var reportPath = _pathService.Combine(gameFolderPath, "ModChecker.html");
+        _fileSystem.AddFile(reportPath, htmlContent);
 
         return reportPath;
     }
@@ -86,7 +76,8 @@ public class WryeBashCheckerTests : IDisposable
     public async Task AnalyzeAsync_NoReportFile_ReturnsHelpMessage()
     {
         // Arrange
-        // Don't create any report file
+        // Don't create any report file in the test file system
+        // The test file system starts empty, so no report exists
 
         // Act
         var result = await _checker.AnalyzeAsync();
@@ -141,7 +132,9 @@ public class WryeBashCheckerTests : IDisposable
     {
         // Arrange
         var settings = new ApplicationSettings { GameType = GameType.Fallout4 };
-        _mockSettingsService.Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
+        _settingsService.Settings.GameType = settings.GameType;
+        if (!string.IsNullOrEmpty(settings.GamePath))
+            _settingsService.Settings.GamePath = settings.GamePath;
 
         // Act
         var result = await _checker.AnalyzeAsync();
@@ -155,7 +148,9 @@ public class WryeBashCheckerTests : IDisposable
     {
         // Arrange
         var settings = new ApplicationSettings { GameType = GameType.Fallout4VR };
-        _mockSettingsService.Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
+        _settingsService.Settings.GameType = settings.GameType;
+        if (!string.IsNullOrEmpty(settings.GamePath))
+            _settingsService.Settings.GamePath = settings.GamePath;
 
         // Act
         var result = await _checker.AnalyzeAsync();
@@ -169,7 +164,9 @@ public class WryeBashCheckerTests : IDisposable
     {
         // Arrange
         var settings = new ApplicationSettings { GameType = GameType.SkyrimSE };
-        _mockSettingsService.Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
+        _settingsService.Settings.GameType = settings.GameType;
+        if (!string.IsNullOrEmpty(settings.GamePath))
+            _settingsService.Settings.GamePath = settings.GamePath;
 
         // Act
         var result = await _checker.AnalyzeAsync();
@@ -183,7 +180,9 @@ public class WryeBashCheckerTests : IDisposable
     {
         // Arrange
         var settings = new ApplicationSettings { GameType = GameType.SkyrimVR };
-        _mockSettingsService.Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
+        _settingsService.Settings.GameType = settings.GameType;
+        if (!string.IsNullOrEmpty(settings.GamePath))
+            _settingsService.Settings.GamePath = settings.GamePath;
 
         // Act
         var result = await _checker.AnalyzeAsync();
@@ -197,7 +196,9 @@ public class WryeBashCheckerTests : IDisposable
     {
         // Arrange
         var settings = new ApplicationSettings { GameType = GameType.Unknown };
-        _mockSettingsService.Setup(x => x.LoadSettingsAsync()).ReturnsAsync(settings);
+        _settingsService.Settings.GameType = settings.GameType;
+        if (!string.IsNullOrEmpty(settings.GamePath))
+            _settingsService.Settings.GamePath = settings.GamePath;
 
         // Act
         var result = await _checker.AnalyzeAsync();
