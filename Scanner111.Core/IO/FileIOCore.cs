@@ -4,38 +4,38 @@ using Microsoft.Extensions.Logging;
 namespace Scanner111.Core.IO;
 
 /// <summary>
-/// Provides async-first file I/O operations with automatic encoding detection.
-/// Thread-safe implementation suitable for concurrent operations.
+///     Provides async-first file I/O operations with automatic encoding detection.
+///     Thread-safe implementation suitable for concurrent operations.
 /// </summary>
 public class FileIoCore : IFileIoCore
 {
-    private readonly ILogger<FileIoCore> _logger;
     private readonly Encoding _defaultEncoding;
-    
+    private readonly ILogger<FileIoCore> _logger;
+
     static FileIoCore()
     {
         // Register code page provider for legacy encodings
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     }
-    
+
     public FileIoCore(ILogger<FileIoCore> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _defaultEncoding = Encoding.UTF8;
     }
-    
-    /// <inheritdoc/>
+
+    /// <inheritdoc />
     public async Task<string> ReadFileAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        
+
         try
         {
             // Try to detect encoding first
             var encoding = await DetectEncodingAsync(path, cancellationToken).ConfigureAwait(false);
-            
+
             _logger.LogDebug("Reading file {Path} with encoding {Encoding}", path, encoding.EncodingName);
-            
+
             return await File.ReadAllTextAsync(path, encoding, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -44,18 +44,18 @@ public class FileIoCore : IFileIoCore
             throw;
         }
     }
-    
-    /// <inheritdoc/>
+
+    /// <inheritdoc />
     public async Task<string[]> ReadLinesAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        
+
         try
         {
             var encoding = await DetectEncodingAsync(path, cancellationToken).ConfigureAwait(false);
-            
+
             _logger.LogDebug("Reading lines from {Path} with encoding {Encoding}", path, encoding.EncodingName);
-            
+
             return await File.ReadAllLinesAsync(path, encoding, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -64,16 +64,16 @@ public class FileIoCore : IFileIoCore
             throw;
         }
     }
-    
-    /// <inheritdoc/>
-    public async Task WriteFileAsync(string path, string content, Encoding? encoding = null, 
+
+    /// <inheritdoc />
+    public async Task WriteFileAsync(string path, string content, Encoding? encoding = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(content);
-        
+
         encoding ??= _defaultEncoding;
-        
+
         try
         {
             // Ensure directory exists
@@ -83,9 +83,9 @@ public class FileIoCore : IFileIoCore
                 Directory.CreateDirectory(directory);
                 _logger.LogDebug("Created directory {Directory}", directory);
             }
-            
+
             _logger.LogDebug("Writing file {Path} with encoding {Encoding}", path, encoding.EncodingName);
-            
+
             await File.WriteAllTextAsync(path, content, encoding, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -94,30 +94,27 @@ public class FileIoCore : IFileIoCore
             throw;
         }
     }
-    
-    /// <inheritdoc/>
+
+    /// <inheritdoc />
     public async Task<bool> FileExistsAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        
+
         // File.Exists is synchronous but very fast, so we run it in a task
         return await Task.Run(() => File.Exists(path), cancellationToken).ConfigureAwait(false);
     }
-    
-    /// <inheritdoc/>
+
+    /// <inheritdoc />
     public async Task<DateTime?> GetLastWriteTimeAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        
+
         try
         {
             var fileInfo = await Task.Run(() => new FileInfo(path), cancellationToken).ConfigureAwait(false);
-            
-            if (!fileInfo.Exists)
-            {
-                return null;
-            }
-            
+
+            if (!fileInfo.Exists) return null;
+
             return fileInfo.LastWriteTimeUtc;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -126,12 +123,12 @@ public class FileIoCore : IFileIoCore
             return null;
         }
     }
-    
-    /// <inheritdoc/>
+
+    /// <inheritdoc />
     public async Task CreateDirectoryAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        
+
         try
         {
             await Task.Run(() =>
@@ -149,12 +146,12 @@ public class FileIoCore : IFileIoCore
             throw;
         }
     }
-    
-    /// <inheritdoc/>
+
+    /// <inheritdoc />
     public async Task<bool> DeleteFileAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        
+
         try
         {
             return await Task.Run(() =>
@@ -165,6 +162,7 @@ public class FileIoCore : IFileIoCore
                     _logger.LogDebug("Deleted file {Path}", path);
                     return true;
                 }
+
                 return false;
             }, cancellationToken).ConfigureAwait(false);
         }
@@ -174,23 +172,21 @@ public class FileIoCore : IFileIoCore
             throw;
         }
     }
-    
-    /// <inheritdoc/>
+
+    /// <inheritdoc />
     public async Task CopyFileAsync(string sourcePath, string destinationPath, bool overwrite = false,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
-        
+
         try
         {
             // Ensure destination directory exists
             var destDir = Path.GetDirectoryName(destinationPath);
             if (!string.IsNullOrEmpty(destDir))
-            {
                 await CreateDirectoryAsync(destDir, cancellationToken).ConfigureAwait(false);
-            }
-            
+
             await Task.Run(() =>
             {
                 File.Copy(sourcePath, destinationPath, overwrite);
@@ -199,14 +195,14 @@ public class FileIoCore : IFileIoCore
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogError(ex, "Failed to copy file from {Source} to {Destination}", 
+            _logger.LogError(ex, "Failed to copy file from {Source} to {Destination}",
                 sourcePath, destinationPath);
             throw;
         }
     }
-    
+
     /// <summary>
-    /// Detects the encoding of a file by reading its BOM or analyzing content.
+    ///     Detects the encoding of a file by reading its BOM or analyzing content.
     /// </summary>
     private async Task<Encoding> DetectEncodingAsync(string path, CancellationToken cancellationToken)
     {
@@ -216,35 +212,24 @@ public class FileIoCore : IFileIoCore
             var buffer = new byte[4];
             await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
             var bytesRead = await stream.ReadAsync(buffer.AsMemory(0, 4), cancellationToken).ConfigureAwait(false);
-            
+
             if (bytesRead >= 3)
             {
                 // Check for UTF-8 BOM
-                if (buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
-                {
-                    return new UTF8Encoding(true);
-                }
-                
+                if (buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF) return new UTF8Encoding(true);
+
                 // Check for UTF-16 LE BOM
-                if (buffer[0] == 0xFF && buffer[1] == 0xFE)
-                {
-                    return Encoding.Unicode;
-                }
-                
+                if (buffer[0] == 0xFF && buffer[1] == 0xFE) return Encoding.Unicode;
+
                 // Check for UTF-16 BE BOM
-                if (buffer[0] == 0xFE && buffer[1] == 0xFF)
-                {
-                    return Encoding.BigEndianUnicode;
-                }
-                
+                if (buffer[0] == 0xFE && buffer[1] == 0xFF) return Encoding.BigEndianUnicode;
+
                 // Check for UTF-32 LE BOM
-                if (bytesRead >= 4 && buffer[0] == 0xFF && buffer[1] == 0xFE 
+                if (bytesRead >= 4 && buffer[0] == 0xFF && buffer[1] == 0xFE
                     && buffer[2] == 0x00 && buffer[3] == 0x00)
-                {
                     return Encoding.UTF32;
-                }
             }
-            
+
             // No BOM found, default to UTF-8 without BOM
             return new UTF8Encoding(false);
         }

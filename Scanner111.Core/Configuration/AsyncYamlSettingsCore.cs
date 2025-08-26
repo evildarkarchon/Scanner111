@@ -8,37 +8,36 @@ using YamlDotNet.Serialization.NamingConventions;
 namespace Scanner111.Core.Configuration;
 
 /// <summary>
-/// Async-first YAML settings management core with thread-safe caching and concurrency control.
+///     Async-first YAML settings management core with thread-safe caching and concurrency control.
 /// </summary>
 public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
 {
-    private readonly IFileIoCore _fileIo;
-    private readonly ILogger<AsyncYamlSettingsCore> _logger;
-    private readonly YamlSettingsOptions _options;
-    private readonly ISerializer _serializer;
-    private readonly IDeserializer _deserializer;
-    
     // Thread-safe caching structures
     private readonly ConcurrentDictionary<string, YamlCacheEntry> _cache = new();
+    private readonly IDeserializer _deserializer;
+    private readonly IFileIoCore _fileIo;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _fileLocks = new();
-    private readonly ConcurrentDictionary<YamlStore, string> _pathCache = new();
-    private readonly ConcurrentDictionary<(YamlStore, string, Type), object?> _settingsCache = new();
-    
+
     // Global lock for managing file-specific locks
     private readonly SemaphoreSlim _globalLock = new(1, 1);
-    
+    private readonly ILogger<AsyncYamlSettingsCore> _logger;
+    private readonly YamlSettingsOptions _options;
+    private readonly ConcurrentDictionary<YamlStore, string> _pathCache = new();
+    private readonly ISerializer _serializer;
+    private readonly ConcurrentDictionary<(YamlStore, string, Type), object?> _settingsCache = new();
+
     // Performance metrics
     private long _cacheHits;
     private long _cacheMisses;
-    private long _fileReads;
-    private long _fileWrites;
-    
+
+    // Current game for path resolution (would typically come from a game service)
+    private readonly string _currentGame;
+
     // Disposal tracking
     private bool _disposed;
-    
-    // Current game for path resolution (would typically come from a game service)
-    private string _currentGame;
-    
+    private long _fileReads;
+    private long _fileWrites;
+
     public AsyncYamlSettingsCore(
         IFileIoCore fileIo,
         ILogger<AsyncYamlSettingsCore> logger,
@@ -47,33 +46,30 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
         _fileIo = fileIo ?? throw new ArgumentNullException(nameof(fileIo));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
-        
+
         _currentGame = _options.DefaultGame;
-        
+
         // Configure YamlDotNet
         _serializer = new SerializerBuilder()
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
             .Build();
-            
+
         _deserializer = new DeserializerBuilder()
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
             .Build();
     }
-    
-    /// <inheritdoc/>
+
+    /// <inheritdoc />
     public async Task<string> GetPathForStoreAsync(YamlStore yamlStore, CancellationToken cancellationToken = default)
     {
         // Check cache first
-        if (_pathCache.TryGetValue(yamlStore, out var cachedPath))
-        {
-            return cachedPath;
-        }
-        
+        if (_pathCache.TryGetValue(yamlStore, out var cachedPath)) return cachedPath;
+
         // Run path resolution in a task to maintain async context
         // This is important for proper async stack traces and context flow
         return await Task.Run(() =>
         {
-            string yamlPath = yamlStore switch
+            var yamlPath = yamlStore switch
             {
                 YamlStore.Main => Path.Combine("CLASSIC Data", "databases", "CLASSIC Main.yaml"),
                 YamlStore.Settings => "CLASSIC Settings.yaml",
@@ -83,32 +79,33 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
                 YamlStore.Test => Path.Combine("tests", "test_settings.yaml"),
                 _ => throw new NotSupportedException($"YAML store {yamlStore} is not supported")
             };
-            
+
             // Cache the path
             _pathCache.TryAdd(yamlStore, yamlPath);
-            
+
             return yamlPath;
         }, cancellationToken).ConfigureAwait(false);
     }
-    
-    /// <inheritdoc/>
-    public async Task<Dictionary<string, object?>> LoadYamlAsync(string yamlPath, CancellationToken cancellationToken = default)
+
+    /// <inheritdoc />
+    public async Task<Dictionary<string, object?>> LoadYamlAsync(string yamlPath,
+        CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(yamlPath);
-        
+
         // Check if file exists
         if (!await _fileIo.FileExistsAsync(yamlPath, cancellationToken).ConfigureAwait(false))
         {
             _logger.LogWarning("YAML file not found: {Path}", yamlPath);
             return new Dictionary<string, object?>();
         }
-        
+
         // Determine if this is a static file
-        bool isStatic = await IsStaticFileAsync(yamlPath, cancellationToken).ConfigureAwait(false);
-        
+        var isStatic = await IsStaticFileAsync(yamlPath, cancellationToken).ConfigureAwait(false);
+
         // Get file-specific lock
         var fileLock = await GetFileLockAsync(yamlPath).ConfigureAwait(false);
-        
+
         await fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -120,16 +117,16 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
                     Interlocked.Increment(ref _cacheHits);
                     return staticEntry.Data;
                 }
-                
+
                 // Load static file
                 var data = await LoadYamlFileAsync(yamlPath, cancellationToken).ConfigureAwait(false);
                 var entry = new YamlCacheEntry(data, DateTime.UtcNow, DateTime.UtcNow, yamlPath);
                 _cache.TryAdd(yamlPath, entry);
-                
+
                 _logger.LogDebug("Loaded static YAML file: {Path}", yamlPath);
                 return data;
             }
-            
+
             // Handle dynamic files with TTL
             if (_cache.TryGetValue(yamlPath, out var cachedEntry))
             {
@@ -139,11 +136,11 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
                     Interlocked.Increment(ref _cacheHits);
                     return cachedEntry.Data;
                 }
-                
+
                 // Check if file has been modified
                 var lastWriteTime = await _fileIo.GetLastWriteTimeAsync(yamlPath, cancellationToken)
                     .ConfigureAwait(false);
-                    
+
                 if (lastWriteTime.HasValue && lastWriteTime.Value <= cachedEntry.LastModified)
                 {
                     // File hasn't changed, just update check time
@@ -152,18 +149,19 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
                     return cachedEntry.Data;
                 }
             }
-            
+
             // Load or reload the file
             Interlocked.Increment(ref _cacheMisses);
             var loadedData = await LoadYamlFileAsync(yamlPath, cancellationToken).ConfigureAwait(false);
             var newEntry = new YamlCacheEntry(
                 loadedData,
-                await _fileIo.GetLastWriteTimeAsync(yamlPath, cancellationToken).ConfigureAwait(false) ?? DateTime.UtcNow,
+                await _fileIo.GetLastWriteTimeAsync(yamlPath, cancellationToken).ConfigureAwait(false) ??
+                DateTime.UtcNow,
                 DateTime.UtcNow,
                 yamlPath);
-                
+
             _cache.AddOrUpdate(yamlPath, newEntry, (_, __) => newEntry);
-            
+
             _logger.LogDebug("Loaded dynamic YAML file: {Path}", yamlPath);
             return loadedData;
         }
@@ -172,38 +170,36 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             fileLock.Release();
         }
     }
-    
-    /// <inheritdoc/>
-    public async Task<T?> GetSettingAsync<T>(YamlStore yamlStore, string keyPath, T? newValue = default, 
+
+    /// <inheritdoc />
+    public async Task<T?> GetSettingAsync<T>(YamlStore yamlStore, string keyPath, T? newValue = default,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(keyPath);
-        
+
         // Check if this is a read operation for a static store
         var cacheKey = (yamlStore, keyPath, typeof(T));
-        if (newValue == null && _options.StaticStores.Contains(yamlStore) && 
+        if (newValue == null && _options.StaticStores.Contains(yamlStore) &&
             _settingsCache.TryGetValue(cacheKey, out var cachedValue))
-        {
             return (T?)cachedValue;
-        }
-        
+
         var yamlPath = await GetPathForStoreAsync(yamlStore, cancellationToken).ConfigureAwait(false);
         var data = await LoadYamlAsync(yamlPath, cancellationToken).ConfigureAwait(false);
-        
+
         var keys = keyPath.Split('.');
-        
+
         // Navigate to the setting location
         object? current = data;
         Dictionary<string, object?>? container = null;
-        
-        for (int i = 0; i < keys.Length - 1; i++)
+
+        for (var i = 0; i < keys.Length - 1; i++)
         {
             if (current is not Dictionary<string, object?> dict)
             {
                 _logger.LogError("Invalid path structure for {KeyPath} in {Store}", keyPath, yamlStore);
                 return default;
             }
-            
+
             if (!dict.TryGetValue(keys[i], out current))
             {
                 // Create nested structure if updating
@@ -217,16 +213,16 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
                     return default;
                 }
             }
-            
+
             container = current as Dictionary<string, object?>;
         }
-        
+
         if (container == null)
         {
             _logger.LogError("Could not navigate to container for {KeyPath} in {Store}", keyPath, yamlStore);
             return default;
         }
-        
+
         // Handle update operations
         if (newValue != null)
         {
@@ -237,12 +233,12 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
                 _logger.LogError(error);
                 throw new InvalidOperationException(error);
             }
-            
+
             container[keys[^1]] = newValue;
-            
+
             // Write changes back to file
             await SaveYamlFileAsync(yamlPath, data, cancellationToken).ConfigureAwait(false);
-            
+
             // Update cache
             var fileLock = await GetFileLockAsync(yamlPath).ConfigureAwait(false);
             await fileLock.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -258,36 +254,31 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             {
                 fileLock.Release();
             }
-            
+
             // Clear cached setting
             _settingsCache.TryRemove(cacheKey, out _);
-            
+
             return newValue;
         }
-        
+
         // Get the value
         if (!container.TryGetValue(keys[^1], out var value))
         {
             if (!YamlConstants.SettingsIgnoreNone.Contains(keys[^1]))
-            {
                 _logger.LogWarning("Setting {KeyPath} not found in {Store}", keyPath, yamlStore);
-            }
             return default;
         }
-        
+
         // Convert value to requested type
-        T? result = ConvertValue<T>(value);
-        
+        var result = ConvertValue<T>(value);
+
         // Cache the result for static stores
-        if (_options.StaticStores.Contains(yamlStore))
-        {
-            _settingsCache.TryAdd(cacheKey, result);
-        }
-        
+        if (_options.StaticStores.Contains(yamlStore)) _settingsCache.TryAdd(cacheKey, result);
+
         return result;
     }
-    
-    /// <inheritdoc/>
+
+    /// <inheritdoc />
     public async Task<Dictionary<YamlStore, Dictionary<string, object?>>> LoadMultipleStoresAsync(
         IEnumerable<YamlStore> stores, CancellationToken cancellationToken = default)
     {
@@ -297,32 +288,32 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             var data = await LoadYamlAsync(path, cancellationToken).ConfigureAwait(false);
             return (store, data);
         });
-        
+
         var results = await Task.WhenAll(tasks).ConfigureAwait(false);
         return results.ToDictionary(r => r.store, r => r.data);
     }
-    
-    /// <inheritdoc/>
+
+    /// <inheritdoc />
     public async Task<List<object?>> BatchGetSettingsAsync(
-        IEnumerable<(YamlStore store, string keyPath)> requests, 
+        IEnumerable<(YamlStore store, string keyPath)> requests,
         CancellationToken cancellationToken = default)
     {
         var tasks = requests.Select(async request =>
             await GetSettingAsync<object>(request.store, request.keyPath, null, cancellationToken)
                 .ConfigureAwait(false));
-                
+
         return (await Task.WhenAll(tasks).ConfigureAwait(false)).ToList();
     }
-    
-    /// <inheritdoc/>
+
+    /// <inheritdoc />
     public async Task PrefetchAllSettingsAsync(CancellationToken cancellationToken = default)
     {
         var commonStores = new[] { YamlStore.Main, YamlStore.Settings, YamlStore.Game };
         await LoadMultipleStoresAsync(commonStores, cancellationToken).ConfigureAwait(false);
         _logger.LogInformation("Prefetched {Count} common YAML stores into cache", commonStores.Length);
     }
-    
-    /// <inheritdoc/>
+
+    /// <inheritdoc />
     public void ClearCache()
     {
         _cache.Clear();
@@ -330,15 +321,12 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
         _pathCache.Clear();
         _logger.LogInformation("Cleared all YAML caches");
     }
-    
-    /// <inheritdoc/>
+
+    /// <inheritdoc />
     public IReadOnlyDictionary<string, long> GetMetrics()
     {
-        if (!_options.EnableMetrics)
-        {
-            return new Dictionary<string, long>();
-        }
-        
+        if (!_options.EnableMetrics) return new Dictionary<string, long>();
+
         return new Dictionary<string, long>
         {
             ["CacheHits"] = _cacheHits,
@@ -349,57 +337,42 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             ["CachedSettings"] = _settingsCache.Count
         };
     }
-    
-    /// <inheritdoc/>
+
+    /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        if (_disposed)
-        {
-            return;
-        }
-        
+        if (_disposed) return;
+
         _disposed = true;
-        
+
         // Dispose all file locks
-        foreach (var lockPair in _fileLocks)
-        {
-            lockPair.Value?.Dispose();
-        }
-        
+        foreach (var lockPair in _fileLocks) lockPair.Value?.Dispose();
+
         _globalLock?.Dispose();
-        
+
         // Clear caches
         ClearCache();
-        
+
         await Task.CompletedTask;
     }
-    
+
     #region Private Methods
-    
+
     private async Task<SemaphoreSlim> GetFileLockAsync(string path)
     {
-        if (_fileLocks.TryGetValue(path, out var existingLock))
-        {
-            return existingLock;
-        }
-        
+        if (_fileLocks.TryGetValue(path, out var existingLock)) return existingLock;
+
         await _globalLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            if (_fileLocks.TryGetValue(path, out existingLock))
-            {
-                return existingLock;
-            }
-            
+            if (_fileLocks.TryGetValue(path, out existingLock)) return existingLock;
+
             var newLock = new SemaphoreSlim(1, 1);
             _fileLocks.TryAdd(path, newLock);
-            
+
             // Clean up old locks if we exceed the limit
-            if (_fileLocks.Count > _options.MaxFileLocks)
-            {
-                CleanupOldLocks();
-            }
-            
+            if (_fileLocks.Count > _options.MaxFileLocks) CleanupOldLocks();
+
             return newLock;
         }
         finally
@@ -407,7 +380,7 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             _globalLock.Release();
         }
     }
-    
+
     private void CleanupOldLocks()
     {
         // Remove locks for files not in cache (simple cleanup strategy)
@@ -415,89 +388,87 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             .Where(k => !_cache.ContainsKey(k))
             .Take(_fileLocks.Count - _options.MaxFileLocks + 10)
             .ToList();
-            
+
         foreach (var key in keysToRemove)
-        {
             if (_fileLocks.TryRemove(key, out var lockToDispose))
-            {
                 lockToDispose.Dispose();
-            }
-        }
     }
-    
+
     private async Task<bool> IsStaticFileAsync(string path, CancellationToken cancellationToken)
     {
         foreach (var store in _options.StaticStores)
         {
             var storePath = await GetPathForStoreAsync(store, cancellationToken).ConfigureAwait(false);
-            if (string.Equals(path, storePath, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
+            if (string.Equals(path, storePath, StringComparison.OrdinalIgnoreCase)) return true;
         }
+
         return false;
     }
-    
+
     private async Task<Dictionary<string, object?>> LoadYamlFileAsync(string path, CancellationToken cancellationToken)
     {
         try
         {
             Interlocked.Increment(ref _fileReads);
-            
+
             var content = await _fileIo.ReadFileAsync(path, cancellationToken).ConfigureAwait(false);
             var yamlObject = _deserializer.Deserialize<object>(content);
-            
-            var result = ConvertYamlObject(yamlObject) as Dictionary<string, object?> ?? new Dictionary<string, object?>();
-            
+
+            var result = ConvertYamlObject(yamlObject) as Dictionary<string, object?> ??
+                         new Dictionary<string, object?>();
+
             // Validate settings file structure if applicable
-            if (_options.ValidateSettingsStructure && path.EndsWith("Settings.yaml", StringComparison.OrdinalIgnoreCase))
-            {
+            if (_options.ValidateSettingsStructure &&
+                path.EndsWith("Settings.yaml", StringComparison.OrdinalIgnoreCase))
                 if (!ValidateSettingsStructure(result))
                 {
                     _logger.LogWarning("Invalid settings file structure detected in {Path}", path);
-                    
+
                     if (_options.AutoRegenerateCorruptedSettings)
                     {
                         await RegenerateSettingsFileAsync(path, cancellationToken).ConfigureAwait(false);
                         // Reload after regeneration
                         content = await _fileIo.ReadFileAsync(path, cancellationToken).ConfigureAwait(false);
                         yamlObject = _deserializer.Deserialize<object>(content);
-                        result = ConvertYamlObject(yamlObject) as Dictionary<string, object?> ?? new Dictionary<string, object?>();
+                        result = ConvertYamlObject(yamlObject) as Dictionary<string, object?> ??
+                                 new Dictionary<string, object?>();
                     }
                 }
-            }
-            
+
             return result;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load YAML file {Path}", path);
-            
+
             // Auto-regenerate corrupted settings files
-            if (_options.AutoRegenerateCorruptedSettings && path.EndsWith("Settings.yaml", StringComparison.OrdinalIgnoreCase))
+            if (_options.AutoRegenerateCorruptedSettings &&
+                path.EndsWith("Settings.yaml", StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogWarning("Attempting to regenerate corrupted settings file {Path}", path);
                 await RegenerateSettingsFileAsync(path, cancellationToken).ConfigureAwait(false);
-                
+
                 // Try loading again
                 var content = await _fileIo.ReadFileAsync(path, cancellationToken).ConfigureAwait(false);
                 var yamlObject = _deserializer.Deserialize<object>(content);
-                return ConvertYamlObject(yamlObject) as Dictionary<string, object?> ?? new Dictionary<string, object?>();
+                return ConvertYamlObject(yamlObject) as Dictionary<string, object?> ??
+                       new Dictionary<string, object?>();
             }
-            
+
             return new Dictionary<string, object?>();
         }
     }
-    
-    private async Task SaveYamlFileAsync(string path, Dictionary<string, object?> data, CancellationToken cancellationToken)
+
+    private async Task SaveYamlFileAsync(string path, Dictionary<string, object?> data,
+        CancellationToken cancellationToken)
     {
         try
         {
             Interlocked.Increment(ref _fileWrites);
-            
+
             var yaml = _serializer.Serialize(data);
             await _fileIo.WriteFileAsync(path, yaml, cancellationToken: cancellationToken).ConfigureAwait(false);
-            
+
             _logger.LogDebug("Saved YAML file {Path}", path);
         }
         catch (Exception ex)
@@ -506,14 +477,14 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             throw;
         }
     }
-    
+
     private static bool ValidateSettingsStructure(Dictionary<string, object?> data)
     {
         // Check if CLASSIC_Settings key exists and is a dictionary
-        return data.ContainsKey("CLASSIC_Settings") && 
+        return data.ContainsKey("CLASSIC_Settings") &&
                data["CLASSIC_Settings"] is Dictionary<string, object?>;
     }
-    
+
     private async Task RegenerateSettingsFileAsync(string path, CancellationToken cancellationToken)
     {
         try
@@ -525,7 +496,7 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
                 await _fileIo.CopyFileAsync(path, backupPath, false, cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("Backed up corrupted settings to {BackupPath}", backupPath);
             }
-            
+
             // Create minimal valid settings structure
             var defaultSettings = new Dictionary<string, object?>
             {
@@ -534,7 +505,7 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
                     ["Managed Game"] = _currentGame
                 }
             };
-            
+
             // Try to load default settings from Main.yaml
             try
             {
@@ -542,15 +513,16 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
                 if (await _fileIo.FileExistsAsync(mainPath, cancellationToken).ConfigureAwait(false))
                 {
                     var mainData = await LoadYamlFileAsync(mainPath, cancellationToken).ConfigureAwait(false);
-                    
-                    if (mainData.TryGetValue("CLASSIC_Info", out var classicInfo) && 
+
+                    if (mainData.TryGetValue("CLASSIC_Info", out var classicInfo) &&
                         classicInfo is Dictionary<string, object?> infoDict &&
                         infoDict.TryGetValue("default_settings", out var defaultSettingsContent) &&
                         defaultSettingsContent is string settingsYaml)
                     {
                         // Parse the default settings YAML
                         var settingsObject = _deserializer.Deserialize<object>(settingsYaml);
-                        defaultSettings = ConvertYamlObject(settingsObject) as Dictionary<string, object?> ?? defaultSettings;
+                        defaultSettings = ConvertYamlObject(settingsObject) as Dictionary<string, object?> ??
+                                          defaultSettings;
                     }
                 }
             }
@@ -558,7 +530,7 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             {
                 _logger.LogWarning(ex, "Could not load default settings from Main.yaml");
             }
-            
+
             // Save the regenerated settings
             await SaveYamlFileAsync(path, defaultSettings, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Successfully regenerated settings file at {Path}", path);
@@ -569,7 +541,7 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             throw;
         }
     }
-    
+
     private static object? ConvertYamlObject(object? yamlObject)
     {
         return yamlObject switch
@@ -581,31 +553,21 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             _ => yamlObject
         };
     }
-    
+
     private static T? ConvertValue<T>(object? value)
     {
-        if (value == null)
-        {
-            return default;
-        }
-        
-        if (value is T typedValue)
-        {
-            return typedValue;
-        }
-        
+        if (value == null) return default;
+
+        if (value is T typedValue) return typedValue;
+
         // Handle common conversions
         var targetType = typeof(T);
-        
-        if (targetType == typeof(string))
-        {
-            return (T)(object)value.ToString()!;
-        }
-        
-        if (targetType == typeof(int) || targetType == typeof(long) || 
+
+        if (targetType == typeof(string)) return (T)(object)value.ToString()!;
+
+        if (targetType == typeof(int) || targetType == typeof(long) ||
             targetType == typeof(double) || targetType == typeof(float) ||
             targetType == typeof(decimal) || targetType == typeof(bool))
-        {
             try
             {
                 return (T)Convert.ChangeType(value, targetType);
@@ -614,8 +576,7 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             {
                 return default;
             }
-        }
-        
+
         // Handle nullable types
         if (Nullable.GetUnderlyingType(targetType) != null)
         {
@@ -630,7 +591,7 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
                 return default;
             }
         }
-        
+
         // Handle collections
         if (targetType.IsGenericType)
         {
@@ -641,25 +602,22 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
                     var elementType = targetType.GetGenericArguments()[0];
                     var typedList = Activator.CreateInstance(targetType);
                     var addMethod = targetType.GetMethod("Add")!;
-                    
+
                     foreach (var item in list)
                     {
                         var convertedItem = Convert.ChangeType(item, elementType);
                         addMethod.Invoke(typedList, new[] { convertedItem });
                     }
-                    
+
                     return (T)typedList!;
                 }
             }
             else if (targetType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
             {
-                if (value is Dictionary<string, object?> dict)
-                {
-                    return (T)(object)dict;
-                }
+                if (value is Dictionary<string, object?> dict) return (T)(object)dict;
             }
         }
-        
+
         // Try direct cast as last resort
         try
         {
@@ -670,6 +628,6 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             return default;
         }
     }
-    
+
     #endregion
 }

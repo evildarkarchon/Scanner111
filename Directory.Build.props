@@ -1,14 +1,14 @@
 <Project>
-  <PropertyGroup>
-    <Nullable>enable</Nullable>
-    <AvaloniaVersion>11.1.0</AvaloniaVersion>
-    <EnableSourceLink>false</EnableSourceLink>
-    <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
-    
-    <!-- Treat async-safety violations as errors -->
-    <WarningsAsErrors>CS1998</WarningsAsErrors>
-    
-    <!-- Optional: Treat all warnings as errors in Release builds -->
-    <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors>
-  </PropertyGroup>
+    <PropertyGroup>
+        <Nullable>enable</Nullable>
+        <AvaloniaVersion>11.1.0</AvaloniaVersion>
+        <EnableSourceLink>false</EnableSourceLink>
+        <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
+
+        <!-- Treat async-safety violations as errors -->
+        <WarningsAsErrors>CS1998</WarningsAsErrors>
+
+        <!-- Optional: Treat all warnings as errors in Release builds -->
+        <!-- <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release'">true</TreatWarningsAsErrors> -->
+    </PropertyGroup>
 </Project>

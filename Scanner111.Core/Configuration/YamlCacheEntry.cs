@@ -1,7 +1,7 @@
 namespace Scanner111.Core.Configuration;
 
 /// <summary>
-/// Represents a cached YAML file entry with metadata.
+///     Represents a cached YAML file entry with metadata.
 /// </summary>
 /// <param name="Data">The parsed YAML data as a dictionary.</param>
 /// <param name="LastModified">The last modification time of the file.</param>
@@ -14,7 +14,7 @@ public record YamlCacheEntry(
     string FilePath)
 {
     /// <summary>
-    /// Determines if this cache entry needs to be refreshed based on TTL.
+    ///     Determines if this cache entry needs to be refreshed based on TTL.
     /// </summary>
     /// <param name="ttl">The time-to-live for cache validity.</param>
     /// <returns>True if the cache entry should be refreshed, false otherwise.</returns>
@@ -22,16 +22,16 @@ public record YamlCacheEntry(
     {
         return DateTime.UtcNow - LastChecked > ttl;
     }
-    
+
     /// <summary>
-    /// Creates a new cache entry with updated check time.
+    ///     Creates a new cache entry with updated check time.
     /// </summary>
     /// <param name="newLastModified">Optional new last modified time.</param>
     /// <returns>A new cache entry with updated metadata.</returns>
     public YamlCacheEntry WithUpdatedCheckTime(DateTime? newLastModified = null)
     {
-        return this with 
-        { 
+        return this with
+        {
             LastChecked = DateTime.UtcNow,
             LastModified = newLastModified ?? LastModified
         };
