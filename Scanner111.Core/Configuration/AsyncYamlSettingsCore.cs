@@ -14,6 +14,9 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
 {
     // Thread-safe caching structures
     private readonly ConcurrentDictionary<string, YamlCacheEntry> _cache = new();
+
+    // Current game for path resolution (would typically come from a game service)
+    private readonly string _currentGame;
     private readonly IDeserializer _deserializer;
     private readonly IFileIoCore _fileIo;
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _fileLocks = new();
@@ -29,9 +32,6 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
     // Performance metrics
     private long _cacheHits;
     private long _cacheMisses;
-
-    // Current game for path resolution (would typically come from a game service)
-    private readonly string _currentGame;
 
     // Disposal tracking
     private bool _disposed;
@@ -56,6 +56,7 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
 
         _deserializer = new DeserializerBuilder()
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
+            .WithAttemptingUnquotedStringTypeDeserialization()
             .Build();
     }
 
@@ -480,9 +481,9 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
 
     private static bool ValidateSettingsStructure(Dictionary<string, object?> data)
     {
-        // Check if CLASSIC_Settings key exists and is a dictionary
-        return data.ContainsKey("CLASSIC_Settings") &&
-               data["CLASSIC_Settings"] is Dictionary<string, object?>;
+        // Check if classic_settings key exists and is a dictionary (using underscore naming convention)
+        return data.ContainsKey("classic_settings") &&
+               data["classic_settings"] is Dictionary<string, object?>;
     }
 
     private async Task RegenerateSettingsFileAsync(string path, CancellationToken cancellationToken)
@@ -500,9 +501,9 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             // Create minimal valid settings structure
             var defaultSettings = new Dictionary<string, object?>
             {
-                ["CLASSIC_Settings"] = new Dictionary<string, object?>
+                ["classic_settings"] = new Dictionary<string, object?>
                 {
-                    ["Managed Game"] = _currentGame
+                    ["managed_game"] = _currentGame
                 }
             };
 
@@ -514,7 +515,7 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
                 {
                     var mainData = await LoadYamlFileAsync(mainPath, cancellationToken).ConfigureAwait(false);
 
-                    if (mainData.TryGetValue("CLASSIC_Info", out var classicInfo) &&
+                    if (mainData.TryGetValue("classic_info", out var classicInfo) &&
                         classicInfo is Dictionary<string, object?> infoDict &&
                         infoDict.TryGetValue("default_settings", out var defaultSettingsContent) &&
                         defaultSettingsContent is string settingsYaml)
@@ -565,9 +566,12 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
 
         if (targetType == typeof(string)) return (T)(object)value.ToString()!;
 
+        // Handle numeric and boolean conversions
+        // YAML might return different numeric types (Int16, Int32, Int64, etc.)
         if (targetType == typeof(int) || targetType == typeof(long) ||
             targetType == typeof(double) || targetType == typeof(float) ||
-            targetType == typeof(decimal) || targetType == typeof(bool))
+            targetType == typeof(decimal) || targetType == typeof(bool) ||
+            targetType == typeof(short) || targetType == typeof(byte))
             try
             {
                 return (T)Convert.ChangeType(value, targetType);

@@ -15,8 +15,8 @@ public class AsyncYamlSettingsCoreTests : IAsyncLifetime
     private readonly Mock<IFileIoCore> _mockFileIo;
     private readonly Mock<ILogger<AsyncYamlSettingsCore>> _mockLogger;
     private readonly YamlSettingsOptions _options;
-    private IAsyncYamlSettingsCore _sut = null!; // Will be initialized in InitializeAsync
     private readonly string _testDirectory;
+    private IAsyncYamlSettingsCore _sut = null!; // Will be initialized in InitializeAsync
 
     public AsyncYamlSettingsCoreTests()
     {
@@ -150,15 +150,18 @@ test_data:
             Times.Once); // Should only read once
     }
 
-    [Fact]
-    public async Task GetSettingAsync_WithValidPath_ShouldReturnValue()
+    [Theory]
+    [InlineData("classic_settings.managed_game", "Fallout 4")]
+    [InlineData("classic_settings.max_lines", 1000)]
+    [InlineData("classic_settings.enable_feature", true)]
+    public async Task GetSettingAsync_WithValidPath_ShouldReturnValue(string keyPath, object expectedValue)
     {
         // Arrange
         const string yamlContent = @"
-CLASSIC_Settings:
-  Managed_Game: Fallout 4
-  Max_Lines: 1000
-  Enable_Feature: true
+classic_settings:
+  managed_game: Fallout 4
+  max_lines: 1000
+  enable_feature: true
 ";
         var settingsPath = "CLASSIC Settings.yaml";
 
@@ -166,19 +169,19 @@ CLASSIC_Settings:
             .ReturnsAsync(true);
         _mockFileIo.Setup(x => x.ReadFileAsync(settingsPath, It.IsAny<CancellationToken>()))
             .ReturnsAsync(yamlContent);
+        _mockFileIo.Setup(x => x.GetLastWriteTimeAsync(settingsPath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DateTime.UtcNow);
 
         // Act
-        var stringValue = await _sut.GetSettingAsync<string>(
-            YamlStore.Settings, "CLASSIC_Settings.Managed_Game");
-        var intValue = await _sut.GetSettingAsync<int>(
-            YamlStore.Settings, "CLASSIC_Settings.Max_Lines");
-        var boolValue = await _sut.GetSettingAsync<bool>(
-            YamlStore.Settings, "CLASSIC_Settings.Enable_Feature");
+        object? result = null;
+        if (expectedValue is string)
+            result = await _sut.GetSettingAsync<string>(YamlStore.Settings, keyPath);
+        else if (expectedValue is int)
+            result = await _sut.GetSettingAsync<int>(YamlStore.Settings, keyPath);
+        else if (expectedValue is bool) result = await _sut.GetSettingAsync<bool>(YamlStore.Settings, keyPath);
 
         // Assert
-        stringValue.Should().Be("Fallout 4");
-        intValue.Should().Be(1000);
-        boolValue.Should().BeTrue();
+        result.Should().Be(expectedValue);
     }
 
     [Fact]
@@ -186,8 +189,8 @@ CLASSIC_Settings:
     {
         // Arrange
         const string yamlContent = @"
-CLASSIC_Settings:
-  Test: value
+classic_settings:
+  test: value
 ";
         var settingsPath = "CLASSIC Settings.yaml";
 
@@ -195,10 +198,12 @@ CLASSIC_Settings:
             .ReturnsAsync(true);
         _mockFileIo.Setup(x => x.ReadFileAsync(settingsPath, It.IsAny<CancellationToken>()))
             .ReturnsAsync(yamlContent);
+        _mockFileIo.Setup(x => x.GetLastWriteTimeAsync(settingsPath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DateTime.UtcNow);
 
         // Act
         var result = await _sut.GetSettingAsync<string>(
-            YamlStore.Settings, "CLASSIC_Settings.NonExistent");
+            YamlStore.Settings, "classic_settings.non_existent");
 
         // Assert
         result.Should().BeNull();
@@ -209,8 +214,8 @@ CLASSIC_Settings:
     {
         // Arrange
         const string initialContent = @"
-CLASSIC_Settings:
-  Test: old_value
+classic_settings:
+  test: old_value
 ";
         var settingsPath = "CLASSIC Settings.yaml";
 
@@ -218,6 +223,8 @@ CLASSIC_Settings:
             .ReturnsAsync(true);
         _mockFileIo.Setup(x => x.ReadFileAsync(settingsPath, It.IsAny<CancellationToken>()))
             .ReturnsAsync(initialContent);
+        _mockFileIo.Setup(x => x.GetLastWriteTimeAsync(settingsPath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(DateTime.UtcNow);
 
         string? savedContent = null;
         _mockFileIo.Setup(x => x.WriteFileAsync(
@@ -230,7 +237,7 @@ CLASSIC_Settings:
 
         // Act
         var result = await _sut.GetSettingAsync(
-            YamlStore.Settings, "CLASSIC_Settings.Test", "new_value");
+            YamlStore.Settings, "classic_settings.test", "new_value");
 
         // Assert
         result.Should().Be("new_value");
