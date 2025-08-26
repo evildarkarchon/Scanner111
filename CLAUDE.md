@@ -257,3 +257,4 @@ public bool IsProcessing => _isProcessing.Value;
 - Validate all inputs
 - Log important operations
 - Do not attempt to use the GlobalRegistry system, it is essentially an implementation of dependency injection which C# does better on its own.
+- Always prefer C# mechanisms over replicating the Python approach. A lot of code was made to either comply with Python's way of doing things or to skirt interpreter limitations (like the Global Interpreter Lock).
