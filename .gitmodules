@@ -1,0 +1,6 @@
+[submodule "Code to Port"]
+	path = Code to Port
+	url = https://github.com/evildarkarchon/CLASSIC-Fallout4.git
+[submodule "sample_logs"]
+	path = sample_logs
+	url = https://github.com/evildarkarchon/crash-logs.git
