@@ -127,6 +127,12 @@ public class [ClassUnderTest]Tests
 - Events: `On` prefix (e.g., `OnScanCompleted`)
 
 ### Project Organization
+- **Scanner111.Core**: All non-UI logic and interfaces must be placed here
+  - Business logic implementations
+  - Service interfaces and implementations
+  - Domain models and DTOs
+  - Data access abstractions
+  - Utility classes and helpers
 - One type per file
 - Organize by feature/domain
 - Separate interfaces from implementations
