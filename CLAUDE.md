@@ -4,7 +4,7 @@
 Scanner111 is a modern C# port of the legacy application found in the "Code to Port" directory. This project prioritizes thread-safety, resource management, and async-safety while following C# best practices and test-driven development principles.
 
 ## Key Technologies
-- **Language**: C# (.NET 8.0+)
+- **Language**: C# (.NET 9.0+)
 - **GUI Framework**: Avalonia MVVM with ReactiveUI
 - **CLI Framework**: Spectre.Console with CommandLineParser
 - **Testing**: xUnit with FluentAssertions
@@ -224,7 +224,7 @@ public bool IsProcessing => _isProcessing.Value;
 ## Build Configuration
 
 ### Project Settings
-- Target .NET 8.0 or later
+- Target .NET 9.0 or later
 - Enable nullable reference types
 - Treat warnings as errors in Release
 - Enable code analysis rules
@@ -256,3 +256,4 @@ public bool IsProcessing => _isProcessing.Value;
 - Handle cancellation tokens
 - Validate all inputs
 - Log important operations
+- Do not attempt to use the GlobalRegistry system, it is essentially an implementation of dependency injection which C# does better on its own.
