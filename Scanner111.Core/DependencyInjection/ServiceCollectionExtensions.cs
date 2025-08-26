@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Scanner111.Core.Configuration;
 using Scanner111.Core.Discovery;
 using Scanner111.Core.IO;
+using Scanner111.Core.Services;
 
 namespace Scanner111.Core.DependencyInjection;
 
@@ -80,6 +81,19 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    ///     Adds messaging services to the service collection.
+    /// </summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddMessagingServices(this IServiceCollection services)
+    {
+        // Register message service as singleton (thread-safe)
+        services.AddSingleton<IMessageService, MessageService>();
+
+        return services;
+    }
+
+    /// <summary>
     ///     Adds all Scanner111 core services to the service collection.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
@@ -94,6 +108,9 @@ public static class ServiceCollectionExtensions
 
         // Add path discovery services
         services.AddPathDiscoveryServices();
+
+        // Add messaging services
+        services.AddMessagingServices();
 
         return services;
     }
