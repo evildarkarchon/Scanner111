@@ -132,7 +132,7 @@ public sealed class DocumentsPathDiscoveryService : IDocumentsPathDiscoveryServi
                 steamLibraryPath,
                 "steamapps",
                 "compatdata",
-                gameInfo.SteamId.ToString(),
+                gameInfo.SteamId?.ToString() ?? string.Empty,
                 "pfx",
                 "drive_c",
                 "users",

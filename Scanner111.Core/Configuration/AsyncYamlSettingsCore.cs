@@ -178,9 +178,14 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(keyPath);
 
+        // Determine if this is a read or write operation
+        // For value types, we need to check if the value equals the default value
+        // For reference types, we check if it's null
+        var isReadOperation = EqualityComparer<T>.Default.Equals(newValue, default(T));
+
         // Check if this is a read operation for a static store
         var cacheKey = (yamlStore, keyPath, typeof(T));
-        if (newValue == null && _options.StaticStores.Contains(yamlStore) &&
+        if (isReadOperation && _options.StaticStores.Contains(yamlStore) &&
             _settingsCache.TryGetValue(cacheKey, out var cachedValue))
             return (T?)cachedValue;
 
@@ -225,7 +230,7 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
         }
 
         // Handle update operations
-        if (newValue != null)
+        if (!isReadOperation)
         {
             // Check if trying to modify a static store
             if (_options.StaticStores.Contains(yamlStore))

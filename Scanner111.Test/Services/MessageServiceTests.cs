@@ -12,6 +12,7 @@ namespace Scanner111.Test.Services;
 public class MessageServiceTests : IDisposable
 {
     private readonly List<Message> _capturedMessages;
+    private readonly object _capturedMessagesLock = new();
     private readonly Mock<ILogger<MessageService>> _loggerMock;
     private readonly MessageService _sut;
 
@@ -21,8 +22,14 @@ public class MessageServiceTests : IDisposable
         _sut = new MessageService(_loggerMock.Object);
         _capturedMessages = new List<Message>();
 
-        // Subscribe to message events
-        _sut.MessagePublished += (sender, message) => _capturedMessages.Add(message);
+        // Subscribe to message events with thread-safe addition
+        _sut.MessagePublished += (sender, message) =>
+        {
+            lock (_capturedMessagesLock)
+            {
+                _capturedMessages.Add(message);
+            }
+        };
     }
 
     public void Dispose()
@@ -339,7 +346,7 @@ public class MessageServiceTests : IDisposable
     }
 
     [Fact]
-    public void Multiple_Concurrent_Messages_AllPublished()
+    public async Task Multiple_Concurrent_Messages_AllPublished()
     {
         // Arrange
         const int messageCount = 100;
@@ -352,7 +359,7 @@ public class MessageServiceTests : IDisposable
             tasks[i] = Task.Run(() => _sut.Info($"Message {index}"));
         }
 
-        Task.WaitAll(tasks);
+        await Task.WhenAll(tasks);
 
         // Assert
         _capturedMessages.Should().HaveCount(messageCount);

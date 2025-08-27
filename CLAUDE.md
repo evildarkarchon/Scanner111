@@ -258,3 +258,4 @@ public bool IsProcessing => _isProcessing.Value;
 - Log important operations
 - Do not attempt to use the GlobalRegistry system, it is essentially an implementation of dependency injection which C# does better on its own.
 - Always prefer C# mechanisms over replicating the Python approach. A lot of code was made to either comply with Python's way of doing things or to skirt interpreter limitations (like the Global Interpreter Lock).
+- The ClassicScanLogInfo dataclass is just a cache of frequently used values, don't bother replicating it, just query the yaml files directly for any needed information. For reference, it is in `Code To Port\ClassicLib\ScanLog\ScanLogInfo.py` so you can find what information to query.
