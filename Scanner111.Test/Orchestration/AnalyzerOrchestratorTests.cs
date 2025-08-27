@@ -38,7 +38,7 @@ public class AnalyzerOrchestratorTests : IAsyncLifetime
         services.AddLogging();
         
         // Add mock settings cache
-        services.AddSingleton<IYamlSettingsCache, MockYamlSettingsCache>();
+        services.AddSingleton<IAsyncYamlSettingsCore, MockAsyncYamlSettingsCore>();
         
         // Add orchestration system
         services.AddAnalyzerOrchestration(builder =>
@@ -364,39 +364,40 @@ public class SlowAnalyzer : AnalyzerBase
     }
 }
 
-// Mock implementation of IYamlSettingsCache for testing
-public class MockYamlSettingsCache : IYamlSettingsCache
+// Mock implementation of IAsyncYamlSettingsCore for testing
+public class MockAsyncYamlSettingsCore : IAsyncYamlSettingsCore
 {
     private readonly Dictionary<string, object> _settings = new();
     
-    public string GetPathForStore(YamlStore yamlStore)
+    public Task<string> GetPathForStoreAsync(YamlStore yamlStore, CancellationToken cancellationToken = default)
     {
-        return $"/mock/path/{yamlStore}.yaml";
+        return Task.FromResult($"/mock/path/{yamlStore}.yaml");
     }
     
-    public Dictionary<string, object?> LoadYaml(string yamlPath)
+    public Task<Dictionary<string, object?>> LoadYamlAsync(string yamlPath, CancellationToken cancellationToken = default)
     {
-        return new Dictionary<string, object?>();
+        return Task.FromResult(new Dictionary<string, object?>());
     }
     
-    public T? GetSetting<T>(YamlStore yamlStore, string keyPath, T? newValue = default)
+    public Task<T?> GetSettingAsync<T>(YamlStore yamlStore, string keyPath, T? newValue = default, CancellationToken cancellationToken = default)
     {
-        return default;
+        return Task.FromResult(default(T));
     }
     
-    public Dictionary<YamlStore, Dictionary<string, object?>> LoadMultipleStores(IEnumerable<YamlStore> stores)
+    public Task<Dictionary<YamlStore, Dictionary<string, object?>>> LoadMultipleStoresAsync(IEnumerable<YamlStore> stores, CancellationToken cancellationToken = default)
     {
-        return stores.ToDictionary(s => s, s => new Dictionary<string, object?>());
+        return Task.FromResult(stores.ToDictionary(s => s, s => new Dictionary<string, object?>()));
     }
     
-    public List<object?> BatchGetSettings(IEnumerable<(YamlStore store, string keyPath)> requests)
+    public Task<List<object?>> BatchGetSettingsAsync(IEnumerable<(YamlStore store, string keyPath)> requests, CancellationToken cancellationToken = default)
     {
-        return requests.Select(_ => (object?)null).ToList();
+        return Task.FromResult(requests.Select(_ => (object?)null).ToList());
     }
     
-    public void PrefetchAllSettings()
+    public Task PrefetchAllSettingsAsync(CancellationToken cancellationToken = default)
     {
         // No-op for testing
+        return Task.CompletedTask;
     }
     
     public void ClearCache()
@@ -404,8 +405,19 @@ public class MockYamlSettingsCache : IYamlSettingsCache
         _settings.Clear();
     }
     
+    public Task<IReadOnlyDictionary<string, long>> GetMetricsAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyDictionary<string, long>>(new Dictionary<string, long>());
+    }
+    
     public IReadOnlyDictionary<string, long> GetMetrics()
     {
         return new Dictionary<string, long>();
+    }
+    
+    public ValueTask DisposeAsync()
+    {
+        _settings.Clear();
+        return ValueTask.CompletedTask;
     }
 }

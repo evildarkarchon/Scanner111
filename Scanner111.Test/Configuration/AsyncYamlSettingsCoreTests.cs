@@ -365,12 +365,13 @@ test_data:
         // Act - Build provider asynchronously to maintain async context
         var provider = await Task.Run(() => services.BuildServiceProvider());
         var asyncCore = provider.GetService<IAsyncYamlSettingsCore>();
-        var syncCache = provider.GetService<IYamlSettingsCache>();
+        // Note: IYamlSettingsCache is obsolete and may be removed in future versions
+        // var syncCache = provider.GetService<IYamlSettingsCache>();
         var fileIo = provider.GetService<IFileIoCore>();
 
         // Assert
         asyncCore.Should().NotBeNull();
-        syncCache.Should().NotBeNull();
+        // syncCache.Should().NotBeNull(); // Removed as IYamlSettingsCache is obsolete
         fileIo.Should().NotBeNull();
 
         // Cleanup - Use async disposal for IAsyncDisposable services

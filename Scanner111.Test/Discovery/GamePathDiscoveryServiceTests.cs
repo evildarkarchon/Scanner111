@@ -14,12 +14,12 @@ public class GamePathDiscoveryServiceTests : IDisposable
     private readonly IPathValidationService _pathValidationService;
     private readonly GamePathDiscoveryService _sut;
     private readonly string _tempDirectory;
-    private readonly IYamlSettingsCache _yamlSettings;
+    private readonly IAsyncYamlSettingsCore _yamlSettings;
 
     public GamePathDiscoveryServiceTests()
     {
         _pathValidationService = Substitute.For<IPathValidationService>();
-        _yamlSettings = Substitute.For<IYamlSettingsCache>();
+        _yamlSettings = Substitute.For<IAsyncYamlSettingsCore>();
         _logger = Substitute.For<ILogger<GamePathDiscoveryService>>();
 
         _tempDirectory = Path.Combine(Path.GetTempPath(), $"Scanner111Test_{Guid.NewGuid()}");
@@ -45,10 +45,11 @@ public class GamePathDiscoveryServiceTests : IDisposable
         var exePath = Path.Combine(expectedPath, "Fallout4.exe");
         await File.WriteAllTextAsync(exePath, "dummy");
 
-        _yamlSettings.GetSetting(
+        _yamlSettings.GetSettingAsync<string>(
                 Arg.Any<YamlStore>(),
                 Arg.Any<string>(),
-                Arg.Any<string>())
+                Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
             .Returns(expectedPath);
 
         // Setup path validation mocks to validate the game path
@@ -79,10 +80,11 @@ public class GamePathDiscoveryServiceTests : IDisposable
         var exePath = Path.Combine(expectedPath, "Fallout4.exe");
         await File.WriteAllTextAsync(exePath, "dummy");
 
-        _yamlSettings.GetSetting(
+        _yamlSettings.GetSettingAsync<string>(
                 Arg.Any<YamlStore>(),
                 Arg.Any<string>(),
-                Arg.Any<string>())
+                Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
             .Returns(expectedPath);
 
         // Setup path validation mocks
@@ -102,10 +104,11 @@ public class GamePathDiscoveryServiceTests : IDisposable
         result.IsSuccess.Should().BeTrue();
 
         // Verify settings were only called once (for first discovery)
-        _yamlSettings.Received(1).GetSetting(
+        await _yamlSettings.Received(1).GetSettingAsync<string>(
             Arg.Any<YamlStore>(),
             Arg.Any<string>(),
-            Arg.Any<string>());
+            Arg.Any<string>(),
+            Arg.Any<CancellationToken>());
     }
 
     [SkippableFact]
@@ -261,10 +264,11 @@ checking plugin F4SE_TestPlugin.dll";
         var exePath = Path.Combine(gamePath, "Fallout4.exe");
         await File.WriteAllTextAsync(exePath, "dummy");
 
-        _yamlSettings.GetSetting(
+        _yamlSettings.GetSettingAsync<string>(
                 Arg.Any<YamlStore>(),
                 Arg.Any<string>(),
-                Arg.Any<string>())
+                Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
             .Returns(gamePath);
 
         _pathValidationService.ValidatePathAsync(
@@ -294,10 +298,11 @@ checking plugin F4SE_TestPlugin.dll";
         var exePath = Path.Combine(gamePath, "Fallout4.exe");
         await File.WriteAllTextAsync(exePath, "dummy");
 
-        _yamlSettings.GetSetting(
+        _yamlSettings.GetSettingAsync<string>(
                 Arg.Any<YamlStore>(),
                 Arg.Any<string>(),
-                Arg.Any<string>())
+                Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
             .Returns(gamePath);
 
         // Setup path validation mocks
@@ -321,10 +326,11 @@ checking plugin F4SE_TestPlugin.dll";
         });
 
         // Verify settings were only called once due to caching
-        _yamlSettings.Received(1).GetSetting(
+        await _yamlSettings.Received(1).GetSettingAsync<string>(
             Arg.Any<YamlStore>(),
             Arg.Any<string>(),
-            Arg.Any<string>());
+            Arg.Any<string>(),
+            Arg.Any<CancellationToken>());
     }
 
     private static GameInfo CreateTestGameInfo()

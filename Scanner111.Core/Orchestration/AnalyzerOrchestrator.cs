@@ -23,7 +23,7 @@ public sealed class AnalyzerOrchestrator : IAnalyzerOrchestrator, IAsyncDisposab
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<AnalyzerOrchestrator> _logger;
-    private readonly IYamlSettingsCache _settingsCache;
+    private readonly IAsyncYamlSettingsCore _yamlCore;
     private readonly IReportComposer _reportComposer;
     private readonly SemaphoreSlim _concurrencyLimiter;
     private readonly List<IAnalyzer> _analyzers;
@@ -32,12 +32,12 @@ public sealed class AnalyzerOrchestrator : IAnalyzerOrchestrator, IAsyncDisposab
     public AnalyzerOrchestrator(
         IServiceProvider serviceProvider,
         ILogger<AnalyzerOrchestrator> logger,
-        IYamlSettingsCache settingsCache,
+        IAsyncYamlSettingsCore yamlCore,
         IReportComposer reportComposer)
     {
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _settingsCache = settingsCache ?? throw new ArgumentNullException(nameof(settingsCache));
+        _yamlCore = yamlCore ?? throw new ArgumentNullException(nameof(yamlCore));
         _reportComposer = reportComposer ?? throw new ArgumentNullException(nameof(reportComposer));
         
         _analyzers = new List<IAnalyzer>();
@@ -147,7 +147,7 @@ public sealed class AnalyzerOrchestrator : IAnalyzerOrchestrator, IAsyncDisposab
                 options.Strategy);
             
             // Create analysis context
-            var context = new AnalysisContext(request.InputPath, _settingsCache, request.AnalysisType);
+            var context = new AnalysisContext(request.InputPath, _yamlCore, request.AnalysisType);
             
             // Add request metadata to context if provided
             if (request.Metadata != null)

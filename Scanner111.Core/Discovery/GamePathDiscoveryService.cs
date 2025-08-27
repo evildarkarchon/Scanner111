@@ -19,15 +19,15 @@ public sealed class GamePathDiscoveryService : IGamePathDiscoveryService, IDispo
     private readonly SemaphoreSlim _discoverySemaphore;
     private readonly ILogger<GamePathDiscoveryService> _logger;
     private readonly IPathValidationService _pathValidation;
-    private readonly IYamlSettingsCache _yamlSettings;
+    private readonly IAsyncYamlSettingsCore _yamlCore;
 
     public GamePathDiscoveryService(
         IPathValidationService pathValidation,
-        IYamlSettingsCache yamlSettings,
+        IAsyncYamlSettingsCore yamlCore,
         ILogger<GamePathDiscoveryService> logger)
     {
         _pathValidation = pathValidation ?? throw new ArgumentNullException(nameof(pathValidation));
-        _yamlSettings = yamlSettings ?? throw new ArgumentNullException(nameof(yamlSettings));
+        _yamlCore = yamlCore ?? throw new ArgumentNullException(nameof(yamlCore));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _cache = new ConcurrentDictionary<string, CachedDiscoveryResult>();
         _discoverySemaphore = new SemaphoreSlim(1, 1);
@@ -307,8 +307,8 @@ public sealed class GamePathDiscoveryService : IGamePathDiscoveryService, IDispo
         try
         {
             var settingKey = $"Game{(gameInfo.IsVR ? "VR" : "")}_Info.Root_Folder_Game";
-            return await Task.Run(() => _yamlSettings.GetSetting<string>(
-                YamlStore.GameLocal, settingKey), cancellationToken).ConfigureAwait(false);
+            return await _yamlCore.GetSettingAsync<string>(
+                YamlStore.GameLocal, settingKey, null, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -322,8 +322,8 @@ public sealed class GamePathDiscoveryService : IGamePathDiscoveryService, IDispo
         try
         {
             var settingKey = $"Game{(gameInfo.IsVR ? "VR" : "")}_Info.Docs_File_XSE";
-            return await Task.Run(() => _yamlSettings.GetSetting<string>(
-                YamlStore.GameLocal, settingKey), cancellationToken).ConfigureAwait(false);
+            return await _yamlCore.GetSettingAsync<string>(
+                YamlStore.GameLocal, settingKey, null, cancellationToken).ConfigureAwait(false);
         }
         catch
         {

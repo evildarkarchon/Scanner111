@@ -17,11 +17,11 @@ public sealed class AnalysisContext
     
     public AnalysisContext(
         string inputPath,
-        IYamlSettingsCache settingsCache,
+        IAsyncYamlSettingsCore yamlCore,
         AnalysisType analysisType = AnalysisType.CrashLog)
     {
         InputPath = inputPath ?? throw new ArgumentNullException(nameof(inputPath));
-        SettingsCache = settingsCache ?? throw new ArgumentNullException(nameof(settingsCache));
+        YamlCore = yamlCore ?? throw new ArgumentNullException(nameof(yamlCore));
         AnalysisType = analysisType;
         
         _sharedData = new ConcurrentDictionary<string, object>(StringComparer.OrdinalIgnoreCase);
@@ -54,9 +54,9 @@ public sealed class AnalysisContext
     public AnalysisType AnalysisType { get; }
     
     /// <summary>
-    /// Gets the settings cache for accessing configuration.
+    /// Gets the YAML settings core for accessing configuration.
     /// </summary>
-    public IYamlSettingsCache SettingsCache { get; }
+    public IAsyncYamlSettingsCore YamlCore { get; }
     
     /// <summary>
     /// Gets the time when the analysis started.
@@ -120,7 +120,7 @@ public sealed class AnalysisContext
     /// </summary>
     public AnalysisContext CreateChildContext(string newInputPath)
     {
-        var childContext = new AnalysisContext(newInputPath, SettingsCache, AnalysisType);
+        var childContext = new AnalysisContext(newInputPath, YamlCore, AnalysisType);
         
         // Copy shared data to child context
         foreach (var kvp in _sharedData)

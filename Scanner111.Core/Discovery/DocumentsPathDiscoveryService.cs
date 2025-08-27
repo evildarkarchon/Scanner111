@@ -13,15 +13,15 @@ public sealed class DocumentsPathDiscoveryService : IDocumentsPathDiscoveryServi
 {
     private readonly ILogger<DocumentsPathDiscoveryService> _logger;
     private readonly IPathValidationService _pathValidation;
-    private readonly IYamlSettingsCache _yamlSettings;
+    private readonly IAsyncYamlSettingsCore _yamlCore;
 
     public DocumentsPathDiscoveryService(
         IPathValidationService pathValidation,
-        IYamlSettingsCache yamlSettings,
+        IAsyncYamlSettingsCore yamlCore,
         ILogger<DocumentsPathDiscoveryService> logger)
     {
         _pathValidation = pathValidation ?? throw new ArgumentNullException(nameof(pathValidation));
-        _yamlSettings = yamlSettings ?? throw new ArgumentNullException(nameof(yamlSettings));
+        _yamlCore = yamlCore ?? throw new ArgumentNullException(nameof(yamlCore));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -223,20 +223,18 @@ public sealed class DocumentsPathDiscoveryService : IDocumentsPathDiscoveryServi
         }
     }
 
-    private Task<string?> GetConfiguredDocumentsPathAsync(GameInfo gameInfo, CancellationToken cancellationToken)
+    private async Task<string?> GetConfiguredDocumentsPathAsync(GameInfo gameInfo, CancellationToken cancellationToken)
     {
-        return Task.Run(() =>
+        try
         {
-            try
-            {
-                var settingKey = $"Game{(gameInfo.IsVR ? "VR" : "")}_Info.Root_Folder_Docs";
-                return _yamlSettings.GetSetting<string>(YamlStore.GameLocal, settingKey);
-            }
-            catch
-            {
-                return null;
-            }
-        }, cancellationToken);
+            var settingKey = $"Game{(gameInfo.IsVR ? "VR" : "")}_Info.Root_Folder_Docs";
+            return await _yamlCore.GetSettingAsync<string>(YamlStore.GameLocal, settingKey, null, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private async Task<IniValidationResult> ValidateIniFileAsync(

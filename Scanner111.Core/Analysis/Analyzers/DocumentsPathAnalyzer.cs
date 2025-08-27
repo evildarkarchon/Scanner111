@@ -14,13 +14,13 @@ namespace Scanner111.Core.Analysis.Analyzers;
 /// </summary>
 public sealed class DocumentsPathAnalyzer : AnalyzerBase
 {
-    private readonly IYamlSettingsCache _settingsCache;
+    private readonly IAsyncYamlSettingsCore _yamlCore;
     
     public DocumentsPathAnalyzer(
         ILogger<DocumentsPathAnalyzer> logger,
-        IYamlSettingsCache settingsCache) : base(logger)
+        IAsyncYamlSettingsCore yamlCore) : base(logger)
     {
-        _settingsCache = settingsCache ?? throw new ArgumentNullException(nameof(settingsCache));
+        _yamlCore = yamlCore ?? throw new ArgumentNullException(nameof(yamlCore));
     }
     
     public override string Name => "DocumentsPath";

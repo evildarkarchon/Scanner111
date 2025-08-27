@@ -16,13 +16,13 @@ namespace Scanner111.Core.Analysis.Analyzers;
 /// </summary>
 public sealed class PathValidationAnalyzer : AnalyzerBase
 {
-    private readonly IYamlSettingsCache _settingsCache;
+    private readonly IAsyncYamlSettingsCore _yamlCore;
     
     public PathValidationAnalyzer(
         ILogger<PathValidationAnalyzer> logger,
-        IYamlSettingsCache settingsCache) : base(logger)
+        IAsyncYamlSettingsCore yamlCore) : base(logger)
     {
-        _settingsCache = settingsCache ?? throw new ArgumentNullException(nameof(settingsCache));
+        _yamlCore = yamlCore ?? throw new ArgumentNullException(nameof(yamlCore));
     }
     
     public override string Name => "PathValidation";

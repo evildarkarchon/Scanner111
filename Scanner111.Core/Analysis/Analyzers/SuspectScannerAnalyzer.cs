@@ -16,13 +16,13 @@ namespace Scanner111.Core.Analysis.Analyzers;
 /// </summary>
 public sealed class SuspectScannerAnalyzer : AnalyzerBase
 {
-    private readonly IYamlSettingsCache _yamlCache;
+    private readonly IAsyncYamlSettingsCore _yamlCore;
     private const int DefaultMaxWarnLength = 80;
     
-    public SuspectScannerAnalyzer(IYamlSettingsCache yamlCache, ILogger<SuspectScannerAnalyzer> logger)
+    public SuspectScannerAnalyzer(IAsyncYamlSettingsCore yamlCore, ILogger<SuspectScannerAnalyzer> logger)
         : base(logger)
     {
-        _yamlCache = yamlCache ?? throw new ArgumentNullException(nameof(yamlCache));
+        _yamlCore = yamlCore ?? throw new ArgumentNullException(nameof(yamlCore));
     }
     
     /// <inheritdoc />
@@ -56,15 +56,13 @@ public sealed class SuspectScannerAnalyzer : AnalyzerBase
         }
         
         // Load suspect patterns from YAML configuration
-        var suspectErrorList = await Task.Run(() => 
-            _yamlCache.GetSetting<Dictionary<string, string>>(
-                YamlStore.Game, "Crashlog_Error_Check") ?? new Dictionary<string, string>(),
-            cancellationToken).ConfigureAwait(false);
+        var suspectErrorList = await _yamlCore.GetSettingAsync<Dictionary<string, string>>(
+                YamlStore.Game, "Crashlog_Error_Check", null, cancellationToken)
+            .ConfigureAwait(false) ?? new Dictionary<string, string>();
             
-        var suspectStackList = await Task.Run(() =>
-            _yamlCache.GetSetting<Dictionary<string, List<string>>>(
-                YamlStore.Game, "Crashlog_Stack_Check") ?? new Dictionary<string, List<string>>(),
-            cancellationToken).ConfigureAwait(false);
+        var suspectStackList = await _yamlCore.GetSettingAsync<Dictionary<string, List<string>>>(
+                YamlStore.Game, "Crashlog_Stack_Check", null, cancellationToken)
+            .ConfigureAwait(false) ?? new Dictionary<string, List<string>>();
         
         LogDebug("Loaded {ErrorCount} error patterns and {StackCount} stack patterns",
             suspectErrorList.Count, suspectStackList.Count);

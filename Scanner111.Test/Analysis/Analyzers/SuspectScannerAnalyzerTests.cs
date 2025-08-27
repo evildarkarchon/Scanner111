@@ -15,24 +15,24 @@ namespace Scanner111.Test.Analysis.Analyzers;
 
 public sealed class SuspectScannerAnalyzerTests
 {
-    private readonly Mock<IYamlSettingsCache> _yamlCacheMock;
+    private readonly Mock<IAsyncYamlSettingsCore> _yamlCoreMock;
     private readonly Mock<ILogger<SuspectScannerAnalyzer>> _loggerMock;
     private readonly SuspectScannerAnalyzer _sut;
     
     public SuspectScannerAnalyzerTests()
     {
-        _yamlCacheMock = new Mock<IYamlSettingsCache>();
+        _yamlCoreMock = new Mock<IAsyncYamlSettingsCore>();
         _loggerMock = new Mock<ILogger<SuspectScannerAnalyzer>>();
-        _sut = new SuspectScannerAnalyzer(_yamlCacheMock.Object, _loggerMock.Object);
+        _sut = new SuspectScannerAnalyzer(_yamlCoreMock.Object, _loggerMock.Object);
         
         // Setup default empty configurations
-        _yamlCacheMock.Setup(x => x.GetSetting<Dictionary<string, string>>(
-                YamlStore.Game, "Crashlog_Error_Check", null))
-            .Returns(new Dictionary<string, string>());
+        _yamlCoreMock.Setup(x => x.GetSettingAsync<Dictionary<string, string>>(
+                YamlStore.Game, "Crashlog_Error_Check", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
             
-        _yamlCacheMock.Setup(x => x.GetSetting<Dictionary<string, List<string>>>(
-                YamlStore.Game, "Crashlog_Stack_Check", null))
-            .Returns(new Dictionary<string, List<string>>());
+        _yamlCoreMock.Setup(x => x.GetSettingAsync<Dictionary<string, List<string>>>(
+                YamlStore.Game, "Crashlog_Stack_Check", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, List<string>>());
     }
     
     [Fact]
@@ -40,14 +40,14 @@ public sealed class SuspectScannerAnalyzerTests
     {
         // Act & Assert
         var act = () => new SuspectScannerAnalyzer(null!, _loggerMock.Object);
-        act.Should().Throw<ArgumentNullException>().WithParameterName("yamlCache");
+        act.Should().Throw<ArgumentNullException>().WithParameterName("yamlCore");
     }
     
     [Fact]
     public void Constructor_NullLogger_ThrowsArgumentNullException()
     {
         // Act & Assert
-        var act = () => new SuspectScannerAnalyzer(_yamlCacheMock.Object, null!);
+        var act = () => new SuspectScannerAnalyzer(_yamlCoreMock.Object, null!);
         act.Should().Throw<ArgumentNullException>().WithParameterName("logger");
     }
     
@@ -77,7 +77,7 @@ public sealed class SuspectScannerAnalyzerTests
     public async Task AnalyzeAsync_NoErrorData_ReturnsSkippedResult()
     {
         // Arrange
-        var context = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context = new AnalysisContext("test.log", _yamlCoreMock.Object);
         
         // Act
         var result = await _sut.AnalyzeAsync(context);
@@ -93,7 +93,7 @@ public sealed class SuspectScannerAnalyzerTests
     public async Task AnalyzeAsync_EmptyErrorStrings_ReturnsSkippedResult()
     {
         // Arrange
-        var context = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context.SetSharedData("MainError", "");
         context.SetSharedData("CallStack", "");
         
@@ -110,7 +110,7 @@ public sealed class SuspectScannerAnalyzerTests
     public async Task AnalyzeAsync_DllCrash_ReturnsWarningResult()
     {
         // Arrange
-        var context = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context.SetSharedData("MainError", "Error in MyMod.dll at address 0x12345");
         context.SetSharedData("CallStack", "");
         
@@ -132,7 +132,7 @@ public sealed class SuspectScannerAnalyzerTests
     public async Task AnalyzeAsync_DllCrashWithTbbmalloc_IgnoresDll()
     {
         // Arrange
-        var context = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context.SetSharedData("MainError", "Error in tbbmalloc.dll at address 0x12345");
         context.SetSharedData("CallStack", "");
         
@@ -158,11 +158,11 @@ public sealed class SuspectScannerAnalyzerTests
             ["High | Stack Overflow"] = "STACK_OVERFLOW"
         };
         
-        _yamlCacheMock.Setup(x => x.GetSetting<Dictionary<string, string>>(
-                YamlStore.Game, "Crashlog_Error_Check", null))
-            .Returns(suspectErrors);
+        _yamlCoreMock.Setup(x => x.GetSettingAsync<Dictionary<string, string>>(
+                YamlStore.Game, "Crashlog_Error_Check", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(suspectErrors);
         
-        var context = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context.SetSharedData("MainError", "Unhandled exception: ACCESS_VIOLATION reading address 0x00000000");
         context.SetSharedData("CallStack", "");
         
@@ -190,11 +190,11 @@ public sealed class SuspectScannerAnalyzerTests
             ["High | Problematic Function"] = new List<string> { "BadFunction" }
         };
         
-        _yamlCacheMock.Setup(x => x.GetSetting<Dictionary<string, List<string>>>(
-                YamlStore.Game, "Crashlog_Stack_Check", null))
-            .Returns(suspectStacks);
+        _yamlCoreMock.Setup(x => x.GetSettingAsync<Dictionary<string, List<string>>>(
+                YamlStore.Game, "Crashlog_Stack_Check", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(suspectStacks);
         
-        var context = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context.SetSharedData("MainError", "Generic error");
         context.SetSharedData("CallStack", "at Module.BadFunction()\nat Module.GoodFunction()");
         
@@ -224,12 +224,12 @@ public sealed class SuspectScannerAnalyzerTests
             }
         };
         
-        _yamlCacheMock.Setup(x => x.GetSetting<Dictionary<string, List<string>>>(
-                YamlStore.Game, "Crashlog_Stack_Check", null))
-            .Returns(suspectStacks);
+        _yamlCoreMock.Setup(x => x.GetSettingAsync<Dictionary<string, List<string>>>(
+                YamlStore.Game, "Crashlog_Stack_Check", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(suspectStacks);
         
         // Test without required error - should not match
-        var context1 = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context1 = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context1.SetSharedData("MainError", "DIFFERENT_ERROR");
         context1.SetSharedData("CallStack", "at Module.BadFunction()");
         
@@ -238,7 +238,7 @@ public sealed class SuspectScannerAnalyzerTests
         markdown1.Should().NotContain("Conditional Crash");
         
         // Test with required error - should match
-        var context2 = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context2 = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context2.SetSharedData("MainError", "SPECIFIC_ERROR occurred");
         context2.SetSharedData("CallStack", "at Module.BadFunction()");
         
@@ -260,12 +260,12 @@ public sealed class SuspectScannerAnalyzerTests
             }
         };
         
-        _yamlCacheMock.Setup(x => x.GetSetting<Dictionary<string, List<string>>>(
-                YamlStore.Game, "Crashlog_Stack_Check", null))
-            .Returns(suspectStacks);
+        _yamlCoreMock.Setup(x => x.GetSettingAsync<Dictionary<string, List<string>>>(
+                YamlStore.Game, "Crashlog_Stack_Check", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(suspectStacks);
         
         // With optional error present
-        var context = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context.SetSharedData("MainError", "OPTIONAL_ERROR detected");
         context.SetSharedData("CallStack", "some stack");
         
@@ -291,12 +291,12 @@ public sealed class SuspectScannerAnalyzerTests
             }
         };
         
-        _yamlCacheMock.Setup(x => x.GetSetting<Dictionary<string, List<string>>>(
-                YamlStore.Game, "Crashlog_Stack_Check", null))
-            .Returns(suspectStacks);
+        _yamlCoreMock.Setup(x => x.GetSettingAsync<Dictionary<string, List<string>>>(
+                YamlStore.Game, "Crashlog_Stack_Check", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(suspectStacks);
         
         // Test with SafeFunction present - should NOT match
-        var context1 = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context1 = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context1.SetSharedData("MainError", "Error");
         context1.SetSharedData("CallStack", "at Module.BadFunction()\nat Module.SafeFunction()");
         
@@ -305,7 +305,7 @@ public sealed class SuspectScannerAnalyzerTests
         markdown1.Should().NotContain("Conditional Pattern");
         
         // Test without SafeFunction - should match
-        var context2 = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context2 = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context2.SetSharedData("MainError", "Error");
         context2.SetSharedData("CallStack", "at Module.BadFunction()\nat Module.OtherFunction()");
         
@@ -327,12 +327,12 @@ public sealed class SuspectScannerAnalyzerTests
             }
         };
         
-        _yamlCacheMock.Setup(x => x.GetSetting<Dictionary<string, List<string>>>(
-                YamlStore.Game, "Crashlog_Stack_Check", null))
-            .Returns(suspectStacks);
+        _yamlCoreMock.Setup(x => x.GetSettingAsync<Dictionary<string, List<string>>>(
+                YamlStore.Game, "Crashlog_Stack_Check", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(suspectStacks);
         
         // Test with only 2 occurrences - should not match
-        var context1 = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context1 = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context1.SetSharedData("MainError", "Error");
         context1.SetSharedData("CallStack", "RecursiveCall()\nOther()\nRecursiveCall()");
         
@@ -341,7 +341,7 @@ public sealed class SuspectScannerAnalyzerTests
         markdown1.Should().NotContain("Recursive Pattern");
         
         // Test with 3 occurrences - should match
-        var context2 = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context2 = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context2.SetSharedData("MainError", "Error");
         context2.SetSharedData("CallStack", "RecursiveCall()\nRecursiveCall()\nOther()\nRecursiveCall()");
         
@@ -355,7 +355,7 @@ public sealed class SuspectScannerAnalyzerTests
     public async Task AnalyzeAsync_NoSuspectsFound_ReturnsInfoResult()
     {
         // Arrange - empty configurations already set in constructor
-        var context = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context.SetSharedData("MainError", "Some random error");
         context.SetSharedData("CallStack", "at Module.Function()");
         
@@ -386,15 +386,15 @@ public sealed class SuspectScannerAnalyzerTests
             ["High | Bad Function"] = new List<string> { "BadFunction" }
         };
         
-        _yamlCacheMock.Setup(x => x.GetSetting<Dictionary<string, string>>(
-                YamlStore.Game, "Crashlog_Error_Check", null))
-            .Returns(suspectErrors);
+        _yamlCoreMock.Setup(x => x.GetSettingAsync<Dictionary<string, string>>(
+                YamlStore.Game, "Crashlog_Error_Check", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(suspectErrors);
             
-        _yamlCacheMock.Setup(x => x.GetSetting<Dictionary<string, List<string>>>(
-                YamlStore.Game, "Crashlog_Stack_Check", null))
-            .Returns(suspectStacks);
+        _yamlCoreMock.Setup(x => x.GetSettingAsync<Dictionary<string, List<string>>>(
+                YamlStore.Game, "Crashlog_Stack_Check", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(suspectStacks);
         
-        var context = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context.SetSharedData("MainError", "ACCESS_VIOLATION in Module.dll");
         context.SetSharedData("CallStack", "at Module.BadFunction()");
         
@@ -421,7 +421,7 @@ public sealed class SuspectScannerAnalyzerTests
     public async Task AnalyzeAsync_CancellationRequested_ReturnsSkippedResult()
     {
         // Arrange
-        var context = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context.SetSharedData("MainError", "Error");
         context.SetSharedData("CallStack", "Stack");
         
@@ -447,11 +447,11 @@ public sealed class SuspectScannerAnalyzerTests
             ["Valid | Error Name"] = "VALID_ERROR"
         };
         
-        _yamlCacheMock.Setup(x => x.GetSetting<Dictionary<string, string>>(
-                YamlStore.Game, "Crashlog_Error_Check", null))
-            .Returns(suspectErrors);
+        _yamlCoreMock.Setup(x => x.GetSettingAsync<Dictionary<string, string>>(
+                YamlStore.Game, "Crashlog_Error_Check", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(suspectErrors);
         
-        var context = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context = new AnalysisContext("test.log", _yamlCoreMock.Object);
         context.SetSharedData("MainError", "VALID_ERROR occurred");
         context.SetSharedData("CallStack", "");
         
@@ -471,7 +471,7 @@ public sealed class SuspectScannerAnalyzerTests
     public async Task CanAnalyzeAsync_ValidContext_ReturnsTrue()
     {
         // Arrange
-        var context = new AnalysisContext("test.log", _yamlCacheMock.Object);
+        var context = new AnalysisContext("test.log", _yamlCoreMock.Object);
         
         // Act
         var result = await _sut.CanAnalyzeAsync(context);
