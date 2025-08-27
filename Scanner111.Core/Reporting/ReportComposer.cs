@@ -1,52 +1,48 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analysis;
 
 namespace Scanner111.Core.Reporting;
 
 /// <summary>
-/// Composes analysis results into formatted reports.
-/// Thread-safe for concurrent access.
+///     Composes analysis results into formatted reports.
+///     Thread-safe for concurrent access.
 /// </summary>
 public sealed class ReportComposer : IReportComposer
 {
     private readonly ILogger<ReportComposer> _logger;
-    
+
     public ReportComposer(ILogger<ReportComposer> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
-    
+
     /// <inheritdoc />
     public async Task<string> ComposeReportAsync(
         IEnumerable<AnalysisResult> results,
         ReportOptions? options = null)
     {
         options ??= new ReportOptions();
-        
+
         var resultsList = results?.ToList() ?? new List<AnalysisResult>();
-        
+
         if (!resultsList.Any())
         {
             _logger.LogWarning("No analysis results to compose");
             return CreateEmptyReport(options);
         }
-        
+
         // Extract fragments from results
         var fragments = new List<ReportFragment>();
         var timingInfo = new Dictionary<string, TimeSpan>();
-        
+
         foreach (var result in resultsList)
         {
             // Skip if configured to exclude skipped analyzers
             if (!options.IncludeSkipped && result.SkipFurtherProcessing)
                 continue;
-            
+
             // Add fragment if available
             if (result.Fragment != null)
             {
@@ -61,47 +57,36 @@ public sealed class ReportComposer : IReportComposer
                     errorContent,
                     1000)); // High order to appear at end
             }
-            
+
             // Collect timing info if requested
             if (options.IncludeTimingInfo && result.Duration.HasValue)
-            {
                 timingInfo[result.AnalyzerName] = result.Duration.Value;
-            }
         }
-        
+
         // Add timing section if requested
-        if (options.IncludeTimingInfo && timingInfo.Any())
-        {
-            fragments.Add(CreateTimingFragment(timingInfo));
-        }
-        
+        if (options.IncludeTimingInfo && timingInfo.Any()) fragments.Add(CreateTimingFragment(timingInfo));
+
         // Compose fragments
         return await ComposeFromFragmentsAsync(fragments, options).ConfigureAwait(false);
     }
-    
+
     /// <inheritdoc />
     public async Task<string> ComposeFromFragmentsAsync(
         IEnumerable<ReportFragment> fragments,
         ReportOptions? options = null)
     {
         options ??= new ReportOptions();
-        
+
         var fragmentsList = fragments?.ToList() ?? new List<ReportFragment>();
-        
-        if (!fragmentsList.Any())
-        {
-            return CreateEmptyReport(options);
-        }
-        
+
+        if (!fragmentsList.Any()) return CreateEmptyReport(options);
+
         // Filter by visibility
         fragmentsList = FilterByVisibility(fragmentsList, options.MinimumVisibility);
-        
+
         // Sort if requested
-        if (options.SortByOrder)
-        {
-            fragmentsList = fragmentsList.OrderBy(f => f.Order).ThenBy(f => f.Title).ToList();
-        }
-        
+        if (options.SortByOrder) fragmentsList = fragmentsList.OrderBy(f => f.Order).ThenBy(f => f.Title).ToList();
+
         // Format based on requested format
         var report = options.Format switch
         {
@@ -111,16 +96,16 @@ public sealed class ReportComposer : IReportComposer
             ReportFormat.Json => await FormatAsJsonAsync(fragmentsList, options),
             _ => await FormatAsMarkdownAsync(fragmentsList, options)
         };
-        
+
         return report;
     }
-    
+
     private async Task<string> FormatAsMarkdownAsync(
         List<ReportFragment> fragments,
         ReportOptions options)
     {
         var sb = new StringBuilder();
-        
+
         // Add title if provided
         if (!string.IsNullOrWhiteSpace(options.Title))
         {
@@ -131,33 +116,30 @@ public sealed class ReportComposer : IReportComposer
             sb.AppendLine("---");
             sb.AppendLine();
         }
-        
+
         // Add each fragment
         foreach (var fragment in fragments)
         {
             var markdown = fragment.ToMarkdown(options.Title != null ? 2 : 1);
-            if (!string.IsNullOrWhiteSpace(markdown))
-            {
-                sb.Append(markdown);
-            }
+            if (!string.IsNullOrWhiteSpace(markdown)) sb.Append(markdown);
         }
-        
+
         // Add footer
         sb.AppendLine();
         sb.AppendLine("---");
         sb.AppendLine();
         sb.AppendLine("*Report generated by Scanner111 Orchestrator*");
-        
+
         await Task.CompletedTask.ConfigureAwait(false);
         return sb.ToString();
     }
-    
+
     private async Task<string> FormatAsPlainTextAsync(
         List<ReportFragment> fragments,
         ReportOptions options)
     {
         var sb = new StringBuilder();
-        
+
         // Add title if provided
         if (!string.IsNullOrWhiteSpace(options.Title))
         {
@@ -165,7 +147,7 @@ public sealed class ReportComposer : IReportComposer
             sb.AppendLine(new string('=', options.Title.Length));
             sb.AppendLine();
         }
-        
+
         // Add each fragment
         foreach (var fragment in fragments)
         {
@@ -174,25 +156,22 @@ public sealed class ReportComposer : IReportComposer
                 sb.AppendLine(fragment.Title);
                 sb.AppendLine(new string('-', fragment.Title.Length));
             }
-            
-            if (!string.IsNullOrWhiteSpace(fragment.Content))
-            {
-                sb.AppendLine(fragment.Content);
-            }
-            
+
+            if (!string.IsNullOrWhiteSpace(fragment.Content)) sb.AppendLine(fragment.Content);
+
             sb.AppendLine();
         }
-        
+
         await Task.CompletedTask.ConfigureAwait(false);
         return sb.ToString();
     }
-    
+
     private async Task<string> FormatAsHtmlAsync(
         List<ReportFragment> fragments,
         ReportOptions options)
     {
         var sb = new StringBuilder();
-        
+
         sb.AppendLine("<!DOCTYPE html>");
         sb.AppendLine("<html>");
         sb.AppendLine("<head>");
@@ -207,12 +186,9 @@ public sealed class ReportComposer : IReportComposer
         sb.AppendLine("</style>");
         sb.AppendLine("</head>");
         sb.AppendLine("<body>");
-        
-        if (!string.IsNullOrWhiteSpace(options.Title))
-        {
-            sb.AppendLine($"<h1>{options.Title}</h1>");
-        }
-        
+
+        if (!string.IsNullOrWhiteSpace(options.Title)) sb.AppendLine($"<h1>{options.Title}</h1>");
+
         foreach (var fragment in fragments)
         {
             var cssClass = fragment.Type switch
@@ -222,29 +198,24 @@ public sealed class ReportComposer : IReportComposer
                 FragmentType.Info => "info",
                 _ => ""
             };
-            
+
             sb.AppendLine($"<div class=\"{cssClass}\">");
-            
-            if (!string.IsNullOrWhiteSpace(fragment.Title))
-            {
-                sb.AppendLine($"<h2>{fragment.Title}</h2>");
-            }
-            
+
+            if (!string.IsNullOrWhiteSpace(fragment.Title)) sb.AppendLine($"<h2>{fragment.Title}</h2>");
+
             if (!string.IsNullOrWhiteSpace(fragment.Content))
-            {
                 sb.AppendLine($"<p>{fragment.Content.Replace("\n", "<br>")}</p>");
-            }
-            
+
             sb.AppendLine("</div>");
         }
-        
+
         sb.AppendLine("</body>");
         sb.AppendLine("</html>");
-        
+
         await Task.CompletedTask.ConfigureAwait(false);
         return sb.ToString();
     }
-    
+
     private async Task<string> FormatAsJsonAsync(
         List<ReportFragment> fragments,
         ReportOptions options)
@@ -264,44 +235,42 @@ public sealed class ReportComposer : IReportComposer
                 f.Metadata
             })
         };
-        
+
         var jsonOptions = new JsonSerializerOptions
         {
             WriteIndented = true
         };
-        
+
         await Task.CompletedTask.ConfigureAwait(false);
         return JsonSerializer.Serialize(reportData, jsonOptions);
     }
-    
+
     private List<ReportFragment> FilterByVisibility(
         List<ReportFragment> fragments,
         FragmentVisibility minimumVisibility)
     {
         return fragments.Where(f => f.Visibility <= minimumVisibility).ToList();
     }
-    
+
     private ReportFragment CreateTimingFragment(Dictionary<string, TimeSpan> timingInfo)
     {
         var sb = new StringBuilder();
         sb.AppendLine("| Analyzer | Duration |");
         sb.AppendLine("|----------|----------|");
-        
+
         foreach (var timing in timingInfo.OrderBy(t => t.Value))
-        {
             sb.AppendLine($"| {timing.Key} | {timing.Value:mm\\:ss\\.fff} |");
-        }
-        
+
         sb.AppendLine();
         sb.AppendLine($"**Total Duration:** {timingInfo.Values.Sum(t => t.TotalMilliseconds):N0}ms");
-        
+
         return ReportFragment.CreateInfo("Performance Metrics", sb.ToString(), 900);
     }
-    
+
     private string CreateEmptyReport(ReportOptions options)
     {
         var title = options.Title ?? "Analysis Report";
-        
+
         return options.Format switch
         {
             ReportFormat.Json => JsonSerializer.Serialize(new { title, message = "No results to report" }),

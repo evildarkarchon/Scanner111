@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Scanner111.Core.Models;
@@ -8,24 +6,24 @@ using Scanner111.Core.Reporting;
 namespace Scanner111.Core.Analysis.Validators;
 
 /// <summary>
-/// Validates memory management settings for conflicts and optimization opportunities.
-/// Thread-safe for concurrent validation operations.
+///     Validates memory management settings for conflicts and optimization opportunities.
+///     Thread-safe for concurrent validation operations.
 /// </summary>
 public sealed class MemoryManagementValidator
 {
-    private readonly ILogger<MemoryManagementValidator> _logger;
     private const string Separator = "\n\n-----\n";
     private const string SuccessPrefix = "✔️ ";
     private const string WarningPrefix = "# ❌ CAUTION : ";
     private const string FixPrefix = " FIX: ";
-    
+    private readonly ILogger<MemoryManagementValidator> _logger;
+
     public MemoryManagementValidator(ILogger<MemoryManagementValidator> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
-    
+
     /// <summary>
-    /// Validates memory management settings and returns a report fragment.
+    ///     Validates memory management settings and returns a report fragment.
     /// </summary>
     public ReportFragment Validate(
         CrashGenSettings crashGenSettings,
@@ -33,17 +31,17 @@ public sealed class MemoryManagementValidator
     {
         ArgumentNullException.ThrowIfNull(crashGenSettings);
         ArgumentNullException.ThrowIfNull(modSettings);
-        
+
         var lines = new List<string>();
         var crashGenName = crashGenSettings.CrashGenName;
         var memManagerEnabled = crashGenSettings.MemoryManager ?? false;
-        
+
         _logger.LogDebug(
             "Validating memory settings: MemManager={MemMgr}, XCell={XCell}, BakaScrapHeap={Baka}",
             memManagerEnabled,
             modSettings.HasXCell,
             modSettings.HasBakaScrapHeap);
-        
+
         // Check for old X-Cell version
         if (modSettings.HasOldXCell)
         {
@@ -52,7 +50,7 @@ public sealed class MemoryManagementValidator
                 "Download the latest version from here: https://www.nexusmods.com/fallout4/mods/84214?tab=files");
             _logger.LogWarning("Outdated X-Cell version detected");
         }
-        
+
         // Validate main memory manager configuration
         ValidateMainMemoryManager(
             lines,
@@ -60,16 +58,13 @@ public sealed class MemoryManagementValidator
             memManagerEnabled,
             modSettings.HasXCell,
             modSettings.HasBakaScrapHeap);
-        
+
         // Check additional memory settings for X-Cell compatibility
-        if (modSettings.HasXCell)
-        {
-            ValidateXCellCompatibility(lines, crashGenSettings);
-        }
-        
+        if (modSettings.HasXCell) ValidateXCellCompatibility(lines, crashGenSettings);
+
         return CreateFragment(lines);
     }
-    
+
     private void ValidateMainMemoryManager(
         List<string> lines,
         string crashGenName,
@@ -110,7 +105,7 @@ public sealed class MemoryManagementValidator
             }
             else
             {
-                AddSuccess(lines, 
+                AddSuccess(lines,
                     $"Memory Manager parameter is correctly configured for use with X-Cell in your {crashGenName} settings!");
                 _logger.LogInformation("Memory Manager correctly disabled for X-Cell");
             }
@@ -123,7 +118,7 @@ public sealed class MemoryManagementValidator
             _logger.LogWarning("Baka ScrapHeap installed without Memory Manager");
         }
     }
-    
+
     private void ValidateXCellCompatibility(
         List<string> lines,
         CrashGenSettings crashGenSettings)
@@ -135,7 +130,7 @@ public sealed class MemoryManagementValidator
             ["ScaleformAllocator"] = "Scaleform Allocator",
             ["SmallBlockAllocator"] = "Small Block Allocator"
         };
-        
+
         foreach (var (settingKey, displayName) in memorySettings)
         {
             var isEnabled = settingKey switch
@@ -146,7 +141,7 @@ public sealed class MemoryManagementValidator
                 "SmallBlockAllocator" => crashGenSettings.SmallBlockAllocator ?? false,
                 _ => false
             };
-            
+
             if (isEnabled)
             {
                 AddWarning(lines,
@@ -162,45 +157,40 @@ public sealed class MemoryManagementValidator
             }
         }
     }
-    
+
     private void AddSuccess(List<string> lines, string message)
     {
         lines.Add($"{SuccessPrefix}{message}{Separator}");
     }
-    
+
     private void AddWarning(List<string> lines, string warning, string fix)
     {
         lines.Add($"{WarningPrefix}{warning} # \n");
         lines.Add($"{FixPrefix}{fix}{Separator}");
     }
-    
+
     private static ReportFragment CreateFragment(List<string> lines)
     {
         if (lines.Count == 0)
-        {
             return ReportFragment.CreateInfo(
                 "Memory Management Settings",
                 "No memory management issues detected.",
-                order: 200);
-        }
-        
+                200);
+
         var content = new StringBuilder();
-        foreach (var line in lines)
-        {
-            content.Append(line);
-        }
-        
+        foreach (var line in lines) content.Append(line);
+
         // Determine if there are warnings
         var hasWarnings = lines.Exists(l => l.Contains(WarningPrefix));
-        
+
         return hasWarnings
             ? ReportFragment.CreateWarning(
                 "Memory Management Settings",
                 content.ToString(),
-                order: 50)
+                50)
             : ReportFragment.CreateSection(
                 "Memory Management Settings",
                 content.ToString(),
-                order: 200);
+                200);
     }
 }

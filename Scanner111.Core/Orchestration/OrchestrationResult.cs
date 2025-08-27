@@ -1,19 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Scanner111.Core.Analysis;
 
 namespace Scanner111.Core.Orchestration;
 
 /// <summary>
-/// Represents the complete result of an orchestrated analysis run.
+///     Represents the complete result of an orchestrated analysis run.
 /// </summary>
 public sealed class OrchestrationResult
 {
-    private readonly List<AnalysisResult> _results;
     private readonly Dictionary<string, TimeSpan> _analyzerTimings;
     private readonly Dictionary<string, object> _metrics;
-    
+    private readonly List<AnalysisResult> _results;
+
     public OrchestrationResult()
     {
         _results = new List<AnalysisResult>();
@@ -22,182 +19,167 @@ public sealed class OrchestrationResult
         StartTime = DateTime.UtcNow;
         CorrelationId = Guid.NewGuid();
     }
-    
+
     /// <summary>
-    /// Gets the unique correlation ID for this orchestration run.
+    ///     Gets the unique correlation ID for this orchestration run.
     /// </summary>
     public Guid CorrelationId { get; }
-    
+
     /// <summary>
-    /// Gets whether the orchestration completed successfully.
+    ///     Gets whether the orchestration completed successfully.
     /// </summary>
     public bool Success { get; init; }
-    
+
     /// <summary>
-    /// Gets the individual analyzer results.
+    ///     Gets the individual analyzer results.
     /// </summary>
     public IReadOnlyList<AnalysisResult> Results => _results.AsReadOnly();
-    
+
     /// <summary>
-    /// Gets the final composed report.
+    ///     Gets the final composed report.
     /// </summary>
     public string? FinalReport { get; init; }
-    
+
     /// <summary>
-    /// Gets the total duration of the orchestration.
+    ///     Gets the total duration of the orchestration.
     /// </summary>
     public TimeSpan TotalDuration { get; init; }
-    
+
     /// <summary>
-    /// Gets the start time of the orchestration.
+    ///     Gets the start time of the orchestration.
     /// </summary>
     public DateTime StartTime { get; }
-    
+
     /// <summary>
-    /// Gets the end time of the orchestration.
+    ///     Gets the end time of the orchestration.
     /// </summary>
     public DateTime? EndTime { get; init; }
-    
+
     /// <summary>
-    /// Gets timing information for each analyzer.
+    ///     Gets timing information for each analyzer.
     /// </summary>
     public IReadOnlyDictionary<string, TimeSpan> AnalyzerTimings => _analyzerTimings;
-    
+
     /// <summary>
-    /// Gets collected metrics from the orchestration run.
+    ///     Gets collected metrics from the orchestration run.
     /// </summary>
     public IReadOnlyDictionary<string, object> Metrics => _metrics;
-    
+
     /// <summary>
-    /// Gets the number of successful analyzers.
+    ///     Gets the number of successful analyzers.
     /// </summary>
     public int SuccessfulAnalyzers => _results.Count(r => r.Success);
-    
+
     /// <summary>
-    /// Gets the number of failed analyzers.
+    ///     Gets the number of failed analyzers.
     /// </summary>
     public int FailedAnalyzers => _results.Count(r => !r.Success && !r.SkipFurtherProcessing);
-    
+
     /// <summary>
-    /// Gets the number of skipped analyzers.
+    ///     Gets the number of skipped analyzers.
     /// </summary>
     public int SkippedAnalyzers => _results.Count(r => r.SkipFurtherProcessing);
-    
+
     /// <summary>
-    /// Gets the highest severity level from all results.
+    ///     Gets the highest severity level from all results.
     /// </summary>
-    public AnalysisSeverity HighestSeverity => _results.Any() 
+    public AnalysisSeverity HighestSeverity => _results.Any()
         ? _results.Max(r => r.Severity)
         : AnalysisSeverity.None;
-    
+
     /// <summary>
-    /// Gets all error messages from all analyzers.
+    ///     Gets all error messages from all analyzers.
     /// </summary>
     public IEnumerable<string> AllErrors => _results.SelectMany(r => r.Errors);
-    
+
     /// <summary>
-    /// Gets all warning messages from all analyzers.
+    ///     Gets all warning messages from all analyzers.
     /// </summary>
     public IEnumerable<string> AllWarnings => _results.SelectMany(r => r.Warnings);
-    
+
     /// <summary>
-    /// Adds an analysis result to the orchestration result.
+    ///     Adds an analysis result to the orchestration result.
     /// </summary>
     public void AddResult(AnalysisResult result)
     {
         if (result == null)
             throw new ArgumentNullException(nameof(result));
-        
+
         _results.Add(result);
-        
+
         // Track timing if available
-        if (result.Duration.HasValue)
-        {
-            _analyzerTimings[result.AnalyzerName] = result.Duration.Value;
-        }
+        if (result.Duration.HasValue) _analyzerTimings[result.AnalyzerName] = result.Duration.Value;
     }
-    
+
     /// <summary>
-    /// Adds multiple analysis results.
+    ///     Adds multiple analysis results.
     /// </summary>
     public void AddResults(IEnumerable<AnalysisResult> results)
     {
         if (results == null)
             throw new ArgumentNullException(nameof(results));
-        
-        foreach (var result in results)
-        {
-            AddResult(result);
-        }
+
+        foreach (var result in results) AddResult(result);
     }
-    
+
     /// <summary>
-    /// Adds a metric to the result.
+    ///     Adds a metric to the result.
     /// </summary>
     public void AddMetric(string key, object value)
     {
         if (string.IsNullOrWhiteSpace(key))
             throw new ArgumentException("Metric key cannot be null or whitespace.", nameof(key));
-        
+
         _metrics[key] = value;
     }
-    
+
     /// <summary>
-    /// Gets a result for a specific analyzer by name.
+    ///     Gets a result for a specific analyzer by name.
     /// </summary>
     public AnalysisResult? GetAnalyzerResult(string analyzerName)
     {
-        return _results.FirstOrDefault(r => 
+        return _results.FirstOrDefault(r =>
             string.Equals(r.AnalyzerName, analyzerName, StringComparison.OrdinalIgnoreCase));
     }
-    
+
     /// <summary>
-    /// Creates a summary of the orchestration result.
+    ///     Creates a summary of the orchestration result.
     /// </summary>
     public string CreateSummary()
     {
         var lines = new List<string>
         {
-            $"Orchestration Result Summary",
-            $"============================",
+            "Orchestration Result Summary",
+            "============================",
             $"Correlation ID: {CorrelationId}",
             $"Status: {(Success ? "Success" : "Failed")}",
             $"Duration: {TotalDuration:mm\\:ss\\.fff}",
             $"Highest Severity: {HighestSeverity}",
-            $"",
-            $"Analyzer Results:",
+            "",
+            "Analyzer Results:",
             $"  Successful: {SuccessfulAnalyzers}",
             $"  Failed: {FailedAnalyzers}",
             $"  Skipped: {SkippedAnalyzers}",
             $"  Total: {_results.Count}"
         };
-        
+
         if (AllErrors.Any())
         {
             lines.Add("");
             lines.Add("Errors:");
-            foreach (var error in AllErrors)
-            {
-                lines.Add($"  - {error}");
-            }
+            foreach (var error in AllErrors) lines.Add($"  - {error}");
         }
-        
+
         if (AllWarnings.Any())
         {
             lines.Add("");
             lines.Add("Warnings:");
-            foreach (var warning in AllWarnings.Take(5))
-            {
-                lines.Add($"  - {warning}");
-            }
-            
+            foreach (var warning in AllWarnings.Take(5)) lines.Add($"  - {warning}");
+
             var remainingWarnings = AllWarnings.Count() - 5;
-            if (remainingWarnings > 0)
-            {
-                lines.Add($"  ... and {remainingWarnings} more warnings");
-            }
+            if (remainingWarnings > 0) lines.Add($"  ... and {remainingWarnings} more warnings");
         }
-        
+
         return string.Join(Environment.NewLine, lines);
     }
 }

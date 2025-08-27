@@ -1,4 +1,3 @@
-using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Scanner111.Core.Analysis;
@@ -9,12 +8,12 @@ using Scanner111.Core.Reporting;
 namespace Scanner111.Core.DependencyInjection;
 
 /// <summary>
-/// Extension methods for registering orchestration services.
+///     Extension methods for registering orchestration services.
 /// </summary>
 public static class OrchestrationServiceExtensions
 {
     /// <summary>
-    /// Adds the analyzer orchestration system to the service collection.
+    ///     Adds the analyzer orchestration system to the service collection.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection for chaining.</returns>
@@ -22,19 +21,19 @@ public static class OrchestrationServiceExtensions
     {
         if (services == null)
             throw new ArgumentNullException(nameof(services));
-        
+
         // Register core orchestration services
         services.TryAddSingleton<IAnalyzerOrchestrator, AnalyzerOrchestrator>();
         services.TryAddSingleton<IReportComposer, ReportComposer>();
-        
+
         // Register all built-in analyzers as singletons
         services.AddBuiltInAnalyzers();
-        
+
         return services;
     }
-    
+
     /// <summary>
-    /// Adds the analyzer orchestration system with custom configuration.
+    ///     Adds the analyzer orchestration system with custom configuration.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configureOptions">Action to configure orchestration options.</param>
@@ -47,19 +46,19 @@ public static class OrchestrationServiceExtensions
             throw new ArgumentNullException(nameof(services));
         if (configureOptions == null)
             throw new ArgumentNullException(nameof(configureOptions));
-        
+
         // Add base orchestration
         services.AddAnalyzerOrchestration();
-        
+
         // Configure with builder
         var builder = new OrchestrationBuilder(services);
         configureOptions(builder);
-        
+
         return services;
     }
-    
+
     /// <summary>
-    /// Registers all built-in analyzers.
+    ///     Registers all built-in analyzers.
     /// </summary>
     private static IServiceCollection AddBuiltInAnalyzers(this IServiceCollection services)
     {
@@ -67,17 +66,17 @@ public static class OrchestrationServiceExtensions
         services.AddSingleton<IAnalyzer, PathValidationAnalyzer>();
         services.AddSingleton<IAnalyzer, GameIntegrityAnalyzer>();
         services.AddSingleton<IAnalyzer, DocumentsPathAnalyzer>();
-        
+
         // Also register them by their concrete type for direct injection if needed
         services.TryAddSingleton<PathValidationAnalyzer>();
         services.TryAddSingleton<GameIntegrityAnalyzer>();
         services.TryAddSingleton<DocumentsPathAnalyzer>();
-        
+
         return services;
     }
-    
+
     /// <summary>
-    /// Adds a custom analyzer to the orchestration system.
+    ///     Adds a custom analyzer to the orchestration system.
     /// </summary>
     /// <typeparam name="TAnalyzer">The analyzer type.</typeparam>
     /// <param name="services">The service collection.</param>
@@ -90,15 +89,15 @@ public static class OrchestrationServiceExtensions
     {
         // Register as IAnalyzer for discovery
         services.Add(new ServiceDescriptor(typeof(IAnalyzer), typeof(TAnalyzer), lifetime));
-        
+
         // Register concrete type for direct injection
         services.TryAdd(new ServiceDescriptor(typeof(TAnalyzer), typeof(TAnalyzer), lifetime));
-        
+
         return services;
     }
-    
+
     /// <summary>
-    /// Adds a custom analyzer with factory to the orchestration system.
+    ///     Adds a custom analyzer with factory to the orchestration system.
     /// </summary>
     /// <typeparam name="TAnalyzer">The analyzer type.</typeparam>
     /// <param name="services">The service collection.</param>
@@ -113,45 +112,43 @@ public static class OrchestrationServiceExtensions
     {
         // Register as IAnalyzer for discovery
         services.Add(new ServiceDescriptor(typeof(IAnalyzer), factory, lifetime));
-        
+
         // Register concrete type for direct injection
         services.TryAdd(new ServiceDescriptor(typeof(TAnalyzer), factory, lifetime));
-        
+
         return services;
     }
 }
 
 /// <summary>
-/// Builder for configuring the orchestration system.
+///     Builder for configuring the orchestration system.
 /// </summary>
 public sealed class OrchestrationBuilder
 {
-    private readonly IServiceCollection _services;
-    
     internal OrchestrationBuilder(IServiceCollection services)
     {
-        _services = services;
+        Services = services;
     }
-    
+
     /// <summary>
-    /// Gets the service collection being configured.
+    ///     Gets the service collection being configured.
     /// </summary>
-    public IServiceCollection Services => _services;
-    
+    public IServiceCollection Services { get; }
+
     /// <summary>
-    /// Adds a custom analyzer.
+    ///     Adds a custom analyzer.
     /// </summary>
     /// <typeparam name="TAnalyzer">The analyzer type.</typeparam>
     /// <returns>The builder for chaining.</returns>
     public OrchestrationBuilder AddAnalyzer<TAnalyzer>()
         where TAnalyzer : class, IAnalyzer
     {
-        _services.AddAnalyzer<TAnalyzer>();
+        Services.AddAnalyzer<TAnalyzer>();
         return this;
     }
-    
+
     /// <summary>
-    /// Adds a custom analyzer with factory.
+    ///     Adds a custom analyzer with factory.
     /// </summary>
     /// <typeparam name="TAnalyzer">The analyzer type.</typeparam>
     /// <param name="factory">Factory to create the analyzer.</param>
@@ -159,62 +156,55 @@ public sealed class OrchestrationBuilder
     public OrchestrationBuilder AddAnalyzer<TAnalyzer>(Func<IServiceProvider, TAnalyzer> factory)
         where TAnalyzer : class, IAnalyzer
     {
-        _services.AddAnalyzer(factory);
+        Services.AddAnalyzer(factory);
         return this;
     }
-    
+
     /// <summary>
-    /// Removes all built-in analyzers.
+    ///     Removes all built-in analyzers.
     /// </summary>
     /// <returns>The builder for chaining.</returns>
     public OrchestrationBuilder ClearBuiltInAnalyzers()
     {
-        _services.RemoveAll<PathValidationAnalyzer>();
-        _services.RemoveAll<GameIntegrityAnalyzer>();
-        _services.RemoveAll<DocumentsPathAnalyzer>();
-        
+        Services.RemoveAll<PathValidationAnalyzer>();
+        Services.RemoveAll<GameIntegrityAnalyzer>();
+        Services.RemoveAll<DocumentsPathAnalyzer>();
+
         // Also remove from IAnalyzer registrations
         var analyzerDescriptors = new List<ServiceDescriptor>();
-        foreach (var descriptor in _services)
-        {
+        foreach (var descriptor in Services)
             if (descriptor.ServiceType == typeof(IAnalyzer) &&
                 (descriptor.ImplementationType == typeof(PathValidationAnalyzer) ||
                  descriptor.ImplementationType == typeof(GameIntegrityAnalyzer) ||
                  descriptor.ImplementationType == typeof(DocumentsPathAnalyzer)))
-            {
                 analyzerDescriptors.Add(descriptor);
-            }
-        }
-        
-        foreach (var descriptor in analyzerDescriptors)
-        {
-            _services.Remove(descriptor);
-        }
-        
+
+        foreach (var descriptor in analyzerDescriptors) Services.Remove(descriptor);
+
         return this;
     }
-    
+
     /// <summary>
-    /// Configures default orchestration options.
+    ///     Configures default orchestration options.
     /// </summary>
     /// <param name="configure">Action to configure options.</param>
     /// <returns>The builder for chaining.</returns>
     public OrchestrationBuilder ConfigureDefaultOptions(Action<OrchestrationOptions> configure)
     {
-        _services.Configure(configure);
+        Services.Configure(configure);
         return this;
     }
-    
+
     /// <summary>
-    /// Uses a custom report composer implementation.
+    ///     Uses a custom report composer implementation.
     /// </summary>
     /// <typeparam name="TComposer">The report composer type.</typeparam>
     /// <returns>The builder for chaining.</returns>
     public OrchestrationBuilder UseReportComposer<TComposer>()
         where TComposer : class, IReportComposer
     {
-        _services.RemoveAll<IReportComposer>();
-        _services.AddSingleton<IReportComposer, TComposer>();
+        Services.RemoveAll<IReportComposer>();
+        Services.AddSingleton<IReportComposer, TComposer>();
         return this;
     }
 }

@@ -181,7 +181,7 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
         // Determine if this is a read or write operation
         // For value types, we need to check if the value equals the default value
         // For reference types, we check if it's null
-        var isReadOperation = EqualityComparer<T>.Default.Equals(newValue, default(T));
+        var isReadOperation = EqualityComparer<T>.Default.Equals(newValue, default);
 
         // Check if this is a read operation for a static store
         var cacheKey = (yamlStore, keyPath, typeof(T));

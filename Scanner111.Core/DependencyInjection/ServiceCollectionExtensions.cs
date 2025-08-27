@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analysis.Analyzers;
 using Scanner111.Core.Configuration;
@@ -113,7 +112,6 @@ public static class ServiceCollectionExtensions
         if (configureOptions != null)
             services.Configure(configureOptions);
         else
-        {
             // Default configuration
             services.Configure<FormIdDatabaseOptions>(options =>
             {
@@ -122,7 +120,6 @@ public static class ServiceCollectionExtensions
                 options.EnableFormIdLookups = true;
                 // Database paths will need to be configured based on game
             });
-        }
 
         // Add memory cache if not already registered
         services.AddMemoryCache();
@@ -148,7 +145,7 @@ public static class ServiceCollectionExtensions
         {
             var logger = provider.GetRequiredService<ILogger<FormIdAnalyzer>>();
             var formIdDatabase = provider.GetService<IFormIdDatabase>();
-            
+
             return new FormIdAnalyzer(logger, formIdDatabase, showFormIdValues);
         });
 
