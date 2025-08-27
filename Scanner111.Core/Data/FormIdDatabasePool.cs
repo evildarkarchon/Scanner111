@@ -13,6 +13,20 @@ namespace Scanner111.Core.Data;
 /// </summary>
 public sealed class FormIdDatabasePool : IFormIdDatabase
 {
+    /// <summary>
+    /// Whitelist of valid game table names to prevent SQL injection
+    /// </summary>
+    private static readonly HashSet<string> ValidTableNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Skyrim",
+        "SkyrimSE", 
+        "Fallout4",
+        "FO4",
+        "Fallout76",
+        "Morrowind",
+        "Oblivion"
+    };
+
     private readonly IMemoryCache _cache;
     private readonly ConcurrentDictionary<string, SqliteConnection> _connections;
     private readonly SemaphoreSlim _connectionSemaphore;
@@ -39,6 +53,14 @@ public sealed class FormIdDatabasePool : IFormIdDatabase
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+
+        // Validate game table name to prevent SQL injection
+        if (!ValidTableNames.Contains(_options.GameTableName))
+        {
+            throw new ArgumentException(
+                $"Invalid game table name: '{_options.GameTableName}'. Valid names are: {string.Join(", ", ValidTableNames)}",
+                nameof(options));
+        }
 
         _connectionSemaphore = new SemaphoreSlim(_options.MaxConnections, _options.MaxConnections);
         _databasePaths = new List<string>();

@@ -47,6 +47,26 @@ public sealed record ModDetectionSettings
         new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
+    ///     Gets the collection of detected problematic mods with warnings.
+    /// </summary>
+    public IReadOnlyList<ModWarning> DetectedWarnings { get; init; } = Array.Empty<ModWarning>();
+
+    /// <summary>
+    ///     Gets the collection of detected mod conflicts.
+    /// </summary>
+    public IReadOnlyList<ModConflict> DetectedConflicts { get; init; } = Array.Empty<ModConflict>();
+
+    /// <summary>
+    ///     Gets the collection of important/recommended mods and their status.
+    /// </summary>
+    public IReadOnlyList<ImportantMod> ImportantMods { get; init; } = Array.Empty<ImportantMod>();
+
+    /// <summary>
+    ///     Gets the detected GPU type for compatibility checking.
+    /// </summary>
+    public string? DetectedGpuType { get; init; }
+
+    /// <summary>
     ///     Creates a new instance with the specified XSE modules.
     /// </summary>
     public static ModDetectionSettings CreateWithXseModules(IEnumerable<string> xseModules)
@@ -73,7 +93,11 @@ public sealed record ModDetectionSettings
         IEnumerable<string>? xseModules = null,
         IDictionary<string, string>? crashLogPlugins = null,
         bool? fcxMode = null,
-        IDictionary<string, object>? metadata = null)
+        IDictionary<string, object>? metadata = null,
+        IEnumerable<ModWarning>? detectedWarnings = null,
+        IEnumerable<ModConflict>? detectedConflicts = null,
+        IEnumerable<ImportantMod>? importantMods = null,
+        string? detectedGpuType = null)
     {
         var modules = xseModules != null
             ? new HashSet<string>(xseModules, StringComparer.OrdinalIgnoreCase)
@@ -97,7 +121,11 @@ public sealed record ModDetectionSettings
                 : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
             Metadata = metadata != null
                 ? new Dictionary<string, object>(metadata, StringComparer.OrdinalIgnoreCase)
-                : new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+                : new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase),
+            DetectedWarnings = detectedWarnings?.ToArray() ?? Array.Empty<ModWarning>(),
+            DetectedConflicts = detectedConflicts?.ToArray() ?? Array.Empty<ModConflict>(),
+            ImportantMods = importantMods?.ToArray() ?? Array.Empty<ImportantMod>(),
+            DetectedGpuType = detectedGpuType
         };
     }
 

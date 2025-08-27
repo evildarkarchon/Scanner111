@@ -37,6 +37,9 @@ public sealed class SuspectScannerAnalyzer : AnalyzerBase
         if (context == null)
             throw new ArgumentNullException(nameof(context));
 
+        // Check for cancellation early
+        cancellationToken.ThrowIfCancellationRequested();
+
         // Extract crash log data from context
         context.TryGetSharedData<string>("MainError", out var mainError);
         mainError = mainError ?? string.Empty;

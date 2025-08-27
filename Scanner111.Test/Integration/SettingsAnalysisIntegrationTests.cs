@@ -61,7 +61,7 @@ public class SettingsAnalysisIntegrationTests
                 ["F4EE"] = false // Problem with f4ee.dll
             },
             ["CrashGenVersion"] = "1.28.0",
-            ["XSEPlugins"] = new List<object> { "achievements.dll", "f4ee.dll", "xcell.dll" },
+            ["XSEPlugins"] = new List<object> { "achievements.dll", "f4ee.dll", "x-cell-ng2.dll" },
             ["FCXMode"] = true
         };
 
@@ -117,7 +117,7 @@ public class SettingsAnalysisIntegrationTests
                 ["F4EE"] = true
             },
             ["CrashGenVersion"] = "1.30.0",
-            ["XSEPlugins"] = new List<object> { "f4ee.dll", "xcell.dll" },
+            ["XSEPlugins"] = new List<object> { "f4ee.dll", "x-cell-ng2.dll" },
             ["FCXMode"] = false
         };
 
@@ -191,7 +191,7 @@ public class SettingsAnalysisIntegrationTests
                 ["HavokMemorySystem"] = true,
                 ["BSTextureStreamerLocalHeap"] = true
             },
-            ["XSEPlugins"] = new List<object> { "xcell.dll" }
+            ["XSEPlugins"] = new List<object> { "x-cell-ng2.dll" }
         };
 
         _mockSettingsCore.LoadMultipleStoresAsync(Arg.Any<IEnumerable<YamlStore>>(), Arg.Any<CancellationToken>())
@@ -261,7 +261,7 @@ public class SettingsAnalysisIntegrationTests
             }
         };
 
-        if (hasXCell) yamlData["XSEPlugins"] = new List<object> { "xcell.dll" };
+        if (hasXCell) yamlData["XSEPlugins"] = new List<object> { "x-cell-ng2.dll" };
         if (hasBaka)
         {
             var existing = yamlData.ContainsKey("XSEPlugins")

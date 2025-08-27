@@ -39,7 +39,7 @@ public interface IFcxModeHandler
     /// <summary>
     ///     Resets FCX checks and cached results.
     /// </summary>
-    void ResetFcxChecks();
+    Task ResetFcxChecksAsync();
 }
 
 /// <summary>
@@ -191,9 +191,9 @@ public sealed class FcxModeHandler : IFcxModeHandler, IDisposable
     }
 
     /// <inheritdoc />
-    public void ResetFcxChecks()
+    public async Task ResetFcxChecksAsync()
     {
-        s_globalLock.Wait();
+        await s_globalLock.WaitAsync().ConfigureAwait(false);
         try
         {
             s_fcxChecksRun = false;

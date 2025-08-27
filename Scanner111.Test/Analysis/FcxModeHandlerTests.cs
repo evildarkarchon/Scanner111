@@ -16,7 +16,7 @@ public class FcxModeHandlerTests : IDisposable
     {
         _logger = Substitute.For<ILogger<FcxModeHandler>>();
         // Reset static state before each test
-        CreateHandler(false).ResetFcxChecks();
+        CreateHandler(false).ResetFcxChecksAsync().GetAwaiter().GetResult();
     }
 
     public void Dispose()
@@ -123,7 +123,7 @@ public class FcxModeHandlerTests : IDisposable
         handler.MainFilesCheck.Should().NotBeNullOrEmpty();
 
         // Act - Reset
-        handler.ResetFcxChecks();
+        await handler.ResetFcxChecksAsync();
 
         // Assert - Internal state should be cleared (next check will run fresh)
         var handler2 = CreateHandler();

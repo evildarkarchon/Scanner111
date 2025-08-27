@@ -5,7 +5,7 @@ namespace Scanner111.Core.Services;
 /// <summary>
 ///     Defines the contract for a messaging service that handles message notifications and progress reporting.
 /// </summary>
-public interface IMessageService
+public interface IMessageService : IAsyncDisposable
 {
     /// <summary>
     ///     Occurs when a new message is published.

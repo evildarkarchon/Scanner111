@@ -41,6 +41,32 @@ public class MessageService : IMessageService, IDisposable
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    ///     Asynchronously disposes resources used by the message service.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed)
+            return;
+
+        // Wait for any ongoing progress tracking operations to complete
+        // by acquiring and immediately releasing the semaphore
+        await _progressSemaphore.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            _progressTrackers.Clear();
+        }
+        finally
+        {
+            _progressSemaphore.Release();
+        }
+
+        _progressSemaphore?.Dispose();
+        _disposed = true;
+
+        GC.SuppressFinalize(this);
+    }
+
     /// <inheritdoc />
     public event EventHandler<Message>? MessagePublished;
 

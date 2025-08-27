@@ -61,31 +61,27 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
     }
 
     /// <inheritdoc />
-    public async Task<string> GetPathForStoreAsync(YamlStore yamlStore, CancellationToken cancellationToken = default)
+    public Task<string> GetPathForStoreAsync(YamlStore yamlStore, CancellationToken cancellationToken = default)
     {
         // Check cache first
-        if (_pathCache.TryGetValue(yamlStore, out var cachedPath)) return cachedPath;
+        if (_pathCache.TryGetValue(yamlStore, out var cachedPath)) return Task.FromResult(cachedPath);
 
-        // Run path resolution in a task to maintain async context
-        // This is important for proper async stack traces and context flow
-        return await Task.Run(() =>
+        // Path resolution is fast and synchronous, no need for Task.Run
+        var yamlPath = yamlStore switch
         {
-            var yamlPath = yamlStore switch
-            {
-                YamlStore.Main => Path.Combine("CLASSIC Data", "databases", "CLASSIC Main.yaml"),
-                YamlStore.Settings => "CLASSIC Settings.yaml",
-                YamlStore.Ignore => "CLASSIC Ignore.yaml",
-                YamlStore.Game => Path.Combine("CLASSIC Data", "databases", $"CLASSIC {_currentGame}.yaml"),
-                YamlStore.GameLocal => Path.Combine("CLASSIC Data", $"CLASSIC {_currentGame} Local.yaml"),
-                YamlStore.Test => Path.Combine("tests", "test_settings.yaml"),
-                _ => throw new NotSupportedException($"YAML store {yamlStore} is not supported")
-            };
+            YamlStore.Main => Path.Combine("CLASSIC Data", "databases", "CLASSIC Main.yaml"),
+            YamlStore.Settings => "CLASSIC Settings.yaml",
+            YamlStore.Ignore => "CLASSIC Ignore.yaml",
+            YamlStore.Game => Path.Combine("CLASSIC Data", "databases", $"CLASSIC {_currentGame}.yaml"),
+            YamlStore.GameLocal => Path.Combine("CLASSIC Data", $"CLASSIC {_currentGame} Local.yaml"),
+            YamlStore.Test => Path.Combine("tests", "test_settings.yaml"),
+            _ => throw new NotSupportedException($"YAML store {yamlStore} is not supported")
+        };
 
-            // Cache the path
-            _pathCache.TryAdd(yamlStore, yamlPath);
+        // Cache the path
+        _pathCache.TryAdd(yamlStore, yamlPath);
 
-            return yamlPath;
-        }, cancellationToken).ConfigureAwait(false);
+        return Task.FromResult(yamlPath);
     }
 
     /// <inheritdoc />

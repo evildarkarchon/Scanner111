@@ -66,11 +66,13 @@ public static class OrchestrationServiceExtensions
         services.AddSingleton<IAnalyzer, PathValidationAnalyzer>();
         services.AddSingleton<IAnalyzer, GameIntegrityAnalyzer>();
         services.AddSingleton<IAnalyzer, DocumentsPathAnalyzer>();
+        services.AddSingleton<IAnalyzer, ModFileScanAnalyzer>();
 
         // Also register them by their concrete type for direct injection if needed
         services.TryAddSingleton<PathValidationAnalyzer>();
         services.TryAddSingleton<GameIntegrityAnalyzer>();
         services.TryAddSingleton<DocumentsPathAnalyzer>();
+        services.TryAddSingleton<ModFileScanAnalyzer>();
 
         return services;
     }
@@ -169,6 +171,7 @@ public sealed class OrchestrationBuilder
         Services.RemoveAll<PathValidationAnalyzer>();
         Services.RemoveAll<GameIntegrityAnalyzer>();
         Services.RemoveAll<DocumentsPathAnalyzer>();
+        Services.RemoveAll<ModFileScanAnalyzer>();
 
         // Also remove from IAnalyzer registrations
         var analyzerDescriptors = new List<ServiceDescriptor>();
@@ -176,7 +179,8 @@ public sealed class OrchestrationBuilder
             if (descriptor.ServiceType == typeof(IAnalyzer) &&
                 (descriptor.ImplementationType == typeof(PathValidationAnalyzer) ||
                  descriptor.ImplementationType == typeof(GameIntegrityAnalyzer) ||
-                 descriptor.ImplementationType == typeof(DocumentsPathAnalyzer)))
+                 descriptor.ImplementationType == typeof(DocumentsPathAnalyzer) ||
+                 descriptor.ImplementationType == typeof(ModFileScanAnalyzer)))
                 analyzerDescriptors.Add(descriptor);
 
         foreach (var descriptor in analyzerDescriptors) Services.Remove(descriptor);

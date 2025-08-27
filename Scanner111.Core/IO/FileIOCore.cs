@@ -96,26 +96,26 @@ public class FileIoCore : IFileIoCore
     }
 
     /// <inheritdoc />
-    public async Task<bool> FileExistsAsync(string path, CancellationToken cancellationToken = default)
+    public Task<bool> FileExistsAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        // File.Exists is synchronous but very fast, so we run it in a task
-        return await Task.Run(() => File.Exists(path), cancellationToken).ConfigureAwait(false);
+        // File.Exists is synchronous and fast, no need for Task.Run
+        return Task.FromResult(File.Exists(path));
     }
 
     /// <inheritdoc />
-    public async Task<DateTime?> GetLastWriteTimeAsync(string path, CancellationToken cancellationToken = default)
+    public Task<DateTime?> GetLastWriteTimeAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         try
         {
-            var fileInfo = await Task.Run(() => new FileInfo(path), cancellationToken).ConfigureAwait(false);
+            var fileInfo = new FileInfo(path);
 
-            if (!fileInfo.Exists) return null;
+            if (!fileInfo.Exists) return Task.FromResult<DateTime?>(null);
 
-            return fileInfo.LastWriteTimeUtc;
+            return Task.FromResult<DateTime?>(fileInfo.LastWriteTimeUtc);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -125,20 +125,18 @@ public class FileIoCore : IFileIoCore
     }
 
     /// <inheritdoc />
-    public async Task CreateDirectoryAsync(string path, CancellationToken cancellationToken = default)
+    public Task CreateDirectoryAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         try
         {
-            await Task.Run(() =>
+            if (!Directory.Exists(path))
             {
-                if (!Directory.Exists(path))
-                {
-                    Directory.CreateDirectory(path);
-                    _logger.LogDebug("Created directory {Path}", path);
-                }
-            }, cancellationToken).ConfigureAwait(false);
+                Directory.CreateDirectory(path);
+                _logger.LogDebug("Created directory {Path}", path);
+            }
+            return Task.CompletedTask;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

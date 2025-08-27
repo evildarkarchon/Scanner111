@@ -127,7 +127,7 @@ public class SettingsAnalyzerTests
         var modSettings = new ModDetectionSettings
         {
             HasXCell = true, // X-Cell installed
-            XseModules = new HashSet<string> { "xcell.dll" }
+            XseModules = new HashSet<string> { "x-cell-ng2.dll" }
         };
 
         // Act

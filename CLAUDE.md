@@ -1,261 +1,162 @@
-# Scanner111 Project Documentation
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-Scanner111 is a modern C# port of the legacy application found in the "Code to Port" directory. This project prioritizes thread-safety, resource management, and async-safety while following C# best practices and test-driven development principles.
+Scanner111 is a modern C# port of a legacy crash log analysis application. It analyzes game crash logs, identifies problematic plugins, and provides detailed reports. The project prioritizes thread-safety, async patterns, and comprehensive testing.
 
-## Key Technologies
-- **Language**: C# (.NET 9.0+)
-- **GUI Framework**: Avalonia MVVM with ReactiveUI
-- **CLI Framework**: Spectre.Console with CommandLineParser
-- **Testing**: xUnit with FluentAssertions
-- **Original Reference**: Code to Port directory (READ-ONLY)
+## Common Development Commands
 
-## Important Directories
-- **Code to Port/**: [READ-ONLY] Original application to be ported
-- **sample_logs/**: [READ-ONLY] Sample input data for testing
-- **sample_output/**: [READ-ONLY] Expected output examples for validation
+### Building and Testing
+```bash
+# Build the entire solution
+dotnet build
+
+# Run all tests
+dotnet test
+
+# Run tests with detailed output
+dotnet test --verbosity normal
+
+# Run a single test class
+dotnet test --filter "Scanner111.Test.Analysis.Analyzers.PluginAnalyzerTests"
+
+# Run a specific test method
+dotnet test --filter "AnalyzeAsync_WithCallStackMatches_ReturnsPluginSuspects"
+
+# Build and run CLI application
+dotnet run --project Scanner111.CLI
+
+# Build and run Desktop application  
+dotnet run --project Scanner111.Desktop
+```
+
+### Project Structure Commands
+```bash
+# Clean build artifacts
+dotnet clean
+
+# Restore NuGet packages
+dotnet restore
+
+# Build in Release mode
+dotnet build -c Release
+```
+
+## Architecture Overview
+
+### Core Analysis Engine
+The system follows an **Analyzer Pattern** with orchestrated execution:
+
+- **AnalyzerOrchestrator**: Coordinates multiple analyzers with configurable execution strategies (sequential, parallel, prioritized)
+- **AnalyzerBase**: Base class providing common functionality (validation, error handling, reporting)
+- **AnalysisContext**: Shared state container for analyzers to communicate via SetSharedData/GetSharedData
+- **Individual Analyzers**: Each focuses on specific aspects (plugins, memory, settings, paths, FCX mode)
+
+### Multi-Layered Architecture
+
+```
+Scanner111.CLI/Desktop (UI Layer)
+    ↓
+Scanner111.Core (Business Logic)
+    ├── Orchestration/ (Coordination)
+    ├── Analysis/ (Core Analyzers)  
+    ├── Services/ (Cross-cutting)
+    ├── Configuration/ (YAML Settings)
+    ├── Discovery/ (Path Detection)
+    ├── Reporting/ (Output Generation)
+    └── Data/ (FormID Lookups)
+```
+
+### Key Patterns
+
+**Dependency Injection**: Heavy use of Microsoft.Extensions.DependencyInjection with proper service lifetimes
+**Async-First**: All I/O operations use async/await with ConfigureAwait(false) for library code
+**Thread-Safe Caching**: ConcurrentDictionary and SemaphoreSlim for cross-instance coordination
+**Report Fragment Composition**: Hierarchical report building with nested fragments
+
+### Critical Async Patterns
+
+**Global Static Coordination**: FcxModeHandler uses static SemaphoreSlim for cross-instance caching
+**Resource Management**: Implements both IDisposable and IAsyncDisposable consistently
+**Cancellation Propagation**: All async methods accept CancellationToken and check cancellation
+
+### YAML Configuration System
+- **AsyncYamlSettingsCore**: Thread-safe YAML loading with caching
+- **YamlStore Enum**: Defines different configuration file types (Main, Game, Settings, etc.)
+- **Path Resolution**: Dynamic path building based on game type and store type
+
+### Security Considerations
+- **SQL Injection Protection**: FormIdDatabasePool validates table names against whitelist
+- **Input Validation**: All user paths and configuration values are validated
+- **Resource Limits**: Connection pooling and semaphore-based concurrency control
+
+## Test Architecture
+
+### Test Organization
+- **Unit Tests**: Individual analyzer testing with mocked dependencies
+- **Integration Tests**: Multi-analyzer coordination and real file system interaction  
+- **Avalonia UI Tests**: Using Avalonia.Headless for ViewModel testing
+
+### Key Testing Patterns
+```csharp
+// Async test with proper setup
+[Fact] 
+public async Task AnalyzeAsync_WithValidInput_ReturnsExpectedResult()
+{
+    // Arrange - Use NSubstitute for mocking
+    var mockService = Substitute.For<IService>();
+    mockService.GetDataAsync(Arg.Any<string>()).Returns(Task.FromResult(testData));
+
+    // Act
+    var result = await analyzer.AnalyzeAsync(context, cancellationToken);
+
+    // Assert - Use FluentAssertions
+    result.Success.Should().BeTrue();
+    result.Fragment.Title.Should().Contain("Expected Title");
+}
+```
 
 ## Development Principles
 
-### Test-Driven Development (TDD)
-- Write tests BEFORE implementation code
-- Every public method must have corresponding unit tests
-- Use xUnit as the test framework
-- Use FluentAssertions for readable test assertions
-- Maintain high code coverage (target >80%)
-- Create integration tests for component interactions
+### Thread Safety Requirements
+- Use ConcurrentDictionary for shared state
+- SemaphoreSlim for async coordination (never `lock` in async code)  
+- Interlocked for atomic operations
+- Document thread-safety in XML comments
 
-### C# Best Practices
+### Async/Await Standards
+- Always ConfigureAwait(false) in non-UI library code
+- Never use .Result or .Wait() - always await
+- Implement IAsyncDisposable for async cleanup
+- Pass CancellationToken to all operations
+- Handle OperationCanceledException appropriately
 
-#### Thread Safety Requirements
-- Use `ConcurrentDictionary` and other concurrent collections for shared state
-- Implement `SemaphoreSlim` for async synchronization (never use `lock` in async code)
-- Use `Interlocked` class for atomic operations
-- Document thread-safety guarantees in XML comments
-- Consider immutability where practical
+### Error Handling Strategy
+- Domain-specific exception types
+- Result<T> pattern for expected failures
+- Structured logging with correlation IDs
+- Actionable error messages with context
 
-#### Async/Await Patterns
-- Always use `ConfigureAwait(false)` in non-UI library code
-- Never use `.Result` or `.Wait()` - always await async methods
-- Use `ValueTask` for frequently called methods that often complete synchronously
-- Implement `IAsyncDisposable` for async cleanup
-- Pass `CancellationToken` to all async operations
-- Handle `OperationCanceledException` appropriately
+## Project-Specific Guidelines
 
-#### Resource Management
-- Implement `IDisposable` and/or `IAsyncDisposable` for all resources
-- Use `using` statements or declarations consistently
-- Properly dispose HttpClient, streams, and database connections
-- Avoid finalizers unless absolutely necessary
-- Consider object pooling for frequently allocated objects
-- Monitor for resource leaks in tests
-
-## GUI Development Guidelines (Avalonia)
-
-### MVVM with ReactiveUI
-- ViewModels must inherit from `ReactiveObject`
-- Use `ReactiveCommand` for all commands
-- Implement `IActivatableViewModel` for lifecycle management
-- Use `WhenAnyValue` for property observations
-- Keep Views code-behind minimal (logic belongs in ViewModels)
-- Use `ObservableAsPropertyHelper` for derived properties
-
-### Avalonia Best Practices
-- Use `.axaml` extension for XAML files
-- Implement proper data binding (no direct UI manipulation)
-- Provide design-time data for XAML preview
-- Create reusable styles and resources
-- Test ViewModels independently from Views
-- Handle UI thread marshalling correctly
-
-## CLI Development Guidelines
-
-### Spectre.Console Usage
-- Use `AnsiConsole` for all console output
-- Implement progress indicators for long-running operations
-- Display data in tables for clarity
-- Use color coding for different message types
-- Handle console cancellation (Ctrl+C) gracefully
-- Provide interactive prompts where appropriate
-
-### CommandLineParser Configuration
-- Use verb commands for different operations
-- Provide comprehensive help text with examples
-- Validate arguments early with clear error messages
-- Support both short (-v) and long (--verbose) options
-- Return standard exit codes (0 for success, non-zero for errors)
-- Implement --version and --help as standard options
-
-## Testing Requirements
-
-### Unit Test Structure
-```csharp
-public class [ClassUnderTest]Tests
-{
-    private readonly IFixture _fixture = new Fixture();
-    
-    [Fact]
-    public async Task MethodName_StateUnderTest_ExpectedBehavior()
-    {
-        // Arrange
-        var sut = CreateSystemUnderTest();
-        var input = _fixture.Create<InputType>();
-        
-        // Act
-        var result = await sut.MethodAsync(input);
-        
-        // Assert
-        result.Should().NotBeNull();
-        result.Should().BeEquivalentTo(expectedResult);
-    }
-}
-```
-
-### Test Categories
-- **Unit Tests**: Test individual components in isolation
-- **Integration Tests**: Test component interactions
-- **UI Tests**: Use Avalonia.Headless for testing
-- **Performance Tests**: Use BenchmarkDotNet when needed
-
-## Code Standards
-
-### Naming Conventions
-- Interfaces: `I` prefix (e.g., `IScannerService`)
-- Async methods: `Async` suffix (e.g., `ProcessAsync()`)
-- Private fields: underscore prefix (e.g., `_scannerService`)
-- Constants: PascalCase (e.g., `MaxRetryCount`)
-- Events: `On` prefix (e.g., `OnScanCompleted`)
-
-### Project Organization
-- **Scanner111.Core**: All non-UI logic and interfaces must be placed here
-  - Business logic implementations
-  - Service interfaces and implementations
-  - Domain models and DTOs
-  - Data access abstractions
-  - Utility classes and helpers
-- One type per file
-- Organize by feature/domain
-- Separate interfaces from implementations
-- Group related functionality in namespaces
-- Keep DTOs/Models in dedicated folders
-
-### Documentation Requirements
-- XML documentation for all public APIs
-- Include code examples in documentation
-- Document thread-safety guarantees
-- Explain complex algorithms
-- Note any assumptions or limitations
-
-## Performance Guidelines
-
-### Memory Optimization
-- Use `ArrayPool<T>` for temporary arrays
-- Leverage `Span<T>` and `Memory<T>` for buffer operations
-- Minimize allocations in hot paths
-- Use value types for small, frequently used data
-- Profile memory usage with dotMemory or similar
-
-### Performance Testing
-- Use BenchmarkDotNet for performance benchmarks
-- Profile before optimizing
-- Set performance baselines
-- Monitor for performance regressions
-- Document performance-critical code
-
-## Error Handling Strategy
-
-### Exception Handling
-- Create domain-specific exception types
-- Use Result<T> pattern for expected failures
-- Always log exceptions with context
-- Never swallow exceptions
-- Provide actionable error messages
-- Include relevant data in exception properties
-
-### Logging Configuration
-- Use structured logging (Serilog recommended)
-- Include correlation IDs for tracing
-- Use appropriate log levels
-- Avoid logging sensitive data
-- Configure environment-specific sinks
-
-## Porting Guidelines
-
-### When Porting from "Code to Port"
-1. Understand the original functionality first
-2. Write tests based on sample_logs and sample_output
-3. Implement modern C# equivalents
+### Porting from Legacy Code
+1. Reference "Code to Port/" directory for original functionality (READ-ONLY)
+2. Use sample_logs/ for test input validation (READ-ONLY)
+3. Validate against sample_output/ for compatibility (READ-ONLY)
 4. Replace "CLASSIC" references with "Scanner111"
-5. Improve upon original design where possible
-6. Maintain backward compatibility for file formats
+5. Modernize with C# best practices while maintaining compatibility
 
-### Validation Against Samples
-- Use sample_logs as test input data
-- Validate output against sample_output
-- Ensure compatibility with original formats
-- Document any intentional deviations
-
-## Common Patterns to Use
-
-### Dependency Injection
-```csharp
-services.AddSingleton<IScannerService, ScannerService>();
-services.AddScoped<IDataProcessor, DataProcessor>();
-```
-
-### Async Enumerable Pattern
-```csharp
-public async IAsyncEnumerable<T> ProcessAsync(
-    [EnumeratorCancellation] CancellationToken ct = default)
-{
-    await foreach (var item in source.WithCancellation(ct))
-    {
-        yield return await TransformAsync(item, ct);
-    }
-}
-```
-
-### Reactive Properties
-```csharp
-private readonly ObservableAsPropertyHelper<bool> _isProcessing;
-public bool IsProcessing => _isProcessing.Value;
-```
-
-## Build Configuration
-
-### Project Settings
-- Target .NET 9.0 or later
-- Enable nullable reference types
-- Treat warnings as errors in Release
-- Enable code analysis rules
-- Use deterministic builds
-
-### Required NuGet Packages
-- Avalonia and Avalonia.ReactiveUI
-- Spectre.Console
-- CommandLineParser
-- xUnit, xUnit.Runner.VisualStudio
-- FluentAssertions
-- Serilog and relevant sinks
-
-## Notes for Development
-
-### Priority Order
-1. Thread-safety and resource management
-2. Comprehensive test coverage
-3. Clean async/await implementation
-4. Performance optimization
-5. User experience improvements
+### Core Business Logic Location
+- **Scanner111.Core**: ALL non-UI logic must be placed here
+- Separate interfaces from implementations  
+- Organize by domain/feature areas
+- Keep DTOs in dedicated Models/ folders
 
 ### Key Reminders
-- Never modify READ-ONLY directories
-- Always write tests first (TDD)
-- Ensure proper disposal of resources
-- Use async/await correctly
-- Document public APIs
-- Handle cancellation tokens
-- Validate all inputs
-- Log important operations
-- Do not attempt to use the GlobalRegistry system, it is essentially an implementation of dependency injection which C# does better on its own.
-- Always prefer C# mechanisms over replicating the Python approach. A lot of code was made to either comply with Python's way of doing things or to skirt interpreter limitations (like the Global Interpreter Lock).
-- The ClassicScanLogInfo dataclass is just a cache of frequently used values, don't bother replicating it, just query the yaml files directly for any needed information. For reference, it is in `Code To Port\ClassicLib\ScanLog\ScanLogInfo.py` so you can find what information to query.
+- Never modify READ-ONLY directories (Code to Port, sample_logs, sample_output)
+- Always write tests first (TDD approach)
+- Use proper disposal patterns for all resources
+- Validate all inputs early with clear error messages
+- Avoid replicating Python patterns - use C# idioms instead
+- Query YAML files directly rather than caching frequently-used values
