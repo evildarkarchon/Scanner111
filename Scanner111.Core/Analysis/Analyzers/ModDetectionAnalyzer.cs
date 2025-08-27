@@ -595,14 +595,75 @@ public sealed class ModDetectionAnalyzer : AnalyzerBase, IModDetectionAnalyzer
     }
 
     /// <summary>
+    ///     Extracts a sortable key from FormID/PluginID for consistent ordering.
+    ///     Handles formats like "FE:001", "254", "[FF]", etc.
+    /// </summary>
+    private static string ExtractFormIdSortKey(string? pluginId)
+    {
+        if (string.IsNullOrWhiteSpace(pluginId))
+            return "ZZZ"; // Sort unknown IDs last
+
+        var cleanId = pluginId.Trim().ToUpperInvariant();
+        
+        // Remove brackets if present: [FE:001] -> FE:001, [FF] -> FF
+        if (cleanId.StartsWith('[') && cleanId.EndsWith(']'))
+            cleanId = cleanId[1..^1];
+
+        // Handle hex FormIDs with colons (e.g., FE:001)
+        if (cleanId.Contains(':'))
+        {
+            var parts = cleanId.Split(':', 2);
+            if (parts.Length == 2)
+            {
+                // Create sortable key: FE:001 becomes "FE:001" for lexicographic sorting
+                return cleanId;
+            }
+        }
+
+        // Handle decimal values first (common in crash logs)
+        // Convert decimal to hex for FormID representation
+        if (int.TryParse(cleanId, out var decimalValue) && decimalValue >= 0 && decimalValue <= 255)
+        {
+            // Convert decimal to 2-digit hex FormID (254 -> FE)
+            return $"{decimalValue:X2}";
+        }
+
+        // Handle hex FormIDs (0-inclusive hexadecimal values)
+        // Standard FormIDs: 2 digits (00, 01, FF, etc.)
+        if (cleanId.All(c => char.IsDigit(c) || (c >= 'A' && c <= 'F')))
+        {
+            // Try to parse as hex (supports 0-inclusive values like "00")
+            if (cleanId.Length <= 2 && int.TryParse(cleanId, System.Globalization.NumberStyles.HexNumber, null, out var hexValue))
+            {
+                // Pad to 2 digits for standard FormIDs (0 -> 00, F -> 0F, FF -> FF)
+                return $"{hexValue:X2}";
+            }
+            // For longer hex strings, keep them as-is (they might be already formatted correctly)
+            else if (cleanId.Length <= 4)
+            {
+                return cleanId;
+            }
+        }
+
+        // Fallback: return original cleaned string
+        return cleanId;
+    }
+
+    /// <summary>
     ///     Creates a report fragment for problematic mods.
+    ///     Sorts warnings by FormID prefix for consistent, logical ordering.
     /// </summary>
     private ReportFragment CreateProblematicModsFragment(IReadOnlyList<ModWarning> warnings)
     {
         var content = new StringBuilder();
         content.AppendLine("### Problematic Mods Detected\n");
 
-        foreach (var warning in warnings.OrderBy(w => w.ModName))
+        // Sort warnings by FormID prefix first, then by mod name as secondary sort
+        var sortedWarnings = warnings
+            .OrderBy(w => ExtractFormIdSortKey(w.PluginId))
+            .ThenBy(w => w.ModName, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var warning in sortedWarnings)
         {
             content.AppendLine("```");
             content.AppendLine($"[!] FOUND : [{warning.PluginId ?? "Unknown"}] {warning.Warning}");

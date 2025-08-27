@@ -241,6 +241,44 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    ///     Adds GPU detection services to the service collection.
+    /// </summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddGpuDetectionServices(this IServiceCollection services)
+    {
+        // Register GPU detector as singleton (thread-safe, stateless)
+        services.AddSingleton<IGpuDetector, GpuDetector>();
+
+        // Register GPU analyzer as transient (new instance per analysis)
+        services.AddTransient<GpuAnalyzer>();
+
+        return services;
+    }
+
+    /// <summary>
+    ///     Adds record scanning services to the service collection.
+    /// </summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <param name="crashGenName">Optional name for the crash generator (defaults to "Scanner111").</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddRecordScanServices(
+        this IServiceCollection services,
+        string? crashGenName = null)
+    {
+        // Register record scanner analyzer as transient (new instance per analysis)
+        services.AddTransient(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<RecordScannerAnalyzer>>();
+            var yamlCore = provider.GetRequiredService<IAsyncYamlSettingsCore>();
+
+            return new RecordScannerAnalyzer(logger, yamlCore, crashGenName);
+        });
+
+        return services;
+    }
+
+    /// <summary>
     ///     Adds all Scanner111 analyzer services to the service collection.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
@@ -269,6 +307,10 @@ public static class ServiceCollectionExtensions
 
         // Add mod file scanning services
         services.AddModFileScanServices();
+
+        // Add critical analyzers (Phase 1)
+        services.AddGpuDetectionServices();
+        services.AddRecordScanServices(crashGenName);
 
         return services;
     }
