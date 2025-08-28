@@ -8,6 +8,9 @@ using Scanner111.Core.Models;
 
 namespace Scanner111.Test.Discovery;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Discovery")]
 public class GamePathDiscoveryServiceTests : IDisposable
 {
     private readonly ILogger<GamePathDiscoveryService> _logger;

@@ -11,6 +11,9 @@ using Xunit;
 
 namespace Scanner111.Test.Services;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Service")]
 public sealed class XsePluginCheckerTests : IDisposable
 {
     private readonly ILogger<XsePluginChecker> _logger;

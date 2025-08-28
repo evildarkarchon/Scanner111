@@ -16,6 +16,9 @@ namespace Scanner111.Test.Processing;
 /// Comprehensive tests for ChannelBasedBatchProcessor covering parallel processing,
 /// streaming, backpressure, error handling, cancellation, and statistics tracking.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Medium")]
+[Trait("Component", "Processing")]
 public sealed class ChannelBasedBatchProcessorTests : IAsyncDisposable
 {
     private readonly ILogger<ChannelBasedBatchProcessor<int, string>> _logger;

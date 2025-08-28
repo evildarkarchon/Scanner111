@@ -13,6 +13,9 @@ namespace Scanner111.Test.Analysis.SignalProcessing;
 /// Comprehensive tests for SignalProcessor covering all signal types (ME-REQ, ME-OPT, NOT, stack),
 /// occurrence thresholds, confidence calculations, and priority ordering.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "SignalProcessing")]
 public sealed class SignalProcessorTests
 {
     private readonly ILogger<SignalProcessor> _logger;

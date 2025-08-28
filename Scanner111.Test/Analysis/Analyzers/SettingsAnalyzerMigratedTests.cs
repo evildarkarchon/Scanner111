@@ -20,6 +20,9 @@ namespace Scanner111.Test.Analysis.Analyzers;
 ///     Migrated settings analyzer tests using embedded resources and snapshot testing.
 ///     Demonstrates the new self-contained testing approach.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Analyzer")]
 public class SettingsAnalyzerMigratedTests : EmbeddedResourceTestBase
 {
     private ISettingsService _settingsService = null!;

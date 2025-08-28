@@ -5,6 +5,9 @@ using Scanner111.Core.Analysis.SignalProcessing;
 
 namespace Scanner111.Test.Analysis.SignalProcessing;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "SignalProcessing")]
 public sealed class CallStackAnalyzerTests
 {
     private readonly ILogger<CallStackAnalyzer> _logger;

@@ -5,6 +5,9 @@ using Scanner111.Core.Discovery;
 
 namespace Scanner111.Test.Discovery;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Discovery")]
 public class PathValidationServiceTests : IDisposable
 {
     private readonly ILogger<PathValidationService> _logger;

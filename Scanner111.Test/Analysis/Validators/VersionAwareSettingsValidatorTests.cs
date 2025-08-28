@@ -8,6 +8,9 @@ using Scanner111.Core.Reporting;
 
 namespace Scanner111.Test.Analysis.Validators;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Validator")]
 public class VersionAwareSettingsValidatorTests
 {
     private readonly ILogger<VersionAwareSettingsValidator> _logger;

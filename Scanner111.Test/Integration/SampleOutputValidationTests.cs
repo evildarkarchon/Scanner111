@@ -17,6 +17,9 @@ namespace Scanner111.Test.Integration;
 ///     Tests that validate Scanner111 output against expected outputs from the legacy CLASSIC scanner.
 ///     These tests ensure compatibility and correctness of analysis results.
 /// </summary>
+[Trait("Category", "Integration")]
+[Trait("Performance", "Slow")]
+[Trait("Component", "Integration")]
 public class SampleOutputValidationTests : SampleDataTestBase
 {
     private IAnalyzerOrchestrator _orchestrator = null!;

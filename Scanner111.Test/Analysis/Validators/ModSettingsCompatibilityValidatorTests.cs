@@ -8,6 +8,9 @@ using Scanner111.Core.Reporting;
 
 namespace Scanner111.Test.Analysis.Validators;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Validator")]
 public class ModSettingsCompatibilityValidatorTests
 {
     private readonly ILogger<ModSettingsCompatibilityValidator> _logger;

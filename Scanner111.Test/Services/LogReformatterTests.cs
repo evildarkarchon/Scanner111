@@ -10,6 +10,9 @@ namespace Scanner111.Test.Services;
 /// <summary>
 ///     Unit tests for LogReformatter service.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Service")]
 public sealed class LogReformatterTests : IntegrationTestBase
 {
     private LogReformatter _logReformatter = null!;

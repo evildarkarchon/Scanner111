@@ -10,6 +10,9 @@ namespace Scanner111.Test.Services;
 /// <summary>
 /// Unit tests for GpuDetector service to ensure proper GPU detection from system specifications.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Service")]
 public class GpuDetectorTests
 {
     private readonly ILogger<GpuDetector> _mockLogger;

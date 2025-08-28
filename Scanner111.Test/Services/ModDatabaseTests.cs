@@ -10,6 +10,9 @@ namespace Scanner111.Test.Services;
 ///     Unit tests for ModDatabase service.
 ///     Tests YAML configuration loading and caching functionality.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Service")]
 public class ModDatabaseTests
 {
     private readonly IAsyncYamlSettingsCore _mockYamlCore;

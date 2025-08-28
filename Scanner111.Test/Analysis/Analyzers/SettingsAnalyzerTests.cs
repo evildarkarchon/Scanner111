@@ -11,6 +11,9 @@ using Scanner111.Core.Services;
 
 namespace Scanner111.Test.Analysis.Analyzers;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Analyzer")]
 public class SettingsAnalyzerTests
 {
     private readonly AnalysisContext _context;

@@ -9,6 +9,9 @@ namespace Scanner111.Test.Integration;
 ///     Integration tests to verify embedded resources are working properly.
 ///     Part of Q3: Sample Removal phase migration.
 /// </summary>
+[Trait("Category", "Integration")]
+[Trait("Performance", "Slow")]
+[Trait("Component", "Integration")]
 public class EmbeddedResourceIntegrationTests
 {
     private readonly ITestOutputHelper _output;

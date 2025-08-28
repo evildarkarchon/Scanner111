@@ -15,6 +15,9 @@ namespace Scanner111.Test.Integration;
 /// <summary>
 ///     Integration tests for settings analysis components working together.
 /// </summary>
+[Trait("Category", "Integration")]
+[Trait("Performance", "Medium")]
+[Trait("Component", "Integration")]
 public class SettingsAnalysisIntegrationTests
 {
     private readonly IAsyncYamlSettingsCore _mockSettingsCore;

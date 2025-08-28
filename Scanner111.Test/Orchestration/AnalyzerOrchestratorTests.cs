@@ -13,6 +13,9 @@ namespace Scanner111.Test.Orchestration;
 /// <summary>
 ///     Unit tests for the analyzer orchestrator system.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Medium")]
+[Trait("Component", "Orchestration")]
 public class AnalyzerOrchestratorTests : IAsyncLifetime
 {
     private IAnalyzerOrchestrator _orchestrator = null!;

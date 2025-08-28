@@ -12,6 +12,9 @@ using Xunit;
 
 namespace Scanner111.Test.Analysis.Analyzers;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Analyzer")]
 public sealed class ModFileScanAnalyzerTests
 {
     private readonly ILogger<ModFileScanAnalyzer> _logger;

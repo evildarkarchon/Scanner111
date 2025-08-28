@@ -160,3 +160,4 @@ public async Task AnalyzeAsync_WithValidInput_ReturnsExpectedResult()
 - Validate all inputs early with clear error messages
 - Avoid replicating Python patterns - use C# idioms instead
 - Query YAML files directly rather than caching frequently-used values
+- Make sure to properly use cancellation tokens and timeouts in tests to make sure they don't hang.

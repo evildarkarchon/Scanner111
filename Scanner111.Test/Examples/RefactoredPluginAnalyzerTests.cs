@@ -18,6 +18,9 @@ namespace Scanner111.Test.Examples;
 ///     Demonstrates how to use base classes, builders, and helpers.
 /// </summary>
 [Collection("TempDirectory")]
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "General")]
 public class RefactoredPluginAnalyzerTests : AnalyzerTestBase<PluginAnalyzer>
 {
     private readonly IPluginLoader _pluginLoader;

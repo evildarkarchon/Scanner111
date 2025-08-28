@@ -11,6 +11,9 @@ namespace Scanner111.Test.Analysis.Analyzers;
 /// <summary>
 /// Unit tests for RecordScannerAnalyzer to ensure proper named record detection in call stacks.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Analyzer")]
 public class RecordScannerAnalyzerTests
 {
     private readonly ILogger<RecordScannerAnalyzer> _mockLogger;

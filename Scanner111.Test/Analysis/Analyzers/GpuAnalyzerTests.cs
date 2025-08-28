@@ -13,6 +13,9 @@ namespace Scanner111.Test.Analysis.Analyzers;
 /// <summary>
 /// Unit tests for GpuAnalyzer to ensure proper GPU detection and context sharing.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Analyzer")]
 public class GpuAnalyzerTests
 {
     private readonly ILogger<GpuAnalyzer> _mockLogger;

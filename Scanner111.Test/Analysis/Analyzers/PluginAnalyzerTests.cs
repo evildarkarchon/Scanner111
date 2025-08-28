@@ -13,6 +13,9 @@ namespace Scanner111.Test.Analysis.Analyzers;
 /// <summary>
 ///     Unit tests for the PluginAnalyzer class.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Analyzer")]
 public class PluginAnalyzerTests
 {
     private readonly ILogger<PluginAnalyzer> _logger;

@@ -17,6 +17,9 @@ namespace Scanner111.Test.Integration;
 /// <summary>
 ///     Integration tests that analyze real sample crash logs from the sample_logs directory.
 /// </summary>
+[Trait("Category", "Integration")]
+[Trait("Performance", "Slow")]
+[Trait("Component", "Integration")]
 public class SampleLogAnalysisIntegrationTests : SampleDataTestBase
 {
     private IAnalyzerOrchestrator _orchestrator = null!;

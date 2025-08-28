@@ -13,6 +13,9 @@ namespace Scanner111.Test.Analysis.Analyzers;
 /// <summary>
 /// Unit tests specifically for FormID sorting enhancement in ModDetectionAnalyzer.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Analyzer")]
 public class ModDetectionAnalyzerFormIdSortingTests
 {
     private readonly ILogger<ModDetectionAnalyzer> _mockLogger;

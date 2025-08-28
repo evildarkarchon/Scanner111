@@ -10,6 +10,9 @@ using Scanner111.Core.IO;
 
 namespace Scanner111.Test.Configuration;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Configuration")]
 public class AsyncYamlSettingsCoreTests : IAsyncLifetime
 {
     private readonly Mock<IFileIoCore> _mockFileIo;

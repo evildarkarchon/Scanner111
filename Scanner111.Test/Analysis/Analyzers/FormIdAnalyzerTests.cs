@@ -11,6 +11,9 @@ namespace Scanner111.Test.Analysis.Analyzers;
 /// <summary>
 ///     Unit tests for the FormIdAnalyzer class.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Analyzer")]
 public class FormIdAnalyzerTests
 {
     private readonly ILogger<FormIdAnalyzer> _logger;

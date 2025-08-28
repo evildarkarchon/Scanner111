@@ -3,6 +3,9 @@ using Scanner111.Core.Reporting;
 
 namespace Scanner111.Test.Reporting;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Reporting")]
 public class ReportFragmentCompositionTests
 {
     #region Operator Overloading Tests

@@ -11,6 +11,9 @@ namespace Scanner111.Test.Services;
 /// <summary>
 ///     Unit tests for the PluginLoader service.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Service")]
 public class PluginLoaderTests : IDisposable
 {
     private readonly ILogger<PluginLoader> _logger;

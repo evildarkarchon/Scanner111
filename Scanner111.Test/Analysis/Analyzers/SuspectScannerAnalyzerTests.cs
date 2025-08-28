@@ -7,6 +7,9 @@ using Scanner111.Core.Configuration;
 
 namespace Scanner111.Test.Analysis.Analyzers;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Analyzer")]
 public sealed class SuspectScannerAnalyzerTests
 {
     private readonly Mock<ILogger<SuspectScannerAnalyzer>> _loggerMock;

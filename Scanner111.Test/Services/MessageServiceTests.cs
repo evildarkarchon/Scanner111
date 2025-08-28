@@ -9,6 +9,9 @@ namespace Scanner111.Test.Services;
 /// <summary>
 ///     Unit tests for <see cref="MessageService" />.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Service")]
 public class MessageServiceTests : IDisposable
 {
     private readonly List<Message> _capturedMessages;

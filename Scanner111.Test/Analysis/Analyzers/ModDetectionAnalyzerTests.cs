@@ -13,6 +13,9 @@ namespace Scanner111.Test.Analysis.Analyzers;
 ///     Unit tests for ModDetectionAnalyzer.
 ///     Tests mod detection functionality including problematic mods, conflicts, and important mods.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Analyzer")]
 public class ModDetectionAnalyzerTests
 {
     private readonly ILogger<ModDetectionAnalyzer> _logger;

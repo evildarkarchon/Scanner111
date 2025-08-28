@@ -6,6 +6,9 @@ using Scanner111.Core.Services;
 
 namespace Scanner111.Test.Analysis;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "General")]
 public class FcxFileCheckerTests : IAsyncLifetime
 {
     private readonly ILogger<FcxFileChecker> _logger;

@@ -11,6 +11,9 @@ using Xunit;
 
 namespace Scanner111.Test.Services;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Service")]
 public sealed class ModFileScannerTests : IAsyncDisposable
 {
     private readonly ILogger<ModFileScanner> _logger;

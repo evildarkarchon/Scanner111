@@ -17,6 +17,9 @@ namespace Scanner111.Test.Analysis.Analyzers;
 /// <summary>
 ///     Settings analyzer tests that use real sample crash logs to verify settings detection.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Analyzer")]
 public class SettingsAnalyzerSampleDataTests : SampleDataTestBase
 {
     private ISettingsService _settingsService = null!;

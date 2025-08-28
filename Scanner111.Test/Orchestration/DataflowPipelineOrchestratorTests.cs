@@ -19,6 +19,9 @@ namespace Scanner111.Test.Orchestration;
 /// Comprehensive tests for DataflowPipelineOrchestrator covering TPL Dataflow scenarios,
 /// parallel processing, cancellation, error handling, and performance metrics.
 /// </summary>
+[Trait("Category", "Integration")]
+[Trait("Performance", "Medium")]
+[Trait("Component", "Orchestration")]
 public sealed class DataflowPipelineOrchestratorTests : IDisposable
 {
     private readonly ILogger<DataflowPipelineOrchestrator> _logger;

@@ -47,6 +47,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup>
         <EmbeddedResource Include="Resources\EmbeddedLogs\crash-0DB9300.log" />
         <EmbeddedResource Include="Resources\EmbeddedLogs\crash-16B95BE.log" />
         <EmbeddedResource Include="Resources\EmbeddedLogs\crash-1721925256828.log" />

@@ -8,6 +8,9 @@ namespace Scanner111.Test.Models;
 ///     Unit tests for mod detection models.
 ///     Tests ModWarning, ModConflict, and ImportantMod record types.
 /// </summary>
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "Model")]
 public class ModDetectionModelsTests
 {
     #region ModWarning Tests

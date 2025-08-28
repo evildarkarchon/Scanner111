@@ -6,6 +6,9 @@ using Scanner111.Core.IO;
 
 namespace Scanner111.Test.IO;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Medium")]
+[Trait("Component", "IO")]
 public sealed class MemoryMappedFileHandlerTests : IDisposable
 {
     private readonly ILogger<MemoryMappedFileHandler> _logger;

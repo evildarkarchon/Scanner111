@@ -7,6 +7,9 @@ using Scanner111.Core.Reporting;
 
 namespace Scanner111.Test.Analysis;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Fast")]
+[Trait("Component", "General")]
 public class FcxModeHandlerTests : IDisposable
 {
     private readonly List<FcxModeHandler> _handlers = new();

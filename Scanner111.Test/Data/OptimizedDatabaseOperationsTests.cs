@@ -9,6 +9,9 @@ using Scanner111.Core.Data;
 
 namespace Scanner111.Test.Data;
 
+[Trait("Category", "Unit")]
+[Trait("Performance", "Medium")]
+[Trait("Component", "Data")]
 public sealed class OptimizedDatabaseOperationsTests : IDisposable
 {
     private readonly ILogger<OptimizedDatabaseOperations> _logger;
