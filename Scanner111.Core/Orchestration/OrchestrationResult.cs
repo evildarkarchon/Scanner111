@@ -4,6 +4,7 @@ namespace Scanner111.Core.Orchestration;
 
 /// <summary>
 ///     Represents the complete result of an orchestrated analysis run.
+///     This class is immutable - use OrchestrationResultBuilder to create instances.
 /// </summary>
 public sealed class OrchestrationResult
 {
@@ -11,6 +12,36 @@ public sealed class OrchestrationResult
     private readonly Dictionary<string, object> _metrics;
     private readonly List<AnalysisResult> _results;
 
+    /// <summary>
+    /// Creates a new immutable OrchestrationResult.
+    /// Use OrchestrationResultBuilder for easier construction.
+    /// </summary>
+    internal OrchestrationResult(
+        Guid correlationId,
+        bool success,
+        List<AnalysisResult> results,
+        string? finalReport,
+        TimeSpan totalDuration,
+        DateTime startTime,
+        DateTime? endTime,
+        Dictionary<string, TimeSpan> analyzerTimings,
+        Dictionary<string, object> metrics)
+    {
+        CorrelationId = correlationId;
+        Success = success;
+        _results = results ?? new List<AnalysisResult>();
+        FinalReport = finalReport;
+        TotalDuration = totalDuration;
+        StartTime = startTime;
+        EndTime = endTime;
+        _analyzerTimings = analyzerTimings ?? new Dictionary<string, TimeSpan>(StringComparer.OrdinalIgnoreCase);
+        _metrics = metrics ?? new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+    }
+    
+    /// <summary>
+    /// Creates an empty OrchestrationResult.
+    /// Prefer using OrchestrationResultBuilder for actual results.
+    /// </summary>
     public OrchestrationResult()
     {
         _results = new List<AnalysisResult>();
@@ -99,6 +130,7 @@ public sealed class OrchestrationResult
 
     /// <summary>
     ///     Adds an analysis result to the orchestration result.
+    ///     Note: This modifies the collection. For immutable operations, use OrchestrationResultBuilder.
     /// </summary>
     public void AddResult(AnalysisResult result)
     {
@@ -113,6 +145,7 @@ public sealed class OrchestrationResult
 
     /// <summary>
     ///     Adds multiple analysis results.
+    ///     Note: This modifies the collection. For immutable operations, use OrchestrationResultBuilder.
     /// </summary>
     public void AddResults(IEnumerable<AnalysisResult> results)
     {
@@ -124,6 +157,7 @@ public sealed class OrchestrationResult
 
     /// <summary>
     ///     Adds a metric to the result.
+    ///     Note: This modifies the collection. For immutable operations, use OrchestrationResultBuilder.
     /// </summary>
     public void AddMetric(string key, object value)
     {

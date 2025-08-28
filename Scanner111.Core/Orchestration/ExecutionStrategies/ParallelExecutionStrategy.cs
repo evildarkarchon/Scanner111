@@ -9,13 +9,13 @@ namespace Scanner111.Core.Orchestration.ExecutionStrategies;
 /// </summary>
 public sealed class ParallelExecutionStrategy : IExecutionStrategy
 {
-    private readonly SemaphoreSlim _concurrencyLimiter;
     private readonly ILogger _logger;
 
     public ParallelExecutionStrategy(ILogger logger, SemaphoreSlim? concurrencyLimiter = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _concurrencyLimiter = concurrencyLimiter ?? new SemaphoreSlim(Environment.ProcessorCount);
+        // Note: concurrencyLimiter is accepted for API compatibility but not used
+        // MaxDegreeOfParallelism provides sufficient concurrency control
     }
 
     /// <inheritdoc />
@@ -48,26 +48,19 @@ public sealed class ParallelExecutionStrategy : IExecutionStrategy
         };
 
         // Execute analyzers in parallel
+        // MaxDegreeOfParallelism already controls concurrency, no need for additional semaphore
         await Parallel.ForEachAsync(
             analyzersList,
             parallelOptions,
             async (analyzer, ct) =>
             {
-                await _concurrencyLimiter.WaitAsync(ct).ConfigureAwait(false);
-                try
-                {
-                    var result = await ExecuteAnalyzerWithRetryAsync(
-                        analyzer,
-                        context,
-                        options,
-                        ct).ConfigureAwait(false);
+                var result = await ExecuteAnalyzerWithRetryAsync(
+                    analyzer,
+                    context,
+                    options,
+                    ct).ConfigureAwait(false);
 
-                    results.Add(result);
-                }
-                finally
-                {
-                    _concurrencyLimiter.Release();
-                }
+                results.Add(result);
             }).ConfigureAwait(false);
 
         _logger.LogDebug("Parallel execution completed with {Count} results", results.Count);

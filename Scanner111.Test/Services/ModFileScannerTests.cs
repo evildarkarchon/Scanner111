@@ -34,7 +34,8 @@ public sealed class ModFileScannerTests : IAsyncDisposable
         var nonExistentPath = Path.Combine(_tempDirectory, "nonexistent");
 
         // Act
-        var result = await _scanner.ScanModsUnpackedAsync(nonExistentPath);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var result = await _scanner.ScanModsUnpackedAsync(nonExistentPath, cts.Token);
 
         // Assert
         result.Should().Contain("Mods folder not found");
@@ -49,7 +50,8 @@ public sealed class ModFileScannerTests : IAsyncDisposable
         Directory.CreateDirectory(emptyModsPath);
 
         // Act
-        var result = await _scanner.ScanModsUnpackedAsync(emptyModsPath);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var result = await _scanner.ScanModsUnpackedAsync(emptyModsPath, cts.Token);
 
         // Assert
         result.Should().Contain("MOD FILES SCAN");
@@ -70,7 +72,8 @@ public sealed class ModFileScannerTests : IAsyncDisposable
         await CreateMockDdsFileAsync(ddsFile, width: 511, height: 255); // Both odd numbers
 
         // Act
-        var result = await _scanner.ScanModsUnpackedAsync(modsPath);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var result = await _scanner.ScanModsUnpackedAsync(modsPath, cts.Token);
 
         // Assert
         result.Should().Contain("DDS DIMENSIONS ARE NOT DIVISIBLE BY 2");
@@ -91,7 +94,8 @@ public sealed class ModFileScannerTests : IAsyncDisposable
         await CreateMockDdsFileAsync(ddsFile, width: 512, height: 256); // Both even numbers
 
         // Act
-        var result = await _scanner.ScanModsUnpackedAsync(modsPath);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var result = await _scanner.ScanModsUnpackedAsync(modsPath, cts.Token);
 
         // Assert
         result.Should().NotContain("DDS DIMENSIONS ARE NOT DIVISIBLE BY 2");
@@ -111,7 +115,8 @@ public sealed class ModFileScannerTests : IAsyncDisposable
         await File.WriteAllTextAsync(tgaFile, "mock tga content");
 
         // Act
-        var result = await _scanner.ScanModsUnpackedAsync(modsPath);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var result = await _scanner.ScanModsUnpackedAsync(modsPath, cts.Token);
 
         // Assert
         result.Should().Contain("TEXTURE FILES HAVE INCORRECT FORMAT");
@@ -132,7 +137,8 @@ public sealed class ModFileScannerTests : IAsyncDisposable
         await File.WriteAllTextAsync(mp3File, "mock mp3 content");
 
         // Act
-        var result = await _scanner.ScanModsUnpackedAsync(modsPath);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var result = await _scanner.ScanModsUnpackedAsync(modsPath, cts.Token);
 
         // Assert
         result.Should().Contain("SOUND FILES HAVE INCORRECT FORMAT");
@@ -153,7 +159,8 @@ public sealed class ModFileScannerTests : IAsyncDisposable
         await File.WriteAllTextAsync(readmeFile, "This is a readme file");
 
         // Act
-        var result = await _scanner.ScanModsUnpackedAsync(modsPath);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var result = await _scanner.ScanModsUnpackedAsync(modsPath, cts.Token);
 
         // Assert
         result.Should().Contain("DOCUMENTATION FILES MOVED");
@@ -173,7 +180,8 @@ public sealed class ModFileScannerTests : IAsyncDisposable
         await File.WriteAllTextAsync(animFile, "mock animation data");
 
         // Act
-        var result = await _scanner.ScanModsUnpackedAsync(modsPath);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)); // Add timeout
+        var result = await _scanner.ScanModsUnpackedAsync(modsPath, cts.Token);
 
         // Assert
         result.Should().Contain("CUSTOM ANIMATION FILE DATA");
@@ -189,7 +197,8 @@ public sealed class ModFileScannerTests : IAsyncDisposable
         var nonExistentBSArch = Path.Combine(_tempDirectory, "nonexistent_bsarch.exe");
 
         // Act
-        var result = await _scanner.ScanModsArchivedAsync(modsPath, nonExistentBSArch);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var result = await _scanner.ScanModsArchivedAsync(modsPath, nonExistentBSArch, cts.Token);
 
         // Assert
         result.Should().Contain("BSArch.exe not found");
@@ -203,7 +212,8 @@ public sealed class ModFileScannerTests : IAsyncDisposable
         var nonExistentPath = Path.Combine(_tempDirectory, "nonexistent_logs");
 
         // Act
-        var result = await _scanner.CheckLogErrorsAsync(nonExistentPath);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var result = await _scanner.CheckLogErrorsAsync(nonExistentPath, cts.Token);
 
         // Assert
         result.Should().Contain("Log folder not found");
@@ -218,7 +228,8 @@ public sealed class ModFileScannerTests : IAsyncDisposable
         Directory.CreateDirectory(logsPath);
 
         // Act
-        var result = await _scanner.CheckLogErrorsAsync(logsPath);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var result = await _scanner.CheckLogErrorsAsync(logsPath, cts.Token);
 
         // Assert
         result.Should().Contain("MOD FILES SCAN");

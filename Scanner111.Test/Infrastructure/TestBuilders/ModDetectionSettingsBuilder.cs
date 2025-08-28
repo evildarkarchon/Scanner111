@@ -9,9 +9,15 @@ public class ModDetectionSettingsBuilder
 {
     private HashSet<string> _xseModules = new();
     private bool _hasXCell = false;
+    private bool _hasOldXCell = false;
     private bool _hasBakaScrapHeap = false;
-    private List<string> _detectedMods = new();
-    private Dictionary<string, string> _modVersions = new();
+    private Dictionary<string, string> _crashLogPlugins = new();
+    private bool? _fcxMode = null;
+    private Dictionary<string, object> _metadata = new();
+    private List<ModWarning> _detectedWarnings = new();
+    private List<ModConflict> _detectedConflicts = new();
+    private List<ImportantMod> _importantMods = new();
+    private string? _detectedGpuType = null;
 
     public static ModDetectionSettingsBuilder Create() => new();
 
@@ -50,15 +56,19 @@ public class ModDetectionSettingsBuilder
     public ModDetectionSettingsBuilder WithBakaScrapHeap()
     {
         _hasBakaScrapHeap = true;
-        _detectedMods.Add("BakaScrapHeap");
+        _xseModules.Add("bakascrapheap.dll");
         return this;
     }
 
-    public ModDetectionSettingsBuilder WithDetectedMod(string modName, string? version = null)
+    public ModDetectionSettingsBuilder WithCrashLogPlugin(string pluginName, string info = "")
     {
-        _detectedMods.Add(modName);
-        if (version != null)
-            _modVersions[modName] = version;
+        _crashLogPlugins[pluginName] = info;
+        return this;
+    }
+    
+    public ModDetectionSettingsBuilder WithFcxMode(bool fcxMode)
+    {
+        _fcxMode = fcxMode;
         return this;
     }
 
@@ -80,26 +90,15 @@ public class ModDetectionSettingsBuilder
 
     public ModDetectionSettings Build()
     {
-        var settings = new ModDetectionSettings
-        {
-            XseModules = _xseModules,
-            HasXCell = _hasXCell,
-            HasBakaScrapHeap = _hasBakaScrapHeap
-        };
-
-        // Add detected mods
-        foreach (var mod in _detectedMods)
-        {
-            settings.DetectedMods?.Add(mod);
-        }
-
-        // Add mod versions
-        foreach (var kvp in _modVersions)
-        {
-            settings.ModVersions?.Add(kvp.Key, kvp.Value);
-        }
-
-        return settings;
+        return ModDetectionSettings.FromDetectionData(
+            xseModules: _xseModules,
+            crashLogPlugins: _crashLogPlugins,
+            fcxMode: _fcxMode,
+            metadata: _metadata,
+            detectedWarnings: _detectedWarnings,
+            detectedConflicts: _detectedConflicts,
+            importantMods: _importantMods,
+            detectedGpuType: _detectedGpuType);
     }
 
     public static implicit operator ModDetectionSettings(ModDetectionSettingsBuilder builder)

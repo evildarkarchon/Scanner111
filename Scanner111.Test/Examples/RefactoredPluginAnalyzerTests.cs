@@ -1,7 +1,9 @@
 using FluentAssertions;
 using NSubstitute;
 using Scanner111.Core.Analysis.Analyzers;
+using Scanner111.Core.Configuration;
 using Scanner111.Core.Models;
+using Scanner111.Core.Reporting;
 using Scanner111.Core.Services;
 using Scanner111.Test.Infrastructure;
 using Scanner111.Test.Infrastructure.Assertions;
@@ -227,7 +229,7 @@ public class RefactoredPluginAnalyzerTests : AnalyzerTestBase<PluginAnalyzer>
         WithSharedData("PluginSegment", MockFactory.CreatePluginSegment());
         
         _pluginLoader.LoadFromLoadOrderFileAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromException<(Dictionary<string, string>, bool, ReportFragment)>(
+            .Returns(Task.FromException<(Dictionary<string, string> plugins, bool pluginsLoaded, ReportFragment fragment)>(
                 new InvalidOperationException("Test exception")));
 
         // Act

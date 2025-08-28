@@ -17,7 +17,7 @@ public abstract class AnalyzerTestBase<TAnalyzer> : IDisposable
     protected readonly IAsyncYamlSettingsCore MockYamlCore;
     protected readonly AnalysisContext TestContext;
     protected readonly CancellationTokenSource TestCancellation;
-    protected TAnalyzer Sut = null!; // System Under Test
+    protected TAnalyzer Sut = default!; // System Under Test
 
     protected AnalyzerTestBase()
     {
@@ -103,7 +103,7 @@ public abstract class AnalyzerTestBase<TAnalyzer> : IDisposable
     /// </summary>
     protected async Task AssertCanAnalyzeAsync(bool expected = true)
     {
-        var canAnalyze = await Sut.CanAnalyzeAsync(TestContext, TestCancellation.Token);
+        var canAnalyze = await Sut.CanAnalyzeAsync(TestContext);
         canAnalyze.Should().Be(expected);
     }
 
@@ -135,7 +135,7 @@ public abstract class AnalyzerTestBase<TAnalyzer> : IDisposable
         Dictionary<string, string>? metadata = null)
     {
         var fragment = ReportFragment.CreateInfo(title, content);
-        return AnalysisResult.Success(fragment, metadata ?? new Dictionary<string, string>());
+        return AnalysisResult.CreateSuccess(Sut.Name, fragment);
     }
 
     /// <summary>
@@ -143,7 +143,12 @@ public abstract class AnalyzerTestBase<TAnalyzer> : IDisposable
     /// </summary>
     protected AnalysisResult CreateFailureResult(params string[] errors)
     {
-        return AnalysisResult.Failure(errors);
+        var result = AnalysisResult.CreateFailure(Sut.Name, errors.FirstOrDefault() ?? "Test failure");
+        foreach (var error in errors.Skip(1))
+        {
+            result.AddError(error);
+        }
+        return result;
     }
 
     /// <summary>
@@ -159,7 +164,11 @@ public abstract class AnalyzerTestBase<TAnalyzer> : IDisposable
         result.Fragment.Should().NotBeNull();
         
         fragmentAssertion?.Invoke(result.Fragment!);
-        metadataAssertion?.Invoke(result.Metadata);
+        if (metadataAssertion != null && result.Metadata != null)
+        {
+            var metadata = result.Metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value?.ToString() ?? string.Empty);
+            metadataAssertion(metadata);
+        }
     }
 
     /// <summary>

@@ -26,7 +26,7 @@ public static class ReportFragmentAssertions
             
             if (expectedPriority.HasValue)
             {
-                fragment.Priority.Should().Be(expectedPriority.Value);
+                fragment.Order.Should().Be(expectedPriority.Value);
             }
         }
     }
@@ -81,7 +81,7 @@ public static class ReportFragmentAssertions
             fragment.Children.Should().NotBeNull();
             fragment.Children.Should().HaveCount(expectedCount);
             
-            childrenAssertion?.Invoke(fragment.Children);
+            childrenAssertion?.Invoke(fragment.Children.ToList());
         }
     }
 
@@ -119,10 +119,13 @@ public static class ReportFragmentAssertions
             }
             
             // Common warning indicators
-            fragment.Content?.ToUpper().Should().MatchAny(
-                content => content.Contains("CAUTION"),
-                content => content.Contains("WARNING"),
-                content => content.Contains("ATTENTION"));
+            if (!string.IsNullOrEmpty(fragment.Content))
+            {
+                var upperContent = fragment.Content.ToUpper();
+                (upperContent.Contains("CAUTION") ||
+                 upperContent.Contains("WARNING") ||
+                 upperContent.Contains("ATTENTION")).Should().BeTrue();
+            }
         }
     }
 
@@ -144,10 +147,13 @@ public static class ReportFragmentAssertions
             }
             
             // Common error indicators
-            fragment.Content?.ToUpper().Should().MatchAny(
-                content => content.Contains("ERROR"),
-                content => content.Contains("FAILED"),
-                content => content.Contains("CRITICAL"));
+            if (!string.IsNullOrEmpty(fragment.Content))
+            {
+                var upperContent = fragment.Content.ToUpper();
+                (upperContent.Contains("ERROR") ||
+                 upperContent.Contains("FAILED") ||
+                 upperContent.Contains("CRITICAL")).Should().BeTrue();
+            }
         }
     }
 
@@ -159,17 +165,17 @@ public static class ReportFragmentAssertions
         using (new AssertionScope())
         {
             fragment.Should().NotBeNull();
-            fragment.Type.Should().BeOneOf(FragmentType.Info, FragmentType.Success);
+            fragment.Type.Should().BeOneOf(FragmentType.Info, FragmentType.Section);
             
             // Common success indicators
             if (!string.IsNullOrEmpty(fragment.Content))
             {
-                fragment.Content.Should().MatchAny(
-                    content => content.Contains("✔"),
-                    content => content.Contains("✓"),
-                    content => content.Contains("correctly"),
-                    content => content.Contains("successfully"),
-                    content => content.Contains("OK", StringComparison.OrdinalIgnoreCase));
+                var hasSuccess = fragment.Content.Contains("✔") ||
+                    fragment.Content.Contains("✓") ||
+                    fragment.Content.Contains("correctly") ||
+                    fragment.Content.Contains("successfully") ||
+                    fragment.Content.Contains("OK", StringComparison.OrdinalIgnoreCase);
+                hasSuccess.Should().BeTrue("Fragment should contain success indicators");
             }
         }
     }
@@ -185,11 +191,7 @@ public static class ReportFragmentAssertions
         fragment.Should().NotBeNull();
         fragment.Metadata.Should().NotBeNull();
         fragment.Metadata.Should().ContainKey(key);
-        fragment.Metadata![key].Should().Be(expectedValue);
+        fragment.Metadata![key].Should().Be(expectedValue.ToString());
     }
 
-    private static bool MatchAny(this string content, params Func<string, bool>[] predicates)
-    {
-        return predicates.Any(p => p(content));
-    }
 }

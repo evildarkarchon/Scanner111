@@ -182,29 +182,61 @@ public sealed class ChannelBasedBatchProcessor<TInput, TOutput> : IAsyncDisposab
             cancellationToken, 
             _shutdownCts.Token);
 
-        // Start streaming items to workers
-        _ = Task.Run(async () =>
+        // Create dedicated channels for this stream operation
+        var streamWorkChannel = Channel.CreateUnbounded<TInput>();
+        var streamResultChannel = Channel.CreateUnbounded<TOutput>();
+
+        // Start writer task
+        var writerTask = Task.Run(async () =>
         {
             try
             {
                 await foreach (var item in items.WithCancellation(linkedCts.Token))
                 {
-                    await _workChannel.Writer.WriteAsync(
-                        new WorkItem { Input = item }, 
-                        linkedCts.Token);
+                    await streamWorkChannel.Writer.WriteAsync(item, linkedCts.Token);
                 }
             }
             finally
             {
-                _workChannel.Writer.TryComplete();
+                streamWorkChannel.Writer.TryComplete();
+            }
+        }, linkedCts.Token);
+
+        // Start processor task
+        var processorTask = Task.Run(async () =>
+        {
+            try
+            {
+                await foreach (var item in streamWorkChannel.Reader.ReadAllAsync(linkedCts.Token))
+                {
+                    try
+                    {
+                        var result = await _processor(item, linkedCts.Token);
+                        await streamResultChannel.Writer.WriteAsync(result, linkedCts.Token);
+                        await UpdateStatisticsAsync(0, success: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to process stream item");
+                        await UpdateStatisticsAsync(0, success: false);
+                        // Continue processing other items
+                    }
+                }
+            }
+            finally
+            {
+                streamResultChannel.Writer.TryComplete();
             }
         }, linkedCts.Token);
 
         // Yield results as they become available
-        await foreach (var result in _resultChannel.Reader.ReadAllAsync(linkedCts.Token))
+        await foreach (var result in streamResultChannel.Reader.ReadAllAsync(linkedCts.Token))
         {
             yield return result;
         }
+
+        // Ensure tasks complete
+        await Task.WhenAll(writerTask, processorTask).ConfigureAwait(false);
     }
 
     private void StartWorkers(int workerCount)

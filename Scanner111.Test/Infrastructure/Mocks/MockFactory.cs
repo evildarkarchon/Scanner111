@@ -229,7 +229,7 @@ public static class MockFactory
         foreach (var (category, warnings) in warningCategories)
         {
             mock.LoadModWarningsAsync(category, Arg.Any<CancellationToken>())
-                .Returns(Task.FromResult(warnings));
+                .Returns(Task.FromResult<IReadOnlyDictionary<string, string>>(warnings));
         }
         
         configure?.Invoke(mock);

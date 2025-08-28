@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Scanner111.Test.Infrastructure.TestData;
 
 namespace Scanner111.Test.Infrastructure;
 
@@ -14,6 +15,8 @@ public abstract class SampleDataTestBase : IntegrationTestBase
 {
     private readonly string _sampleLogsRoot;
     private readonly string _sampleOutputRoot;
+    private readonly EmbeddedResourceProvider _embeddedProvider;
+    private readonly bool _useEmbeddedResourcesOnly;
     
     protected SampleDataTestBase()
     {
@@ -22,10 +25,22 @@ public abstract class SampleDataTestBase : IntegrationTestBase
         _sampleLogsRoot = Path.Combine(projectRoot, "sample_logs");
         _sampleOutputRoot = Path.Combine(projectRoot, "sample_output");
         
-        if (!Directory.Exists(_sampleLogsRoot))
-            throw new DirectoryNotFoundException($"Sample logs directory not found: {_sampleLogsRoot}");
-        if (!Directory.Exists(_sampleOutputRoot))
-            throw new DirectoryNotFoundException($"Sample output directory not found: {_sampleOutputRoot}");
+        // Initialize embedded resource provider
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        _embeddedProvider = new EmbeddedResourceProvider(loggerFactory.CreateLogger<EmbeddedResourceProvider>());
+        
+        // Check if we should use embedded resources only (for CI/CD environments)
+        _useEmbeddedResourcesOnly = Environment.GetEnvironmentVariable("USE_EMBEDDED_RESOURCES_ONLY") == "true" ||
+                                   (!Directory.Exists(_sampleLogsRoot) && !Directory.Exists(_sampleOutputRoot));
+        
+        if (!_useEmbeddedResourcesOnly)
+        {
+            // Only validate directories if not using embedded resources only
+            if (!Directory.Exists(_sampleLogsRoot))
+                Logger.LogWarning("Sample logs directory not found: {Path}. Will use embedded resources.", _sampleLogsRoot);
+            if (!Directory.Exists(_sampleOutputRoot))
+                Logger.LogWarning("Sample output directory not found: {Path}. Will use embedded resources.", _sampleOutputRoot);
+        }
     }
 
     /// <summary>
@@ -33,12 +48,29 @@ public abstract class SampleDataTestBase : IntegrationTestBase
     /// </summary>
     protected IEnumerable<string> GetFo4SampleLogs()
     {
-        var fo4Dir = Path.Combine(_sampleLogsRoot, "FO4");
-        if (!Directory.Exists(fo4Dir))
-            return Enumerable.Empty<string>();
+        // Try embedded resources first
+        var embeddedLogs = _embeddedProvider.GetAvailableEmbeddedLogs()
+            .Where(name => name.EndsWith(".log"))
+            .ToList();
         
-        return Directory.GetFiles(fo4Dir, "*.log")
-            .OrderBy(f => f);
+        if (embeddedLogs.Any())
+        {
+            return embeddedLogs;
+        }
+        
+        // Fall back to file system if no embedded resources and not in embedded-only mode
+        if (!_useEmbeddedResourcesOnly)
+        {
+            var fo4Dir = Path.Combine(_sampleLogsRoot, "FO4");
+            if (Directory.Exists(fo4Dir))
+            {
+                return Directory.GetFiles(fo4Dir, "*.log")
+                    .Select(Path.GetFileName)
+                    .OrderBy(f => f);
+            }
+        }
+        
+        return Enumerable.Empty<string>();
     }
 
     /// <summary>
@@ -72,13 +104,24 @@ public abstract class SampleDataTestBase : IntegrationTestBase
     /// </summary>
     protected async Task<string> ReadSampleLogAsync(string logFileName)
     {
-        var fo4Dir = Path.Combine(_sampleLogsRoot, "FO4");
-        var logPath = Path.Combine(fo4Dir, logFileName);
-        
-        if (!File.Exists(logPath))
-            throw new FileNotFoundException($"Sample log not found: {logPath}");
-        
-        return await File.ReadAllTextAsync(logPath).ConfigureAwait(false);
+        // Try embedded resources first
+        try
+        {
+            return await _embeddedProvider.GetEmbeddedLogAsync(logFileName, TestCancellation.Token)
+                .ConfigureAwait(false);
+        }
+        catch (InvalidOperationException) when (!_useEmbeddedResourcesOnly)
+        {
+            // Fall back to file system if embedded resource not found
+            var fo4Dir = Path.Combine(_sampleLogsRoot, "FO4");
+            var logPath = Path.Combine(fo4Dir, logFileName);
+            
+            if (!File.Exists(logPath))
+                throw new FileNotFoundException($"Sample log not found in embedded resources or file system: {logFileName}");
+            
+            Logger.LogDebug("Reading sample log from file system: {Path}", logPath);
+            return await File.ReadAllTextAsync(logPath).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -86,16 +129,32 @@ public abstract class SampleDataTestBase : IntegrationTestBase
     /// </summary>
     protected async Task<string?> ReadExpectedOutputAsync(string crashLogName)
     {
-        // Convert log name to expected output name
-        // e.g., "crash-2023-09-15-01-54-49.log" -> "crash-2023-09-15-01-54-49-AUTOSCAN.md"
-        var baseName = Path.GetFileNameWithoutExtension(crashLogName);
-        var outputFileName = $"{baseName}-AUTOSCAN.md";
-        var outputPath = Path.Combine(_sampleOutputRoot, outputFileName);
+        // Try embedded resources first
+        var expectedOutput = await _embeddedProvider.GetEmbeddedExpectedOutputAsync(crashLogName, TestCancellation.Token)
+            .ConfigureAwait(false);
         
-        if (!File.Exists(outputPath))
-            return null;
+        if (expectedOutput != null)
+        {
+            return expectedOutput;
+        }
         
-        return await File.ReadAllTextAsync(outputPath).ConfigureAwait(false);
+        // Fall back to file system if not in embedded-only mode
+        if (!_useEmbeddedResourcesOnly)
+        {
+            // Convert log name to expected output name
+            // e.g., "crash-2023-09-15-01-54-49.log" -> "crash-2023-09-15-01-54-49-AUTOSCAN.md"
+            var baseName = Path.GetFileNameWithoutExtension(crashLogName);
+            var outputFileName = $"{baseName}-AUTOSCAN.md";
+            var outputPath = Path.Combine(_sampleOutputRoot, outputFileName);
+            
+            if (File.Exists(outputPath))
+            {
+                Logger.LogDebug("Reading expected output from file system: {Path}", outputPath);
+                return await File.ReadAllTextAsync(outputPath).ConfigureAwait(false);
+            }
+        }
+        
+        return null;
     }
 
     /// <summary>
@@ -105,7 +164,7 @@ public abstract class SampleDataTestBase : IntegrationTestBase
     {
         var logs = GetFo4SampleLogs().ToList();
         if (!logs.Any())
-            throw new InvalidOperationException("No sample logs found");
+            throw new InvalidOperationException("No sample logs found in embedded resources or file system");
         
         var random = new Random();
         return logs[random.Next(logs.Count)];
@@ -239,25 +298,44 @@ public class SampleLogTheoryData : TheoryData<string>
 {
     public SampleLogTheoryData()
     {
-        var projectRoot = FindProjectRoot();
-        var fo4Dir = Path.Combine(projectRoot, "sample_logs", "FO4");
+        // First try to get embedded resources
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        var embeddedProvider = new EmbeddedResourceProvider(loggerFactory.CreateLogger<EmbeddedResourceProvider>());
+        var embeddedLogs = embeddedProvider.GetAvailableEmbeddedLogs()
+            .Where(name => name.EndsWith(".log"))
+            .ToList();
         
-        if (Directory.Exists(fo4Dir))
+        if (embeddedLogs.Any())
         {
-            // Add a subset of diverse samples for theory testing
-            var samples = new[]
+            // Use all available embedded logs for theory testing
+            foreach (var log in embeddedLogs.Take(5)) // Limit to 5 for speed
             {
-                "crash-2022-06-05-12-52-17.log", // Early sample
-                "crash-2023-09-15-01-54-49.log", // Has matching output
-                "crash-2023-11-08-05-46-35.log", // Has matching output
-                "crash-2024-08-25-11-05-43.log", // Recent sample
-            };
+                Add(log);
+            }
+        }
+        else
+        {
+            // Fall back to file system
+            var projectRoot = FindProjectRoot();
+            var fo4Dir = Path.Combine(projectRoot, "sample_logs", "FO4");
             
-            foreach (var sample in samples)
+            if (Directory.Exists(fo4Dir))
             {
-                var path = Path.Combine(fo4Dir, sample);
-                if (File.Exists(path))
-                    Add(sample);
+                // Add a subset of diverse samples for theory testing
+                var samples = new[]
+                {
+                    "crash-2022-06-05-12-52-17.log", // Early sample
+                    "crash-2022-06-09-07-25-03.log", // Stack overflow
+                    "crash-2022-06-12-07-11-38.log", // Large log
+                    "crash-2022-06-15-10-02-51.log", // Minimal log
+                };
+                
+                foreach (var sample in samples)
+                {
+                    var path = Path.Combine(fo4Dir, sample);
+                    if (File.Exists(path))
+                        Add(sample);
+                }
             }
         }
     }

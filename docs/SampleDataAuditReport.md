@@ -215,7 +215,6 @@ Not all sample logs have matching expected outputs, limiting full validation cov
 
 ### Q3: Sample Removal
 - Switch to embedded/synthetic data
-- Remove sample directories
 - Update all tests
 - Verify coverage maintained
 

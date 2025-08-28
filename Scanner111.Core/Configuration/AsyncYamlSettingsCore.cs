@@ -392,8 +392,19 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             .ToList();
 
         foreach (var key in keysToRemove)
+        {
             if (_fileLocks.TryRemove(key, out var lockToDispose))
-                lockToDispose.Dispose();
+            {
+                try
+                {
+                    lockToDispose.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error disposing file lock for key: {Key}", key);
+                }
+            }
+        }
     }
 
     private async Task<bool> IsStaticFileAsync(string path, CancellationToken cancellationToken)
@@ -494,8 +505,16 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             // Backup corrupted file if it exists
             if (await _fileIo.FileExistsAsync(path, cancellationToken).ConfigureAwait(false))
             {
-                var backupPath = $"{path}.corrupted.{DateTime.Now:yyyyMMddHHmmss}.bak";
-                await _fileIo.CopyFileAsync(path, backupPath, false, cancellationToken).ConfigureAwait(false);
+                // Validate and sanitize the path to prevent directory traversal
+                var sanitizedPath = GetSanitizedPath(path);
+                var backupDirectory = Path.GetDirectoryName(sanitizedPath) ?? throw new InvalidOperationException($"Invalid path: {path}");
+                var backupFileName = $"{Path.GetFileName(sanitizedPath)}.corrupted.{DateTime.Now:yyyyMMddHHmmss}.bak";
+                var backupPath = Path.Combine(backupDirectory, backupFileName);
+                
+                // Ensure the backup path stays within expected boundaries
+                ValidatePathBoundary(backupPath, backupDirectory);
+                
+                await _fileIo.CopyFileAsync(sanitizedPath, backupPath, false, cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("Backed up corrupted settings to {BackupPath}", backupPath);
             }
 
@@ -577,8 +596,19 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
             {
                 return (T)Convert.ChangeType(value, targetType);
             }
-            catch
+            catch (InvalidCastException)
             {
+                // Invalid cast for value type, returning default
+                return default;
+            }
+            catch (FormatException)
+            {
+                // Format error for value type, returning default
+                return default;
+            }
+            catch (OverflowException)
+            {
+                // Overflow error for value type, returning default
                 return default;
             }
 
@@ -591,8 +621,19 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
                 var convertedValue = Convert.ChangeType(value, underlyingType);
                 return (T)convertedValue;
             }
-            catch
+            catch (InvalidCastException)
             {
+                // Invalid cast for nullable type, returning default
+                return default;
+            }
+            catch (FormatException)
+            {
+                // Format error for nullable type, returning default
+                return default;
+            }
+            catch (OverflowException)
+            {
+                // Overflow error for nullable type, returning default
                 return default;
             }
         }
@@ -635,4 +676,43 @@ public class AsyncYamlSettingsCore : IAsyncYamlSettingsCore
     }
 
     #endregion
+    
+    /// <summary>
+    /// Sanitizes a file path to prevent directory traversal attacks.
+    /// </summary>
+    private static string GetSanitizedPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            throw new ArgumentException("Path cannot be null or whitespace", nameof(path));
+            
+        // Get the full path and normalize it
+        var fullPath = Path.GetFullPath(path);
+        
+        // Remove any directory traversal sequences
+        var sanitized = fullPath.Replace("..", string.Empty)
+                               .Replace("./", string.Empty)
+                               .Replace("..\\", string.Empty)
+                               .Replace(".\\", string.Empty);
+        
+        // Ensure the path is absolute
+        if (!Path.IsPathRooted(sanitized))
+            throw new InvalidOperationException($"Path must be absolute: {path}");
+            
+        return sanitized;
+    }
+    
+    /// <summary>
+    /// Validates that a path stays within expected directory boundaries.
+    /// </summary>
+    private void ValidatePathBoundary(string path, string expectedDirectory)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var fullExpectedDir = Path.GetFullPath(expectedDirectory);
+        
+        if (!fullPath.StartsWith(fullExpectedDir, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"Path '{path}' is outside the expected directory '{expectedDirectory}'. Possible path traversal attempt.");
+        }
+    }
 }

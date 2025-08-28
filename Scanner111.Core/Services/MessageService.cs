@@ -108,7 +108,7 @@ public class MessageService : IMessageService, IDisposable
             Content = content,
             Type = MessageType.Error,
             Title = title,
-            Details = details ?? exception?.Message,
+            Details = details ?? SanitizeExceptionMessage(exception),
             Exception = exception,
             Source = GetCallerInfo()
         };
@@ -154,7 +154,7 @@ public class MessageService : IMessageService, IDisposable
             Content = content,
             Type = MessageType.Critical,
             Title = title,
-            Details = details ?? exception?.Message,
+            Details = details ?? SanitizeExceptionMessage(exception),
             Exception = exception,
             Source = GetCallerInfo()
         };
@@ -280,6 +280,38 @@ public class MessageService : IMessageService, IDisposable
     }
 
     /// <summary>
+    /// Sanitizes exception messages to prevent information disclosure.
+    /// </summary>
+    private string? SanitizeExceptionMessage(Exception? exception)
+    {
+        if (exception == null)
+            return null;
+        
+        // Log the full exception for debugging
+        _logger.LogDebug(exception, "Full exception details for debugging");
+        
+        // Return sanitized messages based on exception type
+        // Order matters: most specific exceptions first
+        return exception switch
+        {
+            ArgumentNullException => "A required argument was not provided.",
+            ArgumentException => "An argument was invalid.",
+            ObjectDisposedException => "The resource has been disposed.",
+            InvalidOperationException => "The operation was invalid in the current state.",
+            UnauthorizedAccessException => "Access was denied to the requested resource.",
+            IOException => "An I/O error occurred.",
+            TimeoutException => "The operation timed out.",
+            NotImplementedException => "This feature is not yet implemented.",
+            NotSupportedException => "This operation is not supported.",
+            FormatException => "The data format was invalid.",
+            IndexOutOfRangeException => "An index was outside the valid range.",
+            KeyNotFoundException => "The requested item was not found.",
+            OperationCanceledException => "The operation was cancelled.",
+            _ => "An error occurred. Please check the logs for more details."
+        };
+    }
+
+    /// <summary>
     ///     Internal progress tracker implementation.
     ///     Thread-safe for concurrent progress updates.
     /// </summary>
@@ -304,7 +336,7 @@ public class MessageService : IMessageService, IDisposable
         public void Report(ProgressReport value)
         {
             // Thread-safe update of current value
-            var newCurrent = Interlocked.Exchange(ref _current, value.Current);
+            Interlocked.Exchange(ref _current, value.Current);
 
             // Publish progress as a message
             var progressMessage = new Message

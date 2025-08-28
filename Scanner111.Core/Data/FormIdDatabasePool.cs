@@ -247,11 +247,11 @@ public sealed class FormIdDatabasePool : IFormIdDatabase
                 return null;
 
             using var command = connection.CreateCommand();
-            command.CommandText = $@"
-                SELECT entry 
-                FROM {_options.GameTableName} 
-                WHERE formid = @formid 
-                AND plugin = @plugin COLLATE NOCASE";
+            
+            // Build query using safe table name from validated whitelist
+            // The table name has already been validated in the constructor against ValidTableNames
+            var safeTableName = GetSafeTableName(_options.GameTableName);
+            command.CommandText = BuildSecureQuery(safeTableName);
 
             command.Parameters.AddWithValue("@formid", formId);
             command.Parameters.AddWithValue("@plugin", plugin);
@@ -284,43 +284,114 @@ public sealed class FormIdDatabasePool : IFormIdDatabase
 
     private async Task<SqliteConnection?> GetOrCreateConnectionAsync(string dbPath, CancellationToken cancellationToken)
     {
-        if (_connections.TryGetValue(dbPath, out var existingConnection))
-            // Test if connection is still alive
-            if (existingConnection.State == ConnectionState.Open)
-                try
-                {
-                    using var testCommand = existingConnection.CreateCommand();
-                    testCommand.CommandText = "SELECT 1";
-                    await testCommand.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
-                    return existingConnection;
-                }
-                catch
-                {
-                    // Connection is dead, remove it
-                    _connections.TryRemove(dbPath, out _);
-                    try
-                    {
-                        await existingConnection.DisposeAsync().ConfigureAwait(false);
-                    }
-                    catch
-                    {
-                    }
-                }
-
+        SqliteConnection? connectionToDispose = null;
+        
         try
         {
-            var connection = new SqliteConnection($"Data Source={dbPath};Mode=ReadOnly");
-            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            if (_connections.TryGetValue(dbPath, out var existingConnection))
+            {
+                // Test if connection is still alive
+                if (existingConnection.State == ConnectionState.Open)
+                {
+                    try
+                    {
+                        using var testCommand = existingConnection.CreateCommand();
+                        testCommand.CommandText = "SELECT 1";
+                        await testCommand.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+                        return existingConnection;
+                    }
+                    catch (Exception testEx)
+                    {
+                        _logger.LogDebug(testEx, "Connection test failed for database: {Path}", dbPath);
+                        // Connection is dead, mark for disposal
+                        _connections.TryRemove(dbPath, out connectionToDispose);
+                    }
+                }
+                else
+                {
+                    // Connection is not open, remove and dispose
+                    _connections.TryRemove(dbPath, out connectionToDispose);
+                }
+            }
 
-            _connections.TryAdd(dbPath, connection);
-            _logger.LogDebug("Created new connection to database: {Path}", dbPath);
-            return connection;
+            // Create new connection
+            var connection = new SqliteConnection($"Data Source={dbPath};Mode=ReadOnly");
+            try
+            {
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+                _connections.TryAdd(dbPath, connection);
+                _logger.LogDebug("Created new connection to database: {Path}", dbPath);
+                return connection;
+            }
+            catch
+            {
+                // Dispose the new connection if it failed to open
+                await connection.DisposeAsync().ConfigureAwait(false);
+                throw;
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create connection to database: {Path}", dbPath);
             return null;
         }
+        finally
+        {
+            // Ensure failed connection is disposed
+            if (connectionToDispose != null)
+            {
+                try
+                {
+                    await connectionToDispose.DisposeAsync().ConfigureAwait(false);
+                    _logger.LogDebug("Disposed failed connection for database: {Path}", dbPath);
+                }
+                catch (Exception disposeEx)
+                {
+                    _logger.LogError(disposeEx, "Error disposing failed connection for database: {Path}", dbPath);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets a safe table name that has been validated against the whitelist.
+    /// </summary>
+    private string GetSafeTableName(string tableName)
+    {
+        // Double-check validation (already done in constructor)
+        if (!ValidTableNames.Contains(tableName))
+        {
+            throw new InvalidOperationException(
+                $"Table name '{tableName}' is not in the validated whitelist. This should never happen.");
+        }
+        return tableName;
+    }
+
+    /// <summary>
+    /// Builds a secure SQL query using pre-validated table name.
+    /// </summary>
+    private static string BuildSecureQuery(string safeTableName)
+    {
+        // Use a dictionary to map safe table names to queries
+        // This completely avoids string interpolation in SQL
+        var queryTemplates = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Skyrim"] = "SELECT entry FROM Skyrim WHERE formid = @formid AND plugin = @plugin COLLATE NOCASE",
+            ["SkyrimSE"] = "SELECT entry FROM SkyrimSE WHERE formid = @formid AND plugin = @plugin COLLATE NOCASE",
+            ["Fallout4"] = "SELECT entry FROM Fallout4 WHERE formid = @formid AND plugin = @plugin COLLATE NOCASE",
+            ["FO4"] = "SELECT entry FROM FO4 WHERE formid = @formid AND plugin = @plugin COLLATE NOCASE",
+            ["Fallout76"] = "SELECT entry FROM Fallout76 WHERE formid = @formid AND plugin = @plugin COLLATE NOCASE",
+            ["Morrowind"] = "SELECT entry FROM Morrowind WHERE formid = @formid AND plugin = @plugin COLLATE NOCASE",
+            ["Oblivion"] = "SELECT entry FROM Oblivion WHERE formid = @formid AND plugin = @plugin COLLATE NOCASE"
+        };
+
+        if (!queryTemplates.TryGetValue(safeTableName, out var query))
+        {
+            throw new InvalidOperationException(
+                $"No query template found for table '{safeTableName}'. This should never happen.");
+        }
+
+        return query;
     }
 }
 

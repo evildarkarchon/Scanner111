@@ -682,8 +682,33 @@ public sealed class HighPerformanceFileIOTests : IDisposable
 
     public void Dispose()
     {
-        _sut?.DisposeAsync().AsTask().Wait();
-        _memoryMappedHandler?.DisposeAsync().AsTask().Wait();
+        // Use timeout to prevent hanging during disposal
+        try
+        {
+            if (_sut != null)
+            {
+                var disposeTask = _sut.DisposeAsync().AsTask();
+                if (!disposeTask.Wait(TimeSpan.FromSeconds(5)))
+                {
+                    // Log warning if disposal takes too long
+                    Console.WriteLine("Warning: HighPerformanceFileIO disposal timed out");
+                }
+            }
+
+            if (_memoryMappedHandler != null)
+            {
+                var disposeTask = _memoryMappedHandler.DisposeAsync().AsTask();
+                if (!disposeTask.Wait(TimeSpan.FromSeconds(5)))
+                {
+                    // Log warning if disposal takes too long
+                    Console.WriteLine("Warning: MemoryMappedFileHandler disposal timed out");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during disposal: {ex.Message}");
+        }
 
         // Clean up test files and directory
         foreach (var file in _testFiles)

@@ -46,4 +46,14 @@
         <Using Include="Xunit" />
     </ItemGroup>
 
+    <ItemGroup>
+        <EmbeddedResource Include="Resources\EmbeddedLogs\crash-0DB9300.log" />
+        <EmbeddedResource Include="Resources\EmbeddedLogs\crash-16B95BE.log" />
+        <EmbeddedResource Include="Resources\EmbeddedLogs\crash-1721925256828.log" />
+        <EmbeddedResource Include="Resources\EmbeddedLogs\crash-2022-06-05-12-52-17.log" />
+        <EmbeddedResource Include="Resources\EmbeddedLogs\crash-2022-06-09-07-25-03.log" />
+        <EmbeddedResource Include="Resources\EmbeddedLogs\crash-2022-06-12-07-11-38.log" />
+        <EmbeddedResource Include="Resources\EmbeddedLogs\crash-2022-06-15-10-02-51.log" />
+    </ItemGroup>
+
 </Project>
