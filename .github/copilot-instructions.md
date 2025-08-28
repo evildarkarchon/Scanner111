@@ -10,9 +10,16 @@ Scanner111 is a modern C# port of the CLASSIC crash log analyzer for Bethesda ga
 # Building and running
 dotnet build                                    # Build entire solution
 dotnet test --verbosity normal                  # Run all tests with output
-dotnet test --filter "FormIdAnalyzerTests"     # Run specific test class
+dotnet test --filter "Category=Unit"           # Run specific test category
+dotnet test --filter "AnalyzerOrchestratorTests" # Run specific test class
 dotnet run --project Scanner111.CLI            # Run CLI application
 dotnet run --project Scanner111.Desktop        # Run Avalonia desktop app
+
+# Advanced test workflows
+./run-all-tests.ps1                           # Comprehensive test suite with reporting
+./run-all-tests.ps1 -Category Unit -Coverage  # Category-specific with coverage
+./run-fast-tests.ps1                          # Skip slow performance tests
+./run-coverage.ps1                            # Generate detailed coverage reports
 
 # Development workflow
 dotnet clean && dotnet restore                 # Clean slate dependency refresh
@@ -193,6 +200,33 @@ public async Task AnalyzeAsync_WithValidInput_ReturnsExpectedResult()
 - **Cross-instance caching** to avoid duplicate expensive operations
 - **Thread-safe result sharing** between analyzer instances
 
+### Security Patterns
+```csharp
+// FormID Database - SQL injection prevention
+private static readonly HashSet<string> ValidTableNames = new(StringComparer.OrdinalIgnoreCase)
+{
+    "Skyrim", "SkyrimSE", "Fallout4", "FO4", "Fallout76", "Morrowind", "Oblivion"
+};
+
+// Pre-built query templates - no string interpolation
+var queryTemplates = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+{
+    ["Skyrim"] = "SELECT entry FROM Skyrim WHERE formid = @formid AND plugin = @plugin COLLATE NOCASE"
+};
+```
+
+### Test Categories and Organization
+```csharp
+// Use standardized test traits for discovery
+[Trait("Category", "Unit")]           // Fast, isolated tests
+[Trait("Category", "Integration")]    // Multi-component tests
+[Trait("Category", "Database")]       // FormID database tests
+[Trait("Performance", "Fast")]        // < 100ms tests
+[Trait("Performance", "Medium")]      // 100ms - 1s tests  
+[Trait("Performance", "Slow")]        // > 1s tests
+[Trait("Component", "Orchestration")] // System under test
+```
+
 ## Common Anti-Patterns
 
 1. ❌ **Sync over async** (`Task.Result`, `Task.Wait()`) → ✅ **Proper awaiting**
@@ -209,8 +243,11 @@ public async Task AnalyzeAsync_WithValidInput_ReturnsExpectedResult()
 - `Scanner111.Core/Analysis/AnalysisContext.cs` - Shared state container
 - `Scanner111.Core/Configuration/AsyncYamlSettingsCore.cs` - Thread-safe YAML access
 - `Scanner111.Core/DependencyInjection/OrchestrationServiceExtensions.cs` - DI setup patterns
+- `Scanner111.Core/Data/FormIdDatabasePool.cs` - SQL injection-safe database access
+- `Scanner111.Core/Analysis/FcxModeHandler.cs` - Cross-instance coordination example
 - `Scanner111.Core/Reporting/ReportComposer.cs` - Final report assembly
 - `Scanner111.Test/Orchestration/AnalyzerOrchestratorTests.cs` - Integration test examples
+- `run-all-tests.ps1` - Comprehensive test suite with categorized execution
 
 ## Development Workflow
 
@@ -226,5 +263,12 @@ public async Task AnalyzeAsync_WithValidInput_ReturnsExpectedResult()
 - **Memory-efficient processing** using streams and IAsyncEnumerable
 - **Cancellation support** for long-running operations
 - **Resource cleanup** via proper disposal patterns
+
+### Advanced Testing Workflows
+The project includes sophisticated PowerShell test runners:
+- `./run-all-tests.ps1` - Complete test suite with ASCII banners and timing
+- `./run-fast-tests.ps1` - Skip `Performance=Slow` tests for rapid iteration
+- `./run-coverage.ps1` - Generate detailed coverage reports with metrics
+- Test categorization enables targeted execution: Unit, Integration, Database, Performance levels
 
 Remember: This is a **modern C# port**, not a Python translation. Use C# best practices and leverage the rich ecosystem while maintaining compatibility with the original CLASSIC functionality for users.
