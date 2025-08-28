@@ -326,7 +326,7 @@ public sealed class MemoryMappedFileHandlerTests : IDisposable
         results.Should().AllSatisfy(r =>
         {
             r.MatchLength.Should().Be(4);
-            r.ChunkIndex.Should().BeGreaterOrEqualTo(0);
+            r.ChunkIndex.Should().BeGreaterThanOrEqualTo(0);
         });
     }
 
@@ -572,7 +572,7 @@ public sealed class MemoryMappedFileHandlerTests : IDisposable
             chunkSizeKb: 50);
 
         // Assert
-        result.Should().BeGreaterThan(500 * 1024 * 0.9); // At least 90% of expected size
+        result.Should().BeGreaterThan((int)(500 * 1024 * 0.9)); // At least 90% of expected size
         totalBytes.Should().Be(result);
     }
 

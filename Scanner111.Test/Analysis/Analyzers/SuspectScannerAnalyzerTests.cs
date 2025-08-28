@@ -64,7 +64,7 @@ public sealed class SuspectScannerAnalyzerTests
         // Assert - base class returns skipped for null context
         result.Should().NotBeNull();
         result.Success.Should().BeTrue(); // Skipped results have Success=true
-        result.Warnings.Should().ContainMatch("*validation failed*");
+        result.Warnings.Should().Contain(w => w.Contains("validation failed"));
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed class SuspectScannerAnalyzerTests
         result.Should().NotBeNull();
         result.AnalyzerName.Should().Be("SuspectScanner");
         result.Success.Should().BeTrue(); // CreateSkipped returns Success=true
-        result.Warnings.Should().ContainMatch("*skipped*No crash data available*");
+        result.Warnings.Should().Contain(w => w.Contains("skipped") && w.Contains("No crash data available"));
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public sealed class SuspectScannerAnalyzerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeTrue(); // CreateSkipped returns Success=true
-        result.Warnings.Should().ContainMatch("*skipped*No crash data available*");
+        result.Warnings.Should().Contain(w => w.Contains("skipped") && w.Contains("No crash data available"));
     }
 
     [Fact]
@@ -408,7 +408,7 @@ public sealed class SuspectScannerAnalyzerTests
         markdown.Should().Contain("SUSPECT FOUND!");
 
         result.Metadata.Should().ContainKey("SuspectCount");
-        result.Warnings.Should().ContainMatch("*Found*crash suspect*");
+        result.Warnings.Should().Contain(w => w.Contains("Found") && w.Contains("crash suspect"));
     }
 
     [Fact]
@@ -428,7 +428,7 @@ public sealed class SuspectScannerAnalyzerTests
         // Assert - the base class catches cancellation and returns a skipped result
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
-        result.Warnings.Should().ContainMatch("*cancelled*");
+        result.Warnings.Should().Contain(w => w.Contains("cancelled"));
     }
 
     [Fact]

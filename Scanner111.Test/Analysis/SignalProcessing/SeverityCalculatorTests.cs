@@ -149,7 +149,7 @@ public sealed class SeverityCalculatorTests
 
         // Assert
         assessment.Score.Should().BeGreaterThan(0.5); // Base + all boosts
-        assessment.FinalLevel.Should().BeGreaterOrEqualTo(AnalysisSeverity.Warning);
+        ((int)assessment.FinalLevel).Should().BeGreaterThanOrEqualTo((int)AnalysisSeverity.Warning);
     }
 
     [Fact]
@@ -310,7 +310,7 @@ public sealed class SeverityCalculatorTests
         var assessment = _sut.CalculateSeverity(6, matchResult, factors);
 
         // Assert
-        assessment.Score.Should().BeLessOrEqualTo(1.0);
+        assessment.Score.Should().BeLessThanOrEqualTo(1.0);
     }
 
     [Fact]
@@ -413,7 +413,7 @@ public sealed class SeverityCalculatorTests
         var combined = _sut.CalculateCombinedSeverity(new List<SeverityAssessment> { assessment });
 
         // Assert
-        combined.Score.Should().BeCloseTo(0.7, 0.01);
+        combined.Score.Should().BeApproximately(0.7, 0.01);
         combined.FinalLevel.Should().Be(AnalysisSeverity.Error);
     }
 
@@ -470,7 +470,7 @@ public sealed class SeverityCalculatorTests
         var combined = _sut.CalculateCombinedSeverity(assessments);
 
         // Assert
-        combined.FinalLevel.Should().BeGreaterOrEqualTo(AnalysisSeverity.Error);
+        ((int)combined.FinalLevel).Should().BeGreaterThanOrEqualTo((int)AnalysisSeverity.Error);
         combined.Explanations.Should().Contain(e => e.Contains("Multiple error-level"));
     }
 
@@ -513,7 +513,7 @@ public sealed class SeverityCalculatorTests
         var combined = _sut.CalculateCombinedSeverity(assessments);
 
         // Assert
-        combined.Score.Should().BeLessOrEqualTo(1.0);
+        combined.Score.Should().BeLessThanOrEqualTo(1.0);
     }
 
     [Fact]
@@ -554,7 +554,7 @@ public sealed class SeverityCalculatorTests
             var assessment = _sut.CalculateSeverity(baseSeverity, matchResult);
 
             // Assert
-            assessment.FinalLevel.Should().BeGreaterOrEqualTo(expected);
+            ((int)assessment.FinalLevel).Should().BeGreaterThanOrEqualTo((int)expected);
         }
     }
 }

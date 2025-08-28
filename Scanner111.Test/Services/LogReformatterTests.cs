@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Scanner111.Core.Configuration;
 using Scanner111.Core.Services;
@@ -13,7 +14,7 @@ public sealed class LogReformatterTests : IntegrationTestBase
 {
     private LogReformatter _logReformatter = null!;
 
-    protected override void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services)
+    protected override void ConfigureServices(IServiceCollection services)
     {
         base.ConfigureServices(services);
         

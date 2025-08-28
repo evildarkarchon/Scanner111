@@ -29,10 +29,10 @@ public sealed class OptimizedDatabaseOperationsTests : IDisposable
 
         _options = new FormIdDatabaseOptions
         {
-            DatabasePaths = new List<string> { _testDbPath },
+            DatabasePaths = new string[] { _testDbPath },
             GameTableName = "Fallout4",
             MaxConnections = 5,
-            CacheDuration = TimeSpan.FromMinutes(10)
+            CacheExpirationMinutes = 10
         };
 
         var optionsWrapper = Options.Create(_options);
@@ -151,7 +151,7 @@ public sealed class OptimizedDatabaseOperationsTests : IDisposable
         // Arrange
         var options = new FormIdDatabaseOptions
         {
-            DatabasePaths = new List<string> { "nonexistent.db" },
+            DatabasePaths = new string[] { "nonexistent.db" },
             GameTableName = "Fallout4"
         };
         var sut = new OptimizedDatabaseOperations(_logger, _cache, Options.Create(options));
@@ -289,7 +289,7 @@ public sealed class OptimizedDatabaseOperationsTests : IDisposable
 
         // Assert
         results.Should().ContainKeys("00000001", "00000002", "00000003");
-        results.Count.Should().BeGreaterOrEqualTo(3);
+        results.Count.Should().BeGreaterThanOrEqualTo(3);
     }
 
     [Fact]
@@ -374,16 +374,13 @@ public sealed class OptimizedDatabaseOperationsTests : IDisposable
     }
 
     [Fact]
-    public void GetStatistics_ReturnsCorrectStats()
+    public async Task GetStatistics_ReturnsCorrectStats()
     {
         // Act - Perform some operations first
-        Task.Run(async () =>
-        {
-            await _sut.InitializeAsync();
-            await _sut.LookupFormIdAsync("00000001");
-            await _sut.LookupFormIdAsync("00000001"); // Should hit cache
-            await _sut.BatchLookupAsync(new[] { "00000002", "00000003" });
-        }).Wait();
+        await _sut.InitializeAsync();
+        await _sut.LookupFormIdAsync("00000001");
+        await _sut.LookupFormIdAsync("00000001"); // Should hit cache
+        await _sut.BatchLookupAsync(new[] { "00000002", "00000003" });
 
         // Act
         var stats = _sut.GetStatistics();
@@ -391,16 +388,16 @@ public sealed class OptimizedDatabaseOperationsTests : IDisposable
         // Assert
         stats.Should().NotBeNull();
         stats.TotalQueries.Should().BeGreaterThan(0);
-        stats.CacheHits.Should().BeGreaterOrEqualTo(0);
+        stats.CacheHits.Should().BeGreaterThanOrEqualTo(0);
         stats.ActiveConnections.Should().BeGreaterThan(0);
-        stats.AverageQueryTimeMs.Should().BeGreaterOrEqualTo(0);
+        stats.AverageQueryTimeMs.Should().BeGreaterThanOrEqualTo(0);
     }
 
     [Fact]
-    public void ClearCache_ExecutesWithoutError()
+    public async Task ClearCache_ExecutesWithoutError()
     {
         // Arrange
-        Task.Run(async () => await _sut.InitializeAsync()).Wait();
+        await _sut.InitializeAsync();
 
         // Act & Assert
         var act = () => _sut.ClearCache();

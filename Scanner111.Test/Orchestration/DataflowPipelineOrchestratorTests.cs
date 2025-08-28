@@ -128,7 +128,7 @@ public sealed class DataflowPipelineOrchestratorTests : IDisposable
 
         var report = CreateTestReport();
         _reportComposer.ComposeFromFragmentsAsync(Arg.Any<IEnumerable<ReportFragment>>(), Arg.Any<ReportOptions>())
-            .Returns(Task.FromResult(report));
+            .Returns(report);
 
         // Act
         var result = await _orchestrator.ProcessBatchAsync(requests, analyzers);
@@ -158,7 +158,7 @@ public sealed class DataflowPipelineOrchestratorTests : IDisposable
 
         var report = CreateTestReport();
         _reportComposer.ComposeFromFragmentsAsync(Arg.Any<IEnumerable<ReportFragment>>(), Arg.Any<ReportOptions>())
-            .Returns(Task.FromResult(report));
+            .Returns(report);
 
         // Act
         var result = await _orchestrator.ProcessBatchAsync(requests, analyzers);
@@ -196,7 +196,7 @@ public sealed class DataflowPipelineOrchestratorTests : IDisposable
 
         var report = CreateTestReport();
         _reportComposer.ComposeFromFragmentsAsync(Arg.Any<IEnumerable<ReportFragment>>(), Arg.Any<ReportOptions>())
-            .Returns(Task.FromResult(report));
+            .Returns(report);
 
         // Act
         var result = await _orchestrator.ProcessBatchAsync(requests, analyzers, options);
@@ -219,7 +219,7 @@ public sealed class DataflowPipelineOrchestratorTests : IDisposable
 
         var report = CreateTestReport();
         _reportComposer.ComposeFromFragmentsAsync(Arg.Any<IEnumerable<ReportFragment>>(), Arg.Any<ReportOptions>())
-            .Returns(Task.FromResult(report));
+            .Returns(report);
 
         // Act
         var result = await _orchestrator.ProcessBatchAsync(
@@ -253,7 +253,7 @@ public sealed class DataflowPipelineOrchestratorTests : IDisposable
 
         var report = CreateTestReport();
         _reportComposer.ComposeFromFragmentsAsync(Arg.Any<IEnumerable<ReportFragment>>(), Arg.Any<ReportOptions>())
-            .Returns(Task.FromResult(report));
+            .Returns(report);
 
         // Act
         var result = await _orchestrator.ProcessBatchAsync(new[] { request }, analyzers);
@@ -280,7 +280,7 @@ public sealed class DataflowPipelineOrchestratorTests : IDisposable
 
         var report = CreateTestReport();
         _reportComposer.ComposeFromFragmentsAsync(Arg.Any<IEnumerable<ReportFragment>>(), Arg.Any<ReportOptions>())
-            .Returns(Task.FromResult(report));
+            .Returns(report);
 
         // Act
         var result = await _orchestrator.ProcessBatchAsync(new[] { request }, analyzers);
@@ -349,7 +349,7 @@ public sealed class DataflowPipelineOrchestratorTests : IDisposable
 
         var report = CreateTestReport();
         _reportComposer.ComposeFromFragmentsAsync(Arg.Any<IEnumerable<ReportFragment>>(), Arg.Any<ReportOptions>())
-            .Returns(Task.FromResult(report));
+            .Returns(report);
 
         // Act
         var cts = new CancellationTokenSource();
@@ -377,14 +377,14 @@ public sealed class DataflowPipelineOrchestratorTests : IDisposable
         failingAnalyzer.Name.Returns("FailingAnalyzer");
         failingAnalyzer.Priority.Returns(1);
         failingAnalyzer.AnalyzeAsync(Arg.Any<AnalysisContext>(), Arg.Any<CancellationToken>())
-            .ThrowsAsync(new InvalidOperationException("Analyzer failed"));
+            .Returns(Task.FromException<AnalysisResult>(new InvalidOperationException("Analyzer failed")));
         
         var successAnalyzer = CreateMockAnalyzer("SuccessAnalyzer", 1);
         var analyzers = new[] { failingAnalyzer, successAnalyzer };
 
         var report = CreateTestReport();
         _reportComposer.ComposeFromFragmentsAsync(Arg.Any<IEnumerable<ReportFragment>>(), Arg.Any<ReportOptions>())
-            .Returns(Task.FromResult(report));
+            .Returns(report);
 
         // Act
         var result = await _orchestrator.ProcessBatchAsync(new[] { request }, analyzers);
@@ -411,7 +411,7 @@ public sealed class DataflowPipelineOrchestratorTests : IDisposable
 
         var report = CreateTestReport();
         _reportComposer.ComposeFromFragmentsAsync(Arg.Any<IEnumerable<ReportFragment>>(), Arg.Any<ReportOptions>())
-            .Returns(Task.FromResult(report));
+            .Returns(report);
 
         // Act
         var result = await _orchestrator.ProcessBatchAsync(new[] { request }, new[] { analyzer });
@@ -438,7 +438,7 @@ public sealed class DataflowPipelineOrchestratorTests : IDisposable
 
         var report = CreateTestReport();
         _reportComposer.ComposeFromFragmentsAsync(Arg.Any<IEnumerable<ReportFragment>>(), Arg.Any<ReportOptions>())
-            .Returns(Task.FromResult(report));
+            .Returns(report);
 
         // Act
         var result = await _orchestrator.ProcessBatchAsync(testFiles, new[] { analyzer });
@@ -467,7 +467,7 @@ public sealed class DataflowPipelineOrchestratorTests : IDisposable
 
         var report = CreateTestReport();
         _reportComposer.ComposeFromFragmentsAsync(Arg.Any<IEnumerable<ReportFragment>>(), Arg.Any<ReportOptions>())
-            .Returns(Task.FromResult(report));
+            .Returns(report);
 
         // Act
         var result = await _orchestrator.ProcessBatchAsync(requests, new[] { analyzer });
@@ -498,13 +498,14 @@ public sealed class DataflowPipelineOrchestratorTests : IDisposable
             .Returns(ci =>
             {
                 var context = ci.Arg<AnalysisContext>();
-                capturedContent = context.GetSharedData<string>("FileContent");
+                context.TryGetSharedData<string>("FileContent", out var content);
+                capturedContent = content;
                 return Task.FromResult(new AnalysisResult("ContentAnalyzer") { Success = true });
             });
 
         var report = CreateTestReport();
         _reportComposer.ComposeFromFragmentsAsync(Arg.Any<IEnumerable<ReportFragment>>(), Arg.Any<ReportOptions>())
-            .Returns(Task.FromResult(report));
+            .Returns(report);
 
         // Act
         var result = await _orchestrator.ProcessBatchAsync(new[] { request }, new[] { analyzer });
@@ -568,11 +569,7 @@ public sealed class DataflowPipelineOrchestratorTests : IDisposable
             .Returns(Task.FromResult(new AnalysisResult(name)
             {
                 Success = true,
-                Fragment = new ReportFragment
-                {
-                    Title = $"{name} Results",
-                    Content = $"Analysis by {name}"
-                }
+                Fragment = ReportFragment.CreateSection($"{name} Results", $"Analysis by {name}")
             }));
         return analyzer;
     }
@@ -612,9 +609,9 @@ public sealed class DataflowPipelineOrchestratorTests : IDisposable
         return analyzer;
     }
 
-    private static ReportFragment CreateTestReport()
+    private static string CreateTestReport()
     {
-        return ReportFragment.CreateSection("Test Report", "Test content");
+        return "Test Report\n==========\nTest content";
     }
 
     public void Dispose()

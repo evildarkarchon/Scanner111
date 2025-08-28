@@ -79,7 +79,6 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
         services.AddTransient<IFileIoCore, TestFileIoCore>();
         services.AddTransient<LogReformatter>();
-        services.AddSingleton<RegexCacheService>();
         services.AddTransient<DynamicBatchSizer>();
         services.AddTransient<PerformanceBenchmarker>();
     }
@@ -149,19 +148,43 @@ internal sealed class TestFileIoCore : IFileIoCore
     public async Task<string> ReadFileAsync(string path, CancellationToken cancellationToken = default)
         => await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
 
-    public async Task WriteFileAsync(string path, string content, CancellationToken cancellationToken = default)
-        => await File.WriteAllTextAsync(path, content, cancellationToken).ConfigureAwait(false);
-
-    public async Task<string[]> ReadAllLinesAsync(string path, CancellationToken cancellationToken = default)
+    public async Task<string[]> ReadLinesAsync(string path, CancellationToken cancellationToken = default)
         => await File.ReadAllLinesAsync(path, cancellationToken).ConfigureAwait(false);
 
-    public async Task WriteAllLinesAsync(string path, IEnumerable<string> lines, CancellationToken cancellationToken = default)
-        => await File.WriteAllLinesAsync(path, lines, cancellationToken).ConfigureAwait(false);
+    public async Task WriteFileAsync(string path, string content, System.Text.Encoding? encoding = null, 
+        CancellationToken cancellationToken = default)
+    {
+        encoding ??= System.Text.Encoding.UTF8;
+        await File.WriteAllTextAsync(path, content, encoding, cancellationToken).ConfigureAwait(false);
+    }
 
-    public bool FileExists(string path) => File.Exists(path);
-    public long GetFileSize(string path) => new FileInfo(path).Length;
-    public DateTime GetLastWriteTime(string path) => File.GetLastWriteTime(path);
-    public void DeleteFile(string path) => File.Delete(path);
-    public void MoveFile(string sourcePath, string destinationPath) => File.Move(sourcePath, destinationPath);
-    public void CopyFile(string sourcePath, string destinationPath, bool overwrite = false) => File.Copy(sourcePath, destinationPath, overwrite);
+    public async Task<bool> FileExistsAsync(string path, CancellationToken cancellationToken = default)
+        => await Task.FromResult(File.Exists(path)).ConfigureAwait(false);
+
+    public async Task<DateTime?> GetLastWriteTimeAsync(string path, CancellationToken cancellationToken = default)
+    {
+        if (!File.Exists(path))
+            return null;
+        return await Task.FromResult(File.GetLastWriteTime(path)).ConfigureAwait(false);
+    }
+
+    public async Task CreateDirectoryAsync(string path, CancellationToken cancellationToken = default)
+    {
+        await Task.Run(() => Directory.CreateDirectory(path), cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<bool> DeleteFileAsync(string path, CancellationToken cancellationToken = default)
+    {
+        if (!File.Exists(path))
+            return false;
+        
+        await Task.Run(() => File.Delete(path), cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
+    public async Task CopyFileAsync(string sourcePath, string destinationPath, bool overwrite = false,
+        CancellationToken cancellationToken = default)
+    {
+        await Task.Run(() => File.Copy(sourcePath, destinationPath, overwrite), cancellationToken).ConfigureAwait(false);
+    }
 }

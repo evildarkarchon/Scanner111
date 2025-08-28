@@ -463,6 +463,6 @@ public class PluginAnalyzerTests
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
-        result.Errors.Should().ContainMatch("*Test exception*");
+        result.Errors.Should().Contain(e => e.Contains("Test exception"));
     }
 }
