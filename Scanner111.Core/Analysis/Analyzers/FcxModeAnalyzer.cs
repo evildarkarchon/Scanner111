@@ -1,6 +1,9 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using Scanner111.Core.Caching;
 using Scanner111.Core.Models;
 using Scanner111.Core.Reporting;
+using Scanner111.Core.Reporting.Fragments;
 using Scanner111.Core.Services;
 
 namespace Scanner111.Core.Analysis.Analyzers;
@@ -60,11 +63,19 @@ public sealed class FcxModeAnalyzer : AnalyzerBase
             }
 
             // Perform FCX checks (may use cached results)
+            var stopwatch = Stopwatch.StartNew();
             await _fcxModeHandler.CheckFcxModeAsync(cancellationToken)
                 .ConfigureAwait(false);
+            stopwatch.Stop();
 
-            // Generate report fragment
-            var fragment = _fcxModeHandler.GetFcxMessages();
+            // Generate comprehensive report fragments
+            var detailedFragments = _fcxModeHandler.GetDetailedFragments().ToList();
+            var fragment = detailedFragments.Any() 
+                ? FcxReportFragments.CombineFragments(
+                    "FCX Mode Analysis Results",
+                    detailedFragments,
+                    10)
+                : _fcxModeHandler.GetFcxMessages();
 
             // Store FCX results in context for other analyzers to use
             StoreFcxResultsInContext(context);
@@ -79,12 +90,14 @@ public sealed class FcxModeAnalyzer : AnalyzerBase
                 Severity = severity
             };
 
-            // Add metadata
+            // Add enhanced metadata
             result.AddMetadata("FcxMode", modSettings.FcxMode?.ToString() ?? "Not Configured");
             result.AddMetadata("MainFilesChecked",
                 (!string.IsNullOrWhiteSpace(_fcxModeHandler.MainFilesCheck)).ToString());
             result.AddMetadata("GameFilesChecked",
                 (!string.IsNullOrWhiteSpace(_fcxModeHandler.GameFilesCheck)).ToString());
+            result.AddMetadata("CheckDuration", stopwatch.ElapsedMilliseconds.ToString());
+            result.AddMetadata("FragmentCount", detailedFragments.Count.ToString());
 
             LogInformation("FCX mode analysis completed with severity: {Severity}", severity);
 
@@ -132,10 +145,11 @@ public sealed class FcxModeAnalyzer : AnalyzerBase
 
     private AnalysisResult CreateFcxDisabledResult()
     {
-        var fragment = ReportFragment.CreateInfo(
-            "FCX Mode Status",
-            "FCX Mode is disabled. Enable it in settings to perform extended file integrity checks.",
-            10);
+        var fragment = FcxReportFragments.CreateStatusFragment(
+            fcxEnabled: false,
+            mainFilesResult: null,
+            modFilesResult: null,
+            order: 10);
 
         var result = new AnalysisResult(Name)
         {
@@ -145,6 +159,7 @@ public sealed class FcxModeAnalyzer : AnalyzerBase
         };
 
         result.AddMetadata("FcxMode", "Disabled");
+        result.AddMetadata("FragmentType", "StatusOnly");
 
         return result;
     }
@@ -159,6 +174,20 @@ public sealed class FcxModeAnalyzer : AnalyzerBase
             context.SetSharedData("FcxGameFilesResult", _fcxModeHandler.GameFilesCheck);
 
         context.SetSharedData("FcxChecksCompleted", true);
+        
+        // Store detailed fragments for other analyzers
+        var detailedFragments = _fcxModeHandler.GetDetailedFragments().ToList();
+        if (detailedFragments.Any())
+        {
+            context.SetSharedData("FcxDetailedFragments", detailedFragments);
+        }
+        
+        // Store error fragment if any
+        var errorFragment = _fcxModeHandler.GetErrorOnlyFragment();
+        if (errorFragment != null)
+        {
+            context.SetSharedData("FcxErrorFragment", errorFragment);
+        }
     }
 
     private AnalysisSeverity DetermineSeverity()

@@ -4,7 +4,7 @@ using NSubstitute;
 using Scanner111.Core.Configuration;
 using Scanner111.Core.IO;
 using Scanner111.Core.Services;
-using Scanner111.Core.Services.Caching;
+using Scanner111.Core.Caching;
 using Scanner111.Core.Services.Performance;
 
 namespace Scanner111.Test.Infrastructure;

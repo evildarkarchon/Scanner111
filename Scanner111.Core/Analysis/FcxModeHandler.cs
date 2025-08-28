@@ -1,7 +1,10 @@
+using System.Diagnostics;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Scanner111.Core.Caching;
 using Scanner111.Core.Models;
 using Scanner111.Core.Reporting;
+using Scanner111.Core.Reporting.Fragments;
 
 namespace Scanner111.Core.Analysis;
 
@@ -37,6 +40,21 @@ public interface IFcxModeHandler
     ReportFragment GetFcxMessages();
 
     /// <summary>
+    ///     Gets detailed report fragments for comprehensive reporting.
+    /// </summary>
+    IEnumerable<ReportFragment> GetDetailedFragments();
+
+    /// <summary>
+    ///     Gets a summary fragment with key FCX metrics.
+    /// </summary>
+    ReportFragment GetSummaryFragment();
+
+    /// <summary>
+    ///     Gets an error-only fragment for critical issues.
+    /// </summary>
+    ReportFragment? GetErrorOnlyFragment();
+
+    /// <summary>
     ///     Resets FCX checks and cached results.
     /// </summary>
     Task ResetFcxChecksAsync();
@@ -44,30 +62,38 @@ public interface IFcxModeHandler
 
 /// <summary>
 ///     Handles FCX mode checking with thread-safe caching of results.
-///     Implements singleton pattern for shared state across analyzer instances.
+///     Implements enhanced coordination with fragment composition and advanced caching.
 /// </summary>
 public sealed class FcxModeHandler : IFcxModeHandler, IDisposable
 {
-    // Static fields for singleton behavior (shared across instances)
+    // Static fields for class-level coordination (shared across instances)
     private static readonly SemaphoreSlim s_globalLock = new(1, 1);
     private static bool s_fcxChecksRun;
-    private static string s_mainFilesResult = string.Empty;
-    private static string s_gameFilesResult = string.Empty;
+    private static FcxFileCheckResult? s_cachedResult;
     private static DateTime s_lastCheckTime = DateTime.MinValue;
     private static readonly TimeSpan s_cacheExpiration = TimeSpan.FromMinutes(5);
+    private static int s_cacheVersion;
+    private static readonly Dictionary<string, TimeSpan> s_performanceMetrics = new();
+    
     private readonly SemaphoreSlim _fcxLock = new(1, 1);
     private readonly ILogger<FcxModeHandler> _logger;
     private readonly ModDetectionSettings _modSettings;
+    private readonly IFcxFileChecker? _fileChecker;
+    private readonly IFcxCacheManager? _cacheManager;
+    private FcxFileCheckResult? _currentResult;
+    private readonly Stopwatch _operationTimer = new();
     private bool _disposed;
-
-    // Instance fields
 
     public FcxModeHandler(
         ILogger<FcxModeHandler> logger,
-        ModDetectionSettings modSettings)
+        ModDetectionSettings modSettings,
+        IFcxFileChecker? fileChecker = null,
+        IFcxCacheManager? cacheManager = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _modSettings = modSettings ?? throw new ArgumentNullException(nameof(modSettings));
+        _fileChecker = fileChecker;
+        _cacheManager = cacheManager;
     }
 
     /// <summary>
@@ -88,10 +114,10 @@ public sealed class FcxModeHandler : IFcxModeHandler, IDisposable
     public bool? FcxMode => _modSettings.FcxMode;
 
     /// <inheritdoc />
-    public string MainFilesCheck { get; private set; } = string.Empty;
+    public string MainFilesCheck => _currentResult?.MainFilesResult ?? string.Empty;
 
     /// <inheritdoc />
-    public string GameFilesCheck { get; private set; } = string.Empty;
+    public string GameFilesCheck => _currentResult?.ModFilesResult ?? string.Empty;
 
     /// <inheritdoc />
     public async Task CheckFcxModeAsync(CancellationToken cancellationToken = default)
@@ -112,28 +138,81 @@ public sealed class FcxModeHandler : IFcxModeHandler, IDisposable
                     var cacheExpired = now - s_lastCheckTime > s_cacheExpiration;
 
                     // Check if we need to run FCX checks
-                    if (!s_fcxChecksRun || cacheExpired)
+                    if (!s_fcxChecksRun || cacheExpired || s_cachedResult == null)
                     {
                         _logger.LogInformation("Running FCX mode file checks (cache expired: {Expired})", cacheExpired);
+                        
+                        _operationTimer.Restart();
+                        
+                        // Use enhanced file checker if available, otherwise fall back to simple checks
+                        if (_fileChecker != null)
+                        {
+                            var options = new FcxCheckOptions
+                            {
+                                IncludeArchivedMods = false, // Default to false, should come from config
+                                RetryOnFailure = true,
+                                ComputeChecksums = false,
+                                MaxParallelism = 4
+                            };
 
-                        // Simulate the file checks that would be done by SetupCoordinator and game_combined_result
-                        // In the real implementation, these would call the actual services
-                        s_mainFilesResult = await RunMainFilesCheckAsync(cancellationToken).ConfigureAwait(false);
-                        s_gameFilesResult = await RunGameFilesCheckAsync(cancellationToken).ConfigureAwait(false);
+                            var progress = new Progress<FcxCheckProgress>(p => 
+                                _logger.LogDebug("FCX Check Progress: {Operation} - {Percent}%", 
+                                    p.CurrentOperation, p.PercentComplete));
+
+                            // Use placeholder paths - should be provided via configuration
+                            var gamePath = GetGamePath();
+                            var modPath = GetModPath();
+                            
+                            s_cachedResult = await _fileChecker.CheckFilesAsync(
+                                gamePath,
+                                modPath,
+                                options,
+                                progress,
+                                cancellationToken).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            // Fallback implementation
+                            s_cachedResult = new FcxFileCheckResult
+                            {
+                                Success = true,
+                                MainFilesResult = await RunMainFilesCheckAsync(cancellationToken).ConfigureAwait(false),
+                                ModFilesResult = await RunGameFilesCheckAsync(cancellationToken).ConfigureAwait(false),
+                                CompletedAt = DateTime.UtcNow
+                            };
+                        }
 
                         s_fcxChecksRun = true;
                         s_lastCheckTime = now;
+                        s_cacheVersion++;
+                        
+                        _operationTimer.Stop();
+                        s_performanceMetrics["LastCheckDuration"] = _operationTimer.Elapsed;
 
-                        _logger.LogInformation("FCX mode file checks completed");
+                        _logger.LogInformation("FCX mode file checks completed in {Duration}ms", 
+                            _operationTimer.ElapsedMilliseconds);
+                        
+                        // Cache the result if cache manager is available
+                        if (_cacheManager != null)
+                        {
+                            await _cacheManager.SetAsync(
+                                "fcx:result:latest", 
+                                s_cachedResult,
+                                new CacheEntryOptions 
+                                { 
+                                    SlidingExpiration = s_cacheExpiration,
+                                    Priority = CachePriority.High
+                                }).ConfigureAwait(false);
+                        }
                     }
                     else
                     {
-                        _logger.LogDebug("Using cached FCX check results (age: {Age})", now - s_lastCheckTime);
+                        _logger.LogDebug("Using cached FCX check results (age: {Age}, version: {Version})", 
+                            now - s_lastCheckTime, s_cacheVersion);
                     }
 
-                    // Always assign the stored results to instance variables
-                    MainFilesCheck = s_mainFilesResult;
-                    GameFilesCheck = s_gameFilesResult;
+                    // Always assign the stored results to instance
+                    _currentResult = s_cachedResult;
                 }
                 finally
                 {
@@ -147,8 +226,13 @@ public sealed class FcxModeHandler : IFcxModeHandler, IDisposable
         }
         else
         {
-            MainFilesCheck = "❌ FCX Mode is disabled, skipping game files check... \n-----\n";
-            GameFilesCheck = string.Empty;
+            _currentResult = new FcxFileCheckResult
+            {
+                Success = false,
+                MainFilesResult = "❌ FCX Mode is disabled, skipping game files check... \n-----\n",
+                ModFilesResult = string.Empty,
+                CompletedAt = DateTime.UtcNow
+            };
             _logger.LogDebug("FCX mode is disabled, skipping file checks");
         }
     }
@@ -156,38 +240,107 @@ public sealed class FcxModeHandler : IFcxModeHandler, IDisposable
     /// <inheritdoc />
     public ReportFragment GetFcxMessages()
     {
-        var content = new StringBuilder();
+        return FcxReportFragments.CreateStatusFragment(
+            FcxMode == true,
+            MainFilesCheck,
+            GameFilesCheck,
+            10);
+    }
 
-        if (FcxMode == true)
+    /// <inheritdoc />
+    public IEnumerable<ReportFragment> GetDetailedFragments()
+    {
+        var fragments = new List<ReportFragment>();
+
+        // Status fragment
+        fragments.Add(GetFcxMessages());
+
+        // Detailed results if available
+        if (_currentResult != null)
         {
-            content.AppendLine(
-                "* NOTICE: FCX MODE IS ENABLED. Scanner111 MUST BE RUN BY THE ORIGINAL USER FOR CORRECT DETECTION *");
-            content.AppendLine();
-            content.AppendLine(
-                "[ To disable mod & game files detection, disable FCX Mode in Scanner111 Settings.yaml ]");
-            content.AppendLine();
+            // Add detailed fragment
+            var additionalInfo = new Dictionary<string, string>();
+            if (s_performanceMetrics.TryGetValue("LastCheckDuration", out var duration))
+            {
+                additionalInfo["Check Duration"] = $"{duration.TotalSeconds:F2}s";
+            }
+            additionalInfo["Cache Version"] = s_cacheVersion.ToString();
+            
+            fragments.Add(FcxReportFragments.CreateDetailedFragment(
+                _currentResult,
+                additionalInfo,
+                25));
 
-            if (!string.IsNullOrWhiteSpace(MainFilesCheck)) content.Append(MainFilesCheck);
+            // Add integrity fragment if there are issues
+            var hasIntegrityIssues = _currentResult.MainFilesResult?.Contains("❌") == true;
+            if (hasIntegrityIssues)
+            {
+                fragments.Add(FcxReportFragments.CreateFileIntegrityFragment(
+                    _currentResult.MainFilesResult,
+                    true,
+                    20));
+            }
 
-            if (!string.IsNullOrWhiteSpace(GameFilesCheck)) content.Append(GameFilesCheck);
-
-            return ReportFragment.CreateInfo(
-                "FCX Mode Status",
-                content.ToString(),
-                10);
+            // Add mod files fragment if mods were checked
+            if (!string.IsNullOrWhiteSpace(_currentResult.ModFilesResult))
+            {
+                var modCount = ExtractModCount(_currentResult.ModFilesResult);
+                var issueCount = ExtractIssueCount(_currentResult.ModFilesResult);
+                
+                fragments.Add(FcxReportFragments.CreateModFilesFragment(
+                    _currentResult.ModFilesResult,
+                    modCount,
+                    issueCount,
+                    30));
+            }
         }
 
-        content.AppendLine(
-            "* NOTICE: FCX MODE IS DISABLED. YOU CAN ENABLE IT TO DETECT PROBLEMS IN YOUR MOD & GAME FILES *");
-        content.AppendLine();
-        content.AppendLine(
-            "[ FCX Mode can be enabled in Scanner111 Settings.yaml located in your Scanner111 folder. ]");
-        content.AppendLine();
+        // Add performance metrics if available
+        if (s_performanceMetrics.Count > 0)
+        {
+            fragments.Add(FcxReportFragments.CreatePerformanceFragment(
+                new Dictionary<string, TimeSpan>(s_performanceMetrics),
+                100, // placeholder
+                1024 * 1024, // placeholder
+                90));
+        }
 
-        return ReportFragment.CreateInfo(
-            "FCX Mode Status",
-            content.ToString(),
-            10);
+        return fragments.Where(f => f != null);
+    }
+
+    /// <inheritdoc />
+    public ReportFragment GetSummaryFragment()
+    {
+        if (_currentResult == null)
+        {
+            return FcxReportFragments.CreateStatusFragment(
+                FcxMode == true,
+                null,
+                null,
+                15);
+        }
+
+        var duration = s_performanceMetrics.TryGetValue("LastCheckDuration", out var d) 
+            ? d 
+            : TimeSpan.Zero;
+
+        return FcxReportFragments.CreateSummaryFragment(
+            _currentResult,
+            duration,
+            15);
+    }
+
+    /// <inheritdoc />
+    public ReportFragment? GetErrorOnlyFragment()
+    {
+        if (_currentResult == null || _currentResult.Success)
+            return null;
+
+        return FcxReportFragments.CreateErrorFragment(
+            _currentResult.ErrorMessage ?? "Unknown error",
+            null,
+            "Check FCX mode settings and ensure Scanner111 has proper file access permissions.",
+            5);
     }
 
     /// <inheritdoc />
@@ -197,14 +350,26 @@ public sealed class FcxModeHandler : IFcxModeHandler, IDisposable
         try
         {
             s_fcxChecksRun = false;
-            s_mainFilesResult = string.Empty;
-            s_gameFilesResult = string.Empty;
+            s_cachedResult = null;
             s_lastCheckTime = DateTime.MinValue;
+            s_cacheVersion++;
+            s_performanceMetrics.Clear();
 
-            MainFilesCheck = string.Empty;
-            GameFilesCheck = string.Empty;
+            _currentResult = null;
 
-            _logger.LogInformation("FCX checks and cached results have been reset");
+            // Clear cache manager if available
+            if (_cacheManager != null)
+            {
+                await _cacheManager.InvalidateAsync("fcx:").ConfigureAwait(false);
+            }
+
+            // Clear file checker cache if available
+            if (_fileChecker != null)
+            {
+                await _fileChecker.ClearChecksumCacheAsync().ConfigureAwait(false);
+            }
+
+            _logger.LogInformation("FCX checks and cached results have been reset (new version: {Version})", s_cacheVersion);
         }
         finally
         {
@@ -234,5 +399,32 @@ public sealed class FcxModeHandler : IFcxModeHandler, IDisposable
         await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate work
 
         return "✔️ Game mod files check completed successfully.\n-----\n";
+    }
+
+    private static int ExtractModCount(string modFilesResult)
+    {
+        // Try to extract mod count from result string
+        var match = System.Text.RegularExpressions.Regex.Match(modFilesResult, @"(\d+)\s+mods?");
+        return match.Success && int.TryParse(match.Groups[1].Value, out var count) ? count : 0;
+    }
+
+    private static int ExtractIssueCount(string modFilesResult)
+    {
+        // Count error markers in the result
+        return modFilesResult.Count(c => c == '❌');
+    }
+    
+    private string GetGamePath()
+    {
+        // Should be provided via configuration or discovery service
+        // For now, return empty string to indicate paths should be discovered
+        return string.Empty;
+    }
+    
+    private string GetModPath()
+    {
+        // Should be provided via configuration or discovery service  
+        // For now, return empty string to indicate paths should be discovered
+        return string.Empty;
     }
 }
