@@ -1,3 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿using Scanner111.CLI;
 
-Console.WriteLine("Hello, World!");
+// Run the Report Generation System demo
+await ReportDemo.RunDemo();

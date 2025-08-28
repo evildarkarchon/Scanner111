@@ -2,11 +2,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analysis;
 using Scanner111.Core.Analysis.Analyzers;
+using Scanner111.Core.Analysis.SignalProcessing;
 using Scanner111.Core.Analysis.Validators;
 using Scanner111.Core.Configuration;
 using Scanner111.Core.Data;
 using Scanner111.Core.Discovery;
 using Scanner111.Core.IO;
+using Scanner111.Core.Orchestration;
+using Scanner111.Core.Processing;
+using Scanner111.Core.Reporting;
 using Scanner111.Core.Services;
 
 namespace Scanner111.Core.DependencyInjection;
@@ -189,12 +193,32 @@ public static class ServiceCollectionExtensions
     {
         // Register validators as singletons (thread-safe)
         services.AddSingleton<MemoryManagementValidator>();
+        services.AddSingleton<Buffout4SettingsValidator>();
+        services.AddSingleton<ModSettingsCompatibilityValidator>();
+        services.AddSingleton<VersionAwareSettingsValidator>();
 
         // Register settings service as singleton (thread-safe with caching)
         services.AddSingleton<ISettingsService, SettingsService>();
 
         // Register settings analyzer as transient (new instance per analysis)
-        services.AddTransient<SettingsAnalyzer>();
+        // Wire up all validators
+        services.AddTransient(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<SettingsAnalyzer>>();
+            var settingsService = provider.GetRequiredService<ISettingsService>();
+            var memoryValidator = provider.GetRequiredService<MemoryManagementValidator>();
+            var buffout4Validator = provider.GetService<Buffout4SettingsValidator>();
+            var modCompatValidator = provider.GetService<ModSettingsCompatibilityValidator>();
+            var versionValidator = provider.GetService<VersionAwareSettingsValidator>();
+
+            return new SettingsAnalyzer(
+                logger,
+                settingsService,
+                memoryValidator,
+                buffout4Validator,
+                modCompatValidator,
+                versionValidator);
+        });
 
         // Register FCX mode analyzer as transient (new instance per analysis)
         services.AddTransient<FcxModeAnalyzer>();
@@ -241,6 +265,32 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    ///     Adds high-performance infrastructure services.
+    ///     Optimized for C# without Python's GIL limitations.
+    /// </summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddHighPerformanceInfrastructure(this IServiceCollection services)
+    {
+        // Register memory-mapped file handler
+        services.AddSingleton<MemoryMappedFileHandler>();
+
+        // Register optimized database operations
+        services.AddSingleton<OptimizedDatabaseOperations>();
+        
+        // Register high-performance file I/O
+        services.AddSingleton<HighPerformanceFileIO>();
+        
+        // Register dataflow pipeline orchestrator
+        services.AddTransient<DataflowPipelineOrchestrator>();
+        
+        // Register channel-based batch processor as factory
+        services.AddTransient(typeof(ChannelBasedBatchProcessor<,>));
+
+        return services;
+    }
+
+    /// <summary>
     ///     Adds GPU detection services to the service collection.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
@@ -279,6 +329,38 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
+    ///     Adds advanced signal processing services to the service collection.
+    /// </summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddSignalProcessingServices(this IServiceCollection services)
+    {
+        // Register signal processing components as singletons (thread-safe, stateless)
+        services.AddSingleton<SignalProcessor>();
+        services.AddSingleton<SeverityCalculator>();
+        services.AddSingleton<CallStackAnalyzer>();
+
+        // Register enhanced suspect scanner analyzer as transient
+        services.AddTransient(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<SuspectScannerAnalyzer>>();
+            var yamlCore = provider.GetRequiredService<IAsyncYamlSettingsCore>();
+            var signalProcessor = provider.GetRequiredService<SignalProcessor>();
+            var severityCalculator = provider.GetRequiredService<SeverityCalculator>();
+            var callStackAnalyzer = provider.GetRequiredService<CallStackAnalyzer>();
+
+            return new SuspectScannerAnalyzer(
+                yamlCore, 
+                logger, 
+                signalProcessor, 
+                severityCalculator, 
+                callStackAnalyzer);
+        });
+
+        return services;
+    }
+
+    /// <summary>
     ///     Adds all Scanner111 analyzer services to the service collection.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
@@ -311,6 +393,12 @@ public static class ServiceCollectionExtensions
         // Add critical analyzers (Phase 1)
         services.AddGpuDetectionServices();
         services.AddRecordScanServices(crashGenName);
+
+        // Add high-performance infrastructure (Phase 2)
+        services.AddHighPerformanceInfrastructure();
+
+        // Add advanced analysis features (Phase 3)
+        services.AddSignalProcessingServices();
 
         return services;
     }

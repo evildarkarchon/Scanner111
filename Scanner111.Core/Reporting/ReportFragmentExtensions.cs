@@ -6,15 +6,6 @@ namespace Scanner111.Core.Reporting;
 public static class ReportFragmentExtensions
 {
     /// <summary>
-    ///     Checks if a fragment contains meaningful content.
-    /// </summary>
-    public static bool HasContent(this ReportFragment fragment)
-    {
-        return fragment != null &&
-               !string.IsNullOrWhiteSpace(fragment.Content);
-    }
-
-    /// <summary>
     ///     Combines multiple fragments into a single parent fragment.
     ///     Returns null if no fragments have content.
     /// </summary>

@@ -73,6 +73,19 @@ public sealed class ReportFragment
     public IReadOnlyDictionary<string, string>? Metadata { get; init; }
 
     /// <summary>
+    ///     Creates an empty fragment with no content.
+    /// </summary>
+    public static ReportFragment Empty()
+    {
+        return new ReportFragment(
+            string.Empty,
+            string.Empty,
+            int.MaxValue,
+            FragmentType.Section,
+            FragmentVisibility.Always);
+    }
+
+    /// <summary>
     ///     Creates a new header fragment.
     /// </summary>
     public static ReportFragment CreateHeader(string title, int order = 0)
@@ -173,6 +186,83 @@ public sealed class ReportFragment
             fragment._children.AddRange(children);
 
         return fragment;
+    }
+
+    /// <summary>
+    ///     Composes multiple fragments into a single container fragment.
+    /// </summary>
+    public static ReportFragment Compose(params ReportFragment?[] fragments)
+    {
+        return Compose(fragments.AsEnumerable());
+    }
+
+    /// <summary>
+    ///     Composes multiple fragments into a single container fragment.
+    /// </summary>
+    public static ReportFragment Compose(IEnumerable<ReportFragment?> fragments)
+    {
+        var nonNullFragments = fragments?.Where(f => f != null).Cast<ReportFragment>().ToList() 
+            ?? new List<ReportFragment>();
+
+        if (!nonNullFragments.Any())
+            return Empty();
+
+        if (nonNullFragments.Count == 1)
+            return nonNullFragments[0];
+
+        return CreateWithChildren("Composed Report", nonNullFragments, 0);
+    }
+
+    /// <summary>
+    ///     Creates a conditional section with a header only if content is present.
+    /// </summary>
+    public static ReportFragment ConditionalSection(
+        Func<ReportFragment> contentGenerator,
+        Func<string> headerGenerator)
+    {
+        var content = contentGenerator();
+        if (content.HasContent())
+        {
+            return content.WithHeader(headerGenerator());
+        }
+        return content;
+    }
+
+    /// <summary>
+    ///     Checks if this fragment has meaningful content.
+    /// </summary>
+    public bool HasContent()
+    {
+        return !string.IsNullOrWhiteSpace(Content) || _children.Any(c => c.HasContent());
+    }
+
+    /// <summary>
+    ///     Adds a header to this fragment only if it has content.
+    /// </summary>
+    public ReportFragment WithHeader(string headerTitle)
+    {
+        if (!HasContent())
+            return this;
+
+        var headerFragment = CreateWithChildren(headerTitle, new[] { this }, Order);
+        return headerFragment;
+    }
+
+    /// <summary>
+    ///     Combines two fragments using the + operator.
+    /// </summary>
+    public static ReportFragment operator +(ReportFragment left, ReportFragment right)
+    {
+        if (left == null) throw new ArgumentNullException(nameof(left));
+        if (right == null) throw new ArgumentNullException(nameof(right));
+
+        // If either is empty, return the other
+        if (!left.HasContent()) return right;
+        if (!right.HasContent()) return left;
+
+        // Combine into a container
+        return CreateWithChildren("Combined Fragments", new[] { left, right }, 
+            Math.Min(left.Order, right.Order));
     }
 
     /// <summary>

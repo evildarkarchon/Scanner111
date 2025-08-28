@@ -18,6 +18,7 @@
         <PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.8"/>
         <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.8"/>
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.8"/>
+        <PackageReference Include="System.Threading.Tasks.Dataflow" Version="9.0.8"/>
     </ItemGroup>
 
 </Project>

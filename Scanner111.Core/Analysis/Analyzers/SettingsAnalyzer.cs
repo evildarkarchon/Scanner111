@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Scanner111.Core.Analysis.Validators;
+using Scanner111.Core.Configuration;
 using Scanner111.Core.Models;
 using Scanner111.Core.Reporting;
 using Scanner111.Core.Services;
@@ -8,21 +9,31 @@ namespace Scanner111.Core.Analysis.Analyzers;
 
 /// <summary>
 ///     Analyzes crash generator and mod settings for potential issues and conflicts.
+///     Enhanced with comprehensive validation, mod compatibility, and version awareness.
 ///     Thread-safe for concurrent analysis operations.
 /// </summary>
 public sealed class SettingsAnalyzer : AnalyzerBase, ISettingsAnalyzer
 {
-    private readonly MemoryManagementValidator _memoryValidator;
     private readonly ISettingsService _settingsService;
+    private readonly MemoryManagementValidator _memoryValidator;
+    private readonly Buffout4SettingsValidator? _buffout4Validator;
+    private readonly ModSettingsCompatibilityValidator? _modCompatValidator;
+    private readonly VersionAwareSettingsValidator? _versionValidator;
 
     public SettingsAnalyzer(
         ILogger<SettingsAnalyzer> logger,
         ISettingsService settingsService,
-        MemoryManagementValidator memoryValidator)
+        MemoryManagementValidator memoryValidator,
+        Buffout4SettingsValidator? buffout4Validator = null,
+        ModSettingsCompatibilityValidator? modCompatValidator = null,
+        VersionAwareSettingsValidator? versionValidator = null)
         : base(logger)
     {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         _memoryValidator = memoryValidator ?? throw new ArgumentNullException(nameof(memoryValidator));
+        _buffout4Validator = buffout4Validator;
+        _modCompatValidator = modCompatValidator;
+        _versionValidator = versionValidator;
     }
 
     /// <inheritdoc />
@@ -221,7 +232,7 @@ public sealed class SettingsAnalyzer : AnalyzerBase, ISettingsAnalyzer
         AnalysisContext context,
         CancellationToken cancellationToken)
     {
-        LogDebug("Starting settings analysis for {Path}", context.InputPath);
+        LogDebug("Starting enhanced settings analysis for {Path}", context.InputPath);
 
         try
         {
@@ -231,15 +242,42 @@ public sealed class SettingsAnalyzer : AnalyzerBase, ISettingsAnalyzer
             var modSettings = await _settingsService.LoadModDetectionSettingsAsync(context, cancellationToken)
                 .ConfigureAwait(false);
 
+            // Get load order if available
+            context.TryGetSharedData<List<string>>("LoadOrder", out var loadOrder);
+            
+            // Get game version if available
+            context.TryGetSharedData<string>("GameVersion", out var gameVersion);
+
             // Run all scans in parallel for efficiency
             var scanTasks = new List<Task<ReportFragment>>
             {
+                // Basic scans (always run)
                 ScanAchievementsSettingAsync(crashGenSettings, modSettings, cancellationToken),
                 ScanMemoryManagementSettingsAsync(crashGenSettings, modSettings, cancellationToken),
                 ScanArchiveLimitSettingAsync(crashGenSettings, cancellationToken),
                 ScanLooksMenuSettingAsync(crashGenSettings, modSettings, cancellationToken),
                 CheckDisabledSettingsAsync(crashGenSettings, cancellationToken)
             };
+
+            // Add enhanced validations if validators are available
+            if (_buffout4Validator != null)
+            {
+                scanTasks.Add(Task.Run(() => 
+                    _buffout4Validator.ValidateComprehensive(crashGenSettings, modSettings), 
+                    cancellationToken));
+            }
+
+            if (_modCompatValidator != null)
+            {
+                scanTasks.Add(_modCompatValidator.ValidateModCompatibilityAsync(
+                    crashGenSettings, modSettings, loadOrder, cancellationToken));
+            }
+
+            if (_versionValidator != null)
+            {
+                scanTasks.Add(_versionValidator.ValidateVersionCompatibilityAsync(
+                    crashGenSettings, gameVersion, cancellationToken));
+            }
 
             var fragments = await Task.WhenAll(scanTasks).ConfigureAwait(false);
 
@@ -260,8 +298,22 @@ public sealed class SettingsAnalyzer : AnalyzerBase, ISettingsAnalyzer
             result.AddMetadata("CrashGenName", crashGenSettings.CrashGenName);
             result.AddMetadata("CrashGenVersion", crashGenSettings.Version?.ToString() ?? "Unknown");
             result.AddMetadata("XseModuleCount", modSettings.XseModules.Count.ToString());
+            
+            // Add enhanced validation metadata
+            if (_buffout4Validator != null)
+            {
+                result.AddMetadata("ComprehensiveValidation", "Enabled");
+            }
+            if (_modCompatValidator != null)
+            {
+                result.AddMetadata("ModCompatibilityCheck", "Enabled");
+            }
+            if (_versionValidator != null)
+            {
+                result.AddMetadata("VersionAwareCheck", "Enabled");
+            }
 
-            LogInformation("Settings analysis completed with severity: {Severity}", severity);
+            LogInformation("Enhanced settings analysis completed with severity: {Severity}", severity);
 
             return result;
         }
