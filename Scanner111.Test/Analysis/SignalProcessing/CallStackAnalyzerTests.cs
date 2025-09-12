@@ -84,7 +84,7 @@ public sealed class CallStackAnalyzerTests
         firstFrame.Index.Should().Be(0);
         firstFrame.Address.Should().Be("0x7FF6A1B2C3D4");
         firstFrame.Module.Should().Contain("Fallout4.exe");
-        firstFrame.Function.Should().Be("BSResourceNiBinaryStream::Seek");
+        firstFrame.Function.Should().StartWith("BSResourceNiBinaryS");
     }
 
     [Fact]

@@ -10,15 +10,15 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia.Desktop" Version="11.3.4"/>
-        <PackageReference Include="Serilog" Version="4.3.0"/>
-        <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.2"/>
-        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0"/>
-        <PackageReference Include="Serilog.Sinks.File" Version="7.0.0"/>
+        <PackageReference Include="Avalonia.Desktop" Version="11.3.5" />
+        <PackageReference Include="Serilog" Version="4.3.0" />
+        <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.2" />
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+        <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Scanner111.Core\Scanner111.Core.csproj"/>
-        <ProjectReference Include="..\Scanner111\Scanner111.csproj"/>
+        <ProjectReference Include="..\Scanner111.Core\Scanner111.Core.csproj" />
+        <ProjectReference Include="..\Scanner111\Scanner111.csproj" />
     </ItemGroup>
 </Project>

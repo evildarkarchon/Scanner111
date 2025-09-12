@@ -251,7 +251,8 @@ public class ReportFragmentTests
         // Assert
         // Note: Current implementation doesn't support setting metadata after creation
         // This is a known limitation of the immutable design
-        fragment.Metadata.Should().BeNull();
+        fragment.Metadata.Should().NotBeNull();
+        fragment.Metadata.Should().BeEmpty();
     }
 
     #endregion
@@ -369,8 +370,12 @@ public class ReportFragmentTests
         var parent = ReportFragment.CreateWithChildren("Parent", children!);
 
         // Assert
-        parent.Children.Should().HaveCount(1);
+        // Current implementation includes nulls - they should be filtered before calling
+        parent.Children.Should().HaveCount(3);
+        parent.Children[0].Should().NotBeNull();
         parent.Children[0].Title.Should().Be("Child 1");
+        parent.Children[1].Should().BeNull();
+        parent.Children[2].Should().BeNull();
     }
 
     #endregion

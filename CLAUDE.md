@@ -19,28 +19,44 @@ dotnet test
 dotnet test --verbosity normal
 
 # Run a single test class
-dotnet test --filter "Scanner111.Test.Analysis.Analyzers.PluginAnalyzerTests"
+dotnet test --filter "FullyQualifiedName~Scanner111.Test.Analysis.Analyzers.PluginAnalyzerTests"
 
 # Run a specific test method
-dotnet test --filter "AnalyzeAsync_WithCallStackMatches_ReturnsPluginSuspects"
+dotnet test --filter "FullyQualifiedName~AnalyzeAsync_WithCallStackMatches_ReturnsPluginSuspects"
 
 # Build and run CLI application
 dotnet run --project Scanner111.CLI
 
 # Build and run Desktop application  
 dotnet run --project Scanner111.Desktop
+
+# Run fast unit tests only
+./run-fast-tests.ps1
+
+# Run all tests with detailed reporting
+./run-all-tests.ps1
+
+# Run tests with coverage
+./run-coverage.ps1
+
+# Run only integration tests
+./run-integration-tests.ps1
 ```
 
-### Project Structure Commands
+### Test Filtering with Traits
 ```bash
-# Clean build artifacts
-dotnet clean
+# Run tests by category
+dotnet test --filter "Category=Unit"
+dotnet test --filter "Category=Integration"
+dotnet test --filter "Category=Database"
 
-# Restore NuGet packages
-dotnet restore
+# Run tests by performance
+dotnet test --filter "Performance=Fast"
+dotnet test --filter "Performance!=Slow"
 
-# Build in Release mode
-dotnet build -c Release
+# Run tests by component
+dotnet test --filter "Component=Analyzer"
+dotnet test --filter "Component=Orchestration"
 ```
 
 ## Architecture Overview
@@ -52,6 +68,20 @@ The system follows an **Analyzer Pattern** with orchestrated execution:
 - **AnalyzerBase**: Base class providing common functionality (validation, error handling, reporting)
 - **AnalysisContext**: Shared state container for analyzers to communicate via SetSharedData/GetSharedData
 - **Individual Analyzers**: Each focuses on specific aspects (plugins, memory, settings, paths, FCX mode)
+
+### Available Analyzers
+- **PluginAnalyzer**: Identifies problematic plugins from crash stack traces
+- **FormIdAnalyzer**: Analyzes FormIDs to identify source plugins
+- **FcxModeAnalyzer**: Handles FCX-specific crash analysis
+- **ModDetectionAnalyzer**: Detects installed mods and their configurations
+- **SettingsAnalyzer**: Analyzes game configuration settings
+- **PathValidationAnalyzer**: Validates game installation paths
+- **DocumentsPathAnalyzer**: Handles game document paths
+- **GpuAnalyzer**: Analyzes GPU-related crashes
+- **GameIntegrityAnalyzer**: Checks game file integrity
+- **ModFileScanAnalyzer**: Scans mod files for issues
+- **RecordScannerAnalyzer**: Analyzes game records
+- **SuspectScannerAnalyzer**: Identifies suspect patterns
 
 ### Multi-Layered Architecture
 
@@ -160,4 +190,5 @@ public async Task AnalyzeAsync_WithValidInput_ReturnsExpectedResult()
 - Validate all inputs early with clear error messages
 - Avoid replicating Python patterns - use C# idioms instead
 - Query YAML files directly rather than caching frequently-used values
-- Make sure to properly use cancellation tokens and timeouts in tests to make sure they don't hang.
+- Properly use cancellation tokens and timeouts in tests to prevent hanging
+- Build warnings configured as errors: CS1998 (async without await), xUnit1031, CS0618 (obsolete)
