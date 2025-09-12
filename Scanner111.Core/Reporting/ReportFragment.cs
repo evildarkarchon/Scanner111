@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text;
 
 namespace Scanner111.Core.Reporting;
@@ -8,21 +9,22 @@ namespace Scanner111.Core.Reporting;
 /// </summary>
 public sealed class ReportFragment
 {
-    private readonly List<ReportFragment> _children;
-
     private ReportFragment(
         string title,
         string content,
         int order,
         FragmentType type,
-        FragmentVisibility visibility)
+        FragmentVisibility visibility,
+        ImmutableList<ReportFragment>? children = null,
+        ImmutableDictionary<string, string>? metadata = null)
     {
         Title = title;
         Content = content;
         Order = order;
         Type = type;
         Visibility = visibility;
-        _children = new List<ReportFragment>();
+        Children = children ?? ImmutableList<ReportFragment>.Empty;
+        Metadata = metadata ?? ImmutableDictionary<string, string>.Empty;
         Id = Guid.NewGuid();
         CreatedAt = DateTime.UtcNow;
     }
@@ -60,7 +62,7 @@ public sealed class ReportFragment
     /// <summary>
     ///     Gets child fragments nested under this fragment.
     /// </summary>
-    public IReadOnlyList<ReportFragment> Children => _children.AsReadOnly();
+    public ImmutableList<ReportFragment> Children { get; }
 
     /// <summary>
     ///     Gets when this fragment was created.
@@ -70,7 +72,7 @@ public sealed class ReportFragment
     /// <summary>
     ///     Gets optional metadata for conditional rendering.
     /// </summary>
-    public IReadOnlyDictionary<string, string>? Metadata { get; init; }
+    public ImmutableDictionary<string, string> Metadata { get; }
 
     /// <summary>
     ///     Creates an empty fragment with no content.
@@ -82,7 +84,9 @@ public sealed class ReportFragment
             string.Empty,
             int.MaxValue,
             FragmentType.Section,
-            FragmentVisibility.Always);
+            FragmentVisibility.Always,
+            ImmutableList<ReportFragment>.Empty,
+            ImmutableDictionary<string, string>.Empty);
     }
 
     /// <summary>
@@ -95,7 +99,9 @@ public sealed class ReportFragment
             string.Empty,
             order,
             FragmentType.Header,
-            FragmentVisibility.Always);
+            FragmentVisibility.Always,
+            ImmutableList<ReportFragment>.Empty,
+            ImmutableDictionary<string, string>.Empty);
     }
 
     /// <summary>
@@ -108,7 +114,9 @@ public sealed class ReportFragment
             content ?? string.Empty,
             order,
             FragmentType.Section,
-            FragmentVisibility.Always);
+            FragmentVisibility.Always,
+            ImmutableList<ReportFragment>.Empty,
+            ImmutableDictionary<string, string>.Empty);
     }
 
     /// <summary>
@@ -121,7 +129,9 @@ public sealed class ReportFragment
             content ?? throw new ArgumentNullException(nameof(content)),
             order,
             FragmentType.Warning,
-            FragmentVisibility.Always);
+            FragmentVisibility.Always,
+            ImmutableList<ReportFragment>.Empty,
+            ImmutableDictionary<string, string>.Empty);
     }
 
     /// <summary>
@@ -134,7 +144,9 @@ public sealed class ReportFragment
             content ?? throw new ArgumentNullException(nameof(content)),
             order,
             FragmentType.Error,
-            FragmentVisibility.Always);
+            FragmentVisibility.Always,
+            ImmutableList<ReportFragment>.Empty,
+            ImmutableDictionary<string, string>.Empty);
     }
 
     /// <summary>
@@ -147,7 +159,9 @@ public sealed class ReportFragment
             content ?? string.Empty,
             order,
             FragmentType.Info,
-            FragmentVisibility.Always);
+            FragmentVisibility.Always,
+            ImmutableList<ReportFragment>.Empty,
+            ImmutableDictionary<string, string>.Empty);
     }
 
     /// <summary>
@@ -164,7 +178,9 @@ public sealed class ReportFragment
             content ?? string.Empty,
             order,
             FragmentType.Conditional,
-            visibility);
+            visibility,
+            ImmutableList<ReportFragment>.Empty,
+            ImmutableDictionary<string, string>.Empty);
     }
 
     /// <summary>
@@ -175,17 +191,67 @@ public sealed class ReportFragment
         IEnumerable<ReportFragment> children,
         int order = 100)
     {
-        var fragment = new ReportFragment(
+        return new ReportFragment(
             title ?? throw new ArgumentNullException(nameof(title)),
             string.Empty,
             order,
             FragmentType.Container,
-            FragmentVisibility.Always);
+            FragmentVisibility.Always,
+            children != null ? ImmutableList.CreateRange(children) : ImmutableList<ReportFragment>.Empty,
+            ImmutableDictionary<string, string>.Empty);
+    }
 
-        if (children != null)
-            fragment._children.AddRange(children);
+    /// <summary>
+    ///     Creates a fragment from a collection of lines.
+    /// </summary>
+    public static ReportFragment FromLines(string title, IEnumerable<string> lines, FragmentType type = FragmentType.Section, int order = 100)
+    {
+        if (lines == null) throw new ArgumentNullException(nameof(lines));
+        
+        var content = string.Join(Environment.NewLine, lines);
+        return new ReportFragment(
+            title ?? string.Empty,
+            content,
+            order,
+            type,
+            FragmentVisibility.Always,
+            ImmutableList<ReportFragment>.Empty,
+            ImmutableDictionary<string, string>.Empty);
+    }
 
-        return fragment;
+    /// <summary>
+    ///     Creates a new fragment with updated metadata.
+    /// </summary>
+    public ReportFragment WithMetadata(string key, string value)
+    {
+        if (key == null) throw new ArgumentNullException(nameof(key));
+        
+        return new ReportFragment(
+            Title,
+            Content,
+            Order,
+            Type,
+            Visibility,
+            Children,
+            Metadata.SetItem(key, value));
+    }
+
+    /// <summary>
+    ///     Creates a new fragment with additional children.
+    /// </summary>
+    public ReportFragment WithChildren(params ReportFragment[] children)
+    {
+        if (children == null || children.Length == 0)
+            return this;
+            
+        return new ReportFragment(
+            Title,
+            Content,
+            Order,
+            Type,
+            Visibility,
+            Children.AddRange(children),
+            Metadata);
     }
 
     /// <summary>
@@ -233,7 +299,7 @@ public sealed class ReportFragment
     /// </summary>
     public bool HasContent()
     {
-        return !string.IsNullOrWhiteSpace(Content) || _children.Any(c => c.HasContent());
+        return !string.IsNullOrWhiteSpace(Content) || Children.Any(c => c.HasContent());
     }
 
     /// <summary>
@@ -315,7 +381,7 @@ public sealed class ReportFragment
         }
 
         // Add children
-        foreach (var child in _children) sb.Append(child.ToMarkdown(headerLevel + 1));
+        foreach (var child in Children) sb.Append(child.ToMarkdown(headerLevel + 1));
 
         return sb.ToString();
     }

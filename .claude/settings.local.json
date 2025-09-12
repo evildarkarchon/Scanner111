@@ -1,0 +1,11 @@
+{
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "serana"
+  ],
+  "permissions": {
+    "allow": [
+      "mcp__serana__list_dir"
+    ]
+  }
+}
