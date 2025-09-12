@@ -7,7 +7,7 @@ Scanner111 is a modern C# port of the CLASSIC crash log analyzer for Bethesda ga
 ## Essential Development Commands
 
 ```bash
-# Building and running
+# Building and running (.NET 9 + Avalonia)
 dotnet build                                    # Build entire solution
 dotnet test --verbosity normal                  # Run all tests with output
 dotnet test --filter "Category=Unit"           # Run specific test category
@@ -15,13 +15,15 @@ dotnet test --filter "AnalyzerOrchestratorTests" # Run specific test class
 dotnet run --project Scanner111.CLI            # Run CLI application
 dotnet run --project Scanner111.Desktop        # Run Avalonia desktop app
 
-# Advanced test workflows
-./run-all-tests.ps1                           # Comprehensive test suite with reporting
-./run-all-tests.ps1 -Category Unit -Coverage  # Category-specific with coverage
-./run-fast-tests.ps1                          # Skip slow performance tests
-./run-coverage.ps1                            # Generate detailed coverage reports
+# Advanced PowerShell test workflows (prefer over dotnet test)
+./run-all-tests.ps1                           # Comprehensive test suite with ASCII banners and timing
+./run-all-tests.ps1 -Category Unit -Coverage  # Category-specific with coverage reports
+./run-fast-tests.ps1                          # Skip Performance=Slow tests for rapid iteration
+./run-coverage.ps1                            # Generate detailed coverage reports with metrics
+./run-integration-tests.ps1                   # Integration tests only
+./add-test-traits.ps1                         # Auto-add test traits to new test files
 
-# Development workflow
+# Performance-optimized development workflow
 dotnet clean && dotnet restore                 # Clean slate dependency refresh
 dotnet build -c Release                        # Production build
 dotnet test --collect:"XPlat Code Coverage"    # Run tests with coverage
@@ -181,6 +183,13 @@ public async Task AnalyzeAsync_WithValidInput_ReturnsExpectedResult()
 }
 ```
 
+### Test Infrastructure Patterns
+- **Base Classes**: Use `AnalyzerTestBase<T>` for analyzer tests, `SampleDataTestBase` for integration tests
+- **Fixtures**: `TempDirectoryFixture` for file system tests, collections for shared expensive setup
+- **Traits**: Auto-categorization via `add-test-traits.ps1` - prefer this over manual trait assignment
+- **Timeout Handling**: All async tests use `CancellationTokenSource` with reasonable timeouts
+- **Test Collections**: Use `[Collection("TempDirectory")]` for tests requiring isolated file system access
+
 ## Integration Points
 
 ### Report Fragment Composition
@@ -194,11 +203,14 @@ public async Task AnalyzeAsync_WithValidInput_ReturnsExpectedResult()
 - **Async-first lookups** with sync fallbacks for compatibility
 - **Table name validation** against whitelist for security
 - **Batch operations** for performance optimization
+- **Connection health monitoring** with automatic reconnection
+- **Memory caching** with configurable TTL and statistics tracking
 
 ### FCX Mode Coordination
 - **Global static coordination** via `FcxModeHandler` with `SemaphoreSlim`
 - **Cross-instance caching** to avoid duplicate expensive operations
 - **Thread-safe result sharing** between analyzer instances
+- **Timeout protection** for all FCX operations with proper resource cleanup
 
 ### Security Patterns
 ```csharp
@@ -213,6 +225,45 @@ var queryTemplates = new Dictionary<string, string>(StringComparer.OrdinalIgnore
 {
     ["Skyrim"] = "SELECT entry FROM Skyrim WHERE formid = @formid AND plugin = @plugin COLLATE NOCASE"
 };
+
+// Connection pool with health monitoring and automatic cleanup
+private async Task<SqliteConnection?> GetOrCreateConnectionAsync(string dbPath, CancellationToken cancellationToken)
+{
+    await _connectionSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+    try
+    {
+        // Test existing connection health before reuse
+        if (_connections.TryGetValue(dbPath, out var existingConnection))
+        {
+            if (existingConnection.State == ConnectionState.Open)
+            {
+                try
+                {
+                    using var testCommand = existingConnection.CreateCommand();
+                    testCommand.CommandText = "SELECT 1";
+                    await testCommand.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+                    return existingConnection;
+                }
+                catch (Exception testEx)
+                {
+                    _logger.LogDebug(testEx, "Connection test failed, recreating connection");
+                    _connections.TryRemove(dbPath, out var deadConnection);
+                    await deadConnection?.DisposeAsync().ConfigureAwait(false);
+                }
+            }
+        }
+        
+        // Create new healthy connection
+        var connection = new SqliteConnection($"Data Source={dbPath};Mode=ReadOnly");
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        _connections.TryAdd(dbPath, connection);
+        return connection;
+    }
+    finally
+    {
+        _connectionSemaphore.Release();
+    }
+}
 ```
 
 ### Test Categories and Organization
