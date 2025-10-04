@@ -5,7 +5,7 @@ using Avalonia.Markup.Xaml;
 using Scanner111.ViewModels;
 using Scanner111.Views;
 
-namespace Scanner111;
+namespace Scanner111.Desktop;
 
 public partial class App : Application
 {
