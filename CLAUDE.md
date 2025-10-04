@@ -3,192 +3,314 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-Scanner111 is a modern C# port of a legacy crash log analysis application. It analyzes game crash logs, identifies problematic plugins, and provides detailed reports. The project prioritizes thread-safety, async patterns, and comprehensive testing.
+
+Scanner111 is a modern C# port of a legacy crash log analysis application (originally named "CLASSIC"). It analyzes game crash logs, identifies problematic plugins, and provides detailed reports. The project consists of a GUI application (Avalonia), a CLI application, and a shared business logic library.
+
+## Project Structure
+
+```
+Scanner111/                          # Solution root
+├── Code to Port/                    # READ-ONLY: Original Python source code
+├── sample_logs/                     # READ-ONLY: Sample crash logs for testing
+├── sample_output/                   # READ-ONLY: Expected output for validation
+├── Scanner111/                      # Avalonia UI library (shared XAML/views)
+├── Scanner111.Desktop/              # Desktop executable (entry point)
+├── Scanner111.CLI/                  # CLI executable
+├── Scanner111.Common/               # Shared business logic library
+├── Scanner111.Tests/                # Tests for Scanner111 (UI)
+├── Scanner111.Desktop.Tests/        # Tests for Scanner111.Desktop
+├── Scanner111.CLI.Tests/            # Tests for Scanner111.CLI
+└── Scanner111.Common.Tests/         # Tests for Scanner111.Common
+```
+
+### Project Responsibilities
+
+- **Scanner111**: Avalonia UI components, views, view models, and shared UI logic
+- **Scanner111.Desktop**: Desktop application entry point and platform-specific code
+- **Scanner111.CLI**: Command-line interface for batch processing and automation
+- **Scanner111.Common**: ALL business logic (analysis, parsing, reporting, data access)
+- **Test Projects**: One xUnit test project per main project
+
+## Technology Stack
+
+- **.NET 9.0**: All projects target `net9.0`
+- **Avalonia 11.3.7**: Cross-platform UI framework
+- **xUnit**: Testing framework
+- **Nullable Reference Types**: Enabled across all projects
 
 ## Common Development Commands
 
-### Building and Testing
+### Building and Running
+
 ```bash
-# Build the entire solution
+# Build entire solution
 dotnet build
 
-# Run all tests
+# Run tests
 dotnet test
 
 # Run tests with detailed output
 dotnet test --verbosity normal
 
-# Run a single test class
-dotnet test --filter "FullyQualifiedName~Scanner111.Test.Analysis.Analyzers.PluginAnalyzerTests"
-
-# Run a specific test method
-dotnet test --filter "FullyQualifiedName~AnalyzeAsync_WithCallStackMatches_ReturnsPluginSuspects"
-
-# Build and run CLI application
+# Run CLI application
 dotnet run --project Scanner111.CLI
 
-# Build and run Desktop application  
+# Run Desktop application
 dotnet run --project Scanner111.Desktop
 
-# Run fast unit tests only
-./run-fast-tests.ps1
+# Build specific project
+dotnet build Scanner111.Common
 
-# Run all tests with detailed reporting
-./run-all-tests.ps1
-
-# Run tests with coverage
-./run-coverage.ps1
-
-# Run only integration tests
-./run-integration-tests.ps1
+# Clean solution
+dotnet clean
 ```
 
-### Test Filtering with Traits
+### Testing
+
 ```bash
-# Run tests by category
-dotnet test --filter "Category=Unit"
-dotnet test --filter "Category=Integration"
-dotnet test --filter "Category=Database"
+# Run all tests
+dotnet test
 
-# Run tests by performance
-dotnet test --filter "Performance=Fast"
-dotnet test --filter "Performance!=Slow"
+# Run tests for specific project
+dotnet test Scanner111.Common.Tests
 
-# Run tests by component
-dotnet test --filter "Component=Analyzer"
-dotnet test --filter "Component=Orchestration"
+# Run specific test class
+dotnet test --filter "FullyQualifiedName~NamespaceOrClassName"
+
+# Run specific test method
+dotnet test --filter "FullyQualifiedName~MethodName"
+
+# Run tests with coverage (if configured)
+dotnet test --collect:"XPlat Code Coverage"
 ```
 
-## Architecture Overview
+## Development Guidelines
 
-### Core Analysis Engine
-The system follows an **Analyzer Pattern** with orchestrated execution:
+### Code Organization
 
-- **AnalyzerOrchestrator**: Coordinates multiple analyzers with configurable execution strategies (sequential, parallel, prioritized)
-- **AnalyzerBase**: Base class providing common functionality (validation, error handling, reporting)
-- **AnalysisContext**: Shared state container for analyzers to communicate via SetSharedData/GetSharedData
-- **Individual Analyzers**: Each focuses on specific aspects (plugins, memory, settings, paths, FCX mode)
+1. **Business Logic Placement**
+   - ALL business logic MUST go in `Scanner111.Common`
+   - UI projects (Scanner111, Scanner111.Desktop) only contain UI-specific code
+   - CLI project only contains command-line interface logic
+   - No business logic duplication between projects
 
-### Available Analyzers
-- **PluginAnalyzer**: Identifies problematic plugins from crash stack traces
-- **FormIdAnalyzer**: Analyzes FormIDs to identify source plugins
-- **FcxModeAnalyzer**: Handles FCX-specific crash analysis
-- **ModDetectionAnalyzer**: Detects installed mods and their configurations
-- **SettingsAnalyzer**: Analyzes game configuration settings
-- **PathValidationAnalyzer**: Validates game installation paths
-- **DocumentsPathAnalyzer**: Handles game document paths
-- **GpuAnalyzer**: Analyzes GPU-related crashes
-- **GameIntegrityAnalyzer**: Checks game file integrity
-- **ModFileScanAnalyzer**: Scans mod files for issues
-- **RecordScannerAnalyzer**: Analyzes game records
-- **SuspectScannerAnalyzer**: Identifies suspect patterns
+2. **Separation of Concerns**
+   - Analysis logic: `Scanner111.Common`
+   - Data access: `Scanner111.Common`
+   - UI presentation: `Scanner111` (Avalonia views/viewmodels)
+   - Entry points: `Scanner111.Desktop` and `Scanner111.CLI`
 
-### Multi-Layered Architecture
+3. **File Naming Conventions**
+   - One class per file
+   - File name matches class name
+   - Use PascalCase for all file names
+   - Organize by feature/domain within each project
+
+### Porting from Legacy Code
+
+1. **Reference Materials** (READ-ONLY, never modify):
+   - `Code to Port/`: Original Python implementation
+   - `sample_logs/`: Test crash logs
+   - `sample_output/`: Expected analysis results
+
+2. **Naming Conventions**:
+   - Replace "CLASSIC" with "Scanner111" in all code
+   - Use modern C# naming conventions (PascalCase, camelCase)
+   - Avoid Python-specific patterns (use C# idioms)
+
+3. **Modernization Priorities**:
+   - Use async/await for I/O operations
+   - Leverage LINQ for data transformations
+   - Use dependency injection where appropriate
+   - Apply modern C# patterns (records, pattern matching, etc.)
+
+### Code Quality Standards
+
+1. **Null Safety**
+   - Nullable reference types enabled
+   - Use null-forgiving operator (`!`) sparingly
+   - Prefer null-conditional operators (`?.`, `??`)
+
+2. **Async Patterns**
+   - Use `async`/`await` for all I/O operations
+   - Suffix async methods with `Async`
+   - Use `ConfigureAwait(false)` in library code
+   - Pass `CancellationToken` for long-running operations
+
+3. **Testing Requirements**
+   - Write tests for all business logic in `Scanner111.Common`
+   - Use xUnit for all test projects
+   - Follow Arrange-Act-Assert pattern
+   - Test edge cases and error conditions
+
+4. **Documentation**
+   - Use XML documentation comments for public APIs
+   - Document complex algorithms and business rules
+   - Keep comments up-to-date with code changes
+
+### Solution Configuration
+
+- **Directory.Build.props**: Shared properties (AvaloniaVersion, Nullable settings)
+- **ImplicitUsings**: Enabled for cleaner code
+- **LangVersion**: Latest C# features available
+
+## Architecture Principles
+
+### Layered Architecture
 
 ```
-Scanner111.CLI/Desktop (UI Layer)
-    ↓
-Scanner111.Core (Business Logic)
-    ├── Orchestration/ (Coordination)
-    ├── Analysis/ (Core Analyzers)  
-    ├── Services/ (Cross-cutting)
-    ├── Configuration/ (YAML Settings)
-    ├── Discovery/ (Path Detection)
-    ├── Reporting/ (Output Generation)
-    └── Data/ (FormID Lookups)
+┌─────────────────────────────────────┐
+│  Scanner111.Desktop / Scanner111.CLI │  ← Entry Points
+├─────────────────────────────────────┤
+│         Scanner111 (UI)              │  ← Presentation Layer
+├─────────────────────────────────────┤
+│      Scanner111.Common               │  ← Business Logic Layer
+└─────────────────────────────────────┘
 ```
+
+### Dependency Flow
+
+- Desktop/CLI → Scanner111 (UI) → Scanner111.Common
+- Test projects reference their corresponding main projects
+- No circular dependencies
+- Common library has no UI dependencies
 
 ### Key Patterns
 
-**Dependency Injection**: Heavy use of Microsoft.Extensions.DependencyInjection with proper service lifetimes
-**Async-First**: All I/O operations use async/await with ConfigureAwait(false) for library code
-**Thread-Safe Caching**: ConcurrentDictionary and SemaphoreSlim for cross-instance coordination
-**Report Fragment Composition**: Hierarchical report building with nested fragments
+1. **Dependency Injection**: Use constructor injection for dependencies
+2. **Repository Pattern**: For data access in Scanner111.Common
+3. **MVVM**: For Avalonia UI (ViewModels in Scanner111)
+4. **Strategy Pattern**: For different analysis algorithms
+5. **Factory Pattern**: For creating analyzers and processors
 
-### Critical Async Patterns
+## Common Pitfalls to Avoid
 
-**Global Static Coordination**: FcxModeHandler uses static SemaphoreSlim for cross-instance caching
-**Resource Management**: Implements both IDisposable and IAsyncDisposable consistently
-**Cancellation Propagation**: All async methods accept CancellationToken and check cancellation
+1. **❌ Don't modify read-only directories**
+   - Never change files in `Code to Port/`
+   - Never modify `sample_logs/` or `sample_output/`
 
-### YAML Configuration System
-- **AsyncYamlSettingsCore**: Thread-safe YAML loading with caching
-- **YamlStore Enum**: Defines different configuration file types (Main, Game, Settings, etc.)
-- **Path Resolution**: Dynamic path building based on game type and store type
+2. **❌ Don't put business logic in UI projects**
+   - Keep Scanner111 and Scanner111.Desktop UI-focused
+   - Move all analysis, parsing, and data access to Scanner111.Common
 
-### Security Considerations
-- **SQL Injection Protection**: FormIdDatabasePool validates table names against whitelist
-- **Input Validation**: All user paths and configuration values are validated
-- **Resource Limits**: Connection pooling and semaphore-based concurrency control
+3. **❌ Don't replicate Python patterns**
+   - Avoid direct Python-to-C# translation
+   - Use C# language features and idioms
 
-## Test Architecture
+4. **❌ Don't ignore nullable warnings**
+   - Address null reference warnings immediately
+   - Don't disable nullable context
+
+5. **❌ Don't create unnecessary abstractions**
+   - Keep it simple until complexity is needed
+   - Avoid over-engineering
+
+## Testing Strategy
 
 ### Test Organization
-- **Unit Tests**: Individual analyzer testing with mocked dependencies
-- **Integration Tests**: Multi-analyzer coordination and real file system interaction  
-- **Avalonia UI Tests**: Using Avalonia.Headless for ViewModel testing
 
-### Key Testing Patterns
+- **Unit Tests**: Test individual classes in isolation
+- **Integration Tests**: Test component interactions
+- **UI Tests**: Use Avalonia.Headless for UI testing (if needed)
+
+### Test Naming Convention
+
 ```csharp
-// Async test with proper setup
-[Fact] 
-public async Task AnalyzeAsync_WithValidInput_ReturnsExpectedResult()
+[Fact]
+public void MethodName_Scenario_ExpectedBehavior()
 {
-    // Arrange - Use NSubstitute for mocking
-    var mockService = Substitute.For<IService>();
-    mockService.GetDataAsync(Arg.Any<string>()).Returns(Task.FromResult(testData));
+    // Arrange
 
     // Act
-    var result = await analyzer.AnalyzeAsync(context, cancellationToken);
 
-    // Assert - Use FluentAssertions
-    result.Success.Should().BeTrue();
-    result.Fragment.Title.Should().Contain("Expected Title");
+    // Assert
 }
 ```
 
-## Development Principles
+### Test Coverage Goals
 
-### Thread Safety Requirements
-- Use ConcurrentDictionary for shared state
-- SemaphoreSlim for async coordination (never `lock` in async code)  
-- Interlocked for atomic operations
-- Document thread-safety in XML comments
+- 80%+ coverage for Scanner111.Common
+- Critical path coverage for UI and CLI
+- All edge cases and error conditions
 
-### Async/Await Standards
-- Always ConfigureAwait(false) in non-UI library code
-- Never use .Result or .Wait() - always await
-- Implement IAsyncDisposable for async cleanup
-- Pass CancellationToken to all operations
-- Handle OperationCanceledException appropriately
+## File System Conventions
 
-### Error Handling Strategy
-- Domain-specific exception types
-- Result<T> pattern for expected failures
-- Structured logging with correlation IDs
-- Actionable error messages with context
+### Project-Specific Folders
 
-## Project-Specific Guidelines
+```
+Scanner111.Common/
+├── Analysis/          # Crash analysis logic
+├── Models/            # Data models and DTOs
+├── Services/          # Business services
+├── Data/              # Data access
+└── Utilities/         # Helper classes
+```
 
-### Porting from Legacy Code
-1. Reference "Code to Port/" directory for original functionality (READ-ONLY)
-2. Use sample_logs/ for test input validation (READ-ONLY)
-3. Validate against sample_output/ for compatibility (READ-ONLY)
-4. Replace "CLASSIC" references with "Scanner111"
-5. Modernize with C# best practices while maintaining compatibility
+### Configuration Files
 
-### Core Business Logic Location
-- **Scanner111.Core**: ALL non-UI logic must be placed here
-- Separate interfaces from implementations  
-- Organize by domain/feature areas
-- Keep DTOs in dedicated Models/ folders
+- **Directory.Build.props**: Solution-wide MSBuild properties
+- **.editorconfig**: Code style rules (if present)
+- **global.json**: SDK version pinning (if present)
 
-### Key Reminders
-- Never modify READ-ONLY directories (Code to Port, sample_logs, sample_output)
-- Always write tests first (TDD approach)
-- Use proper disposal patterns for all resources
-- Validate all inputs early with clear error messages
-- Avoid replicating Python patterns - use C# idioms instead
-- Query YAML files directly rather than caching frequently-used values
-- Properly use cancellation tokens and timeouts in tests to prevent hanging
-- Build warnings configured as errors: CS1998 (async without await), xUnit1031, CS0618 (obsolete)
+## Version Control
+
+### Current Branch
+
+- Main development branch: `main`
+- Feature branches: `feature/description`
+- Bug fix branches: `fix/description`
+
+### Commit Guidelines
+
+- Use clear, descriptive commit messages
+- Reference issue numbers if applicable
+- Keep commits focused and atomic
+
+## Resources and References
+
+### Official Documentation
+
+- **Avalonia Documentation**: https://docs.avaloniaui.net/
+- **.NET 9 Documentation**: https://learn.microsoft.com/dotnet/
+- **xUnit Documentation**: https://xunit.net/
+- **Microsoft Learn**: https://learn.microsoft.com (searchable via MCP server)
+
+### Using Microsoft Learn MCP Server
+
+Claude Code has access to the `microsoft_learn` MCP server for searching official Microsoft documentation:
+
+- **microsoft_docs_search**: Search Microsoft Learn for .NET, C#, Azure, and other Microsoft technologies
+- **microsoft_code_sample_search**: Find official code examples and snippets
+- **microsoft_docs_fetch**: Retrieve complete documentation pages
+
+Use these tools to get up-to-date information about:
+- .NET 9.0 features and APIs
+- C# language features
+- Best practices and architectural guidance
+
+## Quick Reference
+
+### Add New Analyzer
+
+1. Create analyzer class in `Scanner111.Common/Analysis/`
+2. Implement business logic with tests
+3. Wire up in appropriate service/orchestrator
+4. Add UI integration in Scanner111 if needed
+
+### Add New Model
+
+1. Create model in `Scanner111.Common/Models/`
+2. Add validation if needed
+3. Update related services
+4. Add serialization tests
+
+### Add New UI Feature
+
+1. Design in `Scanner111/Views/`
+2. Create ViewModel in `Scanner111/ViewModels/`
+3. Implement business logic in `Scanner111.Common`
+4. Wire up in Desktop/CLI as needed
+
+---
+
+**Remember**: Scanner111.Common is the heart of the application. Keep UI concerns separate, and always validate against the original sample data when porting features.
