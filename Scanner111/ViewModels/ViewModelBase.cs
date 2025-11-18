@@ -1,7 +1,8 @@
 ﻿using ReactiveUI;
 
-namespace Scanner111.ViewModels;
-
-public class ViewModelBase : ReactiveObject
+namespace Scanner111.ViewModels
 {
+    public class ViewModelBase : ReactiveObject
+    {
+    }
 }

@@ -1,11 +1,12 @@
-﻿using Avalonia.Controls;
+using Avalonia.Controls;
 
-namespace Scanner111.Views;
-
-public partial class MainWindow : Window
+namespace Scanner111.Views
 {
-    public MainWindow()
+    public partial class MainWindow : Window
     {
-        InitializeComponent();
+        public MainWindow()
+        {
+            InitializeComponent();
+        }
     }
 }
