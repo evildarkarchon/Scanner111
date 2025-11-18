@@ -142,7 +142,7 @@ This document provides a comprehensive roadmap for porting CLASSIC (Crash Log Au
 
 #### Tasks
 
-- [ ] **ScanConfig.cs** - Scan configuration settings
+- [x] **ScanConfig.cs** - Scan configuration settings
   ```csharp
   namespace Scanner111.Common.Models.Configuration;
 
@@ -163,7 +163,7 @@ This document provides a comprehensive roadmap for porting CLASSIC (Crash Log Au
   ```
   **Reference**: `Code_To_Port/ClassicLib/ScanLog/models/scan_config.py`
 
-- [ ] **ScanStatistics.cs** - Scan progress and results tracking
+- [x] **ScanStatistics.cs** - Scan progress and results tracking
   ```csharp
   public record ScanStatistics
   {
@@ -177,7 +177,7 @@ This document provides a comprehensive roadmap for porting CLASSIC (Crash Log Au
   ```
   **Reference**: `Code_To_Port/ClassicLib/ScanLog/models/scan_statistics.py`
 
-- [ ] **ScanResult.cs** - Overall scan results
+- [x] **ScanResult.cs** - Overall scan results
   ```csharp
   public record ScanResult
   {
@@ -196,7 +196,7 @@ This document provides a comprehensive roadmap for porting CLASSIC (Crash Log Au
 
 #### Tasks
 
-- [ ] **LogSegment.cs** - Represents parsed log sections
+- [x] **LogSegment.cs** - Represents parsed log sections
   ```csharp
   public record LogSegment
   {
@@ -207,7 +207,7 @@ This document provides a comprehensive roadmap for porting CLASSIC (Crash Log Au
   }
   ```
 
-- [ ] **CrashHeader.cs** - Crash log header information
+- [x] **CrashHeader.cs** - Crash log header information
   ```csharp
   public record CrashHeader
   {
@@ -218,7 +218,7 @@ This document provides a comprehensive roadmap for porting CLASSIC (Crash Log Au
   }
   ```
 
-- [ ] **PluginInfo.cs** - Game plugin information
+- [x] **PluginInfo.cs** - Game plugin information
   ```csharp
   public record PluginInfo
   {
@@ -230,7 +230,7 @@ This document provides a comprehensive roadmap for porting CLASSIC (Crash Log Au
   }
   ```
 
-- [ ] **ModuleInfo.cs** - DLL module information
+- [x] **ModuleInfo.cs** - DLL module information
   ```csharp
   public record ModuleInfo
   {
@@ -246,7 +246,7 @@ This document provides a comprehensive roadmap for porting CLASSIC (Crash Log Au
 
 #### Tasks
 
-- [ ] **ReportFragment.cs** - Immutable report section
+- [x] **ReportFragment.cs** - Immutable report section
   ```csharp
   /// <summary>
   /// Immutable report fragment for functional composition.
@@ -271,7 +271,7 @@ This document provides a comprehensive roadmap for porting CLASSIC (Crash Log Au
   ```
   **Reference**: `Code_To_Port/ClassicLib/ScanLog/fragments/report_fragment.py`
 
-- [ ] **LogAnalysisResult.cs** - Complete analysis result
+- [x] **LogAnalysisResult.cs** - Complete analysis result
   ```csharp
   public record LogAnalysisResult
   {
@@ -290,9 +290,9 @@ This document provides a comprehensive roadmap for porting CLASSIC (Crash Log Au
 
 #### Tasks
 
-- [ ] **ConfigurationModelTests.cs** - Test ScanConfig, ScanStatistics, ScanResult
-- [ ] **AnalysisModelTests.cs** - Test LogSegment, CrashHeader, PluginInfo
-- [ ] **ReportFragmentTests.cs** - Test immutable composition, operators
+- [x] **ConfigurationModelTests.cs** - Test ScanConfig, ScanStatistics, ScanResult
+- [x] **AnalysisModelTests.cs** - Test LogSegment, CrashHeader, PluginInfo
+- [x] **ReportFragmentTests.cs** - Test immutable composition, operators
   ```csharp
   [Fact]
   public void ReportFragment_WithHeader_AddsHeaderWhenContentExists()
