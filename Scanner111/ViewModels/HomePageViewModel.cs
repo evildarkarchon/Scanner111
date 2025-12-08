@@ -6,6 +6,7 @@ using Scanner111.Models;
 using Scanner111.Services;
 using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Reactive;
 using System.Threading.Tasks;
 
@@ -15,6 +16,8 @@ public class HomePageViewModel : ViewModelBase
 {
     private readonly IScanExecutor _scanExecutor;
     private readonly IScanResultsService _scanResultsService;
+    private readonly IDialogService _dialogService;
+    private readonly ISettingsService _settingsService;
 
     [Reactive] public string StagingModsPath { get; set; } = string.Empty;
     [Reactive] public string CustomScanPath { get; set; } = "D:/Crash Logs";
@@ -36,10 +39,16 @@ public class HomePageViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> BrowseCustomScanCommand { get; }
     public ReactiveCommand<Unit, Unit> FetchPastebinCommand { get; }
 
-    public HomePageViewModel(IScanExecutor scanExecutor, IScanResultsService scanResultsService)
+    public HomePageViewModel(
+        IScanExecutor scanExecutor,
+        IScanResultsService scanResultsService,
+        IDialogService dialogService,
+        ISettingsService settingsService)
     {
         _scanExecutor = scanExecutor;
         _scanResultsService = scanResultsService;
+        _dialogService = dialogService;
+        _settingsService = settingsService;
 
         var canScan = this.WhenAnyValue(x => x.IsScanning, scanning => !scanning);
 
@@ -51,15 +60,35 @@ public class HomePageViewModel : ViewModelBase
         });
         OpenCrashLogsCommand = ReactiveCommand.Create(OpenCrashLogsFolder);
 
-        BrowseStagingCommand = ReactiveCommand.Create(() =>
-        {
-            /* TODO: Open Folder Dialog */
-        });
-        BrowseCustomScanCommand = ReactiveCommand.Create(() =>
-        {
-            /* TODO: Open Folder Dialog */
-        });
+        BrowseStagingCommand = ReactiveCommand.CreateFromTask(BrowseStagingFolderAsync);
+        BrowseCustomScanCommand = ReactiveCommand.CreateFromTask(BrowseCustomScanFolderAsync);
         FetchPastebinCommand = ReactiveCommand.Create(() => { StatusText = "Fetch Pastebin not yet implemented."; });
+    }
+
+    private async Task BrowseStagingFolderAsync()
+    {
+        var folder = await _dialogService.ShowFolderPickerAsync(
+            "Select Staging Mods Folder",
+            StagingModsPath);
+
+        if (!string.IsNullOrEmpty(folder))
+        {
+            StagingModsPath = folder;
+            StatusText = $"Staging folder set to: {folder}";
+        }
+    }
+
+    private async Task BrowseCustomScanFolderAsync()
+    {
+        var folder = await _dialogService.ShowFolderPickerAsync(
+            "Select Crash Logs Folder",
+            CustomScanPath);
+
+        if (!string.IsNullOrEmpty(folder))
+        {
+            CustomScanPath = folder;
+            StatusText = $"Scan folder set to: {folder}";
+        }
     }
 
     private async Task ExecuteScanAsync()
@@ -78,8 +107,9 @@ public class HomePageViewModel : ViewModelBase
         var config = new ScanConfig
         {
             ScanPath = CustomScanPath,
-            FcxMode = false, // TODO: Get from settings
-            ShowFormIdValues = false // TODO: Get from settings
+            FcxMode = _settingsService.FcxMode,
+            ShowFormIdValues = _settingsService.ShowFormIdValues,
+            MaxConcurrent = _settingsService.MaxConcurrent
         };
 
         var progressReporter = new Progress<ScanProgress>(p =>
@@ -98,12 +128,15 @@ public class HomePageViewModel : ViewModelBase
 
             foreach (var processedFile in result.ProcessedFiles)
             {
-                // TODO: Load actual markdown content from the generated AUTOSCAN file
+                // Try to load actual AUTOSCAN content
+                var autoscanPath = GetAutoscanPath(processedFile);
+                var content = await LoadAutoscanContentAsync(autoscanPath, processedFile);
+
                 ScanResults.Add(new LogAnalysisResultDisplay
                 {
-                    FileName = System.IO.Path.GetFileName(processedFile),
+                    FileName = Path.GetFileName(processedFile),
                     Status = "Completed",
-                    Content = $"# {System.IO.Path.GetFileName(processedFile)}\n\nAnalysis completed."
+                    Content = content
                 });
             }
 
@@ -111,9 +144,9 @@ public class HomePageViewModel : ViewModelBase
             {
                 ScanResults.Add(new LogAnalysisResultDisplay
                 {
-                    FileName = System.IO.Path.GetFileName(failedLog),
+                    FileName = Path.GetFileName(failedLog),
                     Status = "Failed",
-                    Content = $"# {System.IO.Path.GetFileName(failedLog)}\n\nFailed to process this log."
+                    Content = $"# {Path.GetFileName(failedLog)}\n\nFailed to process this log."
                 });
             }
 
@@ -130,9 +163,36 @@ public class HomePageViewModel : ViewModelBase
         }
     }
 
+    private static string GetAutoscanPath(string logFilePath)
+    {
+        // AUTOSCAN files are typically named like: crash-name-AUTOSCAN.md
+        var directory = Path.GetDirectoryName(logFilePath) ?? string.Empty;
+        var fileName = Path.GetFileNameWithoutExtension(logFilePath);
+        return Path.Combine(directory, $"{fileName}-AUTOSCAN.md");
+    }
+
+    private static async Task<string> LoadAutoscanContentAsync(string autoscanPath, string originalLogPath)
+    {
+        if (File.Exists(autoscanPath))
+        {
+            try
+            {
+                return await File.ReadAllTextAsync(autoscanPath);
+            }
+            catch
+            {
+                // Fall through to default content
+            }
+        }
+
+        // Default content if AUTOSCAN file doesn't exist
+        return
+            $"# {Path.GetFileName(originalLogPath)}\n\nAnalysis completed. AUTOSCAN file not found at:\n`{autoscanPath}`";
+    }
+
     private void OpenCrashLogsFolder()
     {
-        if (!string.IsNullOrWhiteSpace(CustomScanPath) && System.IO.Directory.Exists(CustomScanPath))
+        if (!string.IsNullOrWhiteSpace(CustomScanPath) && Directory.Exists(CustomScanPath))
         {
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {

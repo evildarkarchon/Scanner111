@@ -1,5 +1,4 @@
 using System.Threading.Tasks;
-using ReactiveUI;
 using Scanner111.ViewModels;
 
 namespace Scanner111.Services;
@@ -7,4 +6,12 @@ namespace Scanner111.Services;
 public interface IDialogService
 {
     Task ShowSettingsDialogAsync(SettingsViewModel viewModel);
+
+    /// <summary>
+    /// Shows a folder picker dialog.
+    /// </summary>
+    /// <param name="title">Title of the dialog.</param>
+    /// <param name="initialDirectory">Optional initial directory to open.</param>
+    /// <returns>The selected folder path, or null if cancelled.</returns>
+    Task<string?> ShowFolderPickerAsync(string title, string? initialDirectory = null);
 }

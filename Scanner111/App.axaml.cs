@@ -74,6 +74,9 @@ public partial class App : Application
         // Register Scan Results Service (shared state for results)
         services.AddSingleton<IScanResultsService, ScanResultsService>();
 
+        // Register Settings Service (shared settings state)
+        services.AddSingleton<ISettingsService, SettingsService>();
+
         // Register ResultsViewModel (uses shared results service)
         services.AddTransient<ResultsViewModel>();
     }
