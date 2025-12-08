@@ -13,8 +13,8 @@
         <Border Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,1,0" Padding="10">
             <Grid RowDefinitions="Auto, *">
                 <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="0,0,0,10">
-                    <Button Content="Refresh" />
-                    <Button Content="Delete Selected" />
+                    <Button Content="Refresh" Command="{Binding RefreshCommand}" />
+                    <Button Content="Delete Selected" Command="{Binding DeleteSelectedCommand}" />
                 </StackPanel>
 
                 <ListBox Grid.Row="1" ItemsSource="{Binding Results}" SelectedItem="{Binding SelectedResult}"

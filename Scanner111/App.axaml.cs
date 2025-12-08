@@ -63,6 +63,14 @@ public partial class App : Application
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<HomePageViewModel>();
+        services.AddTransient<BackupsViewModel>();
+        services.AddTransient<ArticlesViewModel>();
+
+        // Register factory delegates for ViewModel navigation
+        services.AddTransient<Func<SettingsViewModel>>(sp => () => sp.GetRequiredService<SettingsViewModel>());
+        services.AddTransient<Func<HomePageViewModel>>(sp => () => sp.GetRequiredService<HomePageViewModel>());
+        services.AddTransient<Func<ResultsViewModel>>(sp => () => sp.GetRequiredService<ResultsViewModel>());
+        services.AddTransient<Func<BackupsViewModel>>(sp => () => sp.GetRequiredService<BackupsViewModel>());
 
         // Register Views (MainWindow needs to resolve its ViewModel)
         services.AddTransient<MainWindow>();
@@ -76,6 +84,9 @@ public partial class App : Application
 
         // Register Settings Service (shared settings state)
         services.AddSingleton<ISettingsService, SettingsService>();
+
+        // Register Backup Service
+        services.AddSingleton<IBackupService, BackupService>();
 
         // Register ResultsViewModel (uses shared results service)
         services.AddTransient<ResultsViewModel>();

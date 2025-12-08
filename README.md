@@ -4,12 +4,12 @@ A high-performance crash log analyzer for Bethesda games (Fallout 4), ported fro
 
 ## Status
 
-**Porting Status:** Phase 10 Complete (Optimization & Polish)
-**Tests Passing:** 213/213
+**Porting Status:** Phase 11 Complete (UI Architecture Overhaul)
+**Tests Passing:** 213+
 
 ## Architecture
 
-*   **Scanner111**: Avalonia UI (MVVM) frontend.
+*   **Scanner111**: Avalonia UI (MVVM) frontend with sidebar navigation.
 *   **Scanner111.Common**: Core business logic, analysis, and reporting (NetStandard 2.0 / Net9.0).
 *   **Scanner111.Benchmarks**: Performance profiling using BenchmarkDotNet.
 *   **Scanner111.Tests**: Unit and integration tests.
@@ -45,16 +45,22 @@ dotnet run -c Release --project Scanner111.Benchmarks/Scanner111.Benchmarks.cspr
 dotnet run --project Scanner111/Scanner111.csproj
 ```
 
-## Features implemented
+## Features Implemented
 
+### Core Analysis
 *   **Log Parsing**: Fast regex-based parsing of crash logs.
-*   **Analysis**:
-    *   Plugin detection and load order analysis.
-    *   Suspect detection (error messages, stack traces).
-    *   Settings validation (Buffout 4 config).
-    *   FormID analysis (SQLite database lookup).
+*   **Plugin Analysis**: Plugin detection and load order analysis.
+*   **Suspect Detection**: Error messages and stack trace pattern matching.
+*   **Settings Validation**: Buffout 4 config checking.
+*   **FormID Analysis**: SQLite database lookup.
 *   **Reporting**: Markdown report generation with immutable fragment composition.
-*   **GUI**: Modern Avalonia UI with reactive view models.
+
+### GUI (New in Phase 11)
+*   **Sidebar Navigation**: Dark-themed sidebar with page navigation.
+*   **Dashboard (Home)**: Scan actions, folder browsing, Pastebin fetch.
+*   **Results View**: Markdown-rendered AUTOSCAN reports with master-detail layout.
+*   **Settings View**: Persistent settings with FCX mode and FormID toggles.
+*   **Shared Services**: Cross-ViewModel state management for results and settings.
 *   **Concurrency**: Async-first design with `SemaphoreSlim` throttling for batch scans.
 
 ## Performance

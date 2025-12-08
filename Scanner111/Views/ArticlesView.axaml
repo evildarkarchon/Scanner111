@@ -2,8 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Scanner111.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
-             x:Class="Scanner111.Views.ArticlesView">
+             x:Class="Scanner111.Views.ArticlesView"
+             x:DataType="vm:ArticlesViewModel">
 
     <Grid Margin="40">
         <StackPanel Spacing="30">
@@ -26,19 +28,29 @@
                     </Style>
                 </WrapPanel.Styles>
 
-                <Button Content="BUFFOUT 4 INSTALLATION" />
-                <Button Content="FALLOUT 4 SETUP TIPS" />
-                <Button Content="IMPORTANT PATCHES LIST" />
+                <Button Content="BUFFOUT 4 INSTALLATION" Command="{Binding OpenUrlCommand}"
+                        CommandParameter="https://www.nexusmods.com/fallout4/articles/3115" />
+                <Button Content="FALLOUT 4 SETUP TIPS" Command="{Binding OpenUrlCommand}"
+                        CommandParameter="https://www.nexusmods.com/fallout4/articles/4141" />
+                <Button Content="IMPORTANT PATCHES LIST" Command="{Binding OpenUrlCommand}"
+                        CommandParameter="https://www.nexusmods.com/fallout4/articles/3769" />
 
-                <Button Content="BUFFOUT 4 NEXUS" />
-                <Button Content="CLASSIC NEXUS" />
-                <Button Content="CLASSIC GITHUB" />
+                <Button Content="BUFFOUT 4 NEXUS" Command="{Binding OpenUrlCommand}"
+                        CommandParameter="https://www.nexusmods.com/fallout4/mods/47359" />
+                <Button Content="CLASSIC NEXUS" Command="{Binding OpenUrlCommand}"
+                        CommandParameter="https://www.nexusmods.com/fallout4/mods/56255" />
+                <Button Content="CLASSIC GITHUB" Command="{Binding OpenUrlCommand}"
+                        CommandParameter="https://github.com/evildarkarchon/CLASSIC-Fallout4" />
 
-                <Button Content="DDS TEXTURE SCANNER" />
-                <Button Content="BETHINI PIE" />
-                <Button Content="WRYE BASH" />
+                <Button Content="DDS TEXTURE SCANNER" Command="{Binding OpenUrlCommand}"
+                        CommandParameter="https://www.nexusmods.com/fallout4/mods/71588" />
+                <Button Content="BETHINI PIE" Command="{Binding OpenUrlCommand}"
+                        CommandParameter="https://www.nexusmods.com/site/mods/631" />
+                <Button Content="WRYE BASH" Command="{Binding OpenUrlCommand}"
+                        CommandParameter="https://www.nexusmods.com/fallout4/mods/20032" />
             </WrapPanel>
         </StackPanel>
     </Grid>
 </UserControl>
+
 

@@ -14,6 +14,7 @@ public class SettingsViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> BrowseScanPathCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowseModsFolderPathCommand { get; }
     public ReactiveCommand<Unit, Unit> SaveCommand { get; }
+    public ReactiveCommand<Unit, Unit> ResetToDefaultsCommand { get; }
 
     [Reactive] public string ScanPath { get; set; } = string.Empty;
     [Reactive] public string ModsFolderPath { get; set; } = string.Empty;
@@ -37,6 +38,7 @@ public class SettingsViewModel : ViewModelBase
         BrowseScanPathCommand = ReactiveCommand.CreateFromTask(BrowseScanPathAsync);
         BrowseModsFolderPathCommand = ReactiveCommand.CreateFromTask(BrowseModsFolderPathAsync);
         SaveCommand = ReactiveCommand.Create(SaveSettings);
+        ResetToDefaultsCommand = ReactiveCommand.Create(ResetToDefaults);
     }
 
     private async Task BrowseScanPathAsync()
@@ -64,7 +66,22 @@ public class SettingsViewModel : ViewModelBase
         _settingsService.MaxConcurrent = MaxConcurrent;
         _settingsService.FcxMode = FcxMode;
         _settingsService.ShowFormIdValues = ShowFormIdValues;
+        _settingsService.Save();
 
         StatusText = "Settings saved!";
+    }
+
+    private void ResetToDefaults()
+    {
+        _settingsService.ResetToDefaults();
+
+        // Reload values from service
+        ScanPath = _settingsService.ScanPath;
+        ModsFolderPath = _settingsService.ModsFolderPath;
+        MaxConcurrent = _settingsService.MaxConcurrent;
+        FcxMode = _settingsService.FcxMode;
+        ShowFormIdValues = _settingsService.ShowFormIdValues;
+
+        StatusText = "Settings reset to defaults.";
     }
 }

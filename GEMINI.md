@@ -1,75 +1,80 @@
-# Scanner111 Project Context
+# Scanner111 - Crash Log Analyzer
 
 ## Project Overview
 
-**Scanner111** is a high-performance crash log analyzer for Bethesda games (Fallout 4), currently being ported from the Python/Rust-based "CLASSIC" tool to **.NET 9.0** and **Avalonia UI**.
+**Scanner111** is a high-performance crash log analyzer for Bethesda games (Fallout 4), currently being ported from a hybrid Python/Rust application ("CLASSIC") to **C# and Avalonia UI**.
 
-*   **Goal:** Replicate and improve upon the functionality of the original CLASSIC tool using modern C# technologies.
-*   **Current Status:** Phase 10 (Optimization & Polish) - 213/213 tests passing.
-*   **Legacy Codebase:** Located in `Code_to_Port/` (Reference only).
+This repository contains two distinct applications:
+1.  **Scanner111 (Active Development):** The new .NET 9.0 / Avalonia UI application.
+2.  **Code_to_Port (Reference):** The original Python/Rust application used as a reference for the port.
 
-## Architecture
+## Directory Structure
 
-The solution (`Scanner111.slnx`) consists of four main projects:
+### Scanner111 (New C# Application)
+*   **`Scanner111/`**: The main Avalonia UI application (MVVM architecture).
+*   **`Scanner111.Common/`**: Core business logic, parsing, and analysis (NetStandard 2.0 / .NET 9.0).
+*   **`Scanner111.Benchmarks/`**: Performance profiling projects using BenchmarkDotNet.
+*   **`Scanner111.Tests/`**: Unit and integration tests.
+*   **`Scanner111.slnx`**: The Visual Studio solution file.
 
-1.  **Scanner111 (GUI)**
-    *   **Framework:** Avalonia UI (MVVM pattern).
-    *   **Role:** The main desktop application entry point.
-    *   **Key Dirs:** `Views/`, `ViewModels/`, `Services/`.
+### Code_to_Port (Legacy/Reference Application)
+*   **`Code_to_Port/`**: Contains the source code for the original CLASSIC tool.
+    *   **`ClassicLib/`**: Python source code.
+    *   **`rust/`**: Rust source code (performance-critical modules).
+    *   **`GEMINI.md`**: Detailed documentation for the legacy codebase.
 
-2.  **Scanner111.Common (Core)**
-    *   **Framework:** .NET Standard 2.0 / .NET 9.0.
-    *   **Role:** Contains all business logic, log parsing, analysis, and reporting.
-    *   **Key Components:** `LogParser`, `PluginAnalyzer`, `SuspectScanner`, `ReportBuilder`.
+## Development: Scanner111 (C#)
 
-3.  **Scanner111.Tests (Testing)**
-    *   **Framework:** xUnit.
-    *   **Role:** Unit and integration tests for the Common library and ViewModels.
-    *   **Coverage:** High coverage enforced for core logic.
+### Prerequisites
+*   **.NET 9.0 SDK**
+*   Visual Studio 2022 or VS Code with C# Dev Kit.
 
-4.  **Scanner111.Benchmarks (Performance)**
-    *   **Framework:** BenchmarkDotNet.
-    *   **Role:** Performance profiling to ensure the C# port matches or exceeds the Rust implementation.
+### Build & Run
+```bash
+# Build the solution
+dotnet build
 
-## Development Workflow
+# Run the UI Application
+dotnet run --project Scanner111/Scanner111.csproj
 
-### Building and Running
+# Run Benchmarks
+dotnet run -c Release --project Scanner111.Benchmarks/Scanner111.Benchmarks.csproj
+```
 
-*   **Build Solution:**
-    ```powershell
-    dotnet build
-    ```
+### Testing
+```bash
+# Run all tests
+dotnet test
+```
 
-*   **Run GUI:**
-    ```powershell
-    dotnet run --project Scanner111/Scanner111.csproj
-    ```
+### Architecture Notes
+*   **UI Framework:** Avalonia UI with MVVM pattern.
+*   **Concurrency:** Async-first design. Long-running scans are throttled using `SemaphoreSlim`.
+*   **Performance:** Log parsing uses optimized Regex and takes ~150us per log.
+*   **Navigation:** Uses a Sidebar + Page navigation model.
 
-*   **Run Tests:**
-    ```powershell
-    dotnet test
-    ```
+## Development: Code_to_Port (Python/Rust Reference)
 
-*   **Run Benchmarks:**
-    ```powershell
-    dotnet run -c Release --project Scanner111.Benchmarks/Scanner111.Benchmarks.csproj
-    ```
+If you need to run the original application for comparison:
 
-### Porting & Reference
+```bash
+cd Code_to_Port
 
-The `Code_to_Port/` directory contains the source of truth for the logic being ported.
-*   **Do not modify** files in `Code_to_Port/` unless explicitly instructed to fix a reference issue.
-*   **Reference:** Use `Code_to_Port/CLASSIC_ScanLogs.py` and `Code_to_Port/ClassicLib/` to understand the original logic.
-*   **Roadmap:** Refer to `PORTING_ROADMAP.md` for detailed task breakdowns and phase status.
+# Install dependencies
+uv sync --all-extras
 
-## Key Conventions
+# Run the GUI
+uv run python CLASSIC_Interface.py
+```
 
-*   **Async/Await:** All I/O and heavy computation must be async.
-*   **Immutability:** Use `record` types for data models (`ScanConfig`, `LogAnalysisResult`, etc.).
-*   **ReactiveUI:** The GUI uses ReactiveUI for MVVM (ReactiveCommand, [Reactive] properties).
-*   **Testing:** New features **must** have accompanying unit tests in `Scanner111.Tests`.
+*Refer to `Code_to_Port/GEMINI.md` for deep-dive details on the legacy architecture.*
 
-## Useful Commands
+## Porting Status
 
-*   **List all tests:** `dotnet test --list-tests`
-*   **Run specific test:** `dotnet test --filter "FullyQualifiedName~LogParserTests"`
+**Current Status:** Phase 11 Complete (UI Architecture Overhaul).
+**Goal:** Reach feature parity with CLASSIC while improving performance and maintainability.
+
+### Key Conventions
+*   **Tests:** Maintain high test coverage (currently 213+ tests passing). New features must be tested.
+*   **Benchmarks:** Use `Scanner111.Benchmarks` to verify performance gains for critical paths (parsing, analysis).
+*   **UI:** Follow Avalonia MVVM best practices.

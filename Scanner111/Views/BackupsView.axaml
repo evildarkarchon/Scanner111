@@ -2,8 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Scanner111.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
-             x:Class="Scanner111.Views.BackupsView">
+             x:Class="Scanner111.Views.BackupsView"
+             x:DataType="vm:BackupsViewModel">
 
     <Grid Margin="40">
         <StackPanel Spacing="20">
@@ -28,9 +30,9 @@
                     <TextBlock Text="XSE" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"
                                FontSize="16" />
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="BACKUP" />
-                        <Button Content="RESTORE" />
-                        <Button Content="REMOVE" />
+                        <Button Content="BACKUP" Command="{Binding BackupXseCommand}" />
+                        <Button Content="RESTORE" Command="{Binding RestoreXseCommand}" />
+                        <Button Content="REMOVE" Command="{Binding RemoveXseCommand}" />
                     </StackPanel>
                     <Separator Background="#333333" Width="500" />
                 </StackPanel>
@@ -40,9 +42,9 @@
                     <TextBlock Text="RESHADE" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"
                                FontSize="16" />
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="BACKUP" />
-                        <Button Content="RESTORE" />
-                        <Button Content="REMOVE" />
+                        <Button Content="BACKUP" Command="{Binding BackupReshadeCommand}" />
+                        <Button Content="RESTORE" Command="{Binding RestoreReshadeCommand}" />
+                        <Button Content="REMOVE" Command="{Binding RemoveReshadeCommand}" />
                     </StackPanel>
                     <Separator Background="#333333" Width="500" />
                 </StackPanel>
@@ -52,9 +54,9 @@
                     <TextBlock Text="VULKAN" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"
                                FontSize="16" />
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="BACKUP" />
-                        <Button Content="RESTORE" />
-                        <Button Content="REMOVE" />
+                        <Button Content="BACKUP" Command="{Binding BackupVulkanCommand}" />
+                        <Button Content="RESTORE" Command="{Binding RestoreVulkanCommand}" />
+                        <Button Content="REMOVE" Command="{Binding RemoveVulkanCommand}" />
                     </StackPanel>
                     <Separator Background="#333333" Width="500" />
                 </StackPanel>
@@ -64,17 +66,23 @@
                     <TextBlock Text="ENB" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"
                                FontSize="16" />
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="BACKUP" />
-                        <Button Content="RESTORE" />
-                        <Button Content="REMOVE" />
+                        <Button Content="BACKUP" Command="{Binding BackupEnbCommand}" />
+                        <Button Content="RESTORE" Command="{Binding RestoreEnbCommand}" />
+                        <Button Content="REMOVE" Command="{Binding RemoveEnbCommand}" />
                     </StackPanel>
                 </StackPanel>
 
             </StackPanel>
 
-            <Button Content="OPEN CLASSIC BACKUPS FOLDER" HorizontalAlignment="Center" Margin="0,40,0,0" />
+            <Button Content="OPEN CLASSIC BACKUPS FOLDER" Command="{Binding OpenBackupsFolderCommand}"
+                    HorizontalAlignment="Center" Margin="0,40,0,0" />
+
+            <!-- Status Text -->
+            <TextBlock Text="{Binding StatusText}" HorizontalAlignment="Center" Foreground="#888888"
+                       Margin="0,20,0,0" TextWrapping="Wrap" />
 
         </StackPanel>
     </Grid>
 </UserControl>
+
 

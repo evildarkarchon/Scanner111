@@ -10,6 +10,7 @@ public class MainWindowViewModel : ViewModelBase
     private readonly Func<SettingsViewModel> _settingsViewModelFactory;
     private readonly Func<HomePageViewModel> _homePageViewModelFactory;
     private readonly Func<ResultsViewModel> _resultsViewModelFactory;
+    private readonly Func<BackupsViewModel> _backupsViewModelFactory;
 
     [Reactive] public ViewModelBase CurrentPage { get; set; }
 
@@ -23,15 +24,17 @@ public class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel(
         Func<SettingsViewModel> settingsViewModelFactory,
         Func<HomePageViewModel> homePageViewModelFactory,
-        Func<ResultsViewModel> resultsViewModelFactory)
+        Func<ResultsViewModel> resultsViewModelFactory,
+        Func<BackupsViewModel> backupsViewModelFactory)
     {
         _settingsViewModelFactory = settingsViewModelFactory;
         _homePageViewModelFactory = homePageViewModelFactory;
         _resultsViewModelFactory = resultsViewModelFactory;
+        _backupsViewModelFactory = backupsViewModelFactory;
 
         GoToHomeCommand = ReactiveCommand.Create(() => { CurrentPage = _homePageViewModelFactory(); });
         GoToArticlesCommand = ReactiveCommand.Create(() => { CurrentPage = new ArticlesViewModel(); });
-        GoToBackupsCommand = ReactiveCommand.Create(() => { CurrentPage = new BackupsViewModel(); });
+        GoToBackupsCommand = ReactiveCommand.Create(() => { CurrentPage = _backupsViewModelFactory(); });
         GoToResultsCommand = ReactiveCommand.Create(() => { CurrentPage = _resultsViewModelFactory(); });
         GoToSettingsCommand = ReactiveCommand.Create(() => { CurrentPage = _settingsViewModelFactory(); });
 
@@ -46,3 +49,4 @@ public class MainWindowViewModel : ViewModelBase
         Environment.Exit(0);
     }
 }
+
