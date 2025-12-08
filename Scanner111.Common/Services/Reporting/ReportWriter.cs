@@ -6,7 +6,7 @@ namespace Scanner111.Common.Services.Reporting;
 /// <summary>
 /// Writes crash log analysis reports to markdown files.
 /// </summary>
-public class ReportWriter
+public class ReportWriter : IReportWriter
 {
     private readonly IFileIOService _fileIO;
 

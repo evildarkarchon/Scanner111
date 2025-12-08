@@ -27,6 +27,11 @@ public record ScanConfig
     public bool SimplifyLogs { get; init; }
 
     /// <summary>
+    /// Gets the directory path to scan for crash logs.
+    /// </summary>
+    public string ScanPath { get; init; } = string.Empty;
+
+    /// <summary>
     /// Gets custom paths for game directories and resources.
     /// </summary>
     public IReadOnlyDictionary<string, string> CustomPaths { get; init; } =

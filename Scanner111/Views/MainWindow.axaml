@@ -5,16 +5,41 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Scanner111.Views.MainWindow"
-        x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="Scanner111">
+        Title="Scanner111 - Crash Log Scanner"
+        x:DataType="vm:MainWindowViewModel">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainWindowViewModel/>
+        <vm:MainWindowViewModel />
     </Design.DataContext>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <DockPanel>
+        <!-- Menu Bar -->
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Settings" Command="{Binding OpenSettingsCommand}" />
+                <MenuItem Header="_Exit" Command="{Binding ExitCommand}" />
+            </MenuItem>
+        </Menu>
 
+        <!-- Main Content -->
+        <Grid RowDefinitions="Auto,*,Auto">
+            <!-- Scan Configuration -->
+            <StackPanel Grid.Row="0" Margin="10">
+                <TextBlock Text="Scan Configuration" FontSize="16" FontWeight="Bold" />
+                <CheckBox Content="FCX Mode" IsChecked="{Binding FcxMode}" />
+                <CheckBox Content="Show FormID Values" IsChecked="{Binding ShowFormIds}" />
+                <Button Content="Scan Logs" Command="{Binding ScanCommand}" Margin="0,10,0,0" />
+            </StackPanel>
+
+            <!-- Results Grid -->
+            <DataGrid Grid.Row="1" ItemsSource="{Binding ScanResults}" AutoGenerateColumns="True" Margin="10" />
+
+            <!-- Status Bar -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="10">
+                <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                <ProgressBar Value="{Binding Progress}" Maximum="100" IsVisible="{Binding IsScanning}" Width="200" />
+            </StackPanel>
+        </Grid>
+    </DockPanel>
 </Window>
