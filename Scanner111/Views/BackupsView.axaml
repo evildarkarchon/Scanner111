@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+             x:Class="Scanner111.Views.BackupsView">
+
+    <Grid Margin="40">
+        <StackPanel Spacing="20">
+            <TextBlock Text="Game File Backups" FontSize="24" FontWeight="Bold"
+                       HorizontalAlignment="Center" Foreground="White" />
+
+            <TextBlock
+                Text="BACKUP: Copy files from game folder to CLASSIC Backup.&#x0a;RESTORE: Restore files from CLASSIC Backup to game folder.&#x0a;REMOVE: Delete files from game folder (backups remain)."
+                HorizontalAlignment="Center" TextAlignment="Center" Foreground="#AAAAAA" Margin="0,0,0,20" />
+
+            <StackPanel Spacing="20">
+                <StackPanel.Styles>
+                    <Style Selector="Button">
+                        <Setter Property="Width" Value="80" />
+                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                        <Setter Property="Margin" Value="5,0" />
+                    </Style>
+                </StackPanel.Styles>
+
+                <!-- XSE -->
+                <StackPanel HorizontalAlignment="Center" Spacing="10">
+                    <TextBlock Text="XSE" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"
+                               FontSize="16" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="BACKUP" />
+                        <Button Content="RESTORE" />
+                        <Button Content="REMOVE" />
+                    </StackPanel>
+                    <Separator Background="#333333" Width="500" />
+                </StackPanel>
+
+                <!-- RESHADE -->
+                <StackPanel HorizontalAlignment="Center" Spacing="10">
+                    <TextBlock Text="RESHADE" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"
+                               FontSize="16" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="BACKUP" />
+                        <Button Content="RESTORE" />
+                        <Button Content="REMOVE" />
+                    </StackPanel>
+                    <Separator Background="#333333" Width="500" />
+                </StackPanel>
+
+                <!-- VULKAN -->
+                <StackPanel HorizontalAlignment="Center" Spacing="10">
+                    <TextBlock Text="VULKAN" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"
+                               FontSize="16" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="BACKUP" />
+                        <Button Content="RESTORE" />
+                        <Button Content="REMOVE" />
+                    </StackPanel>
+                    <Separator Background="#333333" Width="500" />
+                </StackPanel>
+
+                <!-- ENB -->
+                <StackPanel HorizontalAlignment="Center" Spacing="10">
+                    <TextBlock Text="ENB" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"
+                               FontSize="16" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="BACKUP" />
+                        <Button Content="RESTORE" />
+                        <Button Content="REMOVE" />
+                    </StackPanel>
+                </StackPanel>
+
+            </StackPanel>
+
+            <Button Content="OPEN CLASSIC BACKUPS FOLDER" HorizontalAlignment="Center" Margin="0,40,0,0" />
+
+        </StackPanel>
+    </Grid>
+</UserControl>
+

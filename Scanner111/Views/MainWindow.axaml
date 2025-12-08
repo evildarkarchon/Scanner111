@@ -3,43 +3,50 @@
         xmlns:vm="using:Scanner111.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
         x:Class="Scanner111.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
-        Title="Scanner111 - Crash Log Scanner"
-        x:DataType="vm:MainWindowViewModel">
+        Title="CLASSIC - Crash Log Auto Scanner &amp; Setup Integrity Checker"
+        x:DataType="vm:MainWindowViewModel"
+        Background="#121212"
+        TransparencyLevelHint="AcrylicBlur"
+        ExtendClientAreaToDecorationsHint="False">
 
     <Design.DataContext>
         <vm:MainWindowViewModel />
     </Design.DataContext>
 
-    <DockPanel>
-        <!-- Menu Bar -->
-        <Menu DockPanel.Dock="Top">
-            <MenuItem Header="_File">
-                <MenuItem Header="_Settings" Command="{Binding OpenSettingsCommand}" />
-                <MenuItem Header="_Exit" Command="{Binding ExitCommand}" />
-            </MenuItem>
-        </Menu>
+    <Grid ColumnDefinitions="250, *">
+        <!-- Sidebar -->
+        <Border Grid.Column="0" Background="#1E1E1E" Padding="20">
+            <Grid RowDefinitions="Auto, *, Auto">
+                <!-- Title -->
+                <TextBlock Grid.Row="0" Text="CLASSIC" FontSize="28" FontWeight="Bold"
+                           HorizontalAlignment="Center" Margin="0,0,0,40" Foreground="White" />
+
+                <!-- Navigation -->
+                <StackPanel Grid.Row="1" Spacing="5">
+                    <Button Classes="NavButton" Content="Home" Command="{Binding GoToHomeCommand}"
+                            HorizontalAlignment="Stretch" />
+                    <Button Classes="NavButton" Content="Articles" Command="{Binding GoToArticlesCommand}"
+                            HorizontalAlignment="Stretch" />
+                    <Button Classes="NavButton" Content="Backups" Command="{Binding GoToBackupsCommand}"
+                            HorizontalAlignment="Stretch" />
+                    <Button Classes="NavButton" Content="Results" Command="{Binding GoToResultsCommand}"
+                            HorizontalAlignment="Stretch" />
+                    <Button Classes="NavButton" Content="Settings" Command="{Binding GoToSettingsCommand}"
+                            HorizontalAlignment="Stretch" />
+                </StackPanel>
+
+                <!-- Footer -->
+                <Button Grid.Row="2" Classes="NavButton" Content="Exit" Command="{Binding ExitCommand}"
+                        HorizontalAlignment="Stretch" />
+            </Grid>
+        </Border>
 
         <!-- Main Content -->
-        <Grid RowDefinitions="Auto,*,Auto">
-            <!-- Scan Configuration -->
-            <StackPanel Grid.Row="0" Margin="10">
-                <TextBlock Text="Scan Configuration" FontSize="16" FontWeight="Bold" />
-                <CheckBox Content="FCX Mode" IsChecked="{Binding FcxMode}" />
-                <CheckBox Content="Show FormID Values" IsChecked="{Binding ShowFormIds}" />
-                <Button Content="Scan Logs" Command="{Binding ScanCommand}" Margin="0,10,0,0" />
-            </StackPanel>
-
-            <!-- Results Grid -->
-            <DataGrid Grid.Row="1" ItemsSource="{Binding ScanResults}" AutoGenerateColumns="True" Margin="10" />
-
-            <!-- Status Bar -->
-            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="10">
-                <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                <ProgressBar Value="{Binding Progress}" Maximum="100" IsVisible="{Binding IsScanning}" Width="200" />
-            </StackPanel>
-        </Grid>
-    </DockPanel>
+        <Border Grid.Column="1" Padding="20">
+            <ContentControl Content="{Binding CurrentPage}" />
+        </Border>
+    </Grid>
 </Window>

@@ -1,0 +1,31 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Scanner111.ViewModels"
+             x:DataType="vm:SettingsViewModel"
+             x:Class="Scanner111.Views.SettingsView">
+    <Design.DataContext>
+        <vm:SettingsViewModel />
+    </Design.DataContext>
+    <StackPanel Margin="40" Spacing="20" MaxWidth="600" HorizontalAlignment="Left">
+        <TextBlock Text="Settings" FontSize="28" FontWeight="Bold" Foreground="White"/>
+        
+        <StackPanel Spacing="5">
+            <TextBlock Text="Scan Path" FontWeight="Bold" Foreground="White" />
+            <TextBox Text="{Binding ScanPath}" Watermark="e.g., C:\Games\Fallout4\Data\f4se\logs" />
+            <Button Content="Browse..." Command="{Binding BrowseScanPathCommand}" />
+        </StackPanel>
+
+        <StackPanel Spacing="5">
+            <TextBlock Text="Mods Folder Path" FontWeight="Bold" Foreground="White" />
+            <TextBox Text="{Binding ModsFolderPath}" Watermark="e.g., C:\Modding\Fallout4\Mods" />
+            <Button Content="Browse..." Command="{Binding BrowseModsFolderPathCommand}" />
+        </StackPanel>
+
+        <StackPanel Spacing="5">
+            <TextBlock Text="Max Concurrent Scans" FontWeight="Bold" Foreground="White" />
+            <TextBox Text="{Binding MaxConcurrent}" />
+        </StackPanel>
+
+        <Button Content="Save" Command="{Binding SaveCommand}" HorizontalAlignment="Right" Margin="0,20,0,0" Classes="Accent" />
+    </StackPanel>
+</UserControl>

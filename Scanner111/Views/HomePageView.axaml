@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Scanner111.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+             x:Class="Scanner111.Views.HomePageView"
+             x:DataType="vm:HomePageViewModel">
+
+    <Grid Margin="40">
+        <StackPanel Spacing="20">
+            <!-- Header -->
+            <TextBlock Text="CLASSIC Dashboard" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,20" />
+
+            <!-- Staging Mods Folder -->
+            <StackPanel Spacing="5">
+                <TextBlock Text="Staging Mods Folder" FontWeight="SemiBold" Foreground="White" />
+                <Grid ColumnDefinitions="*, Auto">
+                    <TextBox Grid.Column="0" Watermark="Optional: Select your mod staging folder (e.g., MO2/mods)"
+                             Text="{Binding StagingModsPath}" Margin="0,0,10,0" />
+                    <Button Grid.Column="1" Content="Browse..." Command="{Binding BrowseStagingCommand}" />
+                </Grid>
+            </StackPanel>
+
+            <!-- Custom Scan Folder -->
+            <StackPanel Spacing="5">
+                <TextBlock Text="Custom Scan Folder" FontWeight="SemiBold" Foreground="White" />
+                <Grid ColumnDefinitions="*, Auto">
+                    <TextBox Grid.Column="0" Text="{Binding CustomScanPath}" Margin="0,0,10,0" />
+                    <Button Grid.Column="1" Content="Browse..." Command="{Binding BrowseCustomScanCommand}" />
+                </Grid>
+            </StackPanel>
+
+            <!-- Pastebin Fetch -->
+            <StackPanel Spacing="5">
+                <TextBlock Text="Pastebin Fetch" FontWeight="SemiBold" Foreground="White" />
+                <Grid ColumnDefinitions="*, Auto">
+                    <TextBox Grid.Column="0" Watermark="Enter Pastebin URL or ID" Text="{Binding PastebinUrl}"
+                             Margin="0,0,10,0" />
+                    <Button Grid.Column="1" Content="Fetch Log" Command="{Binding FetchPastebinCommand}" />
+                </Grid>
+            </StackPanel>
+
+            <!-- Action Buttons -->
+            <Grid ColumnDefinitions="*, 20, *" Margin="0,30,0,0">
+                <Button Grid.Column="0" Content="SCAN CRASH LOGS" Command="{Binding ScanCrashLogsCommand}"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="15"
+                        FontWeight="Bold" />
+                <Button Grid.Column="2" Content="SCAN GAME FILES" Command="{Binding ScanGameFilesCommand}"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="15"
+                        FontWeight="Bold" />
+            </Grid>
+
+            <!-- Secondary Actions -->
+            <Grid ColumnDefinitions="*, 20, *" Margin="0,0,0,0">
+                <Button Grid.Column="0" Content="START PAPYRUS MONITOR" Command="{Binding StartPapyrusMonitorCommand}"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="10"
+                        FontWeight="Bold"
+                        Background="#28a745" Foreground="White" />
+                <Button Grid.Column="2" Content="OPEN CRASH LOGS" Command="{Binding OpenCrashLogsCommand}"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Padding="10"
+                        FontWeight="Bold" />
+            </Grid>
+
+            <!-- Status -->
+            <TextBlock Text="{Binding StatusText}" HorizontalAlignment="Center" Foreground="#888888" Margin="0,20,0,0" />
+        </StackPanel>
+    </Grid>
+</UserControl>
+

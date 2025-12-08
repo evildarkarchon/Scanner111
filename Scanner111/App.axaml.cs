@@ -50,24 +50,31 @@ public partial class App : Application
         services.AddSingleton<IReportWriter, ReportWriter>();
         services.AddSingleton<IYamlConfigLoader, YamlConfigLoader>();
         services.AddSingleton<IConfigurationCache, ConfigurationCache>(); // Assuming implementation exists
-        services.AddSingleton<IDatabaseConnectionFactory>(provider => 
+        services.AddSingleton<IDatabaseConnectionFactory>(provider =>
             new SqliteDatabaseConnectionFactory("path_to_your_db.sqlite")); // TODO: Get actual path from config
         services.AddSingleton<IFormIdAnalyzer, FormIdAnalyzer>();
 
         // Orchestration services (often transient or scoped if stateful per-request)
         // LogOrchestrator can be transient if it's processing one log per instance
-        services.AddTransient<ILogOrchestrator, LogOrchestrator>(); 
+        services.AddTransient<ILogOrchestrator, LogOrchestrator>();
         services.AddSingleton<IScanExecutor, ScanExecutor>();
 
         // Register ViewModels as transient, as new instances are typically created for each view
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<HomePageViewModel>();
 
         // Register Views (MainWindow needs to resolve its ViewModel)
         services.AddTransient<MainWindow>();
         services.AddTransient<SettingsWindow>(); // Register SettingsWindow
-        
+
         // Register DialogService
         services.AddSingleton<IDialogService, DialogService>();
+
+        // Register Scan Results Service (shared state for results)
+        services.AddSingleton<IScanResultsService, ScanResultsService>();
+
+        // Register ResultsViewModel (uses shared results service)
+        services.AddTransient<ResultsViewModel>();
     }
 }
