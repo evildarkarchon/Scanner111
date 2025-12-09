@@ -1,7 +1,3 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
 **Scanner111** is a C# port of CLASSIC (Crash Log Auto Scanner & Setup Integrity Checker), a tool for analyzing crash logs from Bethesda games (Fallout 4). Built with .NET 9.0 and Avalonia UI.
@@ -37,13 +33,13 @@ dotnet run -c Release --project Scanner111.Benchmarks/Scanner111.Benchmarks.cspr
 
 ### Projects
 
-| Project | Target | Purpose |
-|---------|--------|---------|
-| **Scanner111** | net9.0-windows10.0.19041.0 | Avalonia MVVM GUI |
-| **Scanner111.Common** | net9.0 | Business logic (parsing, analysis, reporting) |
-| **Scanner111.Tests** | net9.0-windows | GUI/ViewModel tests (xUnit + Avalonia.Headless) |
-| **Scanner111.Common.Tests** | net9.0 | Business logic tests (xUnit + FluentAssertions) |
-| **Scanner111.Benchmarks** | net10.0 | Performance benchmarks (BenchmarkDotNet) |
+| Project                     | Target                     | Purpose                                         |
+| --------------------------- | -------------------------- | ----------------------------------------------- |
+| **Scanner111**              | net9.0-windows10.0.19041.0 | Avalonia MVVM GUI                               |
+| **Scanner111.Common**       | net9.0                     | Business logic (parsing, analysis, reporting)   |
+| **Scanner111.Tests**        | net9.0-windows             | GUI/ViewModel tests (xUnit + Avalonia.Headless) |
+| **Scanner111.Common.Tests** | net9.0                     | Business logic tests (xUnit + FluentAssertions) |
+| **Scanner111.Benchmarks**   | net10.0                    | Performance benchmarks (BenchmarkDotNet)        |
 
 ### Key Service Layers (Scanner111.Common)
 

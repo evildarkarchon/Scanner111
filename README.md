@@ -2,11 +2,6 @@
 
 A high-performance crash log analyzer for Bethesda games (Fallout 4), ported from the Python/Rust-based CLASSIC tool to C# and Avalonia UI.
 
-## Status
-
-**Porting Status:** Phase 11 Complete (UI Architecture Overhaul)
-**Tests Passing:** 213+
-
 ## Architecture
 
 *   **Scanner111**: Avalonia UI (MVVM) frontend with sidebar navigation.
