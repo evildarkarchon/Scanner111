@@ -29,7 +29,7 @@ public class YamlConfigLoader : IYamlConfigLoader
             throw new FileNotFoundException($"YAML file not found: {yamlPath}");
         }
 
-        var content = await File.ReadAllTextAsync(yamlPath, ct);
+        var content = await File.ReadAllTextAsync(yamlPath, ct).ConfigureAwait(false);
         return _deserializer.Deserialize<T>(content);
     }
 
@@ -41,7 +41,7 @@ public class YamlConfigLoader : IYamlConfigLoader
             throw new FileNotFoundException($"YAML file not found: {yamlPath}");
         }
 
-        var content = await File.ReadAllTextAsync(yamlPath, ct);
+        var content = await File.ReadAllTextAsync(yamlPath, ct).ConfigureAwait(false);
         return _deserializer.Deserialize<Dictionary<string, object>>(content);
     }
 }

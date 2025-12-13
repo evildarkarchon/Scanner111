@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Data;
+using Microsoft.Data.Sqlite;
 using Scanner111.Common.Models.Analysis;
 using Scanner111.Common.Services.Database;
 using System.Data.Common;
@@ -57,7 +58,7 @@ public class FormIdAnalyzer : IFormIdAnalyzer
             return new FormIdAnalysisResult();
         }
 
-        var lookups = await LookupFormIdsAsync(foundFormIds.ToList(), ct);
+        var lookups = await LookupFormIdsAsync(foundFormIds.ToList(), ct).ConfigureAwait(false);
 
         return new FormIdAnalysisResult
         {
@@ -75,12 +76,12 @@ public class FormIdAnalyzer : IFormIdAnalyzer
             return new Dictionary<string, string>();
         }
 
-        try 
+        try
         {
-            using var connection = await _connectionFactory.CreateConnectionAsync(ct);
-            
+            using var connection = await _connectionFactory.CreateConnectionAsync(ct).ConfigureAwait(false);
+
             // Construct parameterized query manually since we aren't using Dapper
-            var command = connection.CreateCommand();
+            using var command = connection.CreateCommand();
             var parameters = new List<string>();
             var sb = new StringBuilder();
             sb.Append("SELECT FormID, RecordName FROM FormIDDatabase WHERE FormID IN (");
@@ -89,7 +90,7 @@ public class FormIdAnalyzer : IFormIdAnalyzer
             {
                 var paramName = $"@id{i}";
                 parameters.Add(paramName);
-                
+
                 var parameter = command.CreateParameter();
                 parameter.ParameterName = paramName;
                 parameter.Value = formIds[i];
@@ -102,10 +103,10 @@ public class FormIdAnalyzer : IFormIdAnalyzer
 
             if (command is DbCommand dbCommand)
             {
-                using var reader = await dbCommand.ExecuteReaderAsync(ct);
+                using var reader = await dbCommand.ExecuteReaderAsync(ct).ConfigureAwait(false);
                 var results = new Dictionary<string, string>();
-                
-                while (await reader.ReadAsync(ct))
+
+                while (await reader.ReadAsync(ct).ConfigureAwait(false))
                 {
                     var formId = reader.GetString(0).ToUpperInvariant();
                     var recordName = reader.GetString(1);
@@ -121,12 +122,12 @@ public class FormIdAnalyzer : IFormIdAnalyzer
                 // Fallback for non-DbCommand (unlikely in typical ADO.NET but safe)
                 using var reader = command.ExecuteReader();
                 var results = new Dictionary<string, string>();
-                
+
                 while (reader.Read())
                 {
                     var formId = reader.GetString(0).ToUpperInvariant();
                     var recordName = reader.GetString(1);
-                     if (!results.ContainsKey(formId))
+                    if (!results.ContainsKey(formId))
                     {
                         results[formId] = recordName;
                     }
@@ -134,9 +135,14 @@ public class FormIdAnalyzer : IFormIdAnalyzer
                 return results;
             }
         }
-        catch (Exception)
+        catch (SqliteException)
         {
-            // If DB connection fails or table missing, return empty
+            // Database errors (connection failed, table missing, etc.) - return empty result
+            return new Dictionary<string, string>();
+        }
+        catch (InvalidOperationException)
+        {
+            // Connection state errors - return empty result
             return new Dictionary<string, string>();
         }
     }

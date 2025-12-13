@@ -7,13 +7,14 @@ namespace Scanner111.Common.Services.Configuration;
 
 /// <summary>
 /// Thread-safe cache for configuration and database data.
+/// Uses Lazy&lt;Task&lt;T&gt;&gt; pattern to prevent duplicate concurrent loads.
 /// </summary>
 public class ConfigurationCache : IConfigurationCache
 {
     private readonly IYamlConfigLoader _loader;
-    private readonly ConcurrentDictionary<string, GameConfiguration> _gameConfigs = new();
-    private readonly ConcurrentDictionary<string, GameSettings> _gameSettings = new();
-    private readonly ConcurrentDictionary<string, SuspectPatterns> _suspectPatterns = new();
+    private readonly ConcurrentDictionary<string, Lazy<Task<GameConfiguration>>> _gameConfigs = new();
+    private readonly ConcurrentDictionary<string, Lazy<Task<GameSettings>>> _gameSettings = new();
+    private readonly ConcurrentDictionary<string, Lazy<Task<SuspectPatterns>>> _suspectPatterns = new();
     private readonly string _baseDataPath;
 
     /// <summary>
@@ -30,40 +31,31 @@ public class ConfigurationCache : IConfigurationCache
     /// <inheritdoc/>
     public async Task<GameConfiguration> GetGameConfigAsync(string gameName, CancellationToken ct = default)
     {
-        if (_gameConfigs.TryGetValue(gameName, out var cachedConfig))
-        {
-            return cachedConfig;
-        }
+        var lazy = _gameConfigs.GetOrAdd(
+            gameName,
+            key => new Lazy<Task<GameConfiguration>>(() => LoadGameConfigAsync(key, ct)));
 
-        var config = await LoadGameConfigAsync(gameName, ct);
-        _gameConfigs.TryAdd(gameName, config);
-        return config;
+        return await lazy.Value.ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async Task<GameSettings> GetGameSettingsAsync(string gameName, CancellationToken ct = default)
     {
-        if (_gameSettings.TryGetValue(gameName, out var cachedSettings))
-        {
-            return cachedSettings;
-        }
+        var lazy = _gameSettings.GetOrAdd(
+            gameName,
+            key => new Lazy<Task<GameSettings>>(() => LoadGameSettingsAsync(key, ct)));
 
-        var settings = await LoadGameSettingsAsync(gameName, ct);
-        _gameSettings.TryAdd(gameName, settings);
-        return settings;
+        return await lazy.Value.ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async Task<SuspectPatterns> GetSuspectPatternsAsync(string gameName, CancellationToken ct = default)
     {
-        if (_suspectPatterns.TryGetValue(gameName, out var cachedPatterns))
-        {
-            return cachedPatterns;
-        }
+        var lazy = _suspectPatterns.GetOrAdd(
+            gameName,
+            key => new Lazy<Task<SuspectPatterns>>(() => LoadSuspectPatternsAsync(key, ct)));
 
-        var patterns = await LoadSuspectPatternsAsync(gameName, ct);
-        _suspectPatterns.TryAdd(gameName, patterns);
-        return patterns;
+        return await lazy.Value.ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -79,10 +71,10 @@ public class ConfigurationCache : IConfigurationCache
         // Mapped to: CLASSIC Data/databases/CLASSIC {GameName}.yaml
         var fileName = $"CLASSIC {gameName}.yaml";
         var path = Path.Combine(_baseDataPath, "databases", fileName);
-        
+
         // For simplicity, assuming structure matches exactly or close enough for now.
         // In reality, we might need a specific DTO or custom mapping if the YAML structure is complex.
-        return await _loader.LoadAsync<GameConfiguration>(path, ct);
+        return await _loader.LoadAsync<GameConfiguration>(path, ct).ConfigureAwait(false);
     }
 
     private async Task<GameSettings> LoadGameSettingsAsync(string gameName, CancellationToken ct)
@@ -91,30 +83,30 @@ public class ConfigurationCache : IConfigurationCache
          // Note: In the original python code, multiple things might be in one file or split.
          // Assuming for now we load from the same file or a specific settings file.
          // Based on Phase 3, GameSettings had: GameName, RecommendedSettings, LatestCrashLoggerVersion.
-         
+
          // If these are in the same file as GameConfiguration, we might need to load it once and split it,
          // or just load the specific parts.
          // Let's assume a separate file or section for now, or load the same file if that's how it's structured.
-         
-         // Checking PORTING_ROADMAP, it says: 
+
+         // Checking PORTING_ROADMAP, it says:
          // Path.Combine("CLASSIC Data", "databases", $"CLASSIC {key}.yaml");
-         
+
          var fileName = $"CLASSIC {gameName}.yaml";
          var path = Path.Combine(_baseDataPath, "databases", fileName);
-         
+
          // We might need to load as dynamic if the structure doesn't match 1:1
          // But let's try loading as GameSettings directly if the YAML supports it.
-         return await _loader.LoadAsync<GameSettings>(path, ct);
+         return await _loader.LoadAsync<GameSettings>(path, ct).ConfigureAwait(false);
     }
 
     private async Task<SuspectPatterns> LoadSuspectPatternsAsync(string gameName, CancellationToken ct)
     {
         // Mapped to: CLASSIC Data/databases/CLASSIC {GameName}.yaml
         // The patterns (error/stack) are likely in the same main database file.
-        
+
         var fileName = $"CLASSIC {gameName}.yaml";
         var path = Path.Combine(_baseDataPath, "databases", fileName);
-        
-        return await _loader.LoadAsync<SuspectPatterns>(path, ct);
+
+        return await _loader.LoadAsync<SuspectPatterns>(path, ct).ConfigureAwait(false);
     }
 }

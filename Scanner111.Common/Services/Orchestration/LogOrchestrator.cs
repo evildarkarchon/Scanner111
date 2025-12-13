@@ -50,14 +50,14 @@ public class LogOrchestrator : ILogOrchestrator
         CancellationToken ct = default)
     {
         // 1. Read log file
-        var content = await _fileIO.ReadFileAsync(logFilePath, ct);
+        var content = await _fileIO.ReadFileAsync(logFilePath, ct).ConfigureAwait(false);
 
         // 2. Parse into segments
-        var parseResult = await _parser.ParseAsync(content, ct);
+        var parseResult = await _parser.ParseAsync(content, ct).ConfigureAwait(false);
         if (!parseResult.IsValid)
         {
             var failureReport = new ReportFragment { Lines = new[] { "# Analysis Failed", "", "Invalid or incomplete crash log.", "", $"**Reason**: {parseResult.ErrorMessage ?? "Unknown parsing error."}" } };
-            await _reportWriter.WriteReportAsync(logFilePath, failureReport, ct);
+            await _reportWriter.WriteReportAsync(logFilePath, failureReport, ct).ConfigureAwait(false);
 
             return new LogAnalysisResult
             {
@@ -76,20 +76,20 @@ public class LogOrchestrator : ILogOrchestrator
         // Fetch configuration data
         var suspectPatternsTask = _configCache.GetSuspectPatternsAsync(gameName, ct);
         var gameSettingsTask = _configCache.GetGameSettingsAsync(gameName, ct);
-        
-        await Task.WhenAll(suspectPatternsTask, gameSettingsTask);
-        var suspectPatterns = await suspectPatternsTask;
-        var gameSettings = await gameSettingsTask;
+
+        await Task.WhenAll(suspectPatternsTask, gameSettingsTask).ConfigureAwait(false);
+        var suspectPatterns = await suspectPatternsTask.ConfigureAwait(false);
+        var gameSettings = await gameSettingsTask.ConfigureAwait(false);
 
         // 3. Run analysis components in parallel
         var (pluginResult, suspectResult, settingsResult) =
-            await RunAnalysisAsync(parseResult, suspectPatterns, gameSettings, ct);
+            await RunAnalysisAsync(parseResult, suspectPatterns, gameSettings, ct).ConfigureAwait(false);
 
         // 4. Build report
         var report = BuildReport(parseResult, pluginResult, suspectResult, settingsResult, gameName);
 
         // 5. Write report file
-        await _reportWriter.WriteReportAsync(logFilePath, report, ct);
+        await _reportWriter.WriteReportAsync(logFilePath, report, ct).ConfigureAwait(false);
 
         return new LogAnalysisResult
         {
@@ -121,9 +121,9 @@ public class LogOrchestrator : ILogOrchestrator
             settingsTask = _settingsScanner.ScanAsync(compatibilitySegment, gameSettings, ct);
         }
 
-        await Task.WhenAll(pluginTask, suspectTask, settingsTask ?? Task.CompletedTask);
+        await Task.WhenAll(pluginTask, suspectTask, settingsTask ?? Task.CompletedTask).ConfigureAwait(false);
 
-        return (await pluginTask, await suspectTask, settingsTask != null ? await settingsTask : null);
+        return (await pluginTask.ConfigureAwait(false), await suspectTask.ConfigureAwait(false), settingsTask != null ? await settingsTask.ConfigureAwait(false) : null);
     }
 
     private ReportFragment BuildReport(

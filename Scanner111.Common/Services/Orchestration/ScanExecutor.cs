@@ -9,15 +9,15 @@ namespace Scanner111.Common.Services.Orchestration;
 /// </summary>
 public class ScanExecutor : IScanExecutor
 {
-    private readonly ILogOrchestrator _orchestrator;
+    private readonly Func<ILogOrchestrator> _orchestratorFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ScanExecutor"/> class.
     /// </summary>
-    /// <param name="orchestrator">The log orchestrator service.</param>
-    public ScanExecutor(ILogOrchestrator orchestrator)
+    /// <param name="orchestratorFactory">Factory to create log orchestrator instances.</param>
+    public ScanExecutor(Func<ILogOrchestrator> orchestratorFactory)
     {
-        _orchestrator = orchestrator ?? throw new ArgumentNullException(nameof(orchestrator));
+        _orchestratorFactory = orchestratorFactory ?? throw new ArgumentNullException(nameof(orchestratorFactory));
     }
 
     /// <inheritdoc/>
@@ -48,7 +48,7 @@ public class ScanExecutor : IScanExecutor
         var errorMessages = new ConcurrentBag<string>();
 
         // Set up concurrency control
-        var semaphore = new SemaphoreSlim(config.MaxConcurrent, config.MaxConcurrent);
+        using var semaphore = new SemaphoreSlim(config.MaxConcurrent, config.MaxConcurrent);
         var tasks = new List<Task>();
 
         foreach (var logFile in logFiles)
@@ -80,7 +80,7 @@ public class ScanExecutor : IScanExecutor
                 ct));
         }
 
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(tasks).ConfigureAwait(false);
 
         return new ScanResult
         {
@@ -108,10 +108,11 @@ public class ScanExecutor : IScanExecutor
         Action onProcessed,
         CancellationToken ct)
     {
-        await semaphore.WaitAsync(ct);
+        await semaphore.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var result = await _orchestrator.ProcessLogAsync(logFile, config, ct);
+            var orchestrator = _orchestratorFactory();
+            var result = await orchestrator.ProcessLogAsync(logFile, config, ct).ConfigureAwait(false);
             processedFiles.Add(logFile);
             
             // Check for warnings or issues that might count as "failure" or just track valid scans

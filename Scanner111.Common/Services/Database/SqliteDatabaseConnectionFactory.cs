@@ -23,7 +23,7 @@ public class SqliteDatabaseConnectionFactory : IDatabaseConnectionFactory
     public async Task<IDbConnection> CreateConnectionAsync(CancellationToken ct = default)
     {
         var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync(ct);
+        await connection.OpenAsync(ct).ConfigureAwait(false);
         return connection;
     }
 }

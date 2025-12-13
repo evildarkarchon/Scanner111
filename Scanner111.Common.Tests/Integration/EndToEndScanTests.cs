@@ -172,6 +172,6 @@ public class EndToEndScanTests
             configCacheMock.Object
         );
 
-        return new ScanExecutor(orchestrator);
+        return new ScanExecutor(() => orchestrator);
     }
 }

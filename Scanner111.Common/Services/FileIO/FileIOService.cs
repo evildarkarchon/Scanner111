@@ -23,7 +23,7 @@ public class FileIOService : IFileIOService
             useAsync: true);
 
         using var reader = new StreamReader(stream, Utf8WithErrorHandling);
-        return await reader.ReadToEndAsync(cancellationToken);
+        return await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -38,7 +38,7 @@ public class FileIOService : IFileIOService
             useAsync: true);
 
         await using var writer = new StreamWriter(stream, Utf8WithErrorHandling);
-        await writer.WriteAsync(content.AsMemory(), cancellationToken);
+        await writer.WriteAsync(content.AsMemory(), cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>

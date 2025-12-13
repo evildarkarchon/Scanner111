@@ -44,7 +44,7 @@ public class ReportWriter : IReportWriter
         var reportPath = GetReportPath(crashLogPath);
         var content = string.Join("\n", report.Lines);
 
-        await _fileIO.WriteFileAsync(reportPath, content, cancellationToken);
+        await _fileIO.WriteFileAsync(reportPath, content, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -78,6 +78,6 @@ public class ReportWriter : IReportWriter
         CancellationToken cancellationToken = default)
     {
         var reportPath = GetReportPath(crashLogPath);
-        return await _fileIO.FileExistsAsync(reportPath);
+        return await _fileIO.FileExistsAsync(reportPath).ConfigureAwait(false);
     }
 }

@@ -108,6 +108,6 @@ public class EdgeCaseTests : IDisposable
             configCacheMock.Object
         );
 
-        return new ScanExecutor(orchestrator);
+        return new ScanExecutor(() => orchestrator);
     }
 }

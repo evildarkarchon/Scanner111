@@ -88,7 +88,7 @@ Services are registered in [App.axaml.cs](Scanner111/App.axaml.cs) using `Micros
 ### Code_To_Port/
 Original CLASSIC Python/Rust implementation (git submodule). Reference for porting logic, will be removed at feature parity.
 - `Code_To_Port/CLAUDE.md`: Detailed documentation of original architecture
-- `Code_To_Port/src/classic/`: Python business logic
+- `Code_To_Port/ClassicLib/`: Python business logic
 - `Code_To_Port/rust/`: Rust acceleration modules
 
 ### sample_logs/

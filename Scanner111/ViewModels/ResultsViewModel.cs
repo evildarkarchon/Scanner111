@@ -10,9 +10,10 @@ using Scanner111.Services;
 
 namespace Scanner111.ViewModels;
 
-public class ResultsViewModel : ViewModelBase
+public class ResultsViewModel : ViewModelBase, IDisposable
 {
     private readonly IScanResultsService _scanResultsService;
+    private bool _disposed;
 
     /// <summary>
     /// Collection of scan results (backed by shared service).
@@ -74,5 +75,38 @@ public class ResultsViewModel : ViewModelBase
         {
             SelectedResult = Results[0];
         }
+    }
+
+    /// <summary>
+    /// Releases resources and unsubscribes from events.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases resources and unsubscribes from events.
+    /// </summary>
+    /// <param name="disposing">True if called from Dispose(), false if called from finalizer.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (disposing)
+        {
+            // Unsubscribe from collection changed event to prevent memory leak
+            Results.CollectionChanged -= OnResultsCollectionChanged;
+
+            // Dispose commands
+            RefreshCommand.Dispose();
+            DeleteSelectedCommand.Dispose();
+        }
+
+        _disposed = true;
     }
 }

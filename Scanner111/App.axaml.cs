@@ -57,6 +57,9 @@ public partial class App : Application
         // Orchestration services (often transient or scoped if stateful per-request)
         // LogOrchestrator can be transient if it's processing one log per instance
         services.AddTransient<ILogOrchestrator, LogOrchestrator>();
+
+        // Register factory delegate for LogOrchestrator (used by ScanExecutor)
+        services.AddSingleton<Func<ILogOrchestrator>>(sp => () => sp.GetRequiredService<ILogOrchestrator>());
         services.AddSingleton<IScanExecutor, ScanExecutor>();
 
         // Register ViewModels as transient, as new instances are typically created for each view
