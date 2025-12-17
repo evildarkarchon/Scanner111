@@ -10,6 +10,7 @@ using Scanner111.Common.Services.Orchestration;
 using Scanner111.Common.Services.Parsing;
 using Scanner111.Common.Services.PathValidation;
 using Scanner111.Common.Services.Reporting;
+using Scanner111.Common.Services.DocsPath;
 using Scanner111.Common.Services.ScanGame;
 using Scanner111.Common.Services.Settings;
 using Scanner111.ViewModels;
@@ -63,6 +64,7 @@ public partial class App : Application
 
         // ScanGame services
         services.AddSingleton<IIniValidator, IniValidator>();
+        services.AddSingleton<IDocsPathDetector, DocsPathDetector>();
 
         // Orchestration services (often transient or scoped if stateful per-request)
         // LogOrchestrator can be transient if it's processing one log per instance
