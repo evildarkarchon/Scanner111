@@ -8,7 +8,9 @@ using Scanner111.Common.Services.Database;
 using Scanner111.Common.Services.FileIO;
 using Scanner111.Common.Services.Orchestration;
 using Scanner111.Common.Services.Parsing;
+using Scanner111.Common.Services.PathValidation;
 using Scanner111.Common.Services.Reporting;
+using Scanner111.Common.Services.Settings;
 using Scanner111.ViewModels;
 using Scanner111.Views;
 using System; // Required for IServiceProvider
@@ -50,6 +52,10 @@ public partial class App : Application
         services.AddSingleton<IReportWriter, ReportWriter>();
         services.AddSingleton<IYamlConfigLoader, YamlConfigLoader>();
         services.AddSingleton<IConfigurationCache, ConfigurationCache>(); // Assuming implementation exists
+
+        // Path validation and user settings services
+        services.AddSingleton<IUserSettingsService, UserSettingsService>();
+        services.AddSingleton<IPathValidator, PathValidator>();
         services.AddSingleton<IDatabaseConnectionFactory>(provider =>
             new SqliteDatabaseConnectionFactory("path_to_your_db.sqlite")); // TODO: Get actual path from config
         services.AddSingleton<IFormIdAnalyzer, FormIdAnalyzer>();
