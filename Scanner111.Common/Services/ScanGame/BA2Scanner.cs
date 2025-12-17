@@ -11,6 +11,9 @@ namespace Scanner111.Common.Services.ScanGame;
 /// - Bytes 0-3: Magic signature "BTDX"
 /// - Bytes 4-7: Version (uint32, typically 1)
 /// - Bytes 8-11: Format type "GNRL" (general) or "DX10" (textures)
+///
+/// When BSArch is available, this scanner can also analyze archive contents
+/// to detect texture issues and sound format problems.
 /// </remarks>
 public sealed class BA2Scanner : IBA2Scanner
 {
@@ -19,11 +22,36 @@ public sealed class BA2Scanner : IBA2Scanner
     private static readonly byte[] GeneralFormat = Encoding.ASCII.GetBytes("GNRL");
     private static readonly byte[] TextureFormat = Encoding.ASCII.GetBytes("DX10");
 
+    // Sound file extensions that should be XWM format instead
+    private static readonly HashSet<string> InvalidSoundExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".mp3",
+        ".m4a"
+    };
+
     // Files to exclude from scanning
     private static readonly HashSet<string> ExcludedFiles = new(StringComparer.OrdinalIgnoreCase)
     {
         "prp - main.ba2" // Pre-combined references pack
     };
+
+    private readonly IBSArchService? _bsarchService;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BA2Scanner"/> class.
+    /// </summary>
+    public BA2Scanner() : this(null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BA2Scanner"/> class with BSArch support.
+    /// </summary>
+    /// <param name="bsarchService">Optional BSArch service for archive content analysis.</param>
+    public BA2Scanner(IBSArchService? bsarchService)
+    {
+        _bsarchService = bsarchService;
+    }
 
     /// <inheritdoc />
     public async Task<BA2ScanResult> ScanAsync(
@@ -227,12 +255,101 @@ public sealed class BA2Scanner : IBA2Scanner
             return result;
         }
 
-        // For now, we only validate headers
-        // Full content analysis (texture dimensions, sound formats, XSE files)
-        // would require parsing the full BA2 archive structure or using BSArch
-        // This can be added in a future enhancement
+        // If BSArch is available, analyze archive contents
+        if (_bsarchService?.IsAvailable == true)
+        {
+            if (headerInfo.Format == BA2Format.Texture)
+            {
+                // Analyze texture archive using BSArch -dump
+                await ProcessTextureArchiveAsync(archivePath, fileName, result, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            else if (headerInfo.Format == BA2Format.General)
+            {
+                // Analyze general archive using BSArch -list
+                await ProcessGeneralArchiveAsync(archivePath, fileName, xseScriptFolders, result, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+        }
 
         return result;
+    }
+
+    /// <summary>
+    /// Processes a texture (DX10) BA2 archive using BSArch -dump.
+    /// </summary>
+    private async Task ProcessTextureArchiveAsync(
+        string archivePath,
+        string archiveName,
+        BA2FileIssues result,
+        CancellationToken cancellationToken)
+    {
+        if (_bsarchService is null)
+        {
+            return;
+        }
+
+        var textureResult = await _bsarchService.DumpTextureInfoAsync(archivePath, cancellationToken)
+            .ConfigureAwait(false);
+
+        result.TextureDimensionIssues.AddRange(textureResult.DimensionIssues);
+        result.TextureFormatIssues.AddRange(textureResult.FormatIssues);
+    }
+
+    /// <summary>
+    /// Processes a general (GNRL) BA2 archive using BSArch -list.
+    /// </summary>
+    private async Task ProcessGeneralArchiveAsync(
+        string archivePath,
+        string archiveName,
+        IReadOnlyDictionary<string, string>? xseScriptFolders,
+        BA2FileIssues result,
+        CancellationToken cancellationToken)
+    {
+        if (_bsarchService is null)
+        {
+            return;
+        }
+
+        var files = await _bsarchService.ListArchiveContentsAsync(archivePath, cancellationToken)
+            .ConfigureAwait(false);
+
+        bool hasXseFiles = false;
+        var parentPath = Path.GetDirectoryName(archivePath) ?? string.Empty;
+
+        foreach (var file in files)
+        {
+            var fileLower = file.ToLowerInvariant();
+            var extension = Path.GetExtension(fileLower);
+
+            // Check for invalid sound formats (MP3/M4A instead of XWM)
+            if (InvalidSoundExtensions.Contains(extension))
+            {
+                result.SoundFormatIssues.Add(new SoundFormatIssue(
+                    archiveName,
+                    file,
+                    extension.TrimStart('.').ToUpperInvariant()));
+            }
+
+            // Check for XSE script files
+            if (!hasXseFiles && xseScriptFolders is not null)
+            {
+                foreach (var xseFolder in xseScriptFolders.Keys)
+                {
+                    if (fileLower.Contains($"scripts\\{xseFolder.ToLowerInvariant()}") ||
+                        fileLower.Contains($"scripts/{xseFolder.ToLowerInvariant()}"))
+                    {
+                        // Skip Workshop Framework as it's allowed to have XSE scripts
+                        if (!parentPath.Contains("workshop framework", StringComparison.OrdinalIgnoreCase))
+                        {
+                            hasXseFiles = true;
+                            result.XseFileIssue = new XseFileIssue(archivePath, archiveName);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>
