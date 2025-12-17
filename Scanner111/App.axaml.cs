@@ -10,6 +10,7 @@ using Scanner111.Common.Services.Orchestration;
 using Scanner111.Common.Services.Parsing;
 using Scanner111.Common.Services.PathValidation;
 using Scanner111.Common.Services.Reporting;
+using Scanner111.Common.Services.ScanGame;
 using Scanner111.Common.Services.Settings;
 using Scanner111.ViewModels;
 using Scanner111.Views;
@@ -59,6 +60,9 @@ public partial class App : Application
         services.AddSingleton<IDatabaseConnectionFactory>(provider =>
             new SqliteDatabaseConnectionFactory("path_to_your_db.sqlite")); // TODO: Get actual path from config
         services.AddSingleton<IFormIdAnalyzer, FormIdAnalyzer>();
+
+        // ScanGame services
+        services.AddSingleton<IIniValidator, IniValidator>();
 
         // Orchestration services (often transient or scoped if stateful per-request)
         // LogOrchestrator can be transient if it's processing one log per instance
