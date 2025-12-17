@@ -87,6 +87,9 @@ Services are registered in [App.axaml.cs](Scanner111/App.axaml.cs) using `Micros
 - **Never write to `nul` or `NUL`** - creates undeletable files on Windows. Use `Stream.Null` instead
 - Always use `Path.Combine()` for path construction
 
+### Issue Tracking (Beads)
+- **Never run `bd sync`** - it automatically commits to the repo without giving a chance to write a proper commit message. Let the user handle syncing manually.
+
 ## Reference Directories (READ-ONLY)
 
 ### Code_To_Port/
