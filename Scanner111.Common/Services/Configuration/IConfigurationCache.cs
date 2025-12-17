@@ -37,6 +37,14 @@ public interface IConfigurationCache
     Task<SuspectPatterns> GetSuspectPatternsAsync(string gameName, CancellationToken ct = default);
 
     /// <summary>
+    /// Gets the mod configuration for the specified game.
+    /// </summary>
+    /// <param name="gameName">The name of the game.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The mod configuration.</returns>
+    Task<ModConfiguration> GetModConfigurationAsync(string gameName, CancellationToken ct = default);
+
+    /// <summary>
     /// Clears the cache.
     /// </summary>
     void Clear();
