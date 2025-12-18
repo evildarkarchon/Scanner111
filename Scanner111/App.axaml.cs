@@ -14,9 +14,12 @@ using Scanner111.Common.Services.DocsPath;
 using Scanner111.Common.Services.GameIntegrity;
 using Scanner111.Common.Services.ScanGame;
 using Scanner111.Common.Services.Settings;
+using Scanner111.Common.Services.Papyrus;
+using Scanner111.Common.Services.Pastebin;
 using Scanner111.ViewModels;
 using Scanner111.Views;
 using System; // Required for IServiceProvider
+using System.Net.Http;
 using Scanner111.Services; // Required for IDialogService and DialogService
 
 namespace Scanner111;
@@ -76,6 +79,19 @@ public partial class App : Application
         // GameIntegrity services
         services.AddSingleton<IGameIntegrityChecker, GameIntegrityChecker>();
 
+        // Papyrus monitoring services
+        services.AddSingleton<IPapyrusLogReader, PapyrusLogReader>();
+        services.AddTransient<IPapyrusMonitorService, PapyrusMonitorService>();
+
+        // Pastebin services
+        services.AddSingleton<HttpClient>(_ =>
+        {
+            var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            client.DefaultRequestHeaders.Add("User-Agent", "Scanner111/1.0");
+            return client;
+        });
+        services.AddSingleton<IPastebinService, PastebinService>();
+
         // Orchestration services (often transient or scoped if stateful per-request)
         // LogOrchestrator can be transient if it's processing one log per instance
         services.AddTransient<ILogOrchestrator, LogOrchestrator>();
@@ -92,12 +108,14 @@ public partial class App : Application
         services.AddTransient<HomePageViewModel>();
         services.AddTransient<BackupsViewModel>();
         services.AddTransient<ArticlesViewModel>();
+        services.AddTransient<PapyrusMonitorViewModel>();
 
         // Register factory delegates for ViewModel navigation
         services.AddTransient<Func<SettingsViewModel>>(sp => () => sp.GetRequiredService<SettingsViewModel>());
         services.AddTransient<Func<HomePageViewModel>>(sp => () => sp.GetRequiredService<HomePageViewModel>());
         services.AddTransient<Func<ResultsViewModel>>(sp => () => sp.GetRequiredService<ResultsViewModel>());
         services.AddTransient<Func<BackupsViewModel>>(sp => () => sp.GetRequiredService<BackupsViewModel>());
+        services.AddTransient<Func<PapyrusMonitorViewModel>>(sp => () => sp.GetRequiredService<PapyrusMonitorViewModel>());
 
         // Register Views (MainWindow needs to resolve its ViewModel)
         services.AddTransient<MainWindow>();

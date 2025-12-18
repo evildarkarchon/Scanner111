@@ -27,6 +27,24 @@ public class DialogService : IDialogService
         }
     }
 
+    public async Task ShowPapyrusMonitorAsync(PapyrusMonitorViewModel viewModel)
+    {
+        var window = new PapyrusMonitorWindow
+        {
+            DataContext = viewModel
+        };
+
+        var mainWindow = GetMainWindow();
+        if (mainWindow != null)
+        {
+            await window.ShowDialog(mainWindow);
+        }
+        else
+        {
+            window.Show();
+        }
+    }
+
     public async Task<string?> ShowFolderPickerAsync(string title, string? initialDirectory = null)
     {
         var mainWindow = GetMainWindow();

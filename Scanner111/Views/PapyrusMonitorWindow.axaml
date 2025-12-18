@@ -1,0 +1,137 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Scanner111.ViewModels"
+        x:Class="Scanner111.Views.PapyrusMonitorWindow"
+        x:DataType="vm:PapyrusMonitorViewModel"
+        Title="Papyrus Log Monitor"
+        Width="400"
+        Height="350"
+        WindowStartupLocation="CenterOwner"
+        Background="#1E1E1E">
+
+    <Design.DataContext>
+        <vm:PapyrusMonitorViewModel />
+    </Design.DataContext>
+
+    <Grid Margin="20" RowDefinitions="Auto, Auto, *, Auto, Auto">
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0"
+                   Text="Papyrus Log Monitoring"
+                   FontSize="18"
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"
+                   Foreground="White"
+                   Margin="0,0,0,10" />
+
+        <!-- Last Updated -->
+        <TextBlock Grid.Row="1"
+                   Text="{Binding LastUpdated}"
+                   HorizontalAlignment="Center"
+                   Foreground="#888888"
+                   Margin="0,0,0,20" />
+
+        <!-- Stats Grid -->
+        <Border Grid.Row="2"
+                Background="#2D2D2D"
+                CornerRadius="8"
+                Padding="15">
+            <Grid RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto"
+                  ColumnDefinitions="*, Auto">
+
+                <!-- Headers -->
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Text="Metric"
+                           FontWeight="Bold"
+                           Foreground="White" />
+                <TextBlock Grid.Row="0" Grid.Column="1"
+                           Text="Value"
+                           FontWeight="Bold"
+                           Foreground="White"
+                           HorizontalAlignment="Right" />
+
+                <!-- Separator -->
+                <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                        Height="1"
+                        Background="#444444"
+                        Margin="0,8,0,8" />
+
+                <!-- Dumps -->
+                <TextBlock Grid.Row="2" Grid.Column="0"
+                           Text="Dumps"
+                           Foreground="White"
+                           Margin="0,4,0,0" />
+                <TextBlock Grid.Row="2" Grid.Column="1"
+                           Text="{Binding Dumps}"
+                           Foreground="White"
+                           HorizontalAlignment="Right"
+                           Margin="0,4,0,0" />
+
+                <!-- Stacks -->
+                <TextBlock Grid.Row="3" Grid.Column="0"
+                           Text="Stacks"
+                           Foreground="White"
+                           Margin="0,8,0,0" />
+                <TextBlock Grid.Row="3" Grid.Column="1"
+                           Text="{Binding Stacks}"
+                           Foreground="White"
+                           HorizontalAlignment="Right"
+                           Margin="0,8,0,0" />
+
+                <!-- Ratio -->
+                <TextBlock Grid.Row="4" Grid.Column="0"
+                           Text="Dumps/Stacks Ratio"
+                           Foreground="White"
+                           Margin="0,8,0,0" />
+                <TextBlock Grid.Row="4" Grid.Column="1"
+                           Text="{Binding Ratio, StringFormat={}{0:F3}}"
+                           Foreground="White"
+                           HorizontalAlignment="Right"
+                           Margin="0,8,0,0" />
+
+                <!-- Warnings -->
+                <TextBlock Grid.Row="5" Grid.Column="0"
+                           Text="Warnings"
+                           Foreground="White"
+                           Margin="0,8,0,0" />
+                <TextBlock Grid.Row="5" Grid.Column="1"
+                           Text="{Binding Warnings}"
+                           Foreground="White"
+                           HorizontalAlignment="Right"
+                           Margin="0,8,0,0" />
+
+                <!-- Errors -->
+                <TextBlock Grid.Row="6" Grid.Column="0"
+                           Text="Errors"
+                           Foreground="White"
+                           Margin="0,8,0,0" />
+                <TextBlock Grid.Row="6" Grid.Column="1"
+                           Text="{Binding Errors}"
+                           Foreground="White"
+                           HorizontalAlignment="Right"
+                           Margin="0,8,0,0" />
+            </Grid>
+        </Border>
+
+        <!-- Error Message (shown only when HasError is true) -->
+        <TextBlock Grid.Row="3"
+                   Text="{Binding ErrorMessage}"
+                   Foreground="#FF6B6B"
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"
+                   TextWrapping="Wrap"
+                   IsVisible="{Binding HasError}"
+                   Margin="0,15,0,0" />
+
+        <!-- Stop Button -->
+        <Button Grid.Row="4"
+                Content="Stop Monitoring"
+                Command="{Binding StopCommand}"
+                HorizontalAlignment="Center"
+                Padding="20,10"
+                Margin="0,20,0,0"
+                Background="#dc3545"
+                Foreground="White"
+                FontWeight="Bold" />
+    </Grid>
+</Window>

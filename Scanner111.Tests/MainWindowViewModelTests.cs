@@ -1,6 +1,8 @@
 using System;
 using FluentAssertions;
 using NSubstitute;
+using Scanner111.Common.Services.DocsPath;
+using Scanner111.Common.Services.Pastebin;
 using Scanner111.Services;
 using Scanner111.ViewModels;
 using Xunit;
@@ -98,13 +100,18 @@ public class MainWindowViewModelTests
         var dialogService = Substitute.For<IDialogService>();
         var scanExecutor = Substitute.For<Scanner111.Common.Services.Orchestration.IScanExecutor>();
         var scanResultsService = Substitute.For<IScanResultsService>();
-        
+        var docsPathDetector = Substitute.For<IDocsPathDetector>();
+        var pastebinService = Substitute.For<IPastebinService>();
+
         backupService.BackupAsync(Arg.Any<string>())
             .Returns(new BackupResult(true, "Test", 0));
-        
+
+        // Factory that creates a mock PapyrusMonitorViewModel
+        Func<PapyrusMonitorViewModel> papyrusMonitorFactory = () => null!;
+
         return new MainWindowViewModel(
             () => null!, // Settings factory - not tested here
-            () => new HomePageViewModel(scanExecutor, scanResultsService, dialogService, settingsService),
+            () => new HomePageViewModel(scanExecutor, scanResultsService, dialogService, settingsService, docsPathDetector, pastebinService, papyrusMonitorFactory),
             () => null!, // Results factory - not tested here
             () => new BackupsViewModel(backupService, settingsService)
         );
