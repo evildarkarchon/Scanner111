@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Scanner111.Common.Models.Analysis;
 using Scanner111.Common.Models.Configuration;
 using Scanner111.Common.Models.Reporting;
@@ -14,6 +16,7 @@ namespace Scanner111.Common.Services.Orchestration;
 /// </summary>
 public class LogOrchestrator : ILogOrchestrator
 {
+    private readonly ILogger<LogOrchestrator> _logger;
     private readonly IFileIOService _fileIO;
     private readonly ILogParser _parser;
     private readonly IPluginAnalyzer _pluginAnalyzer;
@@ -26,6 +29,7 @@ public class LogOrchestrator : ILogOrchestrator
     /// Initializes a new instance of the <see cref="LogOrchestrator"/> class.
     /// </summary>
     public LogOrchestrator(
+        ILogger<LogOrchestrator> logger,
         IFileIOService fileIO,
         ILogParser parser,
         IPluginAnalyzer pluginAnalyzer,
@@ -34,6 +38,7 @@ public class LogOrchestrator : ILogOrchestrator
         IReportWriter reportWriter,
         IConfigurationCache configCache)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _fileIO = fileIO ?? throw new ArgumentNullException(nameof(fileIO));
         _parser = parser ?? throw new ArgumentNullException(nameof(parser));
         _pluginAnalyzer = pluginAnalyzer ?? throw new ArgumentNullException(nameof(pluginAnalyzer));
@@ -49,19 +54,27 @@ public class LogOrchestrator : ILogOrchestrator
         ScanConfig config,
         CancellationToken ct = default)
     {
+        var fileName = Path.GetFileName(logFilePath);
+        var stopwatch = Stopwatch.StartNew();
+
+        _logger.LogDebug("Processing crash log: {FileName}", fileName);
+
         // 1. Read log file
         var content = await _fileIO.ReadFileAsync(logFilePath, ct).ConfigureAwait(false);
+        _logger.LogDebug("Read {ByteCount} bytes from {FileName}", content.Length, fileName);
 
         // 2. Parse into segments
         var parseResult = await _parser.ParseAsync(content, ct).ConfigureAwait(false);
         if (!parseResult.IsValid)
         {
+            _logger.LogWarning("Invalid crash log '{FileName}': {ErrorMessage}", fileName, parseResult.ErrorMessage ?? "Unknown parsing error");
+
             var failureReport = new ReportFragment { Lines = new[] { "# Analysis Failed", "", "Invalid or incomplete crash log.", "", $"**Reason**: {parseResult.ErrorMessage ?? "Unknown parsing error."}" } };
             await _reportWriter.WriteReportAsync(logFilePath, failureReport, ct).ConfigureAwait(false);
 
             return new LogAnalysisResult
             {
-                LogFileName = Path.GetFileName(logFilePath),
+                LogFileName = fileName,
                 Header = parseResult.Header,
                 Segments = parseResult.Segments,
                 Report = failureReport,
@@ -72,7 +85,8 @@ public class LogOrchestrator : ILogOrchestrator
 
         // Determine game name from header
         var gameName = DetectGameName(parseResult.Header);
-        
+        _logger.LogDebug("Detected game: {GameName}", gameName);
+
         // Fetch configuration data
         var suspectPatternsTask = _configCache.GetSuspectPatternsAsync(gameName, ct);
         var gameSettingsTask = _configCache.GetGameSettingsAsync(gameName, ct);
@@ -82,6 +96,7 @@ public class LogOrchestrator : ILogOrchestrator
         var gameSettings = await gameSettingsTask.ConfigureAwait(false);
 
         // 3. Run analysis components in parallel
+        _logger.LogDebug("Running analysis components for {FileName}", fileName);
         var (pluginResult, suspectResult, settingsResult) =
             await RunAnalysisAsync(parseResult, suspectPatterns, gameSettings, ct).ConfigureAwait(false);
 
@@ -91,9 +106,12 @@ public class LogOrchestrator : ILogOrchestrator
         // 5. Write report file
         await _reportWriter.WriteReportAsync(logFilePath, report, ct).ConfigureAwait(false);
 
+        stopwatch.Stop();
+        _logger.LogInformation("Processed crash log '{FileName}' in {Duration:F2}s", fileName, stopwatch.Elapsed.TotalSeconds);
+
         return new LogAnalysisResult
         {
-            LogFileName = Path.GetFileName(logFilePath),
+            LogFileName = fileName,
             Header = parseResult.Header,
             Segments = parseResult.Segments,
             Report = report,

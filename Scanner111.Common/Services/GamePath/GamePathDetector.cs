@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using Microsoft.Extensions.Logging;
 using Scanner111.Common.Models.GamePath;
 
 namespace Scanner111.Common.Services.GamePath;
@@ -22,6 +23,8 @@ namespace Scanner111.Common.Services.GamePath;
 /// </remarks>
 public sealed class GamePathDetector : IGamePathDetector
 {
+    private readonly ILogger<GamePathDetector> _logger;
+
     /// <summary>
     /// GOG Galaxy registry keys for supported games.
     /// </summary>
@@ -30,6 +33,15 @@ public sealed class GamePathDetector : IGamePathDetector
         [GameType.Fallout4] = "1998527297",
         [GameType.SkyrimSE] = "1711230643"
     };
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GamePathDetector"/> class.
+    /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    public GamePathDetector(ILogger<GamePathDetector> logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
 
     /// <inheritdoc/>
     public async Task<GamePathResult> DetectGamePathAsync(
@@ -105,9 +117,9 @@ public sealed class GamePathDetector : IGamePathDetector
                 return Task.FromResult<string?>(path);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Registry access failed - not critical, return null
+            _logger.LogWarning(ex, "Failed to read game path from Bethesda registry: {GameType}", gameType);
         }
 
         return Task.FromResult<string?>(null);
@@ -160,13 +172,13 @@ public sealed class GamePathDetector : IGamePathDetector
                 }
             }
         }
-        catch (IOException)
+        catch (IOException ex)
         {
-            // File read failed - not critical, return null
+            _logger.LogWarning(ex, "Failed to read XSE log for game path extraction: {XseLogPath}", xseLogPath);
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException ex)
         {
-            // Access denied - not critical, return null
+            _logger.LogWarning(ex, "Access denied to XSE log: {XseLogPath}", xseLogPath);
         }
 
         return null;
@@ -252,9 +264,9 @@ public sealed class GamePathDetector : IGamePathDetector
                 return Task.FromResult<string?>(path);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Registry access failed - not critical, return null
+            _logger.LogWarning(ex, "Failed to read game path from GOG registry: {GameType}", gameType);
         }
 
         return Task.FromResult<string?>(null);

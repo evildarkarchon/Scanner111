@@ -1,4 +1,6 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Scanner111.Common.Models.Analysis;
 using Scanner111.Common.Models.Configuration;
@@ -34,6 +36,7 @@ public class LogOrchestratorTests
         _configCache = new Mock<IConfigurationCache>();
 
         _orchestrator = new LogOrchestrator(
+            NullLogger<LogOrchestrator>.Instance,
             _fileIO.Object,
             _parser.Object,
             _pluginAnalyzer.Object,

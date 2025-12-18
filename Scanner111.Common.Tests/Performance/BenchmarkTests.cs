@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Scanner111.Common.Models.Analysis;
 using Scanner111.Common.Models.Configuration;
@@ -98,6 +100,7 @@ public class BenchmarkTests : IDisposable
         var dbFactoryMock = new Mock<IDatabaseConnectionFactory>();
         
         var orchestrator = new LogOrchestrator(
+            NullLogger<LogOrchestrator>.Instance,
             fileIO,
             parser,
             pluginAnalyzer,
@@ -107,6 +110,6 @@ public class BenchmarkTests : IDisposable
             configCacheMock.Object
         );
 
-        return new ScanExecutor(() => orchestrator);
+        return new ScanExecutor(NullLogger<ScanExecutor>.Instance, () => orchestrator);
     }
 }

@@ -6,35 +6,170 @@
     <Design.DataContext>
         <vm:SettingsViewModel />
     </Design.DataContext>
-    <StackPanel Margin="40" Spacing="20" MaxWidth="600" HorizontalAlignment="Left">
-        <TextBlock Text="Settings" FontSize="28" FontWeight="Bold" Foreground="White" />
 
-        <StackPanel Spacing="5">
-            <TextBlock Text="Scan Path" FontWeight="Bold" Foreground="White" />
-            <TextBox Text="{Binding ScanPath}" Watermark="e.g., C:\Games\Fallout4\Data\f4se\logs" />
-            <Button Content="Browse..." Command="{Binding BrowseScanPathCommand}" />
+    <Grid Margin="40" RowDefinitions="Auto, *, Auto, Auto" MaxWidth="700" HorizontalAlignment="Left">
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="Settings" FontSize="28" FontWeight="Bold"
+                   Foreground="White" Margin="0,0,0,20" />
+
+        <!-- TabControl -->
+        <TabControl Grid.Row="1">
+            <!-- General Tab -->
+            <TabItem Header="General">
+                <ScrollViewer>
+                    <StackPanel Spacing="15" Margin="20">
+                        <TextBlock Text="General Options" FontWeight="SemiBold"
+                                   Foreground="White" FontSize="16" />
+
+                        <CheckBox Content="VR Mode (for VR versions of games)"
+                                  IsChecked="{Binding VrMode}" Foreground="White" />
+
+                        <TextBlock Text="Enable VR mode if you are playing Fallout 4 VR or Skyrim VR. This affects path detection and game executable names."
+                                   Foreground="#888" FontSize="12" TextWrapping="Wrap" />
+
+                        <!-- Debug Logs Section -->
+                        <Border BorderBrush="#444" BorderThickness="1" CornerRadius="4"
+                                Padding="15" Margin="0,20,0,0">
+                            <StackPanel Spacing="10">
+                                <TextBlock Text="Debug Logs" FontWeight="Bold"
+                                           Foreground="White" FontSize="14" />
+                                <TextBlock Text="{Binding LogFolderPath}"
+                                           Foreground="#aaa" FontSize="12" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Button Content="Open Logs Folder"
+                                            Command="{Binding OpenLogsFolderCommand}" />
+                                    <Button Content="Copy Path"
+                                            Command="{Binding CopyLogPathCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Scanning Tab -->
+            <TabItem Header="Scanning">
+                <ScrollViewer>
+                    <StackPanel Spacing="15" Margin="20">
+                        <TextBlock Text="Scan Settings" FontWeight="SemiBold"
+                                   Foreground="White" FontSize="16" />
+
+                        <CheckBox Content="FCX Mode - Enhanced FormID Analysis"
+                                  IsChecked="{Binding FcxMode}" Foreground="White" />
+
+                        <CheckBox Content="Show FormID Values in Reports"
+                                  IsChecked="{Binding ShowFormIdValues}" Foreground="White" />
+
+                        <CheckBox Content="Move Unsolved Logs to Subfolder"
+                                  IsChecked="{Binding MoveUnsolvedLogs}" Foreground="White" />
+
+                        <CheckBox Content="Simplify Logs (May Remove Important Info)"
+                                  IsChecked="{Binding SimplifyLogs}" Foreground="White" />
+
+                        <Border Background="#442222" CornerRadius="4" Padding="10"
+                                Margin="0,5,0,0" IsVisible="{Binding SimplifyLogs}">
+                            <TextBlock Text="Warning: Simplifying logs may remove details needed for troubleshooting. Only enable if you understand the implications."
+                                       Foreground="#ffaa00" FontSize="12" TextWrapping="Wrap" />
+                        </Border>
+
+                        <StackPanel Spacing="5" Margin="0,15,0,0">
+                            <TextBlock Text="Max Concurrent Scans" FontWeight="Bold"
+                                       Foreground="White" />
+                            <TextBox Text="{Binding MaxConcurrent}" Width="100"
+                                     HorizontalAlignment="Left" />
+                        </StackPanel>
+
+                        <TextBlock Text="FCX Mode provides deeper FormID analysis and more detailed crash reports."
+                                   Foreground="#888" FontSize="12" TextWrapping="Wrap"
+                                   Margin="0,10,0,0" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Paths Tab -->
+            <TabItem Header="Paths">
+                <ScrollViewer>
+                    <StackPanel Spacing="15" Margin="20">
+                        <TextBlock Text="Path Settings" FontWeight="SemiBold"
+                                   Foreground="White" FontSize="16" />
+
+                        <!-- Scan Path -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Scan Path (Crash Logs)" FontWeight="Bold"
+                                       Foreground="White" />
+                            <Grid ColumnDefinitions="*, Auto">
+                                <TextBox Grid.Column="0" Text="{Binding ScanPath}"
+                                         Watermark="e.g., C:\Games\Fallout4\Data\f4se\logs"
+                                         Margin="0,0,10,0" />
+                                <Button Grid.Column="1" Content="Browse..."
+                                        Command="{Binding BrowseScanPathCommand}" />
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Mods Folder Path -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Mods Folder Path" FontWeight="Bold"
+                                       Foreground="White" />
+                            <Grid ColumnDefinitions="*, Auto">
+                                <TextBox Grid.Column="0" Text="{Binding ModsFolderPath}"
+                                         Watermark="e.g., C:\Modding\Fallout4\Mods"
+                                         Margin="0,0,10,0" />
+                                <Button Grid.Column="1" Content="Browse..."
+                                        Command="{Binding BrowseModsFolderPathCommand}" />
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- INI Folder Path -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="INI Folder Path (Optional)" FontWeight="Bold"
+                                       Foreground="White" />
+                            <Grid ColumnDefinitions="*, Auto">
+                                <TextBox Grid.Column="0" Text="{Binding IniFolderPath}"
+                                         Watermark="Leave empty to use game documents folder"
+                                         Margin="0,0,10,0" />
+                                <Button Grid.Column="1" Content="Browse..."
+                                        Command="{Binding BrowseIniFolderPathCommand}" />
+                            </Grid>
+                        </StackPanel>
+
+                        <TextBlock Text="Paths are optional. Leave empty to use auto-detected defaults."
+                                   Foreground="#888" FontSize="12" TextWrapping="Wrap"
+                                   Margin="0,10,0,0" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Updates Tab -->
+            <TabItem Header="Updates">
+                <ScrollViewer>
+                    <StackPanel Spacing="15" Margin="20">
+                        <TextBlock Text="Update Settings" FontWeight="SemiBold"
+                                   Foreground="White" FontSize="16" />
+
+                        <CheckBox Content="Check for updates on startup"
+                                  IsChecked="{Binding CheckForUpdatesOnStartup}"
+                                  Foreground="White" />
+
+                        <CheckBox Content="Include prerelease versions"
+                                  IsChecked="{Binding IncludePrereleases}" Foreground="White" />
+
+                        <TextBlock Text="Configure how CLASSIC checks for and notifies you about new updates."
+                                   Foreground="#888" FontSize="12" TextWrapping="Wrap"
+                                   Margin="0,10,0,0" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- Status Text -->
+        <TextBlock Grid.Row="2" Text="{Binding StatusText}" Foreground="#28a745"
+                   Margin="0,15,0,0" />
+
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right"
+                    Spacing="10" Margin="0,15,0,0">
+            <Button Content="Reset to Defaults" Command="{Binding ResetToDefaultsCommand}" />
+            <Button Content="Save" Command="{Binding SaveCommand}" Classes="Accent" />
         </StackPanel>
-
-        <StackPanel Spacing="5">
-            <TextBlock Text="Mods Folder Path" FontWeight="Bold" Foreground="White" />
-            <TextBox Text="{Binding ModsFolderPath}" Watermark="e.g., C:\Modding\Fallout4\Mods" />
-            <Button Content="Browse..." Command="{Binding BrowseModsFolderPathCommand}" />
-        </StackPanel>
-
-        <StackPanel Spacing="5">
-            <TextBlock Text="Max Concurrent Scans" FontWeight="Bold" Foreground="White" />
-            <TextBox Text="{Binding MaxConcurrent}" />
-        </StackPanel>
-
-        <StackPanel Spacing="10" Margin="0,10,0,0">
-            <CheckBox Content="Enable FCX Mode" IsChecked="{Binding FcxMode}" Foreground="White" />
-            <CheckBox Content="Show FormID Values" IsChecked="{Binding ShowFormIdValues}" Foreground="White" />
-        </StackPanel>
-
-        <TextBlock Text="{Binding StatusText}" Foreground="#28a745" Margin="0,10,0,0" />
-
-        <Button Content="Save" Command="{Binding SaveCommand}" HorizontalAlignment="Right" Margin="0,20,0,0"
-                Classes="Accent" />
-    </StackPanel>
+    </Grid>
 </UserControl>
-

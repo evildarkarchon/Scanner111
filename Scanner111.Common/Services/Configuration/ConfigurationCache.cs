@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
 using Scanner111.Common.Models.Analysis;
 using Scanner111.Common.Models.Configuration;
 using Scanner111.Common.Services.Analysis;
@@ -11,6 +12,7 @@ namespace Scanner111.Common.Services.Configuration;
 /// </summary>
 public class ConfigurationCache : IConfigurationCache
 {
+    private readonly ILogger<ConfigurationCache> _logger;
     private readonly IYamlConfigLoader _loader;
     private readonly ConcurrentDictionary<string, Lazy<Task<GameConfiguration>>> _gameConfigs = new();
     private readonly ConcurrentDictionary<string, Lazy<Task<GameSettings>>> _gameSettings = new();
@@ -21,10 +23,12 @@ public class ConfigurationCache : IConfigurationCache
     /// <summary>
     /// Initializes a new instance of the <see cref="ConfigurationCache"/> class.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
     /// <param name="loader">The YAML configuration loader.</param>
     /// <param name="baseDataPath">The base path for configuration files. Defaults to "CLASSIC Data".</param>
-    public ConfigurationCache(IYamlConfigLoader loader, string baseDataPath = "CLASSIC Data")
+    public ConfigurationCache(ILogger<ConfigurationCache> logger, IYamlConfigLoader loader, string baseDataPath = "CLASSIC Data")
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _loader = loader ?? throw new ArgumentNullException(nameof(loader));
         _baseDataPath = baseDataPath;
     }
@@ -72,6 +76,7 @@ public class ConfigurationCache : IConfigurationCache
     /// <inheritdoc/>
     public void Clear()
     {
+        _logger.LogDebug("Clearing configuration cache");
         _gameConfigs.Clear();
         _gameSettings.Clear();
         _suspectPatterns.Clear();
@@ -82,6 +87,7 @@ public class ConfigurationCache : IConfigurationCache
     {
         var fileName = $"CLASSIC {gameName}.yaml";
         var path = Path.Combine(_baseDataPath, "databases", fileName);
+        _logger.LogDebug("Loading game configuration: {GameName} from {Path}", gameName, path);
         return await _loader.LoadAsync<GameConfiguration>(path, ct).ConfigureAwait(false);
     }
 
@@ -89,6 +95,7 @@ public class ConfigurationCache : IConfigurationCache
     {
          var fileName = $"CLASSIC {gameName}.yaml";
          var path = Path.Combine(_baseDataPath, "databases", fileName);
+         _logger.LogDebug("Loading game settings: {GameName} from {Path}", gameName, path);
          return await _loader.LoadAsync<GameSettings>(path, ct).ConfigureAwait(false);
     }
 
@@ -96,6 +103,7 @@ public class ConfigurationCache : IConfigurationCache
     {
         var fileName = $"CLASSIC {gameName}.yaml";
         var path = Path.Combine(_baseDataPath, "databases", fileName);
+        _logger.LogDebug("Loading suspect patterns: {GameName} from {Path}", gameName, path);
         return await _loader.LoadAsync<SuspectPatterns>(path, ct).ConfigureAwait(false);
     }
 
@@ -103,6 +111,7 @@ public class ConfigurationCache : IConfigurationCache
     {
         var fileName = $"CLASSIC {gameName}.yaml";
         var path = Path.Combine(_baseDataPath, "databases", fileName);
+        _logger.LogDebug("Loading mod configuration: {GameName} from {Path}", gameName, path);
 
         var dynamic = await _loader.LoadDynamicAsync(path, ct).ConfigureAwait(false);
 

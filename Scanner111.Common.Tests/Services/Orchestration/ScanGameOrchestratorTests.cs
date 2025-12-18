@@ -1,4 +1,6 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Scanner111.Common.Models.GameIntegrity;
 using Scanner111.Common.Models.GamePath;
@@ -36,6 +38,7 @@ public class ScanGameOrchestratorTests
         _fileIO = new Mock<IFileIOService>();
 
         _orchestrator = new ScanGameOrchestrator(
+            NullLogger<ScanGameOrchestrator>.Instance,
             _unpackedScanner.Object,
             _ba2Scanner.Object,
             _iniValidator.Object,
@@ -465,6 +468,7 @@ public class ScanGameOrchestratorTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => new ScanGameOrchestrator(
+            NullLogger<ScanGameOrchestrator>.Instance,
             null!,
             _ba2Scanner.Object,
             _iniValidator.Object,
@@ -475,6 +479,7 @@ public class ScanGameOrchestratorTests
             _fileIO.Object));
 
         Assert.Throws<ArgumentNullException>(() => new ScanGameOrchestrator(
+            NullLogger<ScanGameOrchestrator>.Instance,
             _unpackedScanner.Object,
             null!,
             _iniValidator.Object,

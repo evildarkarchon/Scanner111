@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Scanner111.Common.Models.Analysis;
 using Scanner111.Common.Models.Configuration;
@@ -160,9 +162,10 @@ public class EndToEndScanTests
         var dbFactoryMock = new Mock<IDatabaseConnectionFactory>();
         // We can let it throw or return null, FormIdAnalyzer should handle it.
         // Or providing a real FormIdAnalyzer with a mocked factory that throws is fine.
-        var formIdAnalyzer = new FormIdAnalyzer(dbFactoryMock.Object); 
+        var formIdAnalyzer = new FormIdAnalyzer(NullLogger<FormIdAnalyzer>.Instance, dbFactoryMock.Object); 
 
         var orchestrator = new LogOrchestrator(
+            NullLogger<LogOrchestrator>.Instance,
             fileIO,
             parser,
             pluginAnalyzer,
@@ -172,6 +175,6 @@ public class EndToEndScanTests
             configCacheMock.Object
         );
 
-        return new ScanExecutor(() => orchestrator);
+        return new ScanExecutor(NullLogger<ScanExecutor>.Instance, () => orchestrator);
     }
 }

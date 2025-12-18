@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Data;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
 using Scanner111.Common.Models.Analysis;
 using Scanner111.Common.Services.Database;
 using System.Data.Common;
@@ -13,6 +14,7 @@ namespace Scanner111.Common.Services.Analysis;
 /// </summary>
 public class FormIdAnalyzer : IFormIdAnalyzer
 {
+    private readonly ILogger<FormIdAnalyzer> _logger;
     private readonly IDatabaseConnectionFactory _connectionFactory;
     private static readonly Regex FormIdRegex = new(
         @"\b(?:0x)?([0-9A-Fa-f]{8})\b",
@@ -22,9 +24,11 @@ public class FormIdAnalyzer : IFormIdAnalyzer
     /// <summary>
     /// Initializes a new instance of the <see cref="FormIdAnalyzer"/> class.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
     /// <param name="connectionFactory">The database connection factory.</param>
-    public FormIdAnalyzer(IDatabaseConnectionFactory connectionFactory)
+    public FormIdAnalyzer(ILogger<FormIdAnalyzer> logger, IDatabaseConnectionFactory connectionFactory)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
     }
 
@@ -135,14 +139,14 @@ public class FormIdAnalyzer : IFormIdAnalyzer
                 return results;
             }
         }
-        catch (SqliteException)
+        catch (SqliteException ex)
         {
-            // Database errors (connection failed, table missing, etc.) - return empty result
+            _logger.LogError(ex, "SQLite error while looking up FormIDs");
             return new Dictionary<string, string>();
         }
-        catch (InvalidOperationException)
+        catch (InvalidOperationException ex)
         {
-            // Connection state errors - return empty result
+            _logger.LogError(ex, "Database connection error during FormID lookup");
             return new Dictionary<string, string>();
         }
     }

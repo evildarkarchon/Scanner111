@@ -113,7 +113,8 @@ public class MainWindowViewModelTests
             () => null!, // Settings factory - not tested here
             () => new HomePageViewModel(scanExecutor, scanResultsService, dialogService, settingsService, docsPathDetector, pastebinService, papyrusMonitorFactory),
             () => null!, // Results factory - not tested here
-            () => new BackupsViewModel(backupService, settingsService)
+            () => new BackupsViewModel(backupService, settingsService),
+            () => null! // About factory - not tested here
         );
     }
 }

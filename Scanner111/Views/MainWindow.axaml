@@ -36,6 +36,8 @@
                             HorizontalAlignment="Stretch" />
                     <Button Classes="NavButton" Content="Settings" Command="{Binding GoToSettingsCommand}"
                             HorizontalAlignment="Stretch" />
+                    <Button Classes="NavButton" Content="About" Command="{Binding GoToAboutCommand}"
+                            HorizontalAlignment="Stretch" />
                 </StackPanel>
 
                 <!-- Footer -->

@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Common.Models.GamePath;
 using Scanner111.Common.Services.GamePath;
 
@@ -14,7 +15,7 @@ public class GamePathDetectorTests : IDisposable
 
     public GamePathDetectorTests()
     {
-        _detector = new GamePathDetector();
+        _detector = new GamePathDetector(NullLogger<GamePathDetector>.Instance);
         _tempDirectory = Path.Combine(Path.GetTempPath(), $"GamePathDetectorTests_{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempDirectory);
     }

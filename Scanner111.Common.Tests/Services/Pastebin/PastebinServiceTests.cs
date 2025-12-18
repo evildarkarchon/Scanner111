@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Common.Services.Pastebin;
 using Xunit;
 
@@ -13,7 +14,7 @@ public class PastebinServiceTests
 
     public PastebinServiceTests()
     {
-        _service = new PastebinService(new HttpClient());
+        _service = new PastebinService(NullLogger<PastebinService>.Instance, new HttpClient());
     }
 
     #region IsValidInput Tests

@@ -11,6 +11,7 @@ public class MainWindowViewModel : ViewModelBase
     private readonly Func<HomePageViewModel> _homePageViewModelFactory;
     private readonly Func<ResultsViewModel> _resultsViewModelFactory;
     private readonly Func<BackupsViewModel> _backupsViewModelFactory;
+    private readonly Func<AboutViewModel> _aboutViewModelFactory;
 
     [Reactive] public ViewModelBase CurrentPage { get; set; }
 
@@ -19,24 +20,28 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> GoToBackupsCommand { get; }
     public ReactiveCommand<Unit, Unit> GoToResultsCommand { get; }
     public ReactiveCommand<Unit, Unit> GoToSettingsCommand { get; }
+    public ReactiveCommand<Unit, Unit> GoToAboutCommand { get; }
     public ReactiveCommand<Unit, Unit> ExitCommand { get; }
 
     public MainWindowViewModel(
         Func<SettingsViewModel> settingsViewModelFactory,
         Func<HomePageViewModel> homePageViewModelFactory,
         Func<ResultsViewModel> resultsViewModelFactory,
-        Func<BackupsViewModel> backupsViewModelFactory)
+        Func<BackupsViewModel> backupsViewModelFactory,
+        Func<AboutViewModel> aboutViewModelFactory)
     {
         _settingsViewModelFactory = settingsViewModelFactory;
         _homePageViewModelFactory = homePageViewModelFactory;
         _resultsViewModelFactory = resultsViewModelFactory;
         _backupsViewModelFactory = backupsViewModelFactory;
+        _aboutViewModelFactory = aboutViewModelFactory;
 
         GoToHomeCommand = ReactiveCommand.Create(() => { CurrentPage = _homePageViewModelFactory(); });
         GoToArticlesCommand = ReactiveCommand.Create(() => { CurrentPage = new ArticlesViewModel(); });
         GoToBackupsCommand = ReactiveCommand.Create(() => { CurrentPage = _backupsViewModelFactory(); });
         GoToResultsCommand = ReactiveCommand.Create(() => { CurrentPage = _resultsViewModelFactory(); });
         GoToSettingsCommand = ReactiveCommand.Create(() => { CurrentPage = _settingsViewModelFactory(); });
+        GoToAboutCommand = ReactiveCommand.Create(() => { CurrentPage = _aboutViewModelFactory(); });
 
         ExitCommand = ReactiveCommand.Create(ExitApplication);
 

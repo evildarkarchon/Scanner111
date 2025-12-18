@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using Scanner111.Common.Models.Pastebin;
 
 namespace Scanner111.Common.Services.Pastebin;
@@ -8,6 +9,7 @@ namespace Scanner111.Common.Services.Pastebin;
 /// </summary>
 public sealed partial class PastebinService : IPastebinService
 {
+    private readonly ILogger<PastebinService> _logger;
     private readonly HttpClient _httpClient;
     private readonly string _baseSavePath;
 
@@ -28,10 +30,12 @@ public sealed partial class PastebinService : IPastebinService
     /// <summary>
     /// Initializes a new instance of the <see cref="PastebinService"/> class.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
     /// <param name="httpClient">HTTP client for making requests.</param>
     /// <param name="baseSavePath">Base path for saving downloaded logs. Defaults to current directory.</param>
-    public PastebinService(HttpClient httpClient, string? baseSavePath = null)
+    public PastebinService(ILogger<PastebinService> logger, HttpClient httpClient, string? baseSavePath = null)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _httpClient = httpClient;
         _baseSavePath = baseSavePath ?? Directory.GetCurrentDirectory();
     }
@@ -73,18 +77,22 @@ public sealed partial class PastebinService : IPastebinService
         }
         catch (HttpRequestException ex)
         {
+            _logger.LogError(ex, "HTTP error while fetching pastebin: {UrlOrId}", urlOrId);
             return PastebinFetchResult.CreateFailure($"Network error: {ex.Message}", urlOrId);
         }
         catch (TaskCanceledException ex) when (ex.CancellationToken == cancellationToken)
         {
+            _logger.LogWarning("Pastebin fetch operation cancelled: {UrlOrId}", urlOrId);
             return PastebinFetchResult.CreateFailure("Fetch operation was cancelled.", urlOrId);
         }
-        catch (TaskCanceledException)
+        catch (TaskCanceledException ex)
         {
+            _logger.LogWarning(ex, "Pastebin fetch request timed out: {UrlOrId}", urlOrId);
             return PastebinFetchResult.CreateFailure("Request timed out.", urlOrId);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Unexpected error while fetching pastebin: {UrlOrId}", urlOrId);
             return PastebinFetchResult.CreateFailure($"Unexpected error: {ex.Message}", urlOrId);
         }
     }

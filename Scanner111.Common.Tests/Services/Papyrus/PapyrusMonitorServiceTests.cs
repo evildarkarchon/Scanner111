@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Scanner111.Common.Models.Papyrus;
 using Scanner111.Common.Services.Papyrus;
@@ -16,14 +17,14 @@ public class PapyrusMonitorServiceTests
     public PapyrusMonitorServiceTests()
     {
         _mockReader = new Mock<IPapyrusLogReader>();
-        _service = new PapyrusMonitorService(_mockReader.Object);
+        _service = new PapyrusMonitorService(NullLogger<PapyrusMonitorService>.Instance, _mockReader.Object);
     }
 
     [Fact]
     public void Constructor_WithNullReader_ThrowsArgumentNullException()
     {
         // Act
-        var act = () => new PapyrusMonitorService(null!);
+        var act = () => new PapyrusMonitorService(NullLogger<PapyrusMonitorService>.Instance, null!);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()

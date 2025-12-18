@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Scanner111.Common.Models.GameIntegrity;
 using Scanner111.Common.Models.GamePath;
 using Scanner111.Common.Models.Reporting;
@@ -27,6 +28,7 @@ namespace Scanner111.Common.Services.Orchestration;
 /// </remarks>
 public sealed class ScanGameOrchestrator : IScanGameOrchestrator
 {
+    private readonly ILogger<ScanGameOrchestrator> _logger;
     private readonly IUnpackedModsScanner _unpackedScanner;
     private readonly IBA2Scanner _ba2Scanner;
     private readonly IIniValidator _iniValidator;
@@ -39,6 +41,7 @@ public sealed class ScanGameOrchestrator : IScanGameOrchestrator
     /// <summary>
     /// Initializes a new instance of the <see cref="ScanGameOrchestrator"/> class.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
     /// <param name="unpackedScanner">The unpacked mod files scanner.</param>
     /// <param name="ba2Scanner">The BA2 archive scanner.</param>
     /// <param name="iniValidator">The INI configuration validator.</param>
@@ -48,6 +51,7 @@ public sealed class ScanGameOrchestrator : IScanGameOrchestrator
     /// <param name="reportBuilder">The report builder for generating markdown reports.</param>
     /// <param name="fileIO">The file I/O service for writing reports.</param>
     public ScanGameOrchestrator(
+        ILogger<ScanGameOrchestrator> logger,
         IUnpackedModsScanner unpackedScanner,
         IBA2Scanner ba2Scanner,
         IIniValidator iniValidator,
@@ -57,6 +61,7 @@ public sealed class ScanGameOrchestrator : IScanGameOrchestrator
         IScanGameReportBuilder reportBuilder,
         IFileIOService fileIO)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _unpackedScanner = unpackedScanner ?? throw new ArgumentNullException(nameof(unpackedScanner));
         _ba2Scanner = ba2Scanner ?? throw new ArgumentNullException(nameof(ba2Scanner));
         _iniValidator = iniValidator ?? throw new ArgumentNullException(nameof(iniValidator));
@@ -75,12 +80,16 @@ public sealed class ScanGameOrchestrator : IScanGameOrchestrator
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
+        _logger.LogInformation("Starting game scan for {GameName}", configuration.GameDisplayName);
+
         var stopwatch = Stopwatch.StartNew();
         var errors = new List<ScannerError>();
 
         // Determine which scanners will run
         var scannerTasks = BuildScannerTasks(configuration, cancellationToken);
         var totalScanners = scannerTasks.Count;
+
+        _logger.LogDebug("Enabled scanners ({Count}): {Scanners}", totalScanners, string.Join(", ", scannerTasks.Keys));
 
         progress?.Report(ScanGameProgress.Starting(totalScanners));
 
@@ -99,6 +108,15 @@ public sealed class ScanGameOrchestrator : IScanGameOrchestrator
         var generatedReport = _reportBuilder.BuildCombinedReport(report);
 
         progress?.Report(ScanGameProgress.Completed(totalScanners));
+
+        if (errors.Count > 0)
+        {
+            _logger.LogWarning("Game scan completed with {ErrorCount} errors in {Duration:F2}s", errors.Count, stopwatch.Elapsed.TotalSeconds);
+        }
+        else
+        {
+            _logger.LogInformation("Game scan completed successfully in {Duration:F2}s", stopwatch.Elapsed.TotalSeconds);
+        }
 
         return new ScanGameResult
         {
@@ -199,6 +217,7 @@ public sealed class ScanGameOrchestrator : IScanGameOrchestrator
 
         if (scannerTasks.Count == 0)
         {
+            _logger.LogDebug("No scanners enabled, skipping execution");
             return results;
         }
 
@@ -219,10 +238,12 @@ public sealed class ScanGameOrchestrator : IScanGameOrchestrator
             if (error != null)
             {
                 errors.Add(error);
+                _logger.LogError(error.Exception, "Scanner '{ScannerName}' failed: {ErrorMessage}", name, error.ErrorMessage);
             }
             else
             {
                 results[name] = result;
+                _logger.LogDebug("Scanner '{ScannerName}' completed successfully", name);
             }
 
             completedCount++;

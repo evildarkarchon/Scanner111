@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Common.Models.Configuration;
 using Scanner111.Common.Services.Settings;
 
@@ -15,7 +16,7 @@ public class UserSettingsServiceTests : IDisposable
         _testSettingsPath = System.IO.Path.Combine(
             System.IO.Path.GetTempPath(),
             $"Scanner111_Test_{Guid.NewGuid()}.json");
-        _service = new UserSettingsService(_testSettingsPath);
+        _service = new UserSettingsService(NullLogger<UserSettingsService>.Instance, _testSettingsPath);
     }
 
     public void Dispose()
@@ -100,7 +101,7 @@ public class UserSettingsServiceTests : IDisposable
             $"Scanner111_Test_{Guid.NewGuid()}",
             "nested",
             "settings.json");
-        var nestedService = new UserSettingsService(nestedPath);
+        var nestedService = new UserSettingsService(NullLogger<UserSettingsService>.Instance, nestedPath);
         var settings = UserSettings.Default;
 
         try

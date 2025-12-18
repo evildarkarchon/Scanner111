@@ -37,6 +37,38 @@ public interface ISettingsService
     bool ShowFormIdValues { get; set; }
 
     /// <summary>
+    /// Gets or sets whether to check for updates on application startup.
+    /// </summary>
+    bool CheckForUpdatesOnStartup { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to include prerelease versions in update checks.
+    /// </summary>
+    bool IncludePrereleases { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether VR mode is enabled.
+    /// Affects path detection and game executable names.
+    /// </summary>
+    bool VrMode { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to simplify crash log output.
+    /// Warning: May remove important troubleshooting information.
+    /// </summary>
+    bool SimplifyLogs { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to move unsolved logs to a subfolder.
+    /// </summary>
+    bool MoveUnsolvedLogs { get; set; }
+
+    /// <summary>
+    /// Gets or sets the custom INI folder path.
+    /// </summary>
+    string IniFolderPath { get; set; }
+
+    /// <summary>
     /// Loads settings from persistent storage.
     /// </summary>
     void Load();
@@ -68,6 +100,12 @@ public class SettingsService : ReactiveObject, ISettingsService
     [Reactive] public int MaxConcurrent { get; set; } = 50;
     [Reactive] public bool FcxMode { get; set; }
     [Reactive] public bool ShowFormIdValues { get; set; }
+    [Reactive] public bool CheckForUpdatesOnStartup { get; set; } = true;
+    [Reactive] public bool IncludePrereleases { get; set; }
+    [Reactive] public bool VrMode { get; set; }
+    [Reactive] public bool SimplifyLogs { get; set; }
+    [Reactive] public bool MoveUnsolvedLogs { get; set; }
+    [Reactive] public string IniFolderPath { get; set; } = string.Empty;
 
     public SettingsService()
     {
@@ -89,6 +127,12 @@ public class SettingsService : ReactiveObject, ISettingsService
                 MaxConcurrent = data.MaxConcurrent;
                 FcxMode = data.FcxMode;
                 ShowFormIdValues = data.ShowFormIdValues;
+                CheckForUpdatesOnStartup = data.CheckForUpdatesOnStartup;
+                IncludePrereleases = data.IncludePrereleases;
+                VrMode = data.VrMode;
+                SimplifyLogs = data.SimplifyLogs;
+                MoveUnsolvedLogs = data.MoveUnsolvedLogs;
+                IniFolderPath = data.IniFolderPath ?? string.Empty;
             }
         }
         catch
@@ -112,7 +156,13 @@ public class SettingsService : ReactiveObject, ISettingsService
                 ModsFolderPath = ModsFolderPath,
                 MaxConcurrent = MaxConcurrent,
                 FcxMode = FcxMode,
-                ShowFormIdValues = ShowFormIdValues
+                ShowFormIdValues = ShowFormIdValues,
+                CheckForUpdatesOnStartup = CheckForUpdatesOnStartup,
+                IncludePrereleases = IncludePrereleases,
+                VrMode = VrMode,
+                SimplifyLogs = SimplifyLogs,
+                MoveUnsolvedLogs = MoveUnsolvedLogs,
+                IniFolderPath = IniFolderPath
             };
 
             var options = new JsonSerializerOptions { WriteIndented = true };
@@ -132,6 +182,12 @@ public class SettingsService : ReactiveObject, ISettingsService
         MaxConcurrent = 50;
         FcxMode = false;
         ShowFormIdValues = false;
+        CheckForUpdatesOnStartup = true;
+        IncludePrereleases = false;
+        VrMode = false;
+        SimplifyLogs = false;
+        MoveUnsolvedLogs = false;
+        IniFolderPath = string.Empty;
     }
 
     /// <summary>
@@ -144,6 +200,12 @@ public class SettingsService : ReactiveObject, ISettingsService
         public int MaxConcurrent { get; set; } = 50;
         public bool FcxMode { get; set; }
         public bool ShowFormIdValues { get; set; }
+        public bool CheckForUpdatesOnStartup { get; set; } = true;
+        public bool IncludePrereleases { get; set; }
+        public bool VrMode { get; set; }
+        public bool SimplifyLogs { get; set; }
+        public bool MoveUnsolvedLogs { get; set; }
+        public string? IniFolderPath { get; set; }
     }
 }
 

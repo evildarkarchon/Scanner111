@@ -1,4 +1,6 @@
 <Solution>
+  <Project Path="Scanner111.Cli.Tests/Scanner111.Cli.Tests.csproj" />
+  <Project Path="Scanner111.Cli/Scanner111.Cli.csproj" />
   <Project Path="Scanner111.Common.Tests/Scanner111.Common.Tests.csproj" />
   <Project Path="Scanner111.Common/Scanner111.Common.csproj" />
   <Project Path="Scanner111.Tests/Scanner111.Tests.csproj" />

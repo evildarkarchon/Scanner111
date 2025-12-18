@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using Microsoft.Extensions.Logging;
 using Scanner111.Common.Models.DocsPath;
 using Scanner111.Common.Models.GamePath;
 
@@ -25,6 +26,8 @@ namespace Scanner111.Common.Services.DocsPath;
 /// </remarks>
 public sealed class DocsPathDetector : IDocsPathDetector
 {
+    private readonly ILogger<DocsPathDetector> _logger;
+
     /// <summary>
     /// Registry key for Windows Shell Folders.
     /// </summary>
@@ -35,6 +38,15 @@ public sealed class DocsPathDetector : IDocsPathDetector
     /// Registry value name for the Personal (Documents) folder.
     /// </summary>
     private const string PersonalValueName = "Personal";
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DocsPathDetector"/> class.
+    /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    public DocsPathDetector(ILogger<DocsPathDetector> logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
 
     /// <inheritdoc/>
     public async Task<DocsPathResult> DetectDocsPathAsync(
@@ -154,9 +166,9 @@ public sealed class DocsPathDetector : IDocsPathDetector
             var path = ReadDocumentsPathFromRegistry();
             return Task.FromResult(path);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Registry access failed - not critical, return null
+            _logger.LogWarning(ex, "Failed to read Documents folder from registry");
             return Task.FromResult<string?>(null);
         }
     }

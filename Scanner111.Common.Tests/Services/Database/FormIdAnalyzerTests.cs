@@ -1,6 +1,7 @@
 using System.Data;
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Scanner111.Common.Models.Analysis;
 using Scanner111.Common.Services.Analysis;
@@ -80,7 +81,7 @@ public class FormIdAnalyzerTests : IDisposable
     [Fact]
     public async Task LookupFormIdsAsync_WithValidFormIds_ReturnsRecordNames()
     {
-        var analyzer = new FormIdAnalyzer(_factoryMock.Object);
+        var analyzer = new FormIdAnalyzer(NullLogger<FormIdAnalyzer>.Instance, _factoryMock.Object);
         var formIds = new[] { "00012345", "000ABCDE", "00000000" }; // 2 valid, 1 missing
 
         var results = await analyzer.LookupFormIdsAsync(formIds);
@@ -97,7 +98,7 @@ public class FormIdAnalyzerTests : IDisposable
     [Fact]
     public async Task AnalyzeAsync_ExtractsAndLooksUpFormIds()
     {
-        var analyzer = new FormIdAnalyzer(_factoryMock.Object);
+        var analyzer = new FormIdAnalyzer(NullLogger<FormIdAnalyzer>.Instance, _factoryMock.Object);
         var segments = new List<LogSegment>
         {
             new LogSegment 

@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Common.Models.ScanGame;
 using Scanner111.Common.Services.ScanGame;
 
@@ -15,7 +16,7 @@ public class XseCheckerTests : IDisposable
 
     public XseCheckerTests()
     {
-        _checker = new XseChecker();
+        _checker = new XseChecker(NullLogger<XseChecker>.Instance);
         _tempDirectory = Path.Combine(Path.GetTempPath(), $"XseCheckerTests_{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempDirectory);
     }

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Scanner111.Common.Models.Papyrus;
 
 namespace Scanner111.Common.Services.Papyrus;
@@ -12,6 +13,7 @@ namespace Scanner111.Common.Services.Papyrus;
 /// </remarks>
 public sealed class PapyrusMonitorService : IPapyrusMonitorService
 {
+    private readonly ILogger<PapyrusMonitorService> _logger;
     private readonly IPapyrusLogReader _logReader;
 
     private CancellationTokenSource? _cts;
@@ -22,9 +24,11 @@ public sealed class PapyrusMonitorService : IPapyrusMonitorService
     /// <summary>
     /// Initializes a new instance of the <see cref="PapyrusMonitorService"/> class.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
     /// <param name="logReader">The log reader service.</param>
-    public PapyrusMonitorService(IPapyrusLogReader logReader)
+    public PapyrusMonitorService(ILogger<PapyrusMonitorService> logger, IPapyrusLogReader logReader)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _logReader = logReader ?? throw new ArgumentNullException(nameof(logReader));
     }
 
@@ -80,13 +84,15 @@ public sealed class PapyrusMonitorService : IPapyrusMonitorService
             _lastStats = currentStats;
             StatsUpdated?.Invoke(currentStats);
         }
-        catch (FileNotFoundException)
+        catch (FileNotFoundException ex)
         {
+            _logger.LogWarning(ex, "Papyrus log file not found: {LogPath}", logPath);
             ErrorOccurred?.Invoke("Papyrus log file not found. Logging may be disabled or the game hasn't been run yet.");
             return;
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error initializing Papyrus monitor: {LogPath}", logPath);
             ErrorOccurred?.Invoke($"Error initializing Papyrus monitor: {ex.Message}");
             return;
         }
@@ -139,13 +145,15 @@ public sealed class PapyrusMonitorService : IPapyrusMonitorService
             // Expected when stopping
             return (currentStats, position);
         }
-        catch (FileNotFoundException)
+        catch (FileNotFoundException ex)
         {
+            _logger.LogWarning(ex, "Papyrus log file not found: {LogPath}", logPath);
             ErrorOccurred?.Invoke("Papyrus log file not found. It may have been deleted.");
             return (currentStats, position);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error reading Papyrus log: {LogPath}", logPath);
             ErrorOccurred?.Invoke($"Error reading Papyrus log: {ex.Message}");
             return (currentStats, position);
         }

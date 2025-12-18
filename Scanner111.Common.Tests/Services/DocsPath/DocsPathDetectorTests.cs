@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Scanner111.Common.Models.DocsPath;
 using Scanner111.Common.Models.GamePath;
 using Scanner111.Common.Services.DocsPath;
@@ -15,7 +16,7 @@ public class DocsPathDetectorTests : IDisposable
 
     public DocsPathDetectorTests()
     {
-        _detector = new DocsPathDetector();
+        _detector = new DocsPathDetector(NullLogger<DocsPathDetector>.Instance);
         _tempDirectory = Path.Combine(Path.GetTempPath(), $"DocsPathDetectorTests_{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempDirectory);
     }

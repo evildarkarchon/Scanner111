@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Scanner111.Common.Models.Analysis;
 using Scanner111.Common.Models.Configuration;
@@ -15,7 +16,7 @@ public class ConfigurationCacheTests
     public ConfigurationCacheTests()
     {
         _loader = new Mock<IYamlConfigLoader>();
-        _cache = new ConfigurationCache(_loader.Object, "TestData");
+        _cache = new ConfigurationCache(NullLogger<ConfigurationCache>.Instance, _loader.Object, "TestData");
     }
 
     [Fact]

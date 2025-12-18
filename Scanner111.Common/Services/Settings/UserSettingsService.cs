@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Scanner111.Common.Models.Configuration;
 
 namespace Scanner111.Common.Services.Settings;
@@ -9,6 +10,7 @@ namespace Scanner111.Common.Services.Settings;
 /// </summary>
 public class UserSettingsService : IUserSettingsService
 {
+    private readonly ILogger<UserSettingsService> _logger;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -22,12 +24,14 @@ public class UserSettingsService : IUserSettingsService
     /// <summary>
     /// Initializes a new instance of the <see cref="UserSettingsService"/> class.
     /// </summary>
+    /// <param name="logger">The logger instance.</param>
     /// <param name="settingsFilePath">
     /// Optional custom path for the settings file.
     /// If not specified, uses the default location in AppData\Local\Scanner111.
     /// </param>
-    public UserSettingsService(string? settingsFilePath = null)
+    public UserSettingsService(ILogger<UserSettingsService> logger, string? settingsFilePath = null)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _settingsFilePath = settingsFilePath ?? GetDefaultSettingsPath();
     }
 
@@ -50,9 +54,9 @@ public class UserSettingsService : IUserSettingsService
             _cachedSettings = settings ?? UserSettings.Default;
             return _cachedSettings;
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            // If the file is corrupted, return defaults
+            _logger.LogWarning(ex, "Failed to deserialize user settings, using defaults: {SettingsPath}", _settingsFilePath);
             _cachedSettings = UserSettings.Default;
             return _cachedSettings;
         }

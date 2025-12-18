@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Scanner111.Common.Models.ScanGame;
 
 namespace Scanner111.Common.Services.ScanGame;
@@ -8,6 +9,7 @@ namespace Scanner111.Common.Services.ScanGame;
 /// </summary>
 public sealed class BSArchService : IBSArchService
 {
+    private readonly ILogger<BSArchService> _logger;
     private const int DefaultTimeoutMs = 30000; // 30 seconds
     private const int MaxOutputBuffer = 1024 * 1024; // 1MB
 
@@ -21,6 +23,15 @@ public sealed class BSArchService : IBSArchService
     ];
 
     private string? _bsarchPath;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BSArchService"/> class.
+    /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    public BSArchService(ILogger<BSArchService> logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
 
     /// <inheritdoc />
     public string? BSArchPath
@@ -341,6 +352,7 @@ public sealed class BSArchService : IBSArchService
         }
         catch (OperationCanceledException)
         {
+            _logger.LogWarning("BSArch process timed out or was cancelled: {ArchivePath} {Command}", archivePath, command);
             try
             {
                 process.Kill(entireProcessTree: true);
@@ -354,6 +366,7 @@ public sealed class BSArchService : IBSArchService
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to execute BSArch: {ArchivePath} {Command}", archivePath, command);
             return (-1, string.Empty, ex.Message);
         }
     }

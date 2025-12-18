@@ -1,4 +1,6 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Scanner111.Common.Models.Analysis;
 using Scanner111.Common.Models.Configuration;
@@ -16,7 +18,7 @@ public class ScanExecutorTests : IDisposable
     public ScanExecutorTests()
     {
         _orchestrator = new Mock<ILogOrchestrator>();
-        _executor = new ScanExecutor(() => _orchestrator.Object);
+        _executor = new ScanExecutor(NullLogger<ScanExecutor>.Instance, () => _orchestrator.Object);
         _tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(_tempDir);
     }

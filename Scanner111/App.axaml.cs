@@ -2,25 +2,17 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
-using Scanner111.Common.Services.Analysis;
-using Scanner111.Common.Services.Configuration;
-using Scanner111.Common.Services.Database;
-using Scanner111.Common.Services.FileIO;
-using Scanner111.Common.Services.Orchestration;
-using Scanner111.Common.Services.Parsing;
-using Scanner111.Common.Services.PathValidation;
-using Scanner111.Common.Services.Reporting;
-using Scanner111.Common.Services.DocsPath;
-using Scanner111.Common.Services.GameIntegrity;
-using Scanner111.Common.Services.ScanGame;
-using Scanner111.Common.Services.Settings;
-using Scanner111.Common.Services.Papyrus;
-using Scanner111.Common.Services.Pastebin;
+using Microsoft.Extensions.Logging;
+using Scanner111.Common.DependencyInjection;
+using Scanner111.Common.Services.Logging;
+using Scanner111.Common.Services.Updates;
+using Scanner111.Services;
 using Scanner111.ViewModels;
 using Scanner111.Views;
-using System; // Required for IServiceProvider
-using System.Net.Http;
-using Scanner111.Services; // Required for IDialogService and DialogService
+using Serilog;
+using System;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Scanner111;
 
@@ -35,105 +27,119 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        // Configure Serilog early before services are built
+        var logPathProvider = new LogPathProvider();
+        ConfigureSerilog(logPathProvider);
+
         var services = new ServiceCollection();
-        ConfigureServices(services);
+        ConfigureServices(services, logPathProvider);
         Services = services.BuildServiceProvider();
+
+        // Log application startup
+        var logger = Services.GetRequiredService<ILogger<App>>();
+        logger.LogInformation("Scanner111 application started");
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = Services.GetRequiredService<MainWindow>();
+            desktop.ShutdownRequested += (_, _) =>
+            {
+                logger.LogInformation("Scanner111 application shutting down");
+                Log.CloseAndFlush();
+            };
+
+            // Perform startup update check if enabled (non-blocking)
+            _ = PerformStartupUpdateCheckAsync();
         }
 
         base.OnFrameworkInitializationCompleted();
     }
 
-    private void ConfigureServices(IServiceCollection services)
+    private static void ConfigureSerilog(ILogPathProvider logPathProvider)
     {
-        // Register common services
-        services.AddSingleton<IFileIOService, FileIOService>();
-        services.AddSingleton<ILogParser, LogParser>();
-        services.AddSingleton<IPluginAnalyzer, PluginAnalyzer>();
-        services.AddSingleton<ISuspectScanner, SuspectScanner>();
-        services.AddSingleton<ISettingsScanner, SettingsScanner>(); // Assuming implementation exists
-        services.AddSingleton<IReportWriter, ReportWriter>();
-        services.AddSingleton<IYamlConfigLoader, YamlConfigLoader>();
-        services.AddSingleton<IConfigurationCache, ConfigurationCache>(); // Assuming implementation exists
+        var logDirectory = logPathProvider.GetLogDirectory();
+        Directory.CreateDirectory(logDirectory);
 
-        // Path validation and user settings services
-        services.AddSingleton<IUserSettingsService, UserSettingsService>();
-        services.AddSingleton<IPathValidator, PathValidator>();
-        services.AddSingleton<IDatabaseConnectionFactory>(provider =>
-            new SqliteDatabaseConnectionFactory("path_to_your_db.sqlite")); // TODO: Get actual path from config
-        services.AddSingleton<IFormIdAnalyzer, FormIdAnalyzer>();
+        var logPath = logPathProvider.GetLogFilePath();
 
-        // ScanGame services
-        services.AddSingleton<IIniValidator, IniValidator>();
-        services.AddSingleton<IDocsPathDetector, DocsPathDetector>();
-        services.AddSingleton<IUnpackedModsScanner, UnpackedModsScanner>();
-        services.AddSingleton<IBA2Scanner, BA2Scanner>();
-        services.AddSingleton<IDDSAnalyzer, DDSAnalyzer>();
-        services.AddSingleton<ITomlValidator, TomlValidator>();
-        services.AddSingleton<IXseChecker, XseChecker>();
-        services.AddSingleton<IScanGameReportBuilder, ScanGameReportBuilder>();
+        Log.Logger = new LoggerConfiguration()
+#if DEBUG
+            .MinimumLevel.Debug()
+#else
+            .MinimumLevel.Information()
+#endif
+            .WriteTo.File(
+                path: logPath,
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 7,
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
+            .CreateLogger();
+    }
 
-        // GameIntegrity services
-        services.AddSingleton<IGameIntegrityChecker, GameIntegrityChecker>();
+    private static void ConfigureServices(IServiceCollection services, ILogPathProvider logPathProvider)
+    {
+        // Register shared Scanner111.Common services
+        services.AddScanner111CommonServices(logPathProvider);
 
-        // Papyrus monitoring services
-        services.AddSingleton<IPapyrusLogReader, PapyrusLogReader>();
-        services.AddTransient<IPapyrusMonitorService, PapyrusMonitorService>();
+        // Add Serilog for file-based logging (GUI-specific)
+        services.AddLogging(builder => builder.AddSerilog(dispose: true));
 
-        // Pastebin services
-        services.AddSingleton<HttpClient>(_ =>
-        {
-            var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-            client.DefaultRequestHeaders.Add("User-Agent", "Scanner111/1.0");
-            return client;
-        });
-        services.AddSingleton<IPastebinService, PastebinService>();
+        // GUI-specific services
+        services.AddSingleton<IUpdateService, UpdateService>();
+        services.AddSingleton<IDialogService, DialogService>();
+        services.AddSingleton<IScanResultsService, ScanResultsService>();
+        services.AddSingleton<ISettingsService, SettingsService>();
+        services.AddSingleton<IBackupService, BackupService>();
 
-        // Orchestration services (often transient or scoped if stateful per-request)
-        // LogOrchestrator can be transient if it's processing one log per instance
-        services.AddTransient<ILogOrchestrator, LogOrchestrator>();
-        services.AddTransient<IScanGameOrchestrator, ScanGameOrchestrator>();
-
-        // Register factory delegate for LogOrchestrator (used by ScanExecutor)
-        services.AddSingleton<Func<ILogOrchestrator>>(sp => () => sp.GetRequiredService<ILogOrchestrator>());
-        services.AddSingleton<Func<IScanGameOrchestrator>>(sp => () => sp.GetRequiredService<IScanGameOrchestrator>());
-        services.AddSingleton<IScanExecutor, ScanExecutor>();
-
-        // Register ViewModels as transient, as new instances are typically created for each view
+        // ViewModels (transient - new instance per navigation)
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<HomePageViewModel>();
         services.AddTransient<BackupsViewModel>();
         services.AddTransient<ArticlesViewModel>();
         services.AddTransient<PapyrusMonitorViewModel>();
+        services.AddTransient<AboutViewModel>();
+        services.AddTransient<ResultsViewModel>();
 
-        // Register factory delegates for ViewModel navigation
+        // ViewModel factory delegates for navigation
         services.AddTransient<Func<SettingsViewModel>>(sp => () => sp.GetRequiredService<SettingsViewModel>());
         services.AddTransient<Func<HomePageViewModel>>(sp => () => sp.GetRequiredService<HomePageViewModel>());
         services.AddTransient<Func<ResultsViewModel>>(sp => () => sp.GetRequiredService<ResultsViewModel>());
         services.AddTransient<Func<BackupsViewModel>>(sp => () => sp.GetRequiredService<BackupsViewModel>());
         services.AddTransient<Func<PapyrusMonitorViewModel>>(sp => () => sp.GetRequiredService<PapyrusMonitorViewModel>());
+        services.AddTransient<Func<AboutViewModel>>(sp => () => sp.GetRequiredService<AboutViewModel>());
 
-        // Register Views (MainWindow needs to resolve its ViewModel)
+        // Views
         services.AddTransient<MainWindow>();
-        services.AddTransient<SettingsWindow>(); // Register SettingsWindow
+        services.AddTransient<SettingsWindow>();
+    }
 
-        // Register DialogService
-        services.AddSingleton<IDialogService, DialogService>();
+    private static async Task PerformStartupUpdateCheckAsync()
+    {
+        try
+        {
+            var settingsService = Services.GetRequiredService<ISettingsService>();
+            if (!settingsService.CheckForUpdatesOnStartup)
+            {
+                return;
+            }
 
-        // Register Scan Results Service (shared state for results)
-        services.AddSingleton<IScanResultsService, ScanResultsService>();
+            var updateService = Services.GetRequiredService<IUpdateService>();
+            var result = await updateService.CheckForUpdatesAsync(settingsService.IncludePrereleases);
 
-        // Register Settings Service (shared settings state)
-        services.AddSingleton<ISettingsService, SettingsService>();
-
-        // Register Backup Service
-        services.AddSingleton<IBackupService, BackupService>();
-
-        // Register ResultsViewModel (uses shared results service)
-        services.AddTransient<ResultsViewModel>();
+            if (result.Success && result.IsUpdateAvailable && result.LatestRelease is not null)
+            {
+                var logger = Services.GetRequiredService<ILogger<App>>();
+                logger.LogInformation(
+                    "Update available: {CurrentVersion} -> {LatestVersion}",
+                    result.CurrentVersion,
+                    result.LatestRelease.Version);
+            }
+        }
+        catch (Exception ex)
+        {
+            var logger = Services.GetRequiredService<ILogger<App>>();
+            logger.LogWarning(ex, "Failed to check for updates on startup");
+        }
     }
 }

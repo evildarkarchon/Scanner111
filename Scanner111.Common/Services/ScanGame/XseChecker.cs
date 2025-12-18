@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using Microsoft.Extensions.Logging;
 using Scanner111.Common.Models.ScanGame;
 
 namespace Scanner111.Common.Services.ScanGame;
@@ -17,6 +18,16 @@ namespace Scanner111.Common.Services.ScanGame;
 /// </remarks>
 public sealed class XseChecker : IXseChecker
 {
+    private readonly ILogger<XseChecker> _logger;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="XseChecker"/> class.
+    /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    public XseChecker(ILogger<XseChecker> logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
     /// <inheritdoc/>
     public async Task<XseScanResult> CheckIntegrityAsync(
         XseConfiguration configuration,
@@ -121,9 +132,9 @@ public sealed class XseChecker : IXseChecker
             using var reader = new StreamReader(stream);
             firstLine = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (IOException)
+        catch (IOException ex)
         {
-            // File might be locked or inaccessible
+            _logger.LogWarning(ex, "Failed to read XSE log file: {LogFilePath}", logFilePath);
             return (XseInstallationStatus.Installed, null, false);
         }
 
@@ -175,9 +186,9 @@ public sealed class XseChecker : IXseChecker
                 }
             }
         }
-        catch (IOException)
+        catch (IOException ex)
         {
-            // File might be locked or inaccessible
+            _logger.LogWarning(ex, "Failed to scan XSE log for errors: {LogFilePath}", logFilePath);
         }
 
         return errors;
@@ -225,16 +236,18 @@ public sealed class XseChecker : IXseChecker
                     ActualHash: actualHash,
                     Status: status));
             }
-            catch (IOException)
+            catch (IOException ex)
             {
+                _logger.LogWarning(ex, "Failed to read script file for hash verification: {FilePath}", filePath);
                 results.Add(new ScriptHashResult(
                     FileName: fileName,
                     ExpectedHash: expectedHash,
                     ActualHash: null,
                     Status: ScriptHashStatus.ReadError));
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
+                _logger.LogWarning(ex, "Access denied to script file: {FilePath}", filePath);
                 results.Add(new ScriptHashResult(
                     FileName: fileName,
                     ExpectedHash: expectedHash,
