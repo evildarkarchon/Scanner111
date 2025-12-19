@@ -7,7 +7,7 @@
         <vm:SettingsViewModel />
     </Design.DataContext>
 
-    <Grid Margin="40" RowDefinitions="Auto, *, Auto, Auto" MaxWidth="700" HorizontalAlignment="Left">
+    <Grid Margin="20" RowDefinitions="Auto, *, Auto, Auto" MaxWidth="700" HorizontalAlignment="Left">
         <!-- Header -->
         <TextBlock Grid.Row="0" Text="Settings" FontSize="28" FontWeight="Bold"
                    Foreground="White" Margin="0,0,0,20" />
@@ -24,8 +24,9 @@
                         <CheckBox Content="VR Mode (for VR versions of games)"
                                   IsChecked="{Binding VrMode}" Foreground="White" />
 
-                        <TextBlock Text="Enable VR mode if you are playing Fallout 4 VR or Skyrim VR. This affects path detection and game executable names."
-                                   Foreground="#888" FontSize="12" TextWrapping="Wrap" />
+                        <TextBlock
+                            Text="Enable VR mode if you are playing Fallout 4 VR or Skyrim VR. This affects path detection and game executable names."
+                            Foreground="#888" FontSize="12" TextWrapping="Wrap" />
 
                         <!-- Debug Logs Section -->
                         <Border BorderBrush="#444" BorderThickness="1" CornerRadius="4"
@@ -68,8 +69,9 @@
 
                         <Border Background="#442222" CornerRadius="4" Padding="10"
                                 Margin="0,5,0,0" IsVisible="{Binding SimplifyLogs}">
-                            <TextBlock Text="Warning: Simplifying logs may remove details needed for troubleshooting. Only enable if you understand the implications."
-                                       Foreground="#ffaa00" FontSize="12" TextWrapping="Wrap" />
+                            <TextBlock
+                                Text="Warning: Simplifying logs may remove details needed for troubleshooting. Only enable if you understand the implications."
+                                Foreground="#ffaa00" FontSize="12" TextWrapping="Wrap" />
                         </Border>
 
                         <StackPanel Spacing="5" Margin="0,15,0,0">
@@ -173,3 +175,4 @@
         </StackPanel>
     </Grid>
 </UserControl>
+

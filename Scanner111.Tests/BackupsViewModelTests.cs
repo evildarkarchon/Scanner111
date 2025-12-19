@@ -2,8 +2,6 @@ using FluentAssertions;
 using NSubstitute;
 using Scanner111.Services;
 using Scanner111.ViewModels;
-using System.Threading;
-using Xunit;
 
 namespace Scanner111.Tests;
 

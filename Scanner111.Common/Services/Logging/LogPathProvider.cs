@@ -12,6 +12,9 @@ public class LogPathProvider : ILogPathProvider
 
     private readonly string _logDirectory;
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="LogPathProvider"/> using the default LocalAppData folder.
+    /// </summary>
     public LogPathProvider()
     {
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);

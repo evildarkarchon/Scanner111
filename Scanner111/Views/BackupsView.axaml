@@ -7,7 +7,7 @@
              x:Class="Scanner111.Views.BackupsView"
              x:DataType="vm:BackupsViewModel">
 
-    <Grid Margin="40">
+    <Grid Margin="20">
         <StackPanel Spacing="20">
             <TextBlock Text="Game File Backups" FontSize="24" FontWeight="Bold"
                        HorizontalAlignment="Center" Foreground="White" />

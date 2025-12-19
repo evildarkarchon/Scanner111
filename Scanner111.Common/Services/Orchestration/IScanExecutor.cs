@@ -25,8 +25,15 @@ public interface IScanExecutor
 /// </summary>
 public record ScanProgress
 {
+    /// <summary>Gets the number of files processed so far.</summary>
     public int FilesProcessed { get; init; }
+
+    /// <summary>Gets the total number of files to process.</summary>
     public int TotalFiles { get; init; }
+
+    /// <summary>Gets the path of the file currently being processed.</summary>
     public string? CurrentFile { get; init; }
+
+    /// <summary>Gets the cumulative statistics for the scan operation.</summary>
     public ScanStatistics Statistics { get; init; } = null!;
 }

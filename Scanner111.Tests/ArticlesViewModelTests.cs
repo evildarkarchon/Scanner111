@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Scanner111.ViewModels;
-using Xunit;
 
 namespace Scanner111.Tests;
 

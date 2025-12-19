@@ -8,47 +8,54 @@
         Icon="/Assets/avalonia-logo.ico"
         Title="CLASSIC - Crash Log Auto Scanner &amp; Setup Integrity Checker"
         x:DataType="vm:MainWindowViewModel"
+        Width="{Binding WindowWidth, Mode=TwoWay}"
+        Height="{Binding WindowHeight, Mode=TwoWay}"
         Background="#121212"
         TransparencyLevelHint="AcrylicBlur"
         ExtendClientAreaToDecorationsHint="False">
 
-    <Design.DataContext>
-        <vm:MainWindowViewModel />
-    </Design.DataContext>
+        <Design.DataContext>
+                <vm:MainWindowViewModel />
+        </Design.DataContext>
 
-    <Grid ColumnDefinitions="250, *">
-        <!-- Sidebar -->
-        <Border Grid.Column="0" Background="#1E1E1E" Padding="20">
-            <Grid RowDefinitions="Auto, *, Auto">
-                <!-- Title -->
-                <TextBlock Grid.Row="0" Text="CLASSIC" FontSize="28" FontWeight="Bold"
-                           HorizontalAlignment="Center" Margin="0,0,0,40" Foreground="White" />
+        <Grid ColumnDefinitions="250, *">
+                <!-- Sidebar -->
+                <Border Grid.Column="0" Background="#1E1E1E" Padding="20">
+                        <Grid RowDefinitions="Auto, *, Auto">
+                                <!-- Title -->
+                                <TextBlock Grid.Row="0" Text="CLASSIC" FontSize="28" FontWeight="Bold"
+                                           HorizontalAlignment="Center" Margin="0,0,0,40" Foreground="White" />
 
-                <!-- Navigation -->
-                <StackPanel Grid.Row="1" Spacing="5">
-                    <Button Classes="NavButton" Content="Home" Command="{Binding GoToHomeCommand}"
-                            HorizontalAlignment="Stretch" />
-                    <Button Classes="NavButton" Content="Articles" Command="{Binding GoToArticlesCommand}"
-                            HorizontalAlignment="Stretch" />
-                    <Button Classes="NavButton" Content="Backups" Command="{Binding GoToBackupsCommand}"
-                            HorizontalAlignment="Stretch" />
-                    <Button Classes="NavButton" Content="Results" Command="{Binding GoToResultsCommand}"
-                            HorizontalAlignment="Stretch" />
-                    <Button Classes="NavButton" Content="Settings" Command="{Binding GoToSettingsCommand}"
-                            HorizontalAlignment="Stretch" />
-                    <Button Classes="NavButton" Content="About" Command="{Binding GoToAboutCommand}"
-                            HorizontalAlignment="Stretch" />
-                </StackPanel>
+                                <!-- Navigation -->
+                                <StackPanel Grid.Row="1" Spacing="5">
+                                        <Button Classes="NavButton" Content="Home" Command="{Binding GoToHomeCommand}"
+                                                HorizontalAlignment="Stretch" />
+                                        <Button Classes="NavButton" Content="Articles"
+                                                Command="{Binding GoToArticlesCommand}"
+                                                HorizontalAlignment="Stretch" />
+                                        <Button Classes="NavButton" Content="Backups"
+                                                Command="{Binding GoToBackupsCommand}"
+                                                HorizontalAlignment="Stretch" />
+                                        <Button Classes="NavButton" Content="Results"
+                                                Command="{Binding GoToResultsCommand}"
+                                                HorizontalAlignment="Stretch" />
+                                        <Button Classes="NavButton" Content="Settings"
+                                                Command="{Binding GoToSettingsCommand}"
+                                                HorizontalAlignment="Stretch" />
+                                        <Button Classes="NavButton" Content="About"
+                                                Command="{Binding GoToAboutCommand}"
+                                                HorizontalAlignment="Stretch" />
+                                </StackPanel>
 
-                <!-- Footer -->
-                <Button Grid.Row="2" Classes="NavButton" Content="Exit" Command="{Binding ExitCommand}"
-                        HorizontalAlignment="Stretch" />
-            </Grid>
-        </Border>
+                                <!-- Footer -->
+                                <Button Grid.Row="2" Classes="NavButton" Content="Exit" Command="{Binding ExitCommand}"
+                                        HorizontalAlignment="Stretch" />
+                        </Grid>
+                </Border>
 
-        <!-- Main Content -->
-        <Border Grid.Column="1" Padding="20">
-            <ContentControl Content="{Binding CurrentPage}" />
-        </Border>
-    </Grid>
+                <!-- Main Content -->
+                <Border Grid.Column="1" Padding="12">
+                        <ContentControl Content="{Binding CurrentPage}" />
+                </Border>
+        </Grid>
 </Window>

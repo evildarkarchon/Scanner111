@@ -7,10 +7,10 @@
              x:Class="Scanner111.Views.HomePageView"
              x:DataType="vm:HomePageViewModel">
 
-    <Grid Margin="40">
+    <Grid Margin="20">
         <StackPanel Spacing="20">
             <!-- Header -->
-            <TextBlock Text="CLASSIC Dashboard" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,20" />
+            <TextBlock Text="CLASSIC Dashboard" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,10" />
 
             <!-- Staging Mods Folder -->
             <StackPanel Spacing="5">

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using System.Collections.Generic;
 using ReactiveUI;
 using ReactiveUI.Fody.Helpers;
 
@@ -82,6 +83,20 @@ public interface ISettingsService
     /// Resets settings to default values.
     /// </summary>
     void ResetToDefaults();
+
+    /// <summary>
+    /// Gets or sets the preferred window dimensions for a specific page key.
+    /// </summary>
+    /// <param name="pageKey">The unique key for the page (e.g., ViewModel type name).</param>
+    /// <param name="width">The width to save.</param>
+    /// <param name="height">The height to save.</param>
+    void SaveWindowSize(string pageKey, double width, double height);
+
+    /// <summary>
+    /// Gets the preferred window dimensions for a specific page key.
+    /// Returns a default size if not found.
+    /// </summary>
+    (double Width, double Height) GetWindowSize(string pageKey);
 }
 
 /// <summary>
@@ -106,6 +121,9 @@ public class SettingsService : ReactiveObject, ISettingsService
     [Reactive] public bool SimplifyLogs { get; set; }
     [Reactive] public bool MoveUnsolvedLogs { get; set; }
     [Reactive] public string IniFolderPath { get; set; } = string.Empty;
+
+    // Dictionary to store saved window sizes for each page
+    private Dictionary<string, WindowSizeData> _windowSizes = new();
 
     public SettingsService()
     {
@@ -133,6 +151,11 @@ public class SettingsService : ReactiveObject, ISettingsService
                 SimplifyLogs = data.SimplifyLogs;
                 MoveUnsolvedLogs = data.MoveUnsolvedLogs;
                 IniFolderPath = data.IniFolderPath ?? string.Empty;
+
+                if (data.WindowSizes != null)
+                {
+                    _windowSizes = data.WindowSizes;
+                }
             }
         }
         catch
@@ -162,7 +185,8 @@ public class SettingsService : ReactiveObject, ISettingsService
                 VrMode = VrMode,
                 SimplifyLogs = SimplifyLogs,
                 MoveUnsolvedLogs = MoveUnsolvedLogs,
-                IniFolderPath = IniFolderPath
+                IniFolderPath = IniFolderPath,
+                WindowSizes = _windowSizes
             };
 
             var options = new JsonSerializerOptions { WriteIndented = true };
@@ -188,6 +212,39 @@ public class SettingsService : ReactiveObject, ISettingsService
         SimplifyLogs = false;
         MoveUnsolvedLogs = false;
         IniFolderPath = string.Empty;
+        _windowSizes.Clear();
+    }
+
+    public void SaveWindowSize(string pageKey, double width, double height)
+    {
+        if (string.IsNullOrEmpty(pageKey)) return;
+
+        if (_windowSizes.TryGetValue(pageKey, out var existing))
+        {
+            existing.Width = width;
+            existing.Height = height;
+        }
+        else
+        {
+            _windowSizes[pageKey] = new WindowSizeData { Width = width, Height = height };
+        }
+    }
+
+    public (double Width, double Height) GetWindowSize(string pageKey)
+    {
+        if (!string.IsNullOrEmpty(pageKey) && _windowSizes.TryGetValue(pageKey, out var size))
+        {
+            return (size.Width, size.Height);
+        }
+
+        // Custom defaults per page
+        if (pageKey == "AboutViewModel")
+        {
+            return (1100, 800);
+        }
+
+        // Return default values if not found
+        return (1000, 600);
     }
 
     /// <summary>
@@ -206,6 +263,15 @@ public class SettingsService : ReactiveObject, ISettingsService
         public bool SimplifyLogs { get; set; }
         public bool MoveUnsolvedLogs { get; set; }
         public string? IniFolderPath { get; set; }
+        public Dictionary<string, WindowSizeData>? WindowSizes { get; set; }
+    }
+
+    /// <summary>
+    /// Simple data class for window dimensions.
+    /// </summary>
+    public class WindowSizeData
+    {
+        public double Width { get; set; }
+        public double Height { get; set; }
     }
 }
-

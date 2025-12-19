@@ -34,5 +34,17 @@
             <Setter Property="Background" Value="#007ACC" />
             <Setter Property="Foreground" Value="White" />
         </Style>
+
+        <!-- Accent/Primary Button Style -->
+        <Style Selector="Button.Accent">
+            <Setter Property="Background" Value="#007ACC" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="Button.Accent:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#008BE6" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
     </Application.Styles>
 </Application>
